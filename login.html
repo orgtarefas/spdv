@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDV - Sistema de Ponto de Venda</title>
+    <link rel="stylesheet" href="login.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">
+                <i class="fas fa-cash-register"></i>
+                <div>
+                    <h1>PDV Sistema</h1>
+                    <p class="version">Versão 2.0</p>
+                </div>
+            </div>
+            <p class="system-description">Sistema Integrado de Ponto de Venda</p>
+        </div>
+
+        <div class="login-card">
+            <div class="card-header">
+                <h2><i class="fas fa-sign-in-alt"></i> Acesso ao Sistema</h2>
+                <p class="card-subtitle">Entre com suas credenciais para continuar</p>
+            </div>
+            
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="loja" class="form-label">
+                        <i class="fas fa-store"></i>
+                        <span>Loja</span>
+                        <span class="required">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select id="loja" class="form-control">
+                            <option value="">Carregando lojas...</option>
+                        </select>
+                        <i class="fas fa-chevron-down select-icon"></i>
+                    </div>
+                    <div class="form-hint">
+                        <i class="fas fa-info-circle"></i>
+                        Selecione sua unidade de trabalho
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="usuario" class="form-label">
+                        <i class="fas fa-user"></i>
+                        <span>Usuário</span>
+                        <span class="required">*</span>
+                    </label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="usuario" class="form-control" 
+                               placeholder="Digite seu login" 
+                               autocomplete="username">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha" class="form-label">
+                        <i class="fas fa-lock"></i>
+                        <span>Senha</span>
+                        <span class="required">*</span>
+                    </label>
+                    <div class="password-container">
+                        <div class="input-with-icon">
+                            <i class="fas fa-key input-icon"></i>
+                            <input type="password" id="senha" class="form-control" 
+                                   placeholder="Digite sua senha"
+                                   autocomplete="current-password">
+                        </div>
+                        <button type="button" id="togglePassword" class="password-toggle" title="Mostrar senha">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar"></div>
+                        <div class="strength-text">Segurança da senha</div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button id="btnLogin" class="btn-login">
+                        <span class="btn-content">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Entrar no Sistema</span>
+                        </span>
+                        <div class="btn-loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </button>
+                    
+                    <div class="login-options">
+                        <label class="remember-me">
+                            <input type="checkbox" id="rememberMe">
+                            <span class="checkmark"></span>
+                            <span>Lembrar usuário</span>
+                        </label>
+                        <a href="#" class="forgot-password" id="forgotPassword">
+                            <i class="fas fa-question-circle"></i>
+                            Esqueceu a senha?
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="login-footer">
+                <div class="security-info">
+                    <i class="fas fa-shield-alt"></i>
+                    <div>
+                        <h4>Sistema Seguro</h4>
+                        <p>Conexão criptografada com Firebase</p>
+                    </div>
+                </div>
+                <div class="support-info">
+                    <i class="fas fa-headset"></i>
+                    <div>
+                        <h4>Suporte Técnico</h4>
+                        <p>Entre em contato com o administrador</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="system-info">
+            <div class="info-item">
+                <i class="fas fa-database"></i>
+                <span>Sincronização em tempo real</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-mobile-alt"></i>
+                <span>Totalmente responsivo</span>
+            </div>
+            <div class="info-item">
+                <i class="fas fa-cloud"></i>
+                <span>Armazenamento na nuvem</span>
+            </div>
+        </div>
+
+        <div class="login-footer-bottom">
+            <div class="copyright">
+                <p>© 2024 PDV Sistema - Todos os direitos reservados</p>
+                <p class="build-info">Build: 2.0.1 | Firebase SDK v10.7.1</p>
+            </div>
+            <div class="environment">
+                <span class="env-tag" id="environmentTag">Ambiente: Desenvolvimento</span>
+                <span class="server-status" id="serverStatus">
+                    <i class="fas fa-circle online"></i>
+                    Online
+                </span>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <h3 id="loadingMessage">Conectando ao sistema...</h3>
+                <p class="loading-subtitle">Por favor, aguarde</p>
+                <div class="loading-progress">
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Alert -->
+        <div id="message" class="message-alert">
+            <div class="message-content">
+                <i class="message-icon"></i>
+                <div class="message-text"></div>
+                <button class="message-close">&times;</button>
+            </div>
+        </div>
+
+        <!-- Session Timeout Warning -->
+        <div id="sessionWarning" class="session-warning">
+            <div class="warning-content">
+                <i class="fas fa-clock"></i>
+                <div class="warning-text">
+                    <h4>Sessão Expirando</h4>
+                    <p>Sua sessão expirará em <span id="countdown">60</span> segundos</p>
+                </div>
+                <button id="extendSession" class="btn-extend">Estender Sessão</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="login.js"></script>
+    
+    <!-- Script para corrigir favicon -->
+    <script>
+        // Prevenir erro de favicon
+        document.addEventListener('DOMContentLoaded', function() {
+            const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'shortcut icon';
+            link.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>';
+            document.getElementsByTagName('head')[0].appendChild(link);
+        });
+    </script>
+</body>
+</html>
