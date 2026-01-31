@@ -1,4 +1,4 @@
-// login.js - VERSÃO COMPLETA E CORRIGIDA
+// login.js - VERSÃO COMPLETA COM NOVA ESTRUTURA
 import { db, collection, getDocs, doc, getDoc } from './firebase_login.js';
 
 // Elementos DOM
@@ -9,205 +9,241 @@ const togglePassword = document.getElementById('togglePassword');
 const btnLogin = document.getElementById('btnLogin');
 const loadingOverlay = document.getElementById('loading');
 const messageAlert = document.getElementById('message');
+const loadingMessage = document.getElementById('loadingMessage');
+const rememberMe = document.getElementById('rememberMe');
+const forgotPassword = document.getElementById('forgotPassword');
+const serverStatus = document.getElementById('serverStatus');
 
 // ============================================
-// 1. CORREÇÃO: Botão mostrar/ocultar senha
+// 1. INICIALIZAÇÃO DO SISTEMA
 // ============================================
-togglePassword.addEventListener('click', function() {
-    const type = senhaInput.getAttribute('type');
-    const isPassword = type === 'password';
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 PDV Sistema - Iniciando login...');
     
-    // Alternar tipo
-    senhaInput.setAttribute('type', isPassword ? 'text' : 'password');
+    // Configurar eventos
+    configurarEventos();
     
-    // Alternar ícone
-    const icon = this.querySelector('i');
-    if (isPassword) {
-        icon.className = 'fas fa-eye-slash';
-        this.title = "Ocultar senha";
-    } else {
-        icon.className = 'fas fa-eye';
-        this.title = "Mostrar senha";
+    // Verificar se já está autenticado
+    if (localStorage.getItem('pdv_autenticado') === 'true') {
+        const usuario = JSON.parse(localStorage.getItem('pdv_usuario'));
+        const loja = localStorage.getItem('pdv_loja');
+        
+        if (usuario && loja) {
+            console.log(`✅ Usuário já autenticado: ${usuario.login}`);
+            window.location.href = `lojas/${loja}/home.html`;
+            return;
+        }
     }
     
-    // Manover foco no campo
-    senhaInput.focus();
+    // Carregar dados salvos
+    carregarDadosSalvos();
+    
+    // Carregar lojas do Firebase
+    carregarLojas();
 });
 
 // ============================================
-// 2. CORREÇÃO: Carregar lojas do Firebase
+// 2. CONFIGURAR EVENTOS
+// ============================================
+function configurarEventos() {
+    // Botão mostrar/ocultar senha
+    togglePassword.addEventListener('click', function() {
+        const type = senhaInput.getAttribute('type');
+        const isPassword = type === 'password';
+        
+        senhaInput.setAttribute('type', isPassword ? 'text' : 'password');
+        
+        const icon = this.querySelector('i');
+        if (isPassword) {
+            icon.className = 'fas fa-eye-slash';
+            this.title = "Ocultar senha";
+        } else {
+            icon.className = 'fas fa-eye';
+            this.title = "Mostrar senha";
+        }
+        
+        senhaInput.focus();
+    });
+    
+    // Evento de login com Enter
+    usuarioInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            senhaInput.focus();
+        }
+    });
+    
+    senhaInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btnLogin.click();
+        }
+    });
+    
+    // Botão de login
+    btnLogin.addEventListener('click', fazerLogin);
+    
+    // Esqueceu senha
+    forgotPassword.addEventListener('click', function(e) {
+        e.preventDefault();
+        showMessage('Entre em contato com o administrador do sistema', 'info');
+    });
+    
+    // Fechar mensagem
+    const messageClose = document.querySelector('.message-close');
+    if (messageClose) {
+        messageClose.addEventListener('click', function() {
+            messageAlert.style.display = 'none';
+        });
+    }
+}
+
+// ============================================
+// 3. FUNÇÕES DE LOADING E MENSAGENS
+// ============================================
+function showLoading(mensagem = 'Processando...') {
+    loadingMessage.textContent = mensagem;
+    loadingOverlay.style.display = 'flex';
+    btnLogin.classList.add('loading');
+    btnLogin.disabled = true;
+}
+
+function hideLoading() {
+    loadingOverlay.style.display = 'none';
+    btnLogin.classList.remove('loading');
+    btnLogin.disabled = false;
+}
+
+function showMessage(text, type = 'info', tempo = 5000) {
+    const messageText = messageAlert.querySelector('.message-text');
+    messageText.textContent = text;
+    messageAlert.className = `message-alert ${type}`;
+    messageAlert.style.display = 'block';
+    
+    // Auto-fechar
+    setTimeout(() => {
+        messageAlert.style.display = 'none';
+    }, tempo);
+}
+
+// ============================================
+// 4. CARREGAR LOJAS DA COLEÇÃO "lojas"
 // ============================================
 async function carregarLojas() {
     try {
-        showLoading('Carregando lojas...');
+        showLoading('Carregando lojas disponíveis...');
         
-        const lojasRef = collection(db, "logins");
+        // Buscar todas as lojas ativas da coleção "lojas"
+        const lojasRef = collection(db, "lojas");
         const querySnapshot = await getDocs(lojasRef);
         
-        // Limpar options existentes (mantendo apenas a primeira)
-        while (lojaSelect.options.length > 1) {
-            lojaSelect.remove(1);
+        // Limpar options existentes
+        while (lojaSelect.options.length > 0) {
+            lojaSelect.remove(0);
         }
         
-        // Contador de lojas válidas
-        let lojasCarregadas = 0;
+        // Adicionar opção padrão
+        const defaultOption = document.createElement('option');
+        defaultOption.value = "";
+        defaultOption.textContent = "Selecione sua loja";
+        defaultOption.disabled = true;
+        defaultOption.selected = true;
+        lojaSelect.appendChild(defaultOption);
+        
+        // Array para armazenar lojas válidas
+        const lojasValidas = [];
         
         querySnapshot.forEach((doc) => {
             const lojaId = doc.id;
             const dadosLoja = doc.data();
             
-            // Verificar se é uma loja válida (não é admin e tem usuários)
-            const isAdmin = lojaId === "admin";
-            const temUsuarios = Object.keys(dadosLoja).length > 0;
-            
-            if (!isAdmin && temUsuarios) {
-                const option = document.createElement('option');
-                option.value = lojaId;
-                
-                // Formatar nome da loja (capitalizar e remunderlines)
-                let nomeFormatado = lojaId
-                    .replace(/_/g, ' ') // Substituir underlines por espaços
-                    .split(' ') // Separar por espaços
-                    .map(palavra => palavra.charAt(0).toUpperCase() + palavra.slice(1).toLowerCase())
-                    .join(' ');
-                
-                option.textContent = nomeFormatado;
-                lojaSelect.appendChild(option);
-                lojasCarregadas++;
+            // Verificar se a loja está ativa
+            if (!dadosLoja.ativo) {
+                console.log(`⚠️ Loja ${lojaId} está inativa`);
+                return;
             }
+            
+            // Verificar se tem o campo banco_login
+            if (!dadosLoja.banco_login) {
+                console.log(`⚠️ Loja ${lojaId} não tem banco_login configurado`);
+                return;
+            }
+            
+            // Adicionar à lista de lojas válidas
+            lojasValidas.push({
+                id: lojaId, // ID do documento (ex: "loja1")
+                banco_login: dadosLoja.banco_login, // ID para coleção logins (ex: "mj-materiais-construcao")
+                nome: dadosLoja.nome || `Loja ${lojaId}`, // Nome real da loja
+                local: dadosLoja.local || '',
+                telefone: dadosLoja.contato?.telefone || ''
+            });
+        });
+        
+        // Ordenar lojas por nome
+        lojasValidas.sort((a, b) => a.nome.localeCompare(b.nome));
+        
+        // Adicionar lojas ao select
+        lojasValidas.forEach(loja => {
+            const option = document.createElement('option');
+            option.value = loja.banco_login; // Usar banco_login como valor
+            option.textContent = loja.nome;
+            option.dataset.id = loja.id; // Guardar ID do documento
+            option.dataset.local = loja.local;
+            lojaSelect.appendChild(option);
         });
         
         hideLoading();
         
-        // Se não houver lojas
-        if (lojasCarregadas === 0) {
-            const option = document.createElement('option');
-            option.value = "";
-            option.textContent = "Nenhuma loja cadastrada";
-            option.disabled = true;
-            lojaSelect.appendChild(option);
+        if (lojasValidas.length === 0) {
+            showMessage('Nenhuma loja disponível no momento', 'warning');
             lojaSelect.disabled = true;
-            
-            showMessage("Nenhuma loja disponível para acesso", "warning");
         } else {
-            // Selecionar a primeira loja por padrão
-            lojaSelect.selectedIndex = 1;
-            
-            // Mostrar mensagem informativa
-            if (lojasCarregadas === 1) {
-                showMessage(`1 loja carregada do sistema`, "success", 3000);
-            } else {
-                showMessage(`${lojasCarregadas} lojas carregadas do sistema`, "success", 3000);
+            // Selecionar primeira loja se houver apenas uma
+            if (lojasValidas.length === 1) {
+                lojaSelect.selectedIndex = 1;
             }
+            
+            showMessage(`${lojasValidas.length} loja(s) carregada(s)`, 'success', 3000);
+            console.log(`📊 Lojas carregadas:`, lojasValidas);
         }
         
     } catch (error) {
         hideLoading();
-        console.error("Erro ao carregar lojas:", error);
+        console.error('❌ Erro ao carregar lojas:', error);
         
-        // Opção de fallback para desenvolvimento
-        const option = document.createElement('option');
-        option.value = "";
-        option.textContent = "Erro ao carregar lojas";
-        option.disabled = true;
-        lojaSelect.appendChild(option);
+        // Opção de fallback
+        const errorOption = document.createElement('option');
+        errorOption.value = "";
+        errorOption.textContent = "Erro ao carregar lojas";
+        errorOption.disabled = true;
+        lojaSelect.innerHTML = '';
+        lojaSelect.appendChild(errorOption);
         lojaSelect.disabled = true;
         
-        showMessage("Erro ao conectar com o servidor", "error");
+        showMessage('Erro ao carregar lista de lojas', 'error');
     }
 }
 
 // ============================================
-// Funções auxiliares
+// 5. VALIDAÇÃO DE LOGIN (usando coleção "logins")
 // ============================================
-function showLoading(mensagem = 'Carregando...') {
-    loadingOverlay.querySelector('p').textContent = mensagem;
-    loadingOverlay.style.display = 'flex';
-}
-
-function hideLoading() {
-    loadingOverlay.style.display = 'none';
-}
-
-function showMessage(text, type = 'error', tempo = 5000) {
-    messageAlert.textContent = text;
-    messageAlert.className = `message-alert ${type}`;
-    messageAlert.style.display = 'block';
-    messageAlert.style.animation = 'slideInRight 0.3s ease';
-    
-    setTimeout(() => {
-        messageAlert.style.animation = 'fadeOut 0.5s ease';
-        setTimeout(() => {
-            messageAlert.style.display = 'none';
-        }, 500);
-    }, tempo);
-}
-
-// ============================================
-// 3. Função para validar login (já corrigida)
-// ============================================
-async function validarLogin(loja, usuario, senha) {
+async function validarLogin(banco_login, usuario, senha) {
     try {
-        // Verificar se é acesso administrativo (admin)
-        if (loja === "admin") {
-            const adminRef = doc(db, "logins", "admin");
-            const adminDoc = await getDoc(adminRef);
-            
-            if (!adminDoc.exists()) {
-                return { success: false, message: "Conta administrativa não configurada" };
-            }
-            
-            const adminData = adminDoc.data();
-            
-            // Buscar pelo campo login
-            let usuarioAdminData = null;
-            for (const [key, userData] of Object.entries(adminData)) {
-                if (userData.login === usuario) {
-                    usuarioAdminData = userData;
-                    break;
-                }
-            }
-            
-            if (!usuarioAdminData) {
-                return { success: false, message: "Usuário administrativo não encontrado" };
-            }
-            
-            // Verificar senha
-            if (usuarioAdminData.senha !== senha) {
-                return { success: false, message: "Senha incorreta" };
-            }
-            
-            // Verificar se usuário está ativo
-            if (!usuarioAdminData.ativo) {
-                return { success: false, message: "Usuário administrativo inativo" };
-            }
-            
-            // Login administrativo bem-sucedido
+        // Acessar coleção "logins" usando o banco_login
+        const loginRef = doc(db, "logins", banco_login);
+        const loginDoc = await getDoc(loginRef);
+        
+        if (!loginDoc.exists()) {
             return { 
-                success: true, 
-                usuario: {
-                    login: usuario,
-                    perfil: usuarioAdminData.perfil,
-                    loja: "admin",
-                    nomeCompleto: usuarioAdminData.nomeCompleto || usuario,
-                    acessoTotal: true
-                }
+                success: false, 
+                message: "Credenciais de acesso não encontradas" 
             };
         }
         
-        // Acesso normal à loja
-        const lojaRef = doc(db, "logins", loja);
-        const lojaDoc = await getDoc(lojaRef);
+        const dadosLogin = loginDoc.data();
         
-        if (!lojaDoc.exists()) {
-            return { success: false, message: "Loja não encontrada" };
-        }
-        
-        const dadosLoja = lojaDoc.data();
-        
-        // Buscar pelo campo login
+        // Buscar usuário pelo login
         let usuarioData = null;
-        for (const [key, userData] of Object.entries(dadosLoja)) {
+        for (const [key, userData] of Object.entries(dadosLogin)) {
             if (userData.login === usuario) {
                 usuarioData = userData;
                 break;
@@ -228,7 +264,7 @@ async function validarLogin(loja, usuario, senha) {
             return { success: false, message: "Usuário inativo" };
         }
         
-        // Verificar validade (se existir)
+        // Verificar validade da conta
         if (usuarioData.data_validade) {
             const dataValidade = usuarioData.data_validade.toDate();
             const agora = new Date();
@@ -238,34 +274,66 @@ async function validarLogin(loja, usuario, senha) {
             }
         }
         
+        // Buscar informações da loja na coleção "lojas"
+        const lojaNome = await buscarNomeLojaPorBancoLogin(banco_login);
+        
         // Login bem-sucedido
         return { 
             success: true, 
             usuario: {
                 login: usuario,
                 perfil: usuarioData.perfil,
-                loja: loja,
+                loja: banco_login, // Usar banco_login para redirecionamento
+                loja_nome: lojaNome || banco_login,
                 nomeCompleto: usuarioData.nomeCompleto || usuario,
-                acessoTotal: false
+                acessoTotal: false,
+                data_validade: usuarioData.data_validade || null
             }
         };
         
     } catch (error) {
-        console.error("Erro ao validar login:", error);
-        return { success: false, message: "Erro no servidor. Tente novamente." };
+        console.error("❌ Erro ao validar login:", error);
+        return { 
+            success: false, 
+            message: "Erro de conexão com o servidor" 
+        };
     }
 }
 
 // ============================================
-// 4. Evento de login
+// 6. BUSCAR NOME DA LOJA NA COLEÇÃO "lojas"
 // ============================================
-btnLogin.addEventListener('click', async function() {
-    const loja = lojaSelect.value;
+async function buscarNomeLojaPorBancoLogin(banco_login) {
+    try {
+        // Buscar na coleção "lojas" onde banco_login = banco_login
+        const lojasRef = collection(db, "lojas");
+        const querySnapshot = await getDocs(lojasRef);
+        
+        for (const doc of querySnapshot.docs) {
+            const dadosLoja = doc.data();
+            if (dadosLoja.banco_login === banco_login) {
+                return dadosLoja.nome;
+            }
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error("Erro ao buscar nome da loja:", error);
+        return null;
+    }
+}
+
+// ============================================
+// 7. PROCESSO DE LOGIN
+// ============================================
+async function fazerLogin() {
+    const banco_login = lojaSelect.value;
     const usuario = usuarioInput.value.trim();
     const senha = senhaInput.value.trim();
     
-    // Validações básicas
-    if (!loja) {
+    // Validações
+    if (!banco_login) {
         showMessage("Selecione uma loja", "warning");
         lojaSelect.focus();
         return;
@@ -284,86 +352,86 @@ btnLogin.addEventListener('click', async function() {
     }
     
     // Mostrar loading
-    showLoading('Autenticando...');
+    showLoading('Validando credenciais...');
     
     try {
         // Validar login
-        const resultado = await validarLogin(loja, usuario, senha);
+        const resultado = await validarLogin(banco_login, usuario, senha);
         
         if (resultado.success) {
-            // Salvar dados do usuário no localStorage
-            localStorage.setItem('pdv_usuario', JSON.stringify(resultado.usuario));
+            // Salvar dados do usuário
+            const usuarioData = resultado.usuario;
+            localStorage.setItem('pdv_usuario', JSON.stringify(usuarioData));
             localStorage.setItem('pdv_autenticado', 'true');
-            localStorage.setItem('pdv_loja', loja);
+            localStorage.setItem('pdv_loja', banco_login);
+            localStorage.setItem('pdv_loja_nome', usuarioData.loja_nome);
+            localStorage.setItem('pdv_login_time', new Date().getTime());
             
-            showMessage("Login realizado com sucesso! Redirecionando...", "success");
+            // Salvar usuário se "lembrar" estiver marcado
+            if (rememberMe.checked) {
+                localStorage.setItem('pdv_last_user', usuario);
+            } else {
+                localStorage.removeItem('pdv_last_user');
+            }
             
-            // Redirecionar conforme o tipo de usuário
+            // Registrar log de acesso
+            console.log(`✅ Login realizado: ${usuario} na loja ${usuarioData.loja_nome}`);
+            
+            // Mostrar mensagem de sucesso
+            showMessage(`Bem-vindo(a) à ${usuarioData.loja_nome}!`, 'success');
+            
+            // Redirecionar após delay
             setTimeout(() => {
-                if (resultado.usuario.loja === "admin") {
-                    window.location.href = 'admin/home.html';
-                } else {
-                    window.location.href = `lojas/${loja}/home.html`;
-                }
+                window.location.href = `lojas/${banco_login}/home.html`;
             }, 1500);
             
         } else {
             hideLoading();
             showMessage(resultado.message, "error");
             
-            // Limpar campo de senha em caso de erro
+            // Limpar senha e focar
             senhaInput.value = '';
             senhaInput.focus();
+            
+            console.log(`❌ Tentativa de login falhou: ${usuario}`);
         }
         
     } catch (error) {
         hideLoading();
         showMessage("Erro ao conectar com o servidor", "error");
-        console.error("Erro:", error);
+        console.error("❌ Erro no processo de login:", error);
     }
-});
+}
 
 // ============================================
-// 5. Permitir login com Enter
+// 8. FUNÇÕES AUXILIARES
 // ============================================
-senhaInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        btnLogin.click();
+function carregarDadosSalvos() {
+    const lastUser = localStorage.getItem('pdv_last_user');
+    if (lastUser) {
+        usuarioInput.value = lastUser;
+        rememberMe.checked = true;
     }
-});
-
-usuarioInput.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') {
-        senhaInput.focus();
-    }
-});
+}
 
 // ============================================
-// 6. Inicializar sistema
+// 9. TESTE DE CONEXÃO
 // ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    // Verificar se já está autenticado
-    if (localStorage.getItem('pdv_autenticado') === 'true') {
-        const usuario = JSON.parse(localStorage.getItem('pdv_usuario'));
-        const loja = localStorage.getItem('pdv_loja');
+async function testarConexaoServidor() {
+    try {
+        // Testar conexão com Firebase
+        const lojasRef = collection(db, "lojas");
+        await getDocs(lojasRef);
         
-        if (usuario.loja === "admin") {
-            window.location.href = 'admin/home.html';
-        } else {
-            window.location.href = `lojas/${loja}/home.html`;
-        }
-        return;
+        // Atualizar status
+        serverStatus.innerHTML = '<i class="fas fa-circle online"></i> Online';
+        console.log('✅ Conexão com Firebase estabelecida');
+        
+    } catch (error) {
+        serverStatus.innerHTML = '<i class="fas fa-circle offline"></i> Offline';
+        console.warn('⚠️ Conexão com Firebase interrompida');
     }
-    
-    // Carregar lojas do Firebase
-    carregarLojas();
-    
-    // Focar no campo de usuário após carregar
-    setTimeout(() => {
-        if (lojaSelect.options.length > 1) {
-            usuarioInput.focus();
-        } else {
-            lojaSelect.focus();
-        }
-    }, 500);
-});
+}
+
+// Iniciar teste de conexão
+testarConexaoServidor();
