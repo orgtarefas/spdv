@@ -6,13 +6,16 @@
     <title>PDV Vendas - MJ Materiais de Construção</title>
     <link rel="stylesheet" href="venda.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header class="main-header">
             <div class="header-left">
-                <a href="home.html" class="btn-back">
+                <a href="home.html" class="btn-back" id="btnVoltar">
                     <i class="fas fa-arrow-left"></i>
                     Voltar
                 </a>
@@ -166,41 +169,6 @@
         </footer>
     </div>
 
-    <!-- Modal Quantidade -->
-    <div id="modalQuantidade" class="modal">
-        <div class="modal-content modal-sm">
-            <div class="modal-header">
-                <h3><i class="fas fa-plus-circle"></i> Adicionar Produto</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="product-info" id="modalProductInfo">
-                    <!-- Informações do produto serão exibidas aqui -->
-                </div>
-                
-                <div class="quantity-control">
-                    <label for="quantidade">Quantidade:</label>
-                    <div class="quantity-input">
-                        <button class="qty-btn minus" id="btnDecrease">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <input type="number" id="quantidade" value="1" min="1" step="1">
-                        <button class="qty-btn plus" id="btnIncrease">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel">Cancelar</button>
-                <button type="button" class="btn-add" id="btnAddToCart">
-                    <i class="fas fa-cart-plus"></i>
-                    Adicionar ao Carrinho
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
@@ -218,6 +186,7 @@
         </div>
     </div>
 
-    <script type="module" src="venda.js"></script>
+    <!-- Script principal (NÃO É MÓDULO) -->
+    <script src="venda.js"></script>
 </body>
 </html>
