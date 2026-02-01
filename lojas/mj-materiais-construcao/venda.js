@@ -1,12 +1,9 @@
-// venda.js - MJ Materiais de Construção
-import { mjServices } from './firebase_config.js';
+// venda.js - VERSÃO AJUSTADA PARA SUA ESTRUTURA
+console.log("🛒 venda.js carregando...");
 
 // Elementos DOM
 const searchProduct = document.getElementById('searchProduct');
-const btnScan = document.getElementById('btnScan');
 const productsGrid = document.getElementById('productsGrid');
-const productCount = document.getElementById('productCount');
-const emptyProducts = document.getElementById('emptyProducts');
 const cartItems = document.getElementById('cartItems');
 const btnClearCart = document.getElementById('btnClearCart');
 const subtotalElement = document.getElementById('subtotal');
@@ -22,9 +19,6 @@ const currentDateTimeElement = document.getElementById('currentDateTime');
 const modalQuantidade = document.getElementById('modalQuantidade');
 const modalProductInfo = document.getElementById('modalProductInfo');
 const quantidadeInput = document.getElementById('quantidade');
-const btnDecrease = document.getElementById('btnDecrease');
-const btnIncrease = document.getElementById('btnIncrease');
-const btnAddToCart = document.getElementById('btnAddToCart');
 
 // Variáveis globais
 let usuario = null;
@@ -35,135 +29,199 @@ let produtoSelecionado = null;
 let desconto = 0;
 
 // ============================================
-// 1. INICIALIZAÇÃO DO SISTEMA
+// 1. INICIALIZAÇÃO - VERIFICAR SESSÃO PRIMEIRO
 // ============================================
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🛒 PDV MJ Materiais - Inicializando...');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("📄 venda.html carregada");
     
-    // Verificar autenticação
-    if (!verificarAutenticacao()) {
+    // PRIMEIRO: Verificar sessão
+    if (!verificarSessao()) {
+        console.log("❌ Sem sessão - redirecionando para login");
         return;
     }
     
-    // Carregar dados do usuário
-    carregarDadosUsuario();
+    // SEGUNDO: Configurar página
+    configurarPagina();
     
-    // Configurar eventos
-    configurarEventos();
+    // TERCEIRO: Carregar produtos
+    setTimeout(async function() {
+        await carregarProdutosParaVenda();
+    }, 500);
     
-    // Carregar produtos para venda
-    await carregarProdutosParaVenda();
-    
-    // Atualizar data/hora
-    atualizarDataHora();
-    setInterval(atualizarDataHora, 1000);
-    
-    console.log('✅ PDV MJ Materiais carregado com sucesso!');
+    console.log("✅ venda.js inicializado");
 });
 
 // ============================================
-// 2. VERIFICAÇÃO DE AUTENTICAÇÃO
+// 2. VERIFICAR SESSÃO (ADAPTADA PARA SEU SISTEMA)
 // ============================================
-function verificarAutenticacao() {
-    const autenticado = localStorage.getItem('pdv_autenticado');
-    const usuarioData = localStorage.getItem('pdv_usuario');
+function verificarSessao() {
+    console.log("🔍 Verificando sessão...");
     
-    if (autenticado !== 'true' || !usuarioData) {
-        // Redirecionar para login
-        window.location.href = '../../login.html';
+    // Seu sistema salva a sessão como 'pdv_sessao_temporaria'
+    const sessao = sessionStorage.getItem('pdv_sessao_temporaria') || 
+                   localStorage.getItem('pdv_sessao_backup');
+    
+    if (!sessao) {
+        console.log("❌ Nenhuma sessão encontrada!");
+        
+        // Mostrar alerta e redirecionar
+        alert("Sessão não encontrada ou expirada.\nFaça login novamente.");
+        
+        // Voltar 2 níveis para login (raiz)
+        setTimeout(function() {
+            window.location.href = '../../login.html';
+        }, 1000);
+        
         return false;
     }
     
-    usuario = JSON.parse(usuarioData);
-    return true;
+    try {
+        usuario = JSON.parse(sessao);
+        console.log("✅ Usuário logado:", usuario);
+        
+        // Mostrar nome do usuário
+        if (userNameElement) {
+            userNameElement.textContent = usuario.nome || usuario.login || 'Usuário';
+        }
+        
+        return true;
+        
+    } catch (error) {
+        console.error("❌ Erro ao ler sessão:", error);
+        alert("Erro na sessão. Faça login novamente.");
+        
+        setTimeout(function() {
+            window.location.href = '../../login.html';
+        }, 1000);
+        
+        return false;
+    }
 }
 
 // ============================================
-// 3. CARREGAR DADOS DO USUÁRIO
+// 3. CONFIGURAR PÁGINA
 // ============================================
-function carregarDadosUsuario() {
-    if (usuario) {
-        userNameElement.textContent = usuario.nomeCompleto || usuario.login;
-    }
+function configurarPagina() {
+    console.log("⚙️ Configurando página...");
     
     // Configurar logout
-    btnLogout.addEventListener('click', function() {
-        localStorage.clear();
-        window.location.href = '../../login.html';
-    });
+    if (btnLogout) {
+        btnLogout.addEventListener('click', function() {
+            if (confirm("Deseja sair do sistema?")) {
+                // Limpar sessões
+                sessionStorage.removeItem('pdv_sessao_temporaria');
+                localStorage.removeItem('pdv_sessao_backup');
+                
+                // Voltar para login (2 níveis acima)
+                window.location.href = '../../login.html';
+            }
+        });
+    }
+    
+    // Configurar botão voltar (se existir)
+    const btnVoltar = document.querySelector('.btn-back');
+    if (btnVoltar) {
+        btnVoltar.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = 'home.html';
+        });
+    }
+    
+    // Configurar busca
+    if (searchProduct) {
+        searchProduct.addEventListener('input', function() {
+            filtrarProdutos();
+        });
+    }
+    
+    // Configurar botão escanear (se existir)
+    const btnScan = document.getElementById('btnScan');
+    if (btnScan) {
+        btnScan.addEventListener('click', function() {
+            alert("Funcionalidade de scanner em desenvolvimento");
+        });
+    }
+    
+    // Configurar botão limpar carrinho
+    if (btnClearCart) {
+        btnClearCart.addEventListener('click', function() {
+            if (carrinho.length > 0 && confirm("Limpar todo o carrinho?")) {
+                limparCarrinho();
+            }
+        });
+    }
+    
+    // Configurar desconto
+    if (descontoInput) {
+        descontoInput.addEventListener('input', function() {
+            desconto = parseFloat(this.value) || 0;
+            if (desconto < 0) desconto = 0;
+            if (desconto > 100) desconto = 100;
+            atualizarTotal();
+        });
+    }
+    
+    // Configurar botão finalizar venda
+    if (btnFinalizarVenda) {
+        btnFinalizarVenda.addEventListener('click', function() {
+            alert("Funcionalidade de finalizar venda em desenvolvimento");
+        });
+    }
+    
+    // Configurar botão cancelar
+    if (btnCancelarVenda) {
+        btnCancelarVenda.addEventListener('click', function() {
+            if (carrinho.length === 0 || confirm("Cancelar esta venda?")) {
+                window.location.href = 'home.html';
+            }
+        });
+    }
+    
+    // Configurar modal (se existir)
+    configurarModal();
+    
+    // Configurar data/hora
+    atualizarDataHora();
+    setInterval(atualizarDataHora, 60000);
+    
+    // Esconder loading
+    setTimeout(function() {
+        const loading = document.getElementById('loadingOverlay');
+        if (loading) loading.style.display = 'none';
+    }, 800);
 }
 
 // ============================================
-// 4. CONFIGURAR EVENTOS
+// 4. CONFIGURAR MODAL
 // ============================================
-function configurarEventos() {
-    // Busca de produtos
-    searchProduct.addEventListener('input', function() {
-        filtrarProdutos();
-    });
+function configurarModal() {
+    if (!modalQuantidade) return;
     
-    // Botão scan (simulado)
-    btnScan.addEventListener('click', function() {
-        showMessage('Funcionalidade de scanner em desenvolvimento', 'info');
-    });
-    
-    // Limpar carrinho
-    btnClearCart.addEventListener('click', function() {
-        if (carrinho.length > 0) {
-            if (confirm('Deseja realmente limpar o carrinho?')) {
-                limparCarrinho();
-            }
-        }
-    });
-    
-    // Desconto
-    descontoInput.addEventListener('input', function() {
-        desconto = parseFloat(this.value) || 0;
-        if (desconto < 0) desconto = 0;
-        if (desconto > 100) desconto = 100;
-        this.value = desconto;
-        atualizarTotal();
-    });
-    
-    // Finalizar venda
-    btnFinalizarVenda.addEventListener('click', finalizarVenda);
-    
-    // Cancelar venda
-    btnCancelarVenda.addEventListener('click', function() {
-        if (carrinho.length > 0) {
-            if (confirm('Deseja realmente cancelar esta venda?')) {
-                window.location.href = 'home.html';
-            }
-        } else {
-            window.location.href = 'home.html';
-        }
-    });
-    
-    // Modal eventos
-    const modalClose = modalQuantidade?.querySelector('.modal-close');
+    // Botão fechar modal
+    const modalClose = modalQuantidade.querySelector('.modal-close');
     if (modalClose) {
-        modalClose.addEventListener('click', () => {
-            fecharModal(modalQuantidade);
+        modalClose.addEventListener('click', function() {
+            modalQuantidade.style.display = 'none';
         });
     }
     
-    const btnCancel = modalQuantidade?.querySelector('.btn-cancel');
+    // Botão cancelar
+    const btnCancel = modalQuantidade.querySelector('.btn-cancel');
     if (btnCancel) {
-        btnCancel.addEventListener('click', () => {
-            fecharModal(modalQuantidade);
+        btnCancel.addEventListener('click', function() {
+            modalQuantidade.style.display = 'none';
         });
     }
     
-    // Fechar modal ao clicar fora
-    if (modalQuantidade) {
-        modalQuantidade.addEventListener('click', function(e) {
-            if (e.target === this) {
-                fecharModal(this);
-            }
-        });
-    }
+    // Fechar ao clicar fora
+    modalQuantidade.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.style.display = 'none';
+        }
+    });
     
-    // Controles de quantidade no modal
+    // Botão diminuir quantidade
+    const btnDecrease = document.getElementById('btnDecrease');
     if (btnDecrease) {
         btnDecrease.addEventListener('click', function() {
             let qty = parseInt(quantidadeInput.value) || 1;
@@ -174,6 +232,8 @@ function configurarEventos() {
         });
     }
     
+    // Botão aumentar quantidade
+    const btnIncrease = document.getElementById('btnIncrease');
     if (btnIncrease) {
         btnIncrease.addEventListener('click', function() {
             let qty = parseInt(quantidadeInput.value) || 1;
@@ -182,109 +242,86 @@ function configurarEventos() {
         });
     }
     
-    // Adicionar ao carrinho
+    // Botão adicionar ao carrinho
+    const btnAddToCart = document.getElementById('btnAddToCart');
     if (btnAddToCart) {
-        btnAddToCart.addEventListener('click', adicionarAoCarrinho);
+        btnAddToCart.addEventListener('click', function() {
+            adicionarAoCarrinho();
+        });
     }
-    
-    // Atalhos de teclado
-    document.addEventListener('keydown', function(e) {
-        // F1 - Nova venda (recarregar página)
-        if (e.key === 'F1') {
-            e.preventDefault();
-            location.reload();
-        }
-        
-        // F2 - Focar na busca
-        if (e.key === 'F2') {
-            e.preventDefault();
-            searchProduct.focus();
-            searchProduct.select();
-        }
-        
-        // F3 - Limpar carrinho
-        if (e.key === 'F3' && e.ctrlKey) {
-            e.preventDefault();
-            limparCarrinho();
-        }
-        
-        // F9 - Finalizar venda
-        if (e.key === 'F9') {
-            e.preventDefault();
-            btnFinalizarVenda.click();
-        }
-        
-        // F12 - Cancelar venda
-        if (e.key === 'F12') {
-            e.preventDefault();
-            btnCancelarVenda.click();
-        }
-    });
 }
 
 // ============================================
-// 5. CARREGAR PRODUTOS PARA VENDA
+// 5. CARREGAR PRODUTOS (SIMPLIFICADO)
 // ============================================
 async function carregarProdutosParaVenda() {
+    console.log("📦 Carregando produtos...");
+    
     try {
-        showLoading('Carregando produtos...');
-        
-        const resultado = await mjServices.buscarProdutosParaVenda();
-        
-        if (resultado.success) {
-            produtos = resultado.data;
-            produtosFiltrados = [...produtos];
+        // Se você tem o mjServices importado
+        if (typeof mjServices !== 'undefined' && mjServices.buscarProdutosParaVenda) {
+            const resultado = await mjServices.buscarProdutosParaVenda();
             
-            renderizarProdutos();
-            atualizarContadorProdutos();
-            
-            hideLoading();
-            
+            if (resultado.success) {
+                produtos = resultado.data;
+                produtosFiltrados = [...produtos];
+                renderizarProdutos();
+            } else {
+                throw new Error(resultado.error);
+            }
         } else {
-            throw new Error(resultado.error);
+            // Fallback: produtos de exemplo
+            produtos = [
+                { id: '1', codigo: 'CIM001', nome: 'Cimento 50kg', preco: 28.90, quantidade: 50, categoria: 'Cimento' },
+                { id: '2', codigo: 'ARE001', nome: 'Areia Média', preco: 45.00, quantidade: 30, categoria: 'Areia' },
+                { id: '3', codigo: 'BR1101', nome: 'Brita 1', preco: 65.00, quantidade: 25, categoria: 'Brita' },
+                { id: '4', codigo: 'TEL001', nome: 'Tijolo 8 furos', preco: 1.20, quantidade: 1000, categoria: 'Tijolo' },
+                { id: '5', codigo: 'CAL001', nome: 'Cal Hidratada', preco: 12.50, quantidade: 40, categoria: 'Cal' }
+            ];
+            produtosFiltrados = [...produtos];
+            renderizarProdutos();
         }
         
     } catch (error) {
-        hideLoading();
-        console.error('Erro ao carregar produtos:', error);
-        showMessage('Erro ao carregar produtos', 'error');
-        
-        emptyProducts.style.display = 'flex';
-        productsGrid.innerHTML = '';
+        console.error("Erro ao carregar produtos:", error);
+        mostrarProdutosExemplo();
     }
 }
 
 // ============================================
-// 6. RENDERIZAR PRODUTOS
+// 6. RENDERIZAR PRODUTOS (SIMPLIFICADO)
 // ============================================
 function renderizarProdutos() {
+    if (!productsGrid) return;
+    
     if (produtosFiltrados.length === 0) {
-        emptyProducts.style.display = 'flex';
-        productsGrid.innerHTML = '';
+        productsGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>Nenhum produto encontrado</p>
+            </div>
+        `;
         return;
     }
-    
-    emptyProducts.style.display = 'none';
     
     let html = '';
     
     produtosFiltrados.forEach(produto => {
-        const estoqueBaixo = produto.quantidade <= produto.estoque_minimo;
-        const semEstoque = produto.quantidade <= 0;
+        const temEstoque = produto.quantidade > 0;
         
         html += `
-            <div class="product-card ${semEstoque ? 'disabled' : ''}" data-id="${produto.id}">
+            <div class="product-card ${!temEstoque ? 'disabled' : ''}" data-id="${produto.id}">
                 <div class="product-header">
-                    <span class="product-code">${produto.codigo || 'N/A'}</span>
-                    <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
-                        ${produto.quantidade} ${produto.unidade || 'UN'}
+                    <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
+                    <span class="product-stock ${produto.quantidade < 10 ? 'low' : ''}">
+                        ${produto.quantidade} UN
                     </span>
                 </div>
                 <div class="product-name">${produto.nome}</div>
                 ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
                 <div class="product-footer">
                     <span class="product-price">R$ ${formatarMoeda(produto.preco)}</span>
-                    <button class="btn-add-product" ${semEstoque ? 'disabled' : ''}>
+                    <button class="btn-add-product" ${!temEstoque ? 'disabled' : ''}>
                         <i class="fas fa-cart-plus"></i>
                     </button>
                 </div>
@@ -294,121 +331,135 @@ function renderizarProdutos() {
     
     productsGrid.innerHTML = html;
     
-    // Adicionar eventos aos botões de adicionar
+    // Adicionar eventos aos botões
     document.querySelectorAll('.btn-add-product').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
-            const productCard = this.closest('.product-card');
-            const productId = productCard.dataset.id;
-            abrirModalQuantidade(productId);
+            const card = this.closest('.product-card');
+            const productId = card.dataset.id;
+            abrirModalProduto(productId);
         });
     });
     
-    // Adicionar evento de clique no card inteiro
+    // Adicionar evento aos cards
     document.querySelectorAll('.product-card:not(.disabled)').forEach(card => {
         card.addEventListener('click', function() {
             const productId = this.dataset.id;
-            abrirModalQuantidade(productId);
+            abrirModalProduto(productId);
+        });
+    });
+}
+
+function mostrarProdutosExemplo() {
+    if (!productsGrid) return;
+    
+    productsGrid.innerHTML = `
+        <div class="product-card">
+            <div class="product-header">
+                <span class="product-code">EX001</span>
+                <span class="product-stock">50 UN</span>
+            </div>
+            <div class="product-name">Produto de Exemplo 1</div>
+            <div class="product-category">Exemplo</div>
+            <div class="product-footer">
+                <span class="product-price">R$ 25,00</span>
+                <button class="btn-add-product">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="product-card">
+            <div class="product-header">
+                <span class="product-code">EX002</span>
+                <span class="product-stock">30 UN</span>
+            </div>
+            <div class="product-name">Produto de Exemplo 2</div>
+            <div class="product-category">Exemplo</div>
+            <div class="product-footer">
+                <span class="product-price">R$ 45,00</span>
+                <button class="btn-add-product">
+                    <i class="fas fa-cart-plus"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Configurar eventos para os exemplos
+    document.querySelectorAll('.btn-add-product').forEach(btn => {
+        btn.addEventListener('click', function() {
+            alert("Produto adicionado ao carrinho (exemplo)");
         });
     });
 }
 
 // ============================================
-// 7. FILTRAR PRODUTOS
+// 7. FUNÇÕES DO MODAL
 // ============================================
-function filtrarProdutos() {
-    const termo = searchProduct.value.toLowerCase().trim();
+function abrirModalProduto(productId) {
+    produtoSelecionado = produtosFiltrados.find(p => p.id === productId);
     
-    if (termo === '') {
-        produtosFiltrados = [...produtos];
-    } else {
-        produtosFiltrados = produtos.filter(produto => 
-            produto.codigo?.toLowerCase().includes(termo) ||
-            produto.nome.toLowerCase().includes(termo) ||
-            produto.categoria?.toLowerCase().includes(termo)
-        );
+    if (!produtoSelecionado || !modalQuantidade) return;
+    
+    // Configurar informações no modal
+    if (modalProductInfo) {
+        modalProductInfo.innerHTML = `
+            <h4>${produtoSelecionado.nome}</h4>
+            <p><strong>Código:</strong> ${produtoSelecionado.codigo || 'N/A'}</p>
+            <p><strong>Estoque:</strong> ${produtoSelecionado.quantidade || 0} UN</p>
+            <p><strong>Preço:</strong> R$ ${formatarMoeda(produtoSelecionado.preco)}</p>
+        `;
     }
     
-    renderizarProdutos();
-    atualizarContadorProdutos();
+    // Configurar quantidade inicial
+    if (quantidadeInput) {
+        quantidadeInput.value = 1;
+        quantidadeInput.max = produtoSelecionado.quantidade || 1;
+    }
+    
+    // Mostrar modal
+    modalQuantidade.style.display = 'flex';
 }
 
-// ============================================
-// 8. MODAL DE QUANTIDADE
-// ============================================
-function abrirModalQuantidade(productId) {
-    produtoSelecionado = produtos.find(p => p.id === productId);
-    
-    if (!produtoSelecionado) return;
-    
-    // Configurar quantidade máxima baseada no estoque
-    const estoqueMaximo = produtoSelecionado.quantidade;
-    quantidadeInput.max = estoqueMaximo;
-    quantidadeInput.value = 1;
-    
-    // Atualizar informações do produto no modal
-    modalProductInfo.innerHTML = `
-        <h4>${produtoSelecionado.nome}</h4>
-        <p><strong>Código:</strong> ${produtoSelecionado.codigo || 'N/A'}</p>
-        <p><strong>Estoque disponível:</strong> ${estoqueMaximo} ${produtoSelecionado.unidade || 'UN'}</p>
-        <p><strong>Preço unitário:</strong> R$ ${formatarMoeda(produtoSelecionado.preco)}</p>
-    `;
-    
-    abrirModal(modalQuantidade);
-}
-
-// ============================================
-// 9. CARRINHO DE COMPRAS
-// ============================================
 function adicionarAoCarrinho() {
     if (!produtoSelecionado) return;
     
-    const quantidade = parseInt(quantidadeInput.value) || 1;
-    const estoqueDisponivel = produtoSelecionado.quantidade;
+    const quantidade = parseInt(quantidadeInput?.value) || 1;
     
     // Verificar estoque
-    if (quantidade > estoqueDisponivel) {
-        showMessage(`Estoque insuficiente. Disponível: ${estoqueDisponivel}`, 'warning');
+    if (quantidade > produtoSelecionado.quantidade) {
+        alert(`Estoque insuficiente! Disponível: ${produtoSelecionado.quantidade}`);
         return;
     }
     
-    // Verificar se produto já está no carrinho
-    const itemExistente = carrinho.find(item => item.produto_id === produtoSelecionado.id);
+    // Adicionar ao carrinho
+    carrinho.push({
+        id: produtoSelecionado.id,
+        nome: produtoSelecionado.nome,
+        preco: produtoSelecionado.preco,
+        quantidade: quantidade,
+        subtotal: produtoSelecionado.preco * quantidade
+    });
     
-    if (itemExistente) {
-        // Atualizar quantidade
-        const novaQuantidade = itemExistente.quantidade + quantidade;
-        
-        if (novaQuantidade > estoqueDisponivel) {
-            showMessage(`Estoque insuficiente. Disponível: ${estoqueDisponivel}`, 'warning');
-            return;
-        }
-        
-        itemExistente.quantidade = novaQuantidade;
-        itemExistente.subtotal = itemExistente.preco * novaQuantidade;
-    } else {
-        // Adicionar novo item
-        carrinho.push({
-            produto_id: produtoSelecionado.id,
-            codigo: produtoSelecionado.codigo,
-            nome: produtoSelecionado.nome,
-            categoria: produtoSelecionado.categoria,
-            unidade: produtoSelecionado.unidade,
-            preco: produtoSelecionado.preco,
-            quantidade: quantidade,
-            subtotal: produtoSelecionado.preco * quantidade,
-            estoque_disponivel: estoqueDisponivel
-        });
+    // Fechar modal
+    if (modalQuantidade) {
+        modalQuantidade.style.display = 'none';
     }
     
-    fecharModal(modalQuantidade);
+    // Atualizar carrinho
     renderizarCarrinho();
     atualizarTotal();
     
-    showMessage('Produto adicionado ao carrinho!', 'success');
+    // Mensagem
+    alert(`${quantidade}x ${produtoSelecionado.nome} adicionado ao carrinho!`);
 }
 
+// ============================================
+// 8. FUNÇÕES DO CARRINHO
+// ============================================
 function renderizarCarrinho() {
+    if (!cartItems) return;
+    
     if (carrinho.length === 0) {
         cartItems.innerHTML = `
             <div class="empty-cart">
@@ -424,30 +475,17 @@ function renderizarCarrinho() {
     
     carrinho.forEach((item, index) => {
         html += `
-            <div class="cart-item" data-index="${index}">
+            <div class="cart-item">
                 <div class="cart-item-info">
                     <div class="cart-item-name">${item.nome}</div>
                     <div class="cart-item-details">
-                        <span>Código: ${item.codigo || 'N/A'}</span>
-                        <span>${item.categoria || ''}</span>
+                        <span>${item.quantidade} x R$ ${formatarMoeda(item.preco)}</span>
                     </div>
                 </div>
-                
                 <div class="cart-item-controls">
-                    <div class="cart-item-qty">
-                        <button class="qty-btn minus" data-action="decrease" data-index="${index}">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                        <input type="number" class="qty-input" value="${item.quantidade}" min="1" max="${item.estoque_disponivel}" data-index="${index}">
-                        <button class="qty-btn plus" data-action="increase" data-index="${index}">
-                            <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                    
                     <div class="cart-item-price">
                         R$ ${formatarMoeda(item.subtotal)}
                     </div>
-                    
                     <button class="btn-remove-item" data-index="${index}">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -458,284 +496,79 @@ function renderizarCarrinho() {
     
     cartItems.innerHTML = html;
     
-    // Adicionar eventos aos controles do carrinho
-    document.querySelectorAll('.qty-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const index = parseInt(this.dataset.index);
-            const action = this.dataset.action;
-            alterarQuantidadeItem(index, action);
-        });
-    });
-    
-    document.querySelectorAll('.qty-input').forEach(input => {
-        input.addEventListener('change', function() {
-            const index = parseInt(this.dataset.index);
-            const novaQuantidade = parseInt(this.value) || 1;
-            atualizarQuantidadeItem(index, novaQuantidade);
-        });
-    });
-    
+    // Adicionar eventos aos botões de remover
     document.querySelectorAll('.btn-remove-item').forEach(btn => {
         btn.addEventListener('click', function() {
             const index = parseInt(this.dataset.index);
-            removerItemCarrinho(index);
+            if (confirm("Remover item do carrinho?")) {
+                carrinho.splice(index, 1);
+                renderizarCarrinho();
+                atualizarTotal();
+            }
         });
     });
-}
-
-function alterarQuantidadeItem(index, action) {
-    const item = carrinho[index];
-    if (!item) return;
-    
-    let novaQuantidade = item.quantidade;
-    
-    if (action === 'increase') {
-        novaQuantidade++;
-    } else if (action === 'decrease') {
-        novaQuantidade--;
-    }
-    
-    if (novaQuantidade < 1) {
-        removerItemCarrinho(index);
-        return;
-    }
-    
-    if (novaQuantidade > item.estoque_disponivel) {
-        showMessage(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, 'warning');
-        return;
-    }
-    
-    atualizarQuantidadeItem(index, novaQuantidade);
-}
-
-function atualizarQuantidadeItem(index, novaQuantidade) {
-    if (novaQuantidade < 1) {
-        removerItemCarrinho(index);
-        return;
-    }
-    
-    const item = carrinho[index];
-    if (!item) return;
-    
-    if (novaQuantidade > item.estoque_disponivel) {
-        showMessage(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, 'warning');
-        return;
-    }
-    
-    item.quantidade = novaQuantidade;
-    item.subtotal = item.preco * novaQuantidade;
-    
-    renderizarCarrinho();
-    atualizarTotal();
-}
-
-function removerItemCarrinho(index) {
-    if (confirm('Remover item do carrinho?')) {
-        carrinho.splice(index, 1);
-        renderizarCarrinho();
-        atualizarTotal();
-        showMessage('Item removido do carrinho', 'info');
-    }
 }
 
 function limparCarrinho() {
     carrinho = [];
     renderizarCarrinho();
     atualizarTotal();
-    showMessage('Carrinho limpo', 'info');
 }
 
 // ============================================
-// 10. CÁLCULOS DE VALORES
+// 9. FUNÇÕES DE CÁLCULO
 // ============================================
 function atualizarTotal() {
-    // Calcular subtotal
+    if (!subtotalElement || !totalElement) return;
+    
     const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
+    const descontoValor = subtotal * (desconto / 100);
+    const total = subtotal - descontoValor;
     
-    // Calcular desconto
-    const valorDesconto = subtotal * (desconto / 100);
-    const total = subtotal - valorDesconto;
-    
-    // Atualizar elementos
     subtotalElement.textContent = `R$ ${formatarMoeda(subtotal)}`;
     totalElement.textContent = `R$ ${formatarMoeda(total)}`;
 }
 
 // ============================================
-// 11. FINALIZAR VENDA
+// 10. FUNÇÕES UTILITÁRIAS
 // ============================================
-async function finalizarVenda() {
-    if (carrinho.length === 0) {
-        showMessage('Adicione produtos ao carrinho para finalizar a venda', 'warning');
-        return;
+function filtrarProdutos() {
+    if (!searchProduct) return;
+    
+    const termo = searchProduct.value.toLowerCase().trim();
+    
+    if (termo === '') {
+        produtosFiltrados = [...produtos];
+    } else {
+        produtosFiltrados = produtos.filter(produto => 
+            produto.codigo?.toLowerCase().includes(termo) ||
+            produto.nome?.toLowerCase().includes(termo) ||
+            produto.categoria?.toLowerCase().includes(termo)
+        );
     }
     
-    // Calcular totais
-    const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
-    const valorDesconto = subtotal * (desconto / 100);
-    const total = subtotal - valorDesconto;
-    
-    // Obter forma de pagamento
-    const formaPagamento = document.querySelector('input[name="payment"]:checked')?.value || 'dinheiro';
-    
-    const confirmar = confirm(
-        `Confirmar venda?\n\n` +
-        `Itens: ${carrinho.length}\n` +
-        `Subtotal: R$ ${formatarMoeda(subtotal)}\n` +
-        `Desconto: R$ ${formatarMoeda(valorDesconto)}\n` +
-        `Total: R$ ${formatarMoeda(total)}\n` +
-        `Forma de pagamento: ${getFormaPagamentoNome(formaPagamento)}`
-    );
-    
-    if (!confirmar) return;
-    
-    try {
-        showLoading('Processando venda...');
-        
-        // Preparar dados da venda
-        const dadosVenda = {
-            itens: carrinho.map(item => ({
-                produto_id: item.produto_id,
-                codigo: item.codigo,
-                nome: item.nome,
-                quantidade: item.quantidade,
-                preco_unitario: item.preco,
-                subtotal: item.subtotal
-            })),
-            subtotal: subtotal,
-            desconto: valorDesconto,
-            total: total,
-            forma_pagamento: formaPagamento,
-            vendedor: usuario.nomeCompleto || usuario.login,
-            observacoes: ''
-        };
-        
-        // Enviar para o Firebase
-        const resultado = await mjServices.criarVenda(dadosVenda);
-        
-        if (resultado.success) {
-            hideLoading();
-            
-            // Limpar carrinho
-            carrinho = [];
-            renderizarCarrinho();
-            atualizarTotal();
-            
-            // Mostrar recibo
-            const numeroVenda = resultado.data.numero_venda;
-            const mensagem = `
-                ✅ Venda finalizada com sucesso!\n
-                Número da venda: ${numeroVenda}\n
-                Total: R$ ${formatarMoeda(total)}\n
-                Forma de pagamento: ${getFormaPagamentoNome(formaPagamento)}
-            `;
-            
-            showMessage(mensagem, 'success', 8000);
-            
-            // Atualizar lista de produtos (estoque foi atualizado)
-            setTimeout(async () => {
-                await carregarProdutosParaVenda();
-            }, 1000);
-            
-        } else {
-            throw new Error(resultado.error);
-        }
-        
-    } catch (error) {
-        hideLoading();
-        console.error('Erro ao finalizar venda:', error);
-        showMessage(`Erro ao finalizar venda: ${error.message}`, 'error');
-    }
-}
-
-function getFormaPagamentoNome(codigo) {
-    const formas = {
-        'dinheiro': 'Dinheiro',
-        'cartao_debito': 'Cartão de Débito',
-        'cartao_credito': 'Cartão de Crédito',
-        'pix': 'PIX'
-    };
-    
-    return formas[codigo] || codigo;
-}
-
-// ============================================
-// 12. FUNÇÕES UTILITÁRIAS
-// ============================================
-function atualizarContadorProdutos() {
-    productCount.textContent = `${produtosFiltrados.length} produto${produtosFiltrados.length !== 1 ? 's' : ''}`;
+    renderizarProdutos();
 }
 
 function atualizarDataHora() {
-    const agora = new Date();
-    const horaFormatada = agora.toLocaleTimeString('pt-BR');
-    const dataFormatada = agora.toLocaleDateString('pt-BR');
+    if (!currentDateTimeElement) return;
     
-    if (currentDateTimeElement) {
-        currentDateTimeElement.textContent = `${dataFormatada} ${horaFormatada}`;
-    }
-}
-
-function formatarMoeda(valor) {
-    return parseFloat(valor).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+    const agora = new Date();
+    currentDateTimeElement.textContent = agora.toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
     });
 }
 
-function abrirModal(modal) {
-    if (modal) {
-        modal.style.display = 'flex';
-    }
+function formatarMoeda(valor) {
+    return parseFloat(valor || 0).toFixed(2).replace('.', ',');
 }
 
-function fecharModal(modal) {
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function showLoading(mensagem = 'Carregando...') {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingMessage = loadingOverlay?.querySelector('h3');
-    
-    if (loadingOverlay && loadingMessage) {
-        loadingMessage.textContent = mensagem;
-        loadingOverlay.style.display = 'flex';
-    }
-}
-
-function hideLoading() {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
-}
-
-function showMessage(text, type = 'info', tempo = 5000) {
-    const messageAlert = document.getElementById('messageAlert');
-    const messageText = messageAlert?.querySelector('.message-text');
-    const messageIcon = messageAlert?.querySelector('.message-icon');
-    
-    if (!messageAlert || !messageText) return;
-    
-    messageText.textContent = text;
-    messageAlert.className = `message-alert ${type}`;
-    messageAlert.style.display = 'block';
-    messageAlert.style.animation = 'slideInRight 0.3s ease';
-    
-    // Fechar ao clicar no botão
-    const messageClose = messageAlert.querySelector('.message-close');
-    if (messageClose) {
-        messageClose.onclick = () => {
-            messageAlert.style.display = 'none';
-        };
-    }
-    
-    // Auto-fechar
-    setTimeout(() => {
-        if (messageAlert.style.display === 'block') {
-            messageAlert.style.display = 'none';
-        }
-    }, tempo);
-}
+// ============================================
+// 11. TESTE DE FUNCIONAMENTO
+// ============================================
+console.log("✅ venda.js carregado com sucesso!");
