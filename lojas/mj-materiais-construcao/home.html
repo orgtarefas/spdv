@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDV - MJ Materiais de Construção</title>
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏪</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <div class="avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div>
+                        <h3 id="userName">Usuário</h3>
+                        <p id="userProfile">Perfil</p>
+                        <span class="loja-badge" id="lojaBadge">MJ Materiais</span>
+                    </div>
+                </div>
+                <div class="loja-info">
+                    <p><i class="fas fa-store"></i> <span id="lojaNomeCompleto">MJ Materiais de Construção</span></p>
+                    <p class="loja-local" id="lojaLocal">Carregando localização...</p>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <ul>
+                    <li class="active" data-page="dashboard">
+                        <a href="#">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li data-page="pdv">
+                        <a href="#">
+                            <i class="fas fa-cash-register"></i>
+                            <span>PDV Vendas</span>
+                            <span class="menu-badge" id="vendasBadge">0</span>
+                        </a>
+                    </li>
+                    <li data-page="produtos">
+                        <a href="#">
+                            <i class="fas fa-boxes"></i>
+                            <span>Produtos</span>
+                            <span class="menu-badge" id="produtosBadge">0</span>
+                        </a>
+                    </li>
+                    <li data-page="clientes">
+                        <a href="#">
+                            <i class="fas fa-users"></i>
+                            <span>Clientes</span>
+                            <span class="menu-badge" id="clientesBadge">0</span>
+                        </a>
+                    </li>
+                    <li data-page="relatorios">
+                        <a href="#">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                    <li data-page="configuracoes">
+                        <a href="#">
+                            <i class="fas fa-cog"></i>
+                            <span>Configurações</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <div class="status-item">
+                        <i class="fas fa-database status-icon online"></i>
+                        <span>Firebase Online</span>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-wifi status-icon online"></i>
+                        <span>Conexão OK</span>
+                    </div>
+                </div>
+                <button id="btnLogout" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair do Sistema</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-left">
+                    <button id="menuToggle" class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="page-title">
+                        <h1 id="pageTitle">Dashboard</h1>
+                        <p class="page-subtitle" id="pageSubtitle">Bem-vindo ao sistema PDV</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="header-actions">
+                        <button class="header-btn" id="btnNovaVenda" title="Nova Venda">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Nova Venda</span>
+                        </button>
+                        <button class="header-btn" id="btnAtalhos" title="Atalhos Rápidos">
+                            <i class="fas fa-bolt"></i>
+                            <span>Atalhos</span>
+                        </button>
+                    </div>
+                    <div class="header-info">
+                        <div class="current-time" id="currentTime">
+                            <i class="fas fa-clock"></i>
+                            <span>Carregando...</span>
+                        </div>
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <i class="fas fa-user"></i>
+                                <span id="headerUserName">Usuário</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="user-menu-dropdown" id="userMenuDropdown">
+                                <a href="#"><i class="fas fa-user-cog"></i> Meu Perfil</a>
+                                <a href="#"><i class="fas fa-bell"></i> Notificações</a>
+                                <a href="#"><i class="fas fa-moon"></i> Modo Escuro</a>
+                                <div class="divider"></div>
+                                <a href="#" id="menuLogout"><i class="fas fa-sign-out-alt"></i> Sair</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="content" id="contentArea">
+                <!-- Dashboard (Conteúdo inicial) -->
+                <div class="page-content active" id="pageDashboard">
+                    <div class="welcome-section">
+                        <div class="welcome-content">
+                            <h2>Bem-vindo(a) ao <span class="loja-highlight" id="welcomeLojaNome">MJ Materiais de Construção</span>!</h2>
+                            <p>Olá, <strong id="welcomeUserName">Usuário</strong>! Hoje é <span id="currentDate">...</span></p>
+                            <div class="welcome-stats">
+                                <div class="stat-mini">
+                                    <i class="fas fa-sun"></i>
+                                    <div>
+                                        <h4>Bom Dia!</h4>
+                                        <p>Pronto para iniciar as vendas</p>
+                                    </div>
+                                </div>
+                                <div class="stat-mini">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <div>
+                                        <h4 id="dayOfWeek">Segunda-feira</h4>
+                                        <p id="fullDate">1 de Janeiro de 2024</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="welcome-image">
+                            <i class="fas fa-hard-hat"></i>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #4CAF50, #2E7D32);">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Vendas Hoje</h3>
+                                <p class="stat-number" id="vendasHoje">R$ 0,00</p>
+                                <p class="stat-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span>0% vs ontem</span>
+                                </p>
+                            </div>
+                            <button class="stat-action" onclick="abrirPagina('pdv')">
+                                <i class="fas fa-plus"></i>
+                                Nova Venda
+                            </button>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #2196F3, #0D47A1);">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Produtos em Estoque</h3>
+                                <p class="stat-number" id="produtosEstoque">0</p>
+                                <p class="stat-change">
+                                    <i class="fas fa-boxes"></i>
+                                    <span>0 categorias</span>
+                                </p>
+                            </div>
+                            <button class="stat-action" onclick="abrirPagina('produtos')">
+                                <i class="fas fa-eye"></i>
+                                Ver Estoque
+                            </button>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #FF9800, #E65100);">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Clientes Ativos</h3>
+                                <p class="stat-number" id="clientesAtivos">0</p>
+                                <p class="stat-change positive">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>+0 este mês</span>
+                                </p>
+                            </div>
+                            <button class="stat-action" onclick="abrirPagina('clientes')">
+                                <i class="fas fa-user-plus"></i>
+                                Novo Cliente
+                            </button>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: linear-gradient(135deg, #9C27B0, #4A148C);">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>Meta Mensal</h3>
+                                <p class="stat-number" id="metaMensal">0%</p>
+                                <p class="stat-change">
+                                    <i class="fas fa-bullseye"></i>
+                                    <span>R$ 0,00 restante</span>
+                                </p>
+                            </div>
+                            <button class="stat-action" onclick="abrirPagina('relatorios')">
+                                <i class="fas fa-chart-bar"></i>
+                                Ver Relatório
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="content-row">
+                        <div class="quick-actions">
+                            <h3><i class="fas fa-bolt"></i> Ações Rápidas</h3>
+                            <div class="actions-grid">
+                                <button class="action-btn" onclick="abrirPagina('pdv')">
+                                    <i class="fas fa-cash-register"></i>
+                                    <span>Nova Venda</span>
+                                    <small>Iniciar nova venda</small>
+                                </button>
+                                <button class="action-btn" onclick="abrirPagina('produtos')">
+                                    <i class="fas fa-box-open"></i>
+                                    <span>Cadastrar Produto</span>
+                                    <small>Adicionar ao estoque</small>
+                                </button>
+                                <button class="action-btn" onclick="abrirPagina('clientes')">
+                                    <i class="fas fa-user-plus"></i>
+                                    <span>Cadastrar Cliente</span>
+                                    <small>Adicionar novo cliente</small>
+                                </button>
+                                <button class="action-btn" onclick="abrirPagina('relatorios')">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                    <span>Relatório Diário</span>
+                                    <small>Ver vendas do dia</small>
+                                </button>
+                                <button class="action-btn" id="btnConsultaPreco">
+                                    <i class="fas fa-search-dollar"></i>
+                                    <span>Consulta Preço</span>
+                                    <small>Buscar produto</small>
+                                </button>
+                                <button class="action-btn" id="btnFecharCaixa">
+                                    <i class="fas fa-calculator"></i>
+                                    <span>Fechar Caixa</span>
+                                    <small>Encerrar o dia</small>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="recent-activity">
+                            <h3><i class="fas fa-history"></i> Atividade Recente</h3>
+                            <div class="activity-list" id="activityList">
+                                <div class="activity-item">
+                                    <i class="fas fa-info-circle activity-icon info"></i>
+                                    <div class="activity-content">
+                                        <p>Bem-vindo ao sistema PDV!</p>
+                                        <small>Há alguns segundos</small>
+                                    </div>
+                                </div>
+                                <!-- Atividades serão carregadas aqui -->
+                            </div>
+                            <button class="btn-view-all" onclick="abrirPagina('relatorios')">
+                                <i class="fas fa-list"></i>
+                                Ver Todas as Atividades
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="info-cards">
+                        <div class="info-card">
+                            <div class="info-card-header">
+                                <i class="fas fa-store"></i>
+                                <h4>Informações da Loja</h4>
+                            </div>
+                            <div class="info-card-content">
+                                <p><strong>Nome:</strong> <span id="infoLojaNome">MJ Materiais de Construção</span></p>
+                                <p><strong>Localização:</strong> <span id="infoLojaLocal">Cajazeiras 11 - Salvador/BA</span></p>
+                                <p><strong>Telefone:</strong> <span id="infoLojaTelefone">(71) 99999-9999</span></p>
+                                <p><strong>Status:</strong> <span class="status-badge online">Online</span></p>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="info-card-header">
+                                <i class="fas fa-user-shield"></i>
+                                <h4>Informações do Usuário</h4>
+                            </div>
+                            <div class="info-card-content">
+                                <p><strong>Nome:</strong> <span id="infoUserName">Usuário</span></p>
+                                <p><strong>Perfil:</strong> <span id="infoUserProfile" class="profile-badge">admin</span></p>
+                                <p><strong>Login:</strong> <span id="infoUserLogin">pia</span></p>
+                                <p><strong>Último acesso:</strong> <span id="infoLastAccess">Agora</span></p>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="info-card-header">
+                                <i class="fas fa-tools"></i>
+                                <h4>Sistema</h4>
+                            </div>
+                            <div class="info-card-content">
+                                <p><strong>Versão:</strong> PDV Sistema 2.0</p>
+                                <p><strong>Firebase:</strong> <span class="status-badge online">Conectado</span></p>
+                                <p><strong>Última sincronização:</strong> <span id="lastSync">Agora</span></p>
+                                <p><strong>Status do Servidor:</strong> <span class="status-badge online">Online</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDV Page (Oculto inicialmente) -->
+                <div class="page-content" id="pagePdv">
+                    <div class="page-header">
+                        <h2><i class="fas fa-cash-register"></i> PDV - Ponto de Venda</h2>
+                        <p>Área de vendas e gerenciamento de transações</p>
+                    </div>
+                    <div class="coming-soon">
+                        <i class="fas fa-cash-register"></i>
+                        <h3>PDV em Desenvolvimento</h3>
+                        <p>Esta funcionalidade estará disponível em breve</p>
+                        <button class="btn-back" onclick="abrirPagina('dashboard')">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar ao Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Produtos Page (Oculto inicialmente) -->
+                <div class="page-content" id="pageProdutos">
+                    <div class="page-header">
+                        <h2><i class="fas fa-boxes"></i> Gerenciamento de Produtos</h2>
+                        <p>Controle de estoque e cadastro de produtos</p>
+                    </div>
+                    <div class="coming-soon">
+                        <i class="fas fa-boxes"></i>
+                        <h3>Controle de Estoque</h3>
+                        <p>Esta funcionalidade estará disponível em breve</p>
+                        <button class="btn-back" onclick="abrirPagina('dashboard')">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar ao Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Clientes Page (Oculto inicialmente) -->
+                <div class="page-content" id="pageClientes">
+                    <div class="page-header">
+                        <h2><i class="fas fa-users"></i> Gerenciamento de Clientes</h2>
+                        <p>Cadastro e histórico de clientes</p>
+                    </div>
+                    <div class="coming-soon">
+                        <i class="fas fa-users"></i>
+                        <h3>Cadastro de Clientes</h3>
+                        <p>Esta funcionalidade estará disponível em breve</p>
+                        <button class="btn-back" onclick="abrirPagina('dashboard')">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar ao Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Relatórios Page (Oculto inicialmente) -->
+                <div class="page-content" id="pageRelatorios">
+                    <div class="page-header">
+                        <h2><i class="fas fa-chart-bar"></i> Relatórios e Análises</h2>
+                        <p>Relatórios de vendas e desempenho</p>
+                    </div>
+                    <div class="coming-soon">
+                        <i class="fas fa-chart-bar"></i>
+                        <h3>Relatórios em Desenvolvimento</h3>
+                        <p>Esta funcionalidade estará disponível em breve</p>
+                        <button class="btn-back" onclick="abrirPagina('dashboard')">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar ao Dashboard
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Configurações Page (Oculto inicialmente) -->
+                <div class="page-content" id="pageConfiguracoes">
+                    <div class="page-header">
+                        <h2><i class="fas fa-cog"></i> Configurações do Sistema</h2>
+                        <p>Configurações e preferências da loja</p>
+                    </div>
+                    <div class="coming-soon">
+                        <i class="fas fa-cog"></i>
+                        <h3>Configurações em Desenvolvimento</h3>
+                        <p>Esta funcionalidade estará disponível em breve</p>
+                        <button class="btn-back" onclick="abrirPagina('dashboard')">
+                            <i class="fas fa-arrow-left"></i>
+                            Voltar ao Dashboard
+                        </button>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="main-footer">
+                <div class="footer-left">
+                    <p><i class="fas fa-store"></i> <strong id="footerLojaNome">MJ Materiais de Construção</strong></p>
+                    <p>Usuário: <span id="footerUserName">Usuário</span> | Perfil: <span id="footerUserProfile">Perfil</span></p>
+                </div>
+                <div class="footer-right">
+                    <p>PDV Sistema © 2024 - <span id="footerLojaId">mj-materiais-construcao</span></p>
+                    <p id="footerConnectionStatus"><i class="fas fa-circle online"></i> Conectado ao Firebase</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3 id="loadingMessage">Carregando...</h3>
+            <p class="loading-subtitle">Por favor, aguarde</p>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <div class="message-text"></div>
+            <button class="message-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Quick Actions Modal -->
+    <div id="quickActionsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-bolt"></i> Atalhos Rápidos</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-grid">
+                    <div class="shortcut-item" data-key="F1" data-action="nova-venda">
+                        <kbd>F1</kbd>
+                        <span>Nova Venda</span>
+                    </div>
+                    <div class="shortcut-item" data-key="F2" data-action="consulta-preco">
+                        <kbd>F2</kbd>
+                        <span>Consulta Preço</span>
+                    </div>
+                    <div class="shortcut-item" data-key="F3" data-action="cadastro-produto">
+                        <kbd>F3</kbd>
+                        <span>Cadastrar Produto</span>
+                    </div>
+                    <div class="shortcut-item" data-key="F4" data-action="cadastro-cliente">
+                        <kbd>F4</kbd>
+                        <span>Cadastrar Cliente</span>
+                    </div>
+                    <div class="shortcut-item" data-key="F5" data-action="relatorio-diario">
+                        <kbd>F5</kbd>
+                        <span>Relatório Diário</span>
+                    </div>
+                    <div class="shortcut-item" data-key="F6" data-action="fechar-caixa">
+                        <kbd>F6</kbd>
+                        <span>Fechar Caixa</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="home.js"></script>
+</body>
+</html>
