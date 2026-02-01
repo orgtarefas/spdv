@@ -1,34 +1,54 @@
-// home.js - SOLUÇÃO FINAL 100% FUNCIONAL
+// home.js - APENAS PARA VENDA
+console.log("🏠 Home - Script inicializado");
 
-// PASSO 1: Quando a página carregar
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("1. DOM carregado");
+// 1. Aguardar a página carregar
+window.onload = function() {
+    console.log("✅ Página carregada");
     
-    // PASSO 2: Aguardar um pouco
-    setTimeout(function() {
-        console.log("2. Procurando botão...");
+    // 2. Esconder loading
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) loading.style.display = 'none';
+    
+    // 3. Encontrar o botão de Venda pelo SEU HTML
+    const botaoVenda = document.querySelector('.action-card[href="venda.html"]');
+    
+    console.log("🔍 Procurando botão:", botaoVenda);
+    
+    if (botaoVenda) {
+        console.log("🎯 Botão encontrado! Configurando...");
         
-        // PASSO 3: Encontrar o botão
-        const botaoVenda = document.querySelector('a[href="venda.html"]');
-        
-        if (botaoVenda) {
-            console.log("3. Botão encontrado!");
+        // REMOVER o comportamento padrão do link
+        botaoVenda.addEventListener('click', function(e) {
+            console.log("🖱️ CLICOU EM NOVA VENDA!");
             
-            // PASSO 4: Adicionar evento SIMPLES
-            botaoVenda.onclick = function(e) {
-                console.log("4. Clique registrado!");
-                e.preventDefault();
-                window.location.href = 'venda.html';
-                return false;
-            };
+            // IMPORTANTE: Impedir o navegador de seguir o link normalmente
+            e.preventDefault();
+            e.stopPropagation();
             
-            console.log("5. Tudo configurado!");
-        }
-        
-        // Esconder loading
-        document.getElementById('loadingOverlay').style.display = 'none';
-        
-    }, 500); // Meio segundo de delay
-});
-
-console.log("home.js carregado!");
+            // Primeiro, salvar uma sessão temporária
+            sessionStorage.setItem('pagina_atual', 'home');
+            
+            console.log("📍 Indo para venda.html na MESMA pasta");
+            
+            // Navegar programaticamente
+            window.location.assign('venda.html');
+        });
+    } else {
+        console.error("❌ Botão não encontrado!");
+    }
+    
+    // 4. Atualizar data/hora
+    const dataElemento = document.getElementById('currentDateTime');
+    if (dataElemento) {
+        dataElemento.textContent = new Date().toLocaleDateString('pt-BR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+    
+    console.log("✅ Tudo configurado!");
+};
