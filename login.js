@@ -1,4 +1,4 @@
-// login.js - VERSÃO COMPLETA AJUSTADA
+// login.js - VERSÃO SEM LOCALSTORAGE (TUDO NO FIREBASE)
 import { db, collection, getDocs, doc, getDoc } from './firebase_login.js';
 
 // Elementos DOM
@@ -22,20 +22,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Configurar eventos
     configurarEventos();
     
-    // Verificar se já está autenticado
-    if (localStorage.getItem('pdv_autenticado') === 'true') {
-        const usuario = JSON.parse(localStorage.getItem('pdv_usuario'));
-        const loja = localStorage.getItem('pdv_loja');
-        
-        if (usuario && loja) {
-            console.log(`✅ Usuário já autenticado: ${usuario.login}`);
-            window.location.href = `lojas/${loja}/home.html`;
-            return;
-        }
-    }
-    
-    // Carregar dados salvos
-    carregarDadosSalvos();
+    // Carregar dados salvos do último usuário (apenas para conveniência)
+    carregarUltimoUsuario();
     
     // Carregar lojas do Firebase
     await carregarLojas();
@@ -308,22 +296,20 @@ async function validarLogin(banco_login, usuario, senha) {
         // Buscar informações da loja na coleção "lojas"
         const lojaInfo = await buscarInformacoesLoja(banco_login);
         
-        // Login bem-sucedido
+        // Login bem-sucedido - RETORNAR APENAS OS DADOS NECESSÁRIOS
         return { 
             success: true, 
-            usuario: {
-                id: usuarioKey, // ID do usuário no documento
+            data: {
+                // Dados mínimos para sessão - NADA SERÁ SALVO NO LOCALSTORAGE
+                id: usuarioKey,
                 login: usuario,
                 perfil: usuarioEncontrado.perfil || 'usuario',
-                loja: banco_login,
+                banco_login: banco_login, // ID da loja no Firebase
                 loja_nome: lojaInfo.nome || banco_login,
                 loja_local: lojaInfo.local || '',
                 loja_telefone: lojaInfo.telefone || '',
-                nomeCompleto: usuarioEncontrado.nome || usuarioEncontrado.nomeCompleto || usuario,
-                data_ativacao: usuarioEncontrado.data_ativacao || null,
-                data_criacao: usuarioEncontrado.data_criacao || null,
-                data_validade: usuarioEncontrado.data_validade || null,
-                acessoTotal: (usuarioEncontrado.perfil === 'admin' || usuarioEncontrado.perfil === 'gerente')
+                nome: usuarioEncontrado.nome || usuarioEncontrado.nomeCompleto || usuario,
+                data_login: new Date().toISOString()
             }
         };
         
@@ -409,26 +395,27 @@ async function fazerLogin() {
         const resultado = await validarLogin(banco_login, usuario, senha);
         
         if (resultado.success) {
-            // Salvar dados do usuário
-            const usuarioData = resultado.usuario;
-            localStorage.setItem('pdv_usuario', JSON.stringify(usuarioData));
-            localStorage.setItem('pdv_autenticado', 'true');
-            localStorage.setItem('pdv_loja', banco_login);
-            localStorage.setItem('pdv_loja_nome', usuarioData.loja_nome);
-            localStorage.setItem('pdv_login_time', new Date().getTime());
+            // NÃO SALVAR NO LOCALSTORAGE!
+            // Apenas passar os dados via sessionStorage temporário para a próxima página
+            sessionStorage.setItem('pdv_sessao_temporaria', JSON.stringify(resultado.data));
             
-            // Salvar usuário se "lembrar" estiver marcado
+            // Salvar apenas o último usuário para conveniência (se marcado "Lembrar")
             if (rememberMe.checked) {
-                localStorage.setItem('pdv_last_user', usuario);
+                // Isso é apenas para conveniência do usuário, não para autenticação
+                localStorage.setItem('pdv_ultimo_usuario', usuario);
+                localStorage.setItem('pdv_ultima_loja', banco_login);
             } else {
-                localStorage.removeItem('pdv_last_user');
+                localStorage.removeItem('pdv_ultimo_usuario');
+                localStorage.removeItem('pdv_ultima_loja');
             }
             
-            // Registrar log de acesso
-            console.log(`✅ Login realizado: ${usuario} (${usuarioData.perfil}) na loja ${usuarioData.loja_nome}`);
+            // Registrar log de acesso no Firebase (opcional)
+            await registrarLogAcesso(banco_login, usuario);
+            
+            console.log(`✅ Login realizado: ${usuario} (${resultado.data.perfil}) na loja ${resultado.data.loja_nome}`);
             
             // Mostrar mensagem de sucesso
-            showMessage(`Bem-vindo(a) ${usuarioData.nomeCompleto} à ${usuarioData.loja_nome}!`, 'success');
+            showMessage(`Bem-vindo(a) ${resultado.data.nome}!`, 'success');
             
             // Redirecionar após delay
             setTimeout(() => {
@@ -454,18 +441,62 @@ async function fazerLogin() {
 }
 
 // ============================================
-// 8. FUNÇÕES AUXILIARES
+// 8. REGISTRAR LOG DE ACESSO NO FIREBASE
 // ============================================
-function carregarDadosSalvos() {
-    const lastUser = localStorage.getItem('pdv_last_user');
-    if (lastUser) {
-        usuarioInput.value = lastUser;
-        rememberMe.checked = true;
+async function registrarLogAcesso(banco_login, usuario) {
+    try {
+        // Esta função registra o log de acesso no Firebase
+        // Você precisará criar uma coleção "logs_acesso" no Firebase
+        
+        // Por enquanto, apenas log no console
+        console.log(`📝 Log de acesso: ${usuario} na loja ${banco_login} - ${new Date().toLocaleString()}`);
+        
+        // Se quiser implementar no futuro:
+        /*
+        import { collection, addDoc, serverTimestamp } from './firebase_login.js';
+        
+        const logsRef = collection(db, "logs_acesso");
+        await addDoc(logsRef, {
+            loja_id: banco_login,
+            usuario: usuario,
+            data_acesso: serverTimestamp(),
+            ip: await getIP(),
+            navegador: navigator.userAgent
+        });
+        */
+        
+    } catch (error) {
+        console.warn('⚠️ Erro ao registrar log de acesso:', error);
+        // Não falha o login por causa do log
     }
 }
 
 // ============================================
-// 9. ADICIONAR FAVICON DINAMICAMENTE
+// 9. FUNÇÕES AUXILIARES
+// ============================================
+function carregarUltimoUsuario() {
+    // Apenas para conveniência do usuário - NÃO É AUTENTICAÇÃO
+    const ultimoUsuario = localStorage.getItem('pdv_ultimo_usuario');
+    const ultimaLoja = localStorage.getItem('pdv_ultima_loja');
+    
+    if (ultimoUsuario) {
+        usuarioInput.value = ultimoUsuario;
+        rememberMe.checked = true;
+        
+        // Tentar selecionar a última loja usada
+        if (ultimaLoja && lojaSelect.options.length > 0) {
+            for (let i = 0; i < lojaSelect.options.length; i++) {
+                if (lojaSelect.options[i].value === ultimaLoja) {
+                    lojaSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// ============================================
+// 10. CONFIGURAÇÕES ADICIONAIS
 // ============================================
 // Criar favicon dinamicamente para evitar erro 404
 const link = document.createElement('link');
