@@ -1,4 +1,4 @@
-// login.js - VERSÃO SEM LOCALSTORAGE (TUDO NO FIREBASE)
+// login.js - VERSÃO COM ACESSO ADMIN PARA TODAS AS LOJAS
 import { db, collection, getDocs, doc, getDoc } from './firebase_login.js';
 
 // Elementos DOM
@@ -222,11 +222,77 @@ async function carregarLojas() {
 }
 
 // ============================================
-// 5. VALIDAÇÃO DE LOGIN (usando coleção "logins")
+// 5. VALIDAÇÃO DE LOGIN (com acesso admin global)
 // ============================================
 async function validarLogin(banco_login, usuario, senha) {
     try {
         console.log(`🔍 Validando login: ${usuario} na loja ${banco_login}`);
+        
+        // PRIMEIRO: Verificar se é um usuário ADMIN GLOBAL
+        // Os admins globais estão no documento "admin" da coleção "logins"
+        const adminRef = doc(db, "logins", "admin");
+        const adminDoc = await getDoc(adminRef);
+        
+        if (adminDoc.exists()) {
+            const dadosAdmin = adminDoc.data();
+            console.log(`🔍 Verificando admin global:`, dadosAdmin);
+            
+            // Buscar usuário admin pelo login
+            let adminEncontrado = null;
+            let adminKey = null;
+            
+            for (const [key, userData] of Object.entries(dadosAdmin)) {
+                if (userData && typeof userData === 'object' && userData.login === usuario) {
+                    adminEncontrado = userData;
+                    adminKey = key;
+                    console.log(`✅ Admin global encontrado na chave: ${adminKey}`);
+                    break;
+                }
+            }
+            
+            // Se encontrou um admin global
+            if (adminEncontrado) {
+                console.log(`✅ Verificando admin global: ${usuario}`);
+                
+                // Verificar se admin está ativo
+                if (adminEncontrado.ativo === false) {
+                    console.log(`❌ Admin global inativo: ${usuario}`);
+                    return { success: false, message: "Usuário admin inativo" };
+                }
+                
+                // Verificar senha do admin
+                if (adminEncontrado.senha !== senha) {
+                    console.log(`❌ Senha incorreta para admin: ${usuario}`);
+                    return { success: false, message: "Senha incorreta" };
+                }
+                
+                // Buscar informações da loja selecionada
+                const lojaInfo = await buscarInformacoesLoja(banco_login);
+                
+                // Admin tem acesso a qualquer loja!
+                console.log(`✅ Admin ${usuario} tem acesso à loja ${banco_login}`);
+                
+                return { 
+                    success: true, 
+                    data: {
+                        id: adminKey,
+                        login: usuario,
+                        perfil: adminEncontrado.perfil || 'admin_global',
+                        banco_login: banco_login, // Loja selecionada
+                        loja_nome: lojaInfo.nome || banco_login,
+                        loja_local: lojaInfo.local || '',
+                        loja_telefone: lojaInfo.telefone || '',
+                        nome: adminEncontrado.nome || adminEncontrado.nomeCompleto || usuario,
+                        data_login: new Date().toISOString(),
+                        is_admin_global: true, // Flag especial para admin global
+                        pode_acessar_todas_lojas: true
+                    }
+                };
+            }
+        }
+        
+        // SEGUNDO: Se não é admin global, verificar login normal da loja
+        console.log(`🔍 Não é admin global, verificando login da loja ${banco_login}`);
         
         // Acessar documento específico na coleção "logins"
         const loginRef = doc(db, "logins", banco_login);
@@ -241,7 +307,7 @@ async function validarLogin(banco_login, usuario, senha) {
         }
         
         const dadosLogin = loginDoc.data();
-        console.log(`📄 Dados do documento login:`, dadosLogin);
+        console.log(`📄 Dados do documento login da loja:`, dadosLogin);
         
         // Buscar usuário pelo login nos subdocumentos/mapas
         let usuarioEncontrado = null;
@@ -296,11 +362,10 @@ async function validarLogin(banco_login, usuario, senha) {
         // Buscar informações da loja na coleção "lojas"
         const lojaInfo = await buscarInformacoesLoja(banco_login);
         
-        // Login bem-sucedido - RETORNAR APENAS OS DADOS NECESSÁRIOS
+        // Login bem-sucedido - usuário normal da loja
         return { 
             success: true, 
             data: {
-                // Dados mínimos para sessão - NADA SERÁ SALVO NO LOCALSTORAGE
                 id: usuarioKey,
                 login: usuario,
                 perfil: usuarioEncontrado.perfil || 'usuario',
@@ -309,7 +374,9 @@ async function validarLogin(banco_login, usuario, senha) {
                 loja_local: lojaInfo.local || '',
                 loja_telefone: lojaInfo.telefone || '',
                 nome: usuarioEncontrado.nome || usuarioEncontrado.nomeCompleto || usuario,
-                data_login: new Date().toISOString()
+                data_login: new Date().toISOString(),
+                is_admin_global: false, // Não é admin global
+                pode_acessar_todas_lojas: false
             }
         };
         
@@ -395,13 +462,11 @@ async function fazerLogin() {
         const resultado = await validarLogin(banco_login, usuario, senha);
         
         if (resultado.success) {
-            // NÃO SALVAR NO LOCALSTORAGE!
-            // Apenas passar os dados via sessionStorage temporário para a próxima página
+            // Salvar sessão temporária
             sessionStorage.setItem('pdv_sessao_temporaria', JSON.stringify(resultado.data));
             
             // Salvar apenas o último usuário para conveniência (se marcado "Lembrar")
             if (rememberMe.checked) {
-                // Isso é apenas para conveniência do usuário, não para autenticação
                 localStorage.setItem('pdv_ultimo_usuario', usuario);
                 localStorage.setItem('pdv_ultima_loja', banco_login);
             } else {
@@ -410,12 +475,17 @@ async function fazerLogin() {
             }
             
             // Registrar log de acesso no Firebase (opcional)
-            await registrarLogAcesso(banco_login, usuario);
+            await registrarLogAcesso(banco_login, usuario, resultado.data.is_admin_global);
             
             console.log(`✅ Login realizado: ${usuario} (${resultado.data.perfil}) na loja ${resultado.data.loja_nome}`);
             
-            // Mostrar mensagem de sucesso
-            showMessage(`Bem-vindo(a) ${resultado.data.nome}!`, 'success');
+            // Mensagem especial para admin global
+            let mensagem = `Bem-vindo(a) ${resultado.data.nome}!`;
+            if (resultado.data.is_admin_global) {
+                mensagem = `👑 Admin Global ${resultado.data.nome} acessando ${resultado.data.loja_nome}`;
+            }
+            
+            showMessage(mensagem, 'success');
             
             // Redirecionar após delay
             setTimeout(() => {
@@ -443,15 +513,11 @@ async function fazerLogin() {
 // ============================================
 // 8. REGISTRAR LOG DE ACESSO NO FIREBASE
 // ============================================
-async function registrarLogAcesso(banco_login, usuario) {
+async function registrarLogAcesso(banco_login, usuario, is_admin_global = false) {
     try {
-        // Esta função registra o log de acesso no Firebase
-        // Você precisará criar uma coleção "logs_acesso" no Firebase
+        console.log(`📝 Log de acesso: ${usuario} (${is_admin_global ? 'Admin Global' : 'Usuário Normal'}) na loja ${banco_login} - ${new Date().toLocaleString()}`);
         
-        // Por enquanto, apenas log no console
-        console.log(`📝 Log de acesso: ${usuario} na loja ${banco_login} - ${new Date().toLocaleString()}`);
-        
-        // Se quiser implementar no futuro:
+        // Aqui você pode implementar o registro no Firebase se quiser
         /*
         import { collection, addDoc, serverTimestamp } from './firebase_login.js';
         
@@ -459,6 +525,7 @@ async function registrarLogAcesso(banco_login, usuario) {
         await addDoc(logsRef, {
             loja_id: banco_login,
             usuario: usuario,
+            tipo_usuario: is_admin_global ? "admin_global" : "usuario_loja",
             data_acesso: serverTimestamp(),
             ip: await getIP(),
             navegador: navigator.userAgent
@@ -467,7 +534,6 @@ async function registrarLogAcesso(banco_login, usuario) {
         
     } catch (error) {
         console.warn('⚠️ Erro ao registrar log de acesso:', error);
-        // Não falha o login por causa do log
     }
 }
 
@@ -498,17 +564,17 @@ function carregarUltimoUsuario() {
 // ============================================
 // 10. CONFIGURAÇÕES ADICIONAIS
 // ============================================
-// Criar favicon dinamicamente para evitar erro 404
+// Criar favicon dinamicamente
 const link = document.createElement('link');
 link.rel = 'icon';
 link.type = 'image/svg+xml';
 link.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏪</text></svg>';
 document.head.appendChild(link);
 
-// Adicionar crossorigin ao Font Awesome para evitar bloqueio
+// Adicionar crossorigin ao Font Awesome
 const fontAwesomeLinks = document.querySelectorAll('link[href*="font-awesome"]');
 fontAwesomeLinks.forEach(link => {
     link.crossOrigin = 'anonymous';
 });
 
-console.log('✅ login.js carregado com sucesso!');
+console.log('✅ login.js carregado com sucesso! Sistema com Admin Global ativado.');
