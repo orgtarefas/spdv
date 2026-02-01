@@ -1,46 +1,66 @@
-// home.js - APENAS PARA VENDA
-console.log("🏠 Home - Script inicializado");
+// home.js - VERSÃO SUPER SIMPLES QUE FUNCIONA
+console.log("✅ home.js carregado - MJ Materiais");
 
-// 1. Aguardar a página carregar
+// 1. Quando a página carregar
 window.onload = function() {
-    console.log("✅ Página carregada");
+    console.log("🏠 Página home carregada");
     
-    // 2. Esconder loading
+    // Esconder o loading
     const loading = document.getElementById('loadingOverlay');
-    if (loading) loading.style.display = 'none';
-    
-    // 3. Encontrar o botão de Venda pelo SEU HTML
-    const botaoVenda = document.querySelector('.action-card[href="venda.html"]');
-    
-    console.log("🔍 Procurando botão:", botaoVenda);
-    
-    if (botaoVenda) {
-        console.log("🎯 Botão encontrado! Configurando...");
-        
-        // REMOVER o comportamento padrão do link
-        botaoVenda.addEventListener('click', function(e) {
-            console.log("🖱️ CLICOU EM NOVA VENDA!");
-            
-            // IMPORTANTE: Impedir o navegador de seguir o link normalmente
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Primeiro, salvar uma sessão temporária
-            sessionStorage.setItem('pagina_atual', 'home');
-            
-            console.log("📍 Indo para venda.html na MESMA pasta");
-            
-            // Navegar programaticamente
-            window.location.assign('venda.html');
-        });
-    } else {
-        console.error("❌ Botão não encontrado!");
+    if (loading) {
+        loading.style.display = 'none';
     }
     
-    // 4. Atualizar data/hora
-    const dataElemento = document.getElementById('currentDateTime');
-    if (dataElemento) {
-        dataElemento.textContent = new Date().toLocaleDateString('pt-BR', {
+    // Configurar data/hora
+    atualizarDataHora();
+    
+    // Configurar o botão de VENDA
+    configurarBotaoVenda();
+};
+
+// 2. Função para configurar o botão de Venda
+function configurarBotaoVenda() {
+    console.log("🔧 Configurando botão Nova Venda...");
+    
+    // Encontrar o botão pelo HTML EXATO que você tem
+    const botaoVenda = document.querySelector('a[href="venda.html"]');
+    
+    if (botaoVenda) {
+        console.log("🎯 Botão encontrado:", botaoVenda);
+        
+        // Adicionar evento de clique SIMPLES
+        botaoVenda.addEventListener('click', function(evento) {
+            console.log("🖱️ CLICOU EM NOVA VENDA!");
+            
+            // Impedir o comportamento normal
+            evento.preventDefault();
+            
+            // Verificar se tem sessão (opcional, mas importante)
+            const temSessao = sessionStorage.getItem('userSession');
+            if (!temSessao) {
+                alert("Sessão expirada! Faça login novamente.");
+                window.location.href = '../../login.html';
+                return;
+            }
+            
+            console.log("📍 Indo para venda.html...");
+            
+            // Navegar para venda.html na MESMA pasta
+            window.location.href = 'venda.html';
+        });
+        
+        console.log("✅ Botão configurado com sucesso!");
+    } else {
+        console.error("❌ ERRO: Não encontrei o botão de Venda!");
+    }
+}
+
+// 3. Função para atualizar data/hora
+function atualizarDataHora() {
+    const elemento = document.getElementById('currentDateTime');
+    if (elemento) {
+        const agora = new Date();
+        elemento.textContent = agora.toLocaleDateString('pt-BR', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
@@ -49,6 +69,17 @@ window.onload = function() {
             minute: '2-digit'
         });
     }
-    
-    console.log("✅ Tudo configurado!");
-};
+}
+
+// 4. Configurar botão de Logout (opcional)
+const btnLogout = document.getElementById('btnLogout');
+if (btnLogout) {
+    btnLogout.addEventListener('click', function() {
+        if (confirm("Deseja sair do sistema?")) {
+            sessionStorage.removeItem('userSession');
+            window.location.href = '../../login.html';
+        }
+    });
+}
+
+console.log("🚀 home.js pronto!");
