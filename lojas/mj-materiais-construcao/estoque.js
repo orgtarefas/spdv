@@ -502,6 +502,7 @@ function configurarEventos() {
             if (confirm("Deseja sair do sistema?")) {
                 sessionStorage.removeItem('pdv_sessao_temporaria');
                 localStorage.removeItem('pdv_sessao_backup');
+                // CORREÇÃO: Caminho correto
                 window.location.href = '../../login.html';
             }
         });
@@ -733,3 +734,4 @@ function mostrarErro(texto) {
 })();
 
 console.log("✅ Sistema de estoque carregado e pronto!");
+
