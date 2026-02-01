@@ -1,11 +1,10 @@
-// venda.js - SISTEMA COMPLETO DE VENDAS COM FIREBASE REAL
+// venda.js - SISTEMA DE VENDAS COM FIREBASE 8.10.1
 console.log("🛒 Sistema de Vendas MJ - Iniciando...");
 
 // ============================================
-// CONFIGURAÇÃO FIREBASE
+// CONFIGURAÇÃO FIREBASE (Versão 8.10.1)
 // ============================================
 let db;
-let firebaseApp;
 
 // Inicializar Firebase
 function inicializarFirebase() {
@@ -20,20 +19,16 @@ function inicializarFirebase() {
             appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
         };
         
-        // Verificar se Firebase já está inicializado
-        const apps = firebase.apps;
-        let appName = 'pdv-vendas-app';
-        
-        // Se já existe, usar o existente
-        if (apps.length > 0) {
-            firebaseApp = apps[0];
+        // Inicializar Firebase (versão 8.10.1)
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         } else {
-            // Inicializar novo
-            firebaseApp = firebase.initializeApp(firebaseConfig, appName);
+            firebase.app(); // Se já inicializado, usar o existente
         }
         
-        db = firebase.firestore(firebaseApp);
-        console.log("✅ Firebase inicializado");
+        // Obter Firestore
+        db = firebase.firestore();
+        console.log("✅ Firebase inicializado com sucesso!");
         return true;
         
     } catch (error) {
@@ -52,24 +47,24 @@ let carrinho = [];
 let desconto = 0;
 
 // ============================================
-// 1. INICIALIZAÇÃO QUANDO A PÁGINA CARREGAR
+// 1. INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log("📄 Página carregada");
     
-    // Esconder loading após 2 segundos
+    // Esconder loading após 1 segundo
     setTimeout(function() {
         esconderLoading();
-    }, 2000);
+    }, 1000);
     
-    // Verificar sessão
+    // Verificar sessão primeiro
     if (!verificarSessao()) {
         return;
     }
     
     // Inicializar Firebase
     if (!inicializarFirebase()) {
-        mostrarErro("Não foi possível conectar ao banco de dados");
+        mostrarErro("Não foi possível conectar ao banco de dados. Recarregue a página.");
         return;
     }
     
@@ -78,6 +73,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Carregar produtos
     carregarProdutosReais();
+    
+    // Atualizar data/hora
+    atualizarDataHora();
+    setInterval(atualizarDataHora, 60000);
     
     console.log("✅ Sistema pronto para uso");
 });
@@ -90,7 +89,7 @@ function verificarSessao() {
                    localStorage.getItem('pdv_sessao_backup');
     
     if (!sessao) {
-        alert("⚠️ Sessão expirada!\nFaça login novamente.");
+        alert("⚠️ Sessão expirada! Faça login novamente.");
         setTimeout(function() {
             window.location.href = '../../login.html';
         }, 1000);
@@ -128,6 +127,7 @@ async function carregarProdutosReais() {
     
     try {
         // Buscar da coleção estoque_mj_construcoes
+        // Firebase 8.10.1 usa sintaxe diferente
         const querySnapshot = await db.collection('estoque_mj_construcoes')
             .where('ativo', '==', true)
             .where('quantidade', '>', 0)
@@ -155,26 +155,26 @@ async function carregarProdutosReais() {
         
         console.log(`✅ ${produtos.length} produtos carregados`);
         
+        if (produtos.length === 0) {
+            mostrarMensagem("⚠️ Nenhum produto disponível no estoque", "info");
+        }
+        
         produtosFiltrados = [...produtos];
         renderizarProdutos();
         atualizarContadorProdutos();
         
-        if (produtos.length === 0) {
-            mostrarMensagem("Nenhum produto disponível no estoque", "info");
-        }
-        
     } catch (error) {
         console.error("❌ Erro ao carregar produtos:", error);
-        mostrarErro("Erro ao carregar produtos: " + error.message);
         
-        // Tentar carregar sem filtros
+        // Tentar carregar sem os where para ver se funciona
         try {
             const querySnapshot = await db.collection('estoque_mj_construcoes').get();
             produtos = [];
             
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                if (data.ativo !== false && data.quantidade > 0) {
+                // Filtrar localmente
+                if (data.ativo !== false && (data.quantidade || 0) > 0) {
                     produtos.push({
                         id: doc.id,
                         codigo: data.codigo || doc.id,
@@ -193,8 +193,11 @@ async function carregarProdutosReais() {
             renderizarProdutos();
             atualizarContadorProdutos();
             
+            mostrarMensagem(`Carregados ${produtos.length} produtos (modo compatibilidade)`, "info");
+            
         } catch (error2) {
             console.error("❌ Erro crítico:", error2);
+            mostrarErro("Não foi possível carregar os produtos. Tente novamente.");
         }
         
     } finally {
@@ -261,13 +264,15 @@ function renderizarProdutos() {
 // ============================================
 function selecionarProdutoParaVenda(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
-    if (!produto || produto.quantidade <= 0) return;
+    if (!produto || produto.quantidade <= 0) {
+        mostrarMensagem("Produto sem estoque disponível", "warning");
+        return;
+    }
     
     const quantidade = prompt(
         `Quantidade de "${produto.nome}"?\n\n` +
         `Estoque disponível: ${produto.quantidade} ${produto.unidade || 'UN'}\n` +
-        `Preço unitário: R$ ${formatarMoeda(produto.preco)}\n` +
-        `Total: R$ ${formatarMoeda(produto.preco * 1)}`,
+        `Preço unitário: R$ ${formatarMoeda(produto.preco)}`,
         "1"
     );
     
@@ -421,6 +426,7 @@ async function finalizarVenda() {
         const numeroVenda = 'VENDA-' + Date.now().toString().slice(-8);
         const vendedorNome = usuario.nome || usuario.login || 'Vendedor';
         const vendedorId = usuario.id || 'user-id';
+        const timestamp = firebase.firestore.FieldValue.serverTimestamp();
         
         // 1. Criar documento de venda
         const vendaRef = db.collection('vendas_mj_construcoes').doc();
@@ -444,12 +450,12 @@ async function finalizarVenda() {
             total: total,
             forma_pagamento: formaPagamento,
             status: 'concluida',
-            data_venda: firebase.firestore.FieldValue.serverTimestamp(),
-            data_criacao: firebase.firestore.FieldValue.serverTimestamp(),
+            data_venda: timestamp,
+            data_criacao: timestamp,
             created_at: new Date().toISOString()
         };
         
-        // 2. Atualizar estoque para cada produto
+        // Criar batch para transação
         const batch = db.batch();
         
         // Adicionar venda ao batch
@@ -460,18 +466,17 @@ async function finalizarVenda() {
             const produtoRef = db.collection('estoque_mj_construcoes').doc(item.id);
             batch.update(produtoRef, {
                 quantidade: firebase.firestore.FieldValue.increment(-item.quantidade),
-                data_atualizacao: firebase.firestore.FieldValue.serverTimestamp()
+                data_atualizacao: timestamp
             });
         }
         
-        // Executar batch (transação)
+        // Executar batch
         await batch.commit();
         
         // Sucesso
         mostrarMensagem(
-            `✅ Venda #${numeroVenda} finalizada!\n` +
-            `Total: R$ ${formatarMoeda(total)}\n` +
-            `Forma de pagamento: ${formaPagamentoNome}`,
+            `✅ Venda #${numeroVenda} finalizada com sucesso!\n` +
+            `Total: R$ ${formatarMoeda(total)}`,
             "success",
             5000
         );
@@ -484,11 +489,11 @@ async function finalizarVenda() {
         // Recarregar produtos (estoque atualizado)
         setTimeout(() => {
             carregarProdutosReais();
-        }, 2000);
+        }, 1500);
         
     } catch (error) {
         console.error("❌ Erro ao finalizar venda:", error);
-        mostrarErro(`Erro: ${error.message}\nTente novamente.`);
+        mostrarErro(`Erro ao finalizar venda: ${error.message}\nTente novamente.`);
     } finally {
         esconderLoading();
     }
@@ -519,11 +524,11 @@ function configurarEventos() {
         });
     }
     
-    // Botão escanear (simulado)
+    // Botão escanear
     const btnScan = document.getElementById('btnScan');
     if (btnScan) {
         btnScan.addEventListener('click', function() {
-            mostrarMensagem("Funcionalidade de escanear código de barras em desenvolvimento", "info");
+            mostrarMensagem("Digite o código do produto na busca", "info");
         });
     }
     
@@ -660,13 +665,8 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
         info: 'fas fa-info-circle'
     };
     
-    if (icon) {
-        icon.className = `message-icon ${icons[tipo] || icons.info}`;
-    }
-    
-    if (text) {
-        text.textContent = texto;
-    }
+    if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
+    if (text) text.textContent = texto;
     
     // Botão fechar
     if (closeBtn) {
@@ -714,4 +714,4 @@ atualizarDataHora();
 // ============================================
 // INICIAR SISTEMA
 // ============================================
-console.log("✅ Sistema de vendas carregado!");
+console.log("✅ Sistema de vendas completamente carregado!");
