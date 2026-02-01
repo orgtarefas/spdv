@@ -118,6 +118,7 @@ function verificarSessao() {
     }
 }
 
+
 // ============================================
 // 3. CARREGAR PRODUTOS REAIS DO FIREBASE
 // ============================================
@@ -126,21 +127,17 @@ async function carregarProdutosReais() {
     mostrarLoading("Carregando produtos...");
     
     try {
-        // CORREÇÃO: Não podemos usar where com > e orderBy por outro campo
-        // Buscar todos os produtos ativos primeiro
-        const querySnapshot = await db.collection('estoque_mj_construcoes')
-            .where('ativo', '==', true)
-            .orderBy('nome')
-            .get();
+        // Método SIMPLES: Buscar todos e filtrar localmente
+        const querySnapshot = await db.collection('estoque_mj_construcoes').get();
         
         produtos = [];
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            
-            // Filtrar localmente os que têm quantidade > 0
             const quantidade = parseInt(data.quantidade) || 0;
-            if (quantidade > 0) {
+            
+            // Filtrar localmente: ativos e com estoque > 0
+            if (data.ativo !== false && quantidade > 0) {
                 produtos.push({
                     id: doc.id,
                     codigo: data.codigo || doc.id,
@@ -157,10 +154,18 @@ async function carregarProdutosReais() {
             }
         });
         
-        console.log(`✅ ${produtos.length} produtos carregados (${querySnapshot.size} ativos no total)`);
+        // Ordenar localmente por nome (sem precisar de índice)
+        produtos.sort((a, b) => {
+            if (a.nome && b.nome) {
+                return a.nome.localeCompare(b.nome);
+            }
+            return 0;
+        });
+        
+        console.log(`✅ ${produtos.length} produtos carregados (de ${querySnapshot.size} no total)`);
         
         if (produtos.length === 0) {
-            mostrarMensagem("⚠️ Nenhum produto disponível no estoque", "info");
+            mostrarMensagem("ℹ️ Nenhum produto disponível no estoque", "info");
         }
         
         produtosFiltrados = [...produtos];
@@ -168,45 +173,23 @@ async function carregarProdutosReais() {
         atualizarContadorProdutos();
         
     } catch (error) {
-        console.error("❌ Erro ao carregar produtos:", error);
+        console.error("❌ Erro crítico ao carregar produtos:", error);
+        mostrarErro("Não foi possível carregar os produtos. Verifique sua conexão.");
         
-        // Se der erro com o where, tentar sem filtro algum
-        try {
-            console.log("🔄 Tentando carregar todos os produtos...");
-            const querySnapshot = await db.collection('estoque_mj_construcoes').get();
-            produtos = [];
-            
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                // Filtrar localmente: ativos e com quantidade > 0
-                const quantidade = parseInt(data.quantidade) || 0;
-                if (data.ativo !== false && quantidade > 0) {
-                    produtos.push({
-                        id: doc.id,
-                        codigo: data.codigo || doc.id,
-                        nome: data.nome || 'Produto sem nome',
-                        preco: parseFloat(data.preco) || 0,
-                        quantidade: quantidade,
-                        categoria: data.categoria || '',
-                        unidade: data.unidade || 'UN',
-                        estoque_minimo: parseInt(data.estoque_minimo) || 5,
-                        ativo: data.ativo !== false
-                    });
-                }
-            });
-            
-            // Ordenar localmente por nome
-            produtos.sort((a, b) => a.nome.localeCompare(b.nome));
-            
-            produtosFiltrados = [...produtos];
-            renderizarProdutos();
-            atualizarContadorProdutos();
-            
-            console.log(`🔄 Carregados ${produtos.length} produtos (modo compatibilidade)`);
-            
-        } catch (error2) {
-            console.error("❌ Erro crítico:", error2);
-            mostrarErro("Não foi possível carregar os produtos. Tente novamente.");
+        // Mostrar estado vazio
+        const productsGrid = document.getElementById('productsGrid');
+        const emptyProducts = document.getElementById('emptyProducts');
+        
+        if (productsGrid) {
+            productsGrid.innerHTML = '';
+        }
+        if (emptyProducts) {
+            emptyProducts.style.display = 'flex';
+            emptyProducts.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Erro ao carregar produtos</p>
+                <small>${error.message}</small>
+            `;
         }
         
     } finally {
@@ -728,3 +711,4 @@ function atualizarDataHora() {
 // INICIAR SISTEMA
 // ============================================
 console.log("✅ Sistema de vendas completamente carregado!");
+
