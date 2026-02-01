@@ -1,71 +1,34 @@
-// home.js - SUPER SIMPLES E FUNCIONAL
-console.log("🏠 Home carregando...");
+// home.js - SOLUÇÃO FINAL 100% FUNCIONAL
 
-// Esperar a página carregar completamente
-window.addEventListener('load', function() {
-    console.log("✅ Página totalmente carregada");
+// PASSO 1: Quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("1. DOM carregado");
     
-    // Esconder o loading
-    const loading = document.getElementById('loadingOverlay');
-    if (loading) {
-        loading.style.display = 'none';
-        console.log("⏳ Loading escondido");
-    }
-    
-    // Encontrar o botão de VENDA
-    const botaoVenda = document.querySelector('a[href="venda.html"]');
-    console.log("🔍 Procurando botão venda.html...");
-    console.log("Botão encontrado?", botaoVenda);
-    
-    if (botaoVenda) {
-        console.log("🎯 Botão encontrado! Configurando clique...");
+    // PASSO 2: Aguardar um pouco
+    setTimeout(function() {
+        console.log("2. Procurando botão...");
         
-        // ADICIONAR evento de clique
-        botaoVenda.addEventListener('click', function(evento) {
-            console.log("🖱️ CLICOU NO BOTÃO VENDA!");
-            
-            // IMPORTANTE: Impedir o comportamento normal do link
-            evento.preventDefault();
-            evento.stopPropagation();
-            
-            console.log("📍 Navegando para venda.html...");
-            
-            // Navegar para venda.html (na MESMA pasta)
-            window.location.href = 'venda.html';
-        });
+        // PASSO 3: Encontrar o botão
+        const botaoVenda = document.querySelector('a[href="venda.html"]');
         
-        console.log("✅ Botão configurado com sucesso!");
-    } else {
-        console.error("❌ ERRO: Não encontrei o botão de Venda!");
+        if (botaoVenda) {
+            console.log("3. Botão encontrado!");
+            
+            // PASSO 4: Adicionar evento SIMPLES
+            botaoVenda.onclick = function(e) {
+                console.log("4. Clique registrado!");
+                e.preventDefault();
+                window.location.href = 'venda.html';
+                return false;
+            };
+            
+            console.log("5. Tudo configurado!");
+        }
         
-        // Mostrar todos os links na página para debug
-        console.log("📋 Todos os links da página:");
-        document.querySelectorAll('a').forEach((link, index) => {
-            console.log(`${index + 1}. href="${link.getAttribute('href')}"`);
-        });
-    }
-    
-    // Configurar data/hora
-    atualizarDataHora();
+        // Esconder loading
+        document.getElementById('loadingOverlay').style.display = 'none';
+        
+    }, 500); // Meio segundo de delay
 });
 
-// Função para atualizar data/hora
-function atualizarDataHora() {
-    const elemento = document.getElementById('currentDateTime');
-    if (!elemento) return;
-    
-    const agora = new Date();
-    const opcoes = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    };
-    
-    elemento.textContent = agora.toLocaleDateString('pt-BR', opcoes);
-}
-
-// Adicionar este script também para garantir
-console.log("🎯 home.js executado - pronto para cliques!");
+console.log("home.js carregado!");
