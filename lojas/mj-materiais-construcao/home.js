@@ -1,7 +1,6 @@
-// home.js - COMPLETO com navegação segura
-import { auth, db } from './firebase_config.js';
-import { onAuthStateChanged } from 'firebase/auth';
-import { collection, query, where, getDocs, getCountFromServer, orderBy, limit } from 'firebase/firestore';
+// home.js - COM LOGIN VIA FIRESTORE (sem Firebase Auth)
+import { db, mjServices } from './firebase_config.js';
+import { collection, getDocs, query, where } from './firebase_config.js';
 
 // Variáveis globais
 let userSession = null;
@@ -14,81 +13,105 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         // 1. Verificar sessão do localStorage/sessionStorage
         const savedSession = sessionStorage.getItem('userSession') || localStorage.getItem('userSession');
-        if (savedSession) {
-            userSession = JSON.parse(savedSession);
-            console.log("✅ Sessão recuperada:", userSession);
+        
+        if (!savedSession) {
+            console.log("⚠️ Nenhuma sessão encontrada");
+            redirecionarParaLogin();
+            return;
         }
         
-        // 2. Configurar verificação de autenticação
-        setupAuthListener();
+        userSession = JSON.parse(savedSession);
+        console.log("✅ Sessão recuperada:", userSession);
         
-        // 3. Configurar navegação segura
+        // 2. Verificar se a sessão ainda é válida (opcional)
+        const sessaoValida = await verificarSessao(userSession);
+        
+        if (!sessaoValida) {
+            console.log("⚠️ Sessão expirada ou inválida");
+            sessionStorage.removeItem('userSession');
+            localStorage.removeItem('userSession');
+            redirecionarParaLogin();
+            return;
+        }
+        
+        // 3. Inicializar home
+        inicializarHome();
+        
+        // 4. Configurar navegação segura
         setupSecureNavigation();
         
-        // 4. Configurar eventos da UI
+        // 5. Configurar eventos da UI
         setupUIEvents();
         
     } catch (error) {
         console.error("❌ Erro ao inicializar home:", error);
         mostrarMensagem("Erro ao carregar sistema", "error");
+        
+        // Em caso de erro, tentar recarregar ou ir para login
+        setTimeout(() => {
+            redirecionarParaLogin();
+        }, 2000);
     }
 });
 
-// ===== LISTENER DE AUTENTICAÇÃO =====
-function setupAuthListener() {
-    onAuthStateChanged(auth, (user) => {
-        console.log("Auth state changed:", user?.email);
+// ===== VERIFICAR SESSÃO =====
+async function verificarSessao(session) {
+    try {
+        console.log("🔍 Verificando sessão...");
         
-        if (!user) {
-            console.log("⚠️ Usuário não autenticado");
-            
-            // Verificar se já estamos na página de login
-            if (!window.location.href.includes('index.html')) {
-                console.log("Redirecionando para login...");
-                
-                // Salvar página atual para possível retorno
-                sessionStorage.setItem('paginaRetorno', 'home.html');
-                
-                // Redirecionar após breve delay
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
-            }
-            return;
+        // Verificar dados básicos da sessão
+        if (!session.id || !session.login || !session.perfil) {
+            console.log("Sessão incompleta");
+            return false;
         }
         
-        // Usuário autenticado
-        if (!homeInitialized) {
-            homeInitialized = true;
-            inicializarHome(user);
-        }
-    });
+        // Verificar se usuário ainda existe no banco (opcional)
+        // Se quiser fazer esta verificação, descomente:
+        /*
+        const usuariosRef = collection(db, 'usuarios');
+        const q = query(usuariosRef, 
+            where('id', '==', session.id),
+            where('login', '==', session.login),
+            where('ativo', '==', true)
+        );
+        
+        const snapshot = await getDocs(q);
+        return !snapshot.empty;
+        */
+        
+        // Por enquanto, aceitar sessão se tiver dados básicos
+        return true;
+        
+    } catch (error) {
+        console.error("Erro ao verificar sessão:", error);
+        return false;
+    }
 }
 
 // ===== INICIALIZAR HOME =====
-async function inicializarHome(user) {
+async function inicializarHome() {
     try {
         console.log("🚀 Inicializando interface da Home...");
         
-        // Atualizar informações do usuário
-        atualizarUsuarioUI(user);
+        // 1. Atualizar informações do usuário na UI
+        atualizarUsuarioUI();
         
-        // Carregar estatísticas
+        // 2. Carregar estatísticas
         await carregarEstatisticas();
         
-        // Carregar atividades recentes
+        // 3. Carregar atividades recentes
         await carregarAtividadesRecentes();
         
-        // Atualizar data e hora
+        // 4. Atualizar data e hora
         atualizarDataHora();
         setInterval(atualizarDataHora, 60000); // Atualizar a cada minuto
         
-        // Configurar status de conexão
+        // 5. Configurar status de conexão
         setupConnectionStatus();
         
         console.log("✅ Home MJ Materiais carregada com sucesso!");
         
-        // Esconder loading
+        // 6. Esconder loading
         setTimeout(() => {
             ocultarLoading();
         }, 500);
@@ -123,16 +146,7 @@ function setupSecureNavigation() {
         });
     }
     
-    // 3. Links de Relatórios (se existir)
-    const linkRelatorios = document.querySelector('a[href="relatorios.html"]');
-    if (linkRelatorios) {
-        linkRelatorios.addEventListener('click', function(e) {
-            e.preventDefault();
-            navegarParaPagina('relatorios.html');
-        });
-    }
-    
-    // 4. Botão de Logout
+    // 3. Botão de Logout
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
         btnLogout.addEventListener('click', fazerLogout);
@@ -146,14 +160,9 @@ async function navegarParaPagina(pagina) {
     mostrarLoading();
     
     try {
-        // Pequeno delay para garantir que o auth está pronto
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const user = auth.currentUser;
-        console.log("👤 Usuário atual:", user?.email);
-        
-        if (!user) {
-            console.warn("🚫 Usuário não autenticado!");
+        // Verificar se há sessão ativa
+        if (!userSession) {
+            console.warn("🚫 Nenhuma sessão ativa!");
             
             // Salvar página destino
             sessionStorage.setItem('paginaDestino', pagina);
@@ -161,16 +170,15 @@ async function navegarParaPagina(pagina) {
             mostrarMensagem("Sessão expirada! Faça login novamente.", "warning");
             
             setTimeout(() => {
-                window.location.href = 'index.html';
+                redirecionarParaLogin();
             }, 1500);
             return;
         }
         
         // Verificar permissões específicas
-        if (pagina === 'estoque.html' || pagina === 'relatorios.html') {
-            const session = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-            if (!['admin_global', 'admin', 'gerente'].includes(session.perfil)) {
-                mostrarMensagem("⚠️ Acesso restrito! Permissão necessária.", "warning");
+        if (pagina === 'estoque.html') {
+            if (!['admin_global', 'admin'].includes(userSession.perfil)) {
+                mostrarMensagem("⚠️ Acesso restrito! Apenas administradores.", "warning");
                 ocultarLoading();
                 return;
             }
@@ -178,6 +186,9 @@ async function navegarParaPagina(pagina) {
         
         // Tudo OK - navegar
         console.log(`✅ Navegando para ${pagina}`);
+        
+        // Salvar sessão na página destino
+        sessionStorage.setItem('userSession', JSON.stringify(userSession));
         
         // Pequeno delay para experiência do usuário
         setTimeout(() => {
@@ -208,20 +219,12 @@ function setupUIEvents() {
             mostrarMensagem("Relatórios em breve", "info");
         });
     }
-    
-    // Modal de busca (se existir)
-    const modalClose = document.querySelector('.modal-close');
-    if (modalClose) {
-        modalClose.addEventListener('click', () => {
-            document.getElementById('quickSearchModal').style.display = 'none';
-        });
-    }
 }
 
-function atualizarUsuarioUI(user) {
+function atualizarUsuarioUI() {
     const userNameElement = document.getElementById('userName');
-    if (userNameElement) {
-        userNameElement.textContent = userSession?.nome || user.email || 'Usuário';
+    if (userNameElement && userSession) {
+        userNameElement.textContent = userSession.nome || userSession.login || 'Usuário';
     }
     
     // Mostrar badge de admin se for o caso
@@ -242,28 +245,41 @@ async function carregarEstatisticas() {
     try {
         console.log("📊 Carregando estatísticas...");
         
-        const banco = userSession?.banco_login || 'mj-materiais-construcao';
-        
-        // 1. Produtos em estoque
-        try {
-            const produtosRef = collection(db, `estoque_${banco}`);
-            const snapshot = await getCountFromServer(produtosRef);
-            document.getElementById('totalProdutos').textContent = snapshot.data().count || 0;
-        } catch (e) {
-            console.log("Erro ao contar produtos:", e);
+        // Usar o mjServices do firebase_config.js
+        if (mjServices && mjServices.buscarEstatisticas) {
+            const resultado = await mjServices.buscarEstatisticas();
+            
+            if (resultado.success) {
+                const stats = resultado.data;
+                
+                // Atualizar UI
+                document.getElementById('totalProdutos').textContent = 
+                    stats.totalProdutos?.toLocaleString('pt-BR') || '0';
+                
+                document.getElementById('vendasHoje').textContent = 
+                    stats.vendasHoje?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
+                
+                document.getElementById('quantidadeVendas').textContent = 
+                    `${stats.quantidadeVendasHoje || 0} vendas`;
+                
+                document.getElementById('valorEstoque').textContent = 
+                    stats.totalValorEstoque?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
+                
+                document.getElementById('produtosBaixo').textContent = 
+                    `${stats.produtosBaixoEstoque || 0} com baixo estoque`;
+                
+                // Calcular meta
+                if (stats.metaMensal > 0) {
+                    const percentual = Math.round((stats.metaAlcancada / stats.metaMensal) * 100);
+                    document.getElementById('metaPercentual').textContent = `${percentual}%`;
+                    document.getElementById('metaRestante').textContent = 
+                        (stats.metaMensal - stats.metaAlcancada).toLocaleString('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL' 
+                        });
+                }
+            }
         }
-        
-        // 2. Vendas de hoje (exemplo simplificado)
-        const hoje = new Date().toISOString().split('T')[0];
-        document.getElementById('vendasHoje').textContent = 'R$ 0,00';
-        document.getElementById('quantidadeVendas').textContent = '0 vendas';
-        
-        // 3. Meta do mês (exemplo)
-        document.getElementById('metaPercentual').textContent = '0%';
-        document.getElementById('metaRestante').textContent = 'R$ 50.000,00';
-        
-        // 4. Valor em estoque (exemplo)
-        document.getElementById('valorEstoque').textContent = 'R$ 0,00';
         
     } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
@@ -275,7 +291,7 @@ async function carregarAtividadesRecentes() {
         const activityList = document.getElementById('activityList');
         if (!activityList) return;
         
-        // Atividades de exemplo
+        // Atividades de exemplo ou buscar do banco
         const atividades = [
             { tipo: 'venda', texto: 'Nova venda realizada - R$ 450,00', hora: '10:30' },
             { tipo: 'estoque', texto: 'Produto "Cimento" atualizado no estoque', hora: '09:15' },
@@ -331,7 +347,6 @@ function setupConnectionStatus() {
     const statusElement = document.getElementById('connectionStatus');
     if (!statusElement) return;
     
-    // Simulação - na prática, você verificaria conexão com Firebase
     statusElement.innerHTML = '<i class="fas fa-circle online"></i> Conectado ao sistema';
 }
 
@@ -354,9 +369,6 @@ async function fazerLogout() {
         sessionStorage.removeItem('paginaDestino');
         sessionStorage.removeItem('paginaRetorno');
         
-        // Fazer logout do Firebase
-        await auth.signOut();
-        
         mostrarMensagem("Logout realizado com sucesso!", "success");
         
         // Redirecionar para login
@@ -372,6 +384,13 @@ async function fazerLogout() {
 }
 
 // ===== FUNÇÕES AUXILIARES =====
+function redirecionarParaLogin() {
+    console.log("Redirecionando para login...");
+    sessionStorage.removeItem('userSession');
+    localStorage.removeItem('userSession');
+    window.location.href = 'index.html';
+}
+
 function mostrarLoading() {
     const overlay = document.getElementById('loadingOverlay');
     if (overlay) {
@@ -430,3 +449,9 @@ function mostrarMensagem(texto, tipo = 'info') {
 
 // Inicializar loading
 mostrarLoading();
+
+// Verificar se está na página correta
+if (!window.location.href.includes('home.html')) {
+    console.log("Página incorreta, redirecionando...");
+    redirecionarParaLogin();
+}
