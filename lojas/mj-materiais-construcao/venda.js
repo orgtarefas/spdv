@@ -1,4 +1,4 @@
-// venda.js - SISTEMA COMPLETO DE VENDAS COM FIREBASE
+// venda.js - SISTEMA COMPLETO DE VENDAS COM FIREBASE REAL
 console.log("🛒 Sistema de Vendas MJ - Iniciando...");
 
 // ============================================
@@ -9,28 +9,37 @@ let firebaseApp;
 
 // Inicializar Firebase
 function inicializarFirebase() {
-    // Configuração do seu projeto
-    const firebaseConfig = {
-        apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
-        authDomain: "spdv-3872a.firebaseapp.com",
-        projectId: "spdv-3872a",
-        storageBucket: "spdv-3872a.firebasestorage.app",
-        messagingSenderId: "552499245950",
-        appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
-    };
-    
     try {
-        // Se Firebase já estiver carregado
-        if (typeof firebase !== 'undefined') {
-            firebaseApp = firebase.initializeApp(firebaseConfig, 'pdv-vendas');
-            db = firebase.firestore(firebaseApp);
-            console.log("✅ Firebase inicializado");
-            return true;
+        // Configuração do seu projeto
+        const firebaseConfig = {
+            apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
+            authDomain: "spdv-3872a.firebaseapp.com",
+            projectId: "spdv-3872a",
+            storageBucket: "spdv-3872a.firebasestorage.app",
+            messagingSenderId: "552499245950",
+            appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
+        };
+        
+        // Verificar se Firebase já está inicializado
+        const apps = firebase.apps;
+        let appName = 'pdv-vendas-app';
+        
+        // Se já existe, usar o existente
+        if (apps.length > 0) {
+            firebaseApp = apps[0];
+        } else {
+            // Inicializar novo
+            firebaseApp = firebase.initializeApp(firebaseConfig, appName);
         }
-    } catch (e) {
-        console.error("Erro ao inicializar Firebase:", e);
+        
+        db = firebase.firestore(firebaseApp);
+        console.log("✅ Firebase inicializado");
+        return true;
+        
+    } catch (error) {
+        console.error("❌ Erro ao inicializar Firebase:", error);
+        return false;
     }
-    return false;
 }
 
 // ============================================
@@ -42,19 +51,16 @@ let produtosFiltrados = [];
 let carrinho = [];
 let desconto = 0;
 
-// Elementos DOM
-let searchProduct, productsGrid, productCount, emptyProducts;
-let cartItems, btnClearCart, subtotalElement, descontoInput, totalElement;
-let btnFinalizarVenda, btnCancelarVenda, userNameElement, btnLogout;
-
 // ============================================
-// 1. INICIALIZAÇÃO
+// 1. INICIALIZAÇÃO QUANDO A PÁGINA CARREGAR
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("📄 DOM carregado");
+    console.log("📄 Página carregada");
     
-    // Inicializar elementos DOM
-    inicializarElementos();
+    // Esconder loading após 2 segundos
+    setTimeout(function() {
+        esconderLoading();
+    }, 2000);
     
     // Verificar sessão
     if (!verificarSessao()) {
@@ -63,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar Firebase
     if (!inicializarFirebase()) {
-        mostrarErro("Erro ao conectar com o banco de dados");
+        mostrarErro("Não foi possível conectar ao banco de dados");
         return;
     }
     
@@ -73,45 +79,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Carregar produtos
     carregarProdutosReais();
     
-    console.log("✅ Sistema de vendas pronto");
+    console.log("✅ Sistema pronto para uso");
 });
 
 // ============================================
-// 2. INICIALIZAR ELEMENTOS DOM
-// ============================================
-function inicializarElementos() {
-    searchProduct = document.getElementById('searchProduct');
-    productsGrid = document.getElementById('productsGrid');
-    productCount = document.getElementById('productCount');
-    emptyProducts = document.getElementById('emptyProducts');
-    cartItems = document.getElementById('cartItems');
-    btnClearCart = document.getElementById('btnClearCart');
-    subtotalElement = document.getElementById('subtotal');
-    descontoInput = document.getElementById('desconto');
-    totalElement = document.getElementById('total');
-    btnFinalizarVenda = document.getElementById('btnFinalizarVenda');
-    btnCancelarVenda = document.getElementById('btnCancelarVenda');
-    userNameElement = document.getElementById('userName');
-    btnLogout = document.getElementById('btnLogout');
-}
-
-// ============================================
-// 3. VERIFICAR SESSÃO
+// 2. VERIFICAR SESSÃO
 // ============================================
 function verificarSessao() {
     const sessao = sessionStorage.getItem('pdv_sessao_temporaria') || 
                    localStorage.getItem('pdv_sessao_backup');
     
     if (!sessao) {
-        alert("Sessão expirada. Faça login novamente.");
-        window.location.href = '../../login.html';
+        alert("⚠️ Sessão expirada!\nFaça login novamente.");
+        setTimeout(function() {
+            window.location.href = '../../login.html';
+        }, 1000);
         return false;
     }
     
     try {
         usuario = JSON.parse(sessao);
-        console.log("👤 Usuário:", usuario.nome || usuario.login);
+        console.log("✅ Usuário:", usuario.nome || usuario.login);
         
+        // Atualizar nome na interface
+        const userNameElement = document.getElementById('userName');
         if (userNameElement) {
             userNameElement.textContent = usuario.nome || usuario.login || 'Usuário';
         }
@@ -119,23 +110,24 @@ function verificarSessao() {
         return true;
         
     } catch (error) {
-        console.error("Erro na sessão:", error);
+        console.error("❌ Erro na sessão:", error);
         alert("Erro na sessão. Faça login novamente.");
-        window.location.href = '../../login.html';
+        setTimeout(function() {
+            window.location.href = '../../login.html';
+        }, 1000);
         return false;
     }
 }
 
 // ============================================
-// 4. CARREGAR PRODUTOS REAIS DO FIREBASE
+// 3. CARREGAR PRODUTOS REAIS DO FIREBASE
 // ============================================
 async function carregarProdutosReais() {
-    console.log("📦 Buscando produtos do Firebase...");
+    console.log("📦 Buscando produtos do estoque...");
     mostrarLoading("Carregando produtos...");
     
     try {
-        // Buscar produtos da coleção estoque_mj_construcoes
-        // Apenas produtos ativos com estoque > 0
+        // Buscar da coleção estoque_mj_construcoes
         const querySnapshot = await db.collection('estoque_mj_construcoes')
             .where('ativo', '==', true)
             .where('quantidade', '>', 0)
@@ -143,62 +135,105 @@ async function carregarProdutosReais() {
             .get();
         
         produtos = [];
+        
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             produtos.push({
                 id: doc.id,
-                codigo: data.codigo || '',
+                codigo: data.codigo || doc.id,
                 nome: data.nome || 'Produto sem nome',
                 preco: parseFloat(data.preco) || 0,
                 quantidade: parseInt(data.quantidade) || 0,
                 categoria: data.categoria || '',
                 unidade: data.unidade || 'UN',
                 estoque_minimo: parseInt(data.estoque_minimo) || 5,
-                ativo: data.ativo !== false
+                ativo: data.ativo !== false,
+                descricao: data.descricao || '',
+                fornecedor: data.fornecedor || ''
             });
         });
         
         console.log(`✅ ${produtos.length} produtos carregados`);
         
-        if (produtos.length === 0) {
-            mostrarMensagem("Nenhum produto disponível no estoque", "info");
-        }
-        
         produtosFiltrados = [...produtos];
         renderizarProdutos();
         atualizarContadorProdutos();
         
+        if (produtos.length === 0) {
+            mostrarMensagem("Nenhum produto disponível no estoque", "info");
+        }
+        
     } catch (error) {
         console.error("❌ Erro ao carregar produtos:", error);
         mostrarErro("Erro ao carregar produtos: " + error.message);
+        
+        // Tentar carregar sem filtros
+        try {
+            const querySnapshot = await db.collection('estoque_mj_construcoes').get();
+            produtos = [];
+            
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.ativo !== false && data.quantidade > 0) {
+                    produtos.push({
+                        id: doc.id,
+                        codigo: data.codigo || doc.id,
+                        nome: data.nome || 'Produto sem nome',
+                        preco: parseFloat(data.preco) || 0,
+                        quantidade: parseInt(data.quantidade) || 0,
+                        categoria: data.categoria || '',
+                        unidade: data.unidade || 'UN',
+                        estoque_minimo: parseInt(data.estoque_minimo) || 5,
+                        ativo: data.ativo !== false
+                    });
+                }
+            });
+            
+            produtosFiltrados = [...produtos];
+            renderizarProdutos();
+            atualizarContadorProdutos();
+            
+        } catch (error2) {
+            console.error("❌ Erro crítico:", error2);
+        }
+        
     } finally {
         esconderLoading();
     }
 }
 
 // ============================================
-// 5. RENDERIZAR PRODUTOS
+// 4. RENDERIZAR PRODUTOS
 // ============================================
 function renderizarProdutos() {
+    const productsGrid = document.getElementById('productsGrid');
+    const emptyProducts = document.getElementById('emptyProducts');
+    
     if (!productsGrid) return;
     
     if (produtosFiltrados.length === 0) {
-        if (emptyProducts) emptyProducts.style.display = 'flex';
+        if (emptyProducts) {
+            emptyProducts.style.display = 'flex';
+        }
         productsGrid.innerHTML = '';
         return;
     }
     
-    if (emptyProducts) emptyProducts.style.display = 'none';
+    if (emptyProducts) {
+        emptyProducts.style.display = 'none';
+    }
     
     let html = '';
     
     produtosFiltrados.forEach(produto => {
         const temEstoque = produto.quantidade > 0;
         const estoqueBaixo = produto.quantidade <= produto.estoque_minimo;
+        const precoFormatado = formatarMoeda(produto.preco);
         
         html += `
             <div class="product-card ${!temEstoque ? 'disabled' : ''}" 
-                 onclick="selecionarProduto('${produto.id}')">
+                 onclick="selecionarProdutoParaVenda('${produto.id}')"
+                 title="${produto.nome} - Estoque: ${produto.quantidade}">
                 <div class="product-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
                     <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
@@ -208,9 +243,9 @@ function renderizarProdutos() {
                 <div class="product-name">${produto.nome}</div>
                 ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
                 <div class="product-footer">
-                    <span class="product-price">R$ ${formatarMoeda(produto.preco)}</span>
+                    <span class="product-price">R$ ${precoFormatado}</span>
                     <button class="btn-add-product" ${!temEstoque ? 'disabled' : ''} 
-                            onclick="event.stopPropagation(); selecionarProduto('${produto.id}')">
+                            onclick="event.stopPropagation(); selecionarProdutoParaVenda('${produto.id}')">
                         <i class="fas fa-cart-plus"></i>
                     </button>
                 </div>
@@ -222,17 +257,17 @@ function renderizarProdutos() {
 }
 
 // ============================================
-// 6. SELECIONAR PRODUTO E ABRIR MODAL
+// 5. SELECIONAR PRODUTO PARA VENDA
 // ============================================
-async function selecionarProduto(produtoId) {
+function selecionarProdutoParaVenda(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
-    if (!produto) return;
+    if (!produto || produto.quantidade <= 0) return;
     
-    // Abrir modal de quantidade
     const quantidade = prompt(
-        `Quantidade de "${produto.nome}"?\n` +
+        `Quantidade de "${produto.nome}"?\n\n` +
         `Estoque disponível: ${produto.quantidade} ${produto.unidade || 'UN'}\n` +
-        `Preço unitário: R$ ${formatarMoeda(produto.preco)}`,
+        `Preço unitário: R$ ${formatarMoeda(produto.preco)}\n` +
+        `Total: R$ ${formatarMoeda(produto.preco * 1)}`,
         "1"
     );
     
@@ -244,7 +279,7 @@ async function selecionarProduto(produtoId) {
     
     // Verificar estoque
     if (qty > produto.quantidade) {
-        alert(`Estoque insuficiente!\nDisponível: ${produto.quantidade}`);
+        mostrarMensagem(`Estoque insuficiente! Disponível: ${produto.quantidade}`, "warning");
         return;
     }
     
@@ -255,11 +290,12 @@ async function selecionarProduto(produtoId) {
         // Atualizar quantidade
         const novaQty = carrinho[itemIndex].quantidade + qty;
         if (novaQty > produto.quantidade) {
-            alert(`Estoque insuficiente para quantidade adicional!\nDisponível: ${produto.quantidade}`);
+            mostrarMensagem(`Estoque insuficiente para quantidade adicional! Disponível: ${produto.quantidade}`, "warning");
             return;
         }
         carrinho[itemIndex].quantidade = novaQty;
         carrinho[itemIndex].subtotal = carrinho[itemIndex].preco * novaQty;
+        mostrarMensagem(`Quantidade atualizada: ${novaQty}x ${produto.nome}`, "success");
     } else {
         // Adicionar novo item
         carrinho.push({
@@ -271,18 +307,18 @@ async function selecionarProduto(produtoId) {
             subtotal: produto.preco * qty,
             estoque_disponivel: produto.quantidade
         });
+        mostrarMensagem(`${qty}x ${produto.nome} adicionado ao carrinho!`, "success");
     }
     
     renderizarCarrinho();
     atualizarTotal();
-    
-    mostrarMensagem(`${qty}x ${produto.nome} adicionado ao carrinho!`, "success");
 }
 
 // ============================================
-// 7. FUNÇÕES DO CARRINHO
+// 6. FUNÇÕES DO CARRINHO
 // ============================================
 function renderizarCarrinho() {
+    const cartItems = document.getElementById('cartItems');
     if (!cartItems) return;
     
     if (carrinho.length === 0) {
@@ -312,7 +348,7 @@ function renderizarCarrinho() {
                     <div class="cart-item-price">
                         R$ ${formatarMoeda(item.subtotal)}
                     </div>
-                    <button class="btn-remove-item" onclick="removerDoCarrinho(${index})">
+                    <button class="btn-remove-item" onclick="removerDoCarrinho(${index})" title="Remover item">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -325,9 +361,11 @@ function renderizarCarrinho() {
 
 function removerDoCarrinho(index) {
     if (confirm("Remover item do carrinho?")) {
+        const itemRemovido = carrinho[index].nome;
         carrinho.splice(index, 1);
         renderizarCarrinho();
         atualizarTotal();
+        mostrarMensagem(`${itemRemovido} removido do carrinho`, "info");
     }
 }
 
@@ -343,7 +381,7 @@ function limparCarrinho() {
 }
 
 // ============================================
-// 8. FINALIZAR VENDA (SALVA NO FIREBASE)
+// 7. FINALIZAR VENDA (SALVA NO FIREBASE)
 // ============================================
 async function finalizarVenda() {
     if (carrinho.length === 0) {
@@ -353,21 +391,24 @@ async function finalizarVenda() {
     
     // Calcular totais
     const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
-    const valorDesconto = subtotal * (desconto / 100);
+    const descontoInput = document.getElementById('desconto');
+    const descontoPercentual = parseFloat(descontoInput ? descontoInput.value : 0) || 0;
+    const valorDesconto = subtotal * (descontoPercentual / 100);
     const total = subtotal - valorDesconto;
     
     // Obter forma de pagamento
     const formaPagamentoElement = document.querySelector('input[name="payment"]:checked');
     const formaPagamento = formaPagamentoElement ? formaPagamentoElement.value : 'dinheiro';
+    const formaPagamentoNome = obterNomeFormaPagamento(formaPagamento);
     
     // Confirmar venda
     const confirmacao = confirm(
         `CONFIRMAR VENDA\n\n` +
         `Itens: ${carrinho.length}\n` +
         `Subtotal: R$ ${formatarMoeda(subtotal)}\n` +
-        `Desconto: R$ ${formatarMoeda(valorDesconto)}\n` +
+        `Desconto: R$ ${formatarMoeda(valorDesconto)} (${descontoPercentual}%)\n` +
         `Total: R$ ${formatarMoeda(total)}\n` +
-        `Forma de pagamento: ${obterNomeFormaPagamento(formaPagamento)}\n\n` +
+        `Forma de pagamento: ${formaPagamentoNome}\n\n` +
         `Deseja finalizar esta venda?`
     );
     
@@ -376,67 +417,61 @@ async function finalizarVenda() {
     mostrarLoading("Processando venda...");
     
     try {
-        // Usar transaction para garantir consistência
-        const resultado = await db.runTransaction(async (transaction) => {
-            const vendasRef = db.collection('vendas_mj_construcoes').doc();
-            const numeroVenda = `VENDA-${Date.now().toString().slice(-8)}`;
-            
-            // 1. Criar documento de venda
-            const vendaData = {
-                id: vendasRef.id,
-                numero_venda: numeroVenda,
-                loja_id: 'mj-materiais-construcao',
-                vendedor: usuario.nome || usuario.login,
-                vendedor_id: usuario.id,
-                itens: carrinho.map(item => ({
-                    produto_id: item.id,
-                    codigo: item.codigo,
-                    nome: item.nome,
-                    quantidade: item.quantidade,
-                    preco_unitario: item.preco,
-                    subtotal: item.subtotal
-                })),
-                subtotal: subtotal,
-                desconto: valorDesconto,
-                total: total,
-                forma_pagamento: formaPagamento,
-                status: 'concluida',
-                data_venda: firebase.firestore.FieldValue.serverTimestamp(),
-                data_criacao: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            
-            transaction.set(vendasRef, vendaData);
-            
-            // 2. Atualizar estoque de cada produto
-            for (const item of carrinho) {
-                const produtoRef = db.collection('estoque_mj_construcoes').doc(item.id);
-                const produtoDoc = await transaction.get(produtoRef);
-                
-                if (!produtoDoc.exists()) {
-                    throw new Error(`Produto ${item.id} não encontrado`);
-                }
-                
-                const produtoData = produtoDoc.data();
-                const estoqueAtual = produtoData.quantidade || 0;
-                
-                if (estoqueAtual < item.quantidade) {
-                    throw new Error(`Estoque insuficiente para ${produtoData.nome}`);
-                }
-                
-                transaction.update(produtoRef, {
-                    quantidade: firebase.firestore.FieldValue.increment(-item.quantidade),
-                    data_atualizacao: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }
-            
-            return { numeroVenda, vendaData };
-        });
+        // Criar número da venda
+        const numeroVenda = 'VENDA-' + Date.now().toString().slice(-8);
+        const vendedorNome = usuario.nome || usuario.login || 'Vendedor';
+        const vendedorId = usuario.id || 'user-id';
+        
+        // 1. Criar documento de venda
+        const vendaRef = db.collection('vendas_mj_construcoes').doc();
+        const vendaData = {
+            id: vendaRef.id,
+            numero_venda: numeroVenda,
+            loja_id: 'mj-materiais-construcao',
+            loja_nome: 'MJ Materiais de Construção',
+            vendedor: vendedorNome,
+            vendedor_id: vendedorId,
+            itens: carrinho.map(item => ({
+                produto_id: item.id,
+                codigo: item.codigo,
+                nome: item.nome,
+                quantidade: item.quantidade,
+                preco_unitario: item.preco,
+                subtotal: item.subtotal
+            })),
+            subtotal: subtotal,
+            desconto: valorDesconto,
+            total: total,
+            forma_pagamento: formaPagamento,
+            status: 'concluida',
+            data_venda: firebase.firestore.FieldValue.serverTimestamp(),
+            data_criacao: firebase.firestore.FieldValue.serverTimestamp(),
+            created_at: new Date().toISOString()
+        };
+        
+        // 2. Atualizar estoque para cada produto
+        const batch = db.batch();
+        
+        // Adicionar venda ao batch
+        batch.set(vendaRef, vendaData);
+        
+        // Atualizar estoque de cada produto
+        for (const item of carrinho) {
+            const produtoRef = db.collection('estoque_mj_construcoes').doc(item.id);
+            batch.update(produtoRef, {
+                quantidade: firebase.firestore.FieldValue.increment(-item.quantidade),
+                data_atualizacao: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        // Executar batch (transação)
+        await batch.commit();
         
         // Sucesso
         mostrarMensagem(
-            `✅ Venda finalizada com sucesso!\n` +
-            `Número: ${resultado.numeroVenda}\n` +
-            `Total: R$ ${formatarMoeda(total)}`,
+            `✅ Venda #${numeroVenda} finalizada!\n` +
+            `Total: R$ ${formatarMoeda(total)}\n` +
+            `Forma de pagamento: ${formaPagamentoNome}`,
             "success",
             5000
         );
@@ -446,24 +481,25 @@ async function finalizarVenda() {
         renderizarCarrinho();
         atualizarTotal();
         
-        // Recarregar produtos (estoque foi atualizado)
+        // Recarregar produtos (estoque atualizado)
         setTimeout(() => {
             carregarProdutosReais();
         }, 2000);
         
     } catch (error) {
         console.error("❌ Erro ao finalizar venda:", error);
-        mostrarErro(`Erro: ${error.message}`);
+        mostrarErro(`Erro: ${error.message}\nTente novamente.`);
     } finally {
         esconderLoading();
     }
 }
 
 // ============================================
-// 9. FUNÇÕES AUXILIARES
+// 8. FUNÇÕES AUXILIARES
 // ============================================
 function configurarEventos() {
-    // Busca
+    // Busca de produtos
+    const searchProduct = document.getElementById('searchProduct');
     if (searchProduct) {
         searchProduct.addEventListener('input', function() {
             const termo = this.value.toLowerCase().trim();
@@ -483,27 +519,40 @@ function configurarEventos() {
         });
     }
     
+    // Botão escanear (simulado)
+    const btnScan = document.getElementById('btnScan');
+    if (btnScan) {
+        btnScan.addEventListener('click', function() {
+            mostrarMensagem("Funcionalidade de escanear código de barras em desenvolvimento", "info");
+        });
+    }
+    
     // Limpar carrinho
+    const btnClearCart = document.getElementById('btnClearCart');
     if (btnClearCart) {
         btnClearCart.addEventListener('click', limparCarrinho);
     }
     
     // Desconto
+    const descontoInput = document.getElementById('desconto');
     if (descontoInput) {
         descontoInput.addEventListener('input', function() {
             desconto = parseFloat(this.value) || 0;
             if (desconto < 0) desconto = 0;
             if (desconto > 100) desconto = 100;
+            this.value = desconto;
             atualizarTotal();
         });
     }
     
     // Finalizar venda
+    const btnFinalizarVenda = document.getElementById('btnFinalizarVenda');
     if (btnFinalizarVenda) {
         btnFinalizarVenda.addEventListener('click', finalizarVenda);
     }
     
-    // Cancelar
+    // Cancelar venda
+    const btnCancelarVenda = document.getElementById('btnCancelarVenda');
     if (btnCancelarVenda) {
         btnCancelarVenda.addEventListener('click', function() {
             if (carrinho.length === 0 || confirm("Cancelar esta venda?")) {
@@ -513,6 +562,7 @@ function configurarEventos() {
     }
     
     // Logout
+    const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
         btnLogout.addEventListener('click', function() {
             if (confirm("Deseja sair do sistema?")) {
@@ -524,7 +574,7 @@ function configurarEventos() {
     }
     
     // Botão voltar
-    const btnVoltar = document.querySelector('.btn-back');
+    const btnVoltar = document.getElementById('btnVoltar');
     if (btnVoltar) {
         btnVoltar.addEventListener('click', function(e) {
             e.preventDefault();
@@ -534,6 +584,9 @@ function configurarEventos() {
 }
 
 function atualizarTotal() {
+    const subtotalElement = document.getElementById('subtotal');
+    const totalElement = document.getElementById('total');
+    
     if (!subtotalElement || !totalElement) return;
     
     const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
@@ -545,6 +598,7 @@ function atualizarTotal() {
 }
 
 function atualizarContadorProdutos() {
+    const productCount = document.getElementById('productCount');
     if (productCount) {
         productCount.textContent = `${produtosFiltrados.length} produto${produtosFiltrados.length !== 1 ? 's' : ''}`;
     }
@@ -565,7 +619,7 @@ function obterNomeFormaPagamento(codigo) {
 }
 
 // ============================================
-// 10. FUNÇÕES DE UI
+// 9. FUNÇÕES DE UI
 // ============================================
 function mostrarLoading(mensagem) {
     const loading = document.getElementById('loadingOverlay');
@@ -592,7 +646,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     
     const icon = alert.querySelector('.message-icon');
     const text = alert.querySelector('.message-text');
+    const closeBtn = alert.querySelector('.message-close');
     
+    // Configurar alerta
     alert.className = `message-alert ${tipo}`;
     alert.style.display = 'block';
     
@@ -604,12 +660,26 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
         info: 'fas fa-info-circle'
     };
     
-    if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
-    if (text) text.textContent = texto;
+    if (icon) {
+        icon.className = `message-icon ${icons[tipo] || icons.info}`;
+    }
+    
+    if (text) {
+        text.textContent = texto;
+    }
+    
+    // Botão fechar
+    if (closeBtn) {
+        closeBtn.onclick = function() {
+            alert.style.display = 'none';
+        };
+    }
     
     // Auto-ocultar
-    setTimeout(() => {
-        alert.style.display = 'none';
+    setTimeout(function() {
+        if (alert.style.display === 'block') {
+            alert.style.display = 'none';
+        }
     }, tempo);
 }
 
@@ -618,6 +688,30 @@ function mostrarErro(texto) {
 }
 
 // ============================================
-// 11. INICIAR
+// 10. ATUALIZAR DATA E HORA
 // ============================================
-console.log("✅ venda.js carregado com sucesso!");
+function atualizarDataHora() {
+    const elemento = document.getElementById('currentDateTime');
+    if (!elemento) return;
+    
+    const agora = new Date();
+    const dataFormatada = agora.toLocaleDateString('pt-BR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    elemento.textContent = dataFormatada;
+}
+
+// Iniciar atualização de data/hora
+setInterval(atualizarDataHora, 60000);
+atualizarDataHora();
+
+// ============================================
+// INICIAR SISTEMA
+// ============================================
+console.log("✅ Sistema de vendas carregado!");
