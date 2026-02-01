@@ -6,6 +6,10 @@
     <title>Home - MJ Materiais de Construção</title>
     <link rel="stylesheet" href="home.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FIREBASE (igual às outras páginas) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container">
@@ -138,6 +142,10 @@
                 <h2><i class="fas fa-history"></i> Atividade Recente</h2>
                 <div class="activity-list" id="activityList">
                     <!-- Atividades serão carregadas aqui -->
+                    <div class="empty-activity">
+                        <i class="fas fa-history"></i>
+                        <p>Carregando atividades...</p>
+                    </div>
                 </div>
             </div>
         </main>
@@ -146,7 +154,7 @@
         <footer class="main-footer">
             <div class="footer-content">
                 <p><i class="fas fa-store"></i> MJ Materiais de Construção © 2024</p>
-                <p id="connectionStatus"><i class="fas fa-circle online"></i> Conectado ao Firebase</p>
+                <p id="connectionStatus"><i class="fas fa-circle"></i> <span id="statusText">Conectando...</span></p>
             </div>
         </footer>
     </div>
@@ -181,12 +189,17 @@
                     <input type="text" id="searchProductInput" placeholder="Código ou nome do produto" autofocus>
                 </div>
                 <div class="search-results" id="searchResults">
-                    <!-- Resultados aparecem aqui -->
+                    <div class="empty-results">
+                        <i class="fas fa-search"></i>
+                        <p>Digite para buscar um produto</p>
+                        <small>Busque por código, nome ou categoria</small>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <script type="module" src="home.js"></script>
+    <!-- Script principal (NÃO É MÓDULO) -->
+    <script src="home.js"></script>
 </body>
 </html>
