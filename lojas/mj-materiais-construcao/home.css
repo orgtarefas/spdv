@@ -605,3 +605,42 @@ body {
         gap: 10px;
     }
 }
+
+.admin-badge {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #333;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.admin-badge i {
+    color: #333;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+/* Activity icons colors */
+.activity-icon.venda { background-color: #4CAF50; }
+.activity-icon.estoque { background-color: #2196F3; }
+.activity-icon.login { background-color: #FF9800; }
+.activity-icon.sistema { background-color: #9C27B0; }
