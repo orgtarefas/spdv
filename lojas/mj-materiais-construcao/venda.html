@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Venda - MJ Materiais de Construção</title>
+    <link rel="stylesheet" href="venda.css">
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar será carregada pelo home.js -->
+        <div class="sidebar" id="sidebar">
+            <!-- Conteúdo será preenchido pelo home.js -->
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header será carregado pelo home.js -->
+            <header class="main-header" id="mainHeader">
+                <!-- Conteúdo será preenchido pelo home.js -->
+            </header>
+
+            <!-- Content Area -->
+            <main class="content">
+                <div class="page-header">
+                    <h2><i class="fas fa-cash-register"></i> Ponto de Venda</h2>
+                    <p>Realize vendas e gere notas fiscais</p>
+                </div>
+
+                <!-- Área Principal de Venda -->
+                <div class="venda-container">
+                    <!-- Coluna Esquerda - Busca e Produtos -->
+                    <div class="venda-left">
+                        <!-- Busca Rápida -->
+                        <div class="busca-rapida">
+                            <div class="busca-header">
+                                <h3><i class="fas fa-search"></i> Busca Rápida</h3>
+                                <div class="busca-tipos">
+                                    <button class="btn-busca-tipo active" data-tipo="codigo">
+                                        <i class="fas fa-barcode"></i> Código
+                                    </button>
+                                    <button class="btn-busca-tipo" data-tipo="nome">
+                                        <i class="fas fa-font"></i> Nome
+                                    </button>
+                                    <button class="btn-busca-tipo" data-tipo="categoria">
+                                        <i class="fas fa-tag"></i> Categoria
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="busca-input">
+                                <input type="text" 
+                                       id="inputBusca" 
+                                       placeholder="Digite código, nome ou pressione F2 para busca avançada..."
+                                       autocomplete="off">
+                                <button class="btn-busca-avancada" id="btnBuscaAvancada">
+                                    <i class="fas fa-sliders-h"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Resultados da Busca -->
+                            <div class="resultados-busca" id="resultadosBusca">
+                                <div class="empty-state">
+                                    <i class="fas fa-search"></i>
+                                    <p>Digite para buscar produtos</p>
+                                    <small>ou pressione F2 para busca avançada</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Produtos Frequentes -->
+                        <div class="produtos-frequentes">
+                            <h3><i class="fas fa-star"></i> Produtos Frequentes</h3>
+                            <div class="produtos-grid" id="produtosFrequentes">
+                                <!-- Produtos serão carregados dinamicamente -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coluna Direita - Carrinho e Finalização -->
+                    <div class="venda-right">
+                        <!-- Informações da Venda -->
+                        <div class="venda-info">
+                            <div class="venda-header">
+                                <h3><i class="fas fa-shopping-cart"></i> Carrinho de Compras</h3>
+                                <div class="venda-numero">
+                                    <span>Venda #<span id="numeroVenda">000001</span></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Cliente -->
+                            <div class="cliente-info">
+                                <div class="cliente-header">
+                                    <h4><i class="fas fa-user"></i> Cliente</h4>
+                                    <button class="btn-selecionar-cliente" id="btnSelecionarCliente">
+                                        <i class="fas fa-user-plus"></i> Selecionar
+                                    </button>
+                                </div>
+                                <div class="cliente-detalhes" id="clienteAtual">
+                                    <div class="cliente-vazio">
+                                        <i class="fas fa-user-circle"></i>
+                                        <div>
+                                            <p>Cliente não selecionado</p>
+                                            <small>Venda para consumidor final</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Itens do Carrinho -->
+                        <div class="carrinho-container">
+                            <div class="carrinho-header">
+                                <span>Produto</span>
+                                <span>Qtd</span>
+                                <span>Preço</span>
+                                <span>Total</span>
+                                <span></span>
+                            </div>
+                            <div class="carrinho-items" id="carrinhoItems">
+                                <div class="empty-cart">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    <p>Carrinho vazio</p>
+                                    <small>Adicione produtos para iniciar a venda</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Resumo do Carrinho -->
+                            <div class="carrinho-resumo">
+                                <div class="resumo-item">
+                                    <span>Subtotal:</span>
+                                    <span id="subtotal">R$ 0,00</span>
+                                </div>
+                                <div class="resumo-item">
+                                    <span>Desconto:</span>
+                                    <div class="desconto-input">
+                                        <button class="btn-desconto" id="btnAplicarDesconto">
+                                            <i class="fas fa-percentage"></i>
+                                        </button>
+                                        <input type="number" 
+                                               id="inputDesconto" 
+                                               value="0" 
+                                               min="0" 
+                                               max="100"
+                                               placeholder="%">
+                                    </div>
+                                </div>
+                                <div class="resumo-item">
+                                    <span>Total:</span>
+                                    <span class="total-final" id="totalFinal">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Formas de Pagamento -->
+                        <div class="pagamento-container">
+                            <h4><i class="fas fa-credit-card"></i> Forma de Pagamento</h4>
+                            <div class="formas-pagamento">
+                                <label class="forma-pagamento">
+                                    <input type="radio" name="formaPagamento" value="dinheiro" checked>
+                                    <div class="forma-content">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                        <span>Dinheiro</span>
+                                    </div>
+                                </label>
+                                <label class="forma-pagamento">
+                                    <input type="radio" name="formaPagamento" value="cartao_debito">
+                                    <div class="forma-content">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Cartão Débito</span>
+                                    </div>
+                                </label>
+                                <label class="forma-pagamento">
+                                    <input type="radio" name="formaPagamento" value="cartao_credito">
+                                    <div class="forma-content">
+                                        <i class="fas fa-credit-card"></i>
+                                        <span>Cartão Crédito</span>
+                                    </div>
+                                </label>
+                                <label class="forma-pagamento">
+                                    <input type="radio" name="formaPagamento" value="pix">
+                                    <div class="forma-content">
+                                        <i class="fas fa-qrcode"></i>
+                                        <span>PIX</span>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <!-- Informações do Pagamento -->
+                            <div class="pagamento-detalhes" id="pagamentoDetalhes">
+                                <div class="detalhes-dinheiro">
+                                    <div class="input-group">
+                                        <label>Valor Recebido:</label>
+                                        <input type="number" 
+                                               id="valorRecebido" 
+                                               step="0.01" 
+                                               min="0"
+                                               placeholder="0,00">
+                                    </div>
+                                    <div class="troco-info">
+                                        <span>Troco:</span>
+                                        <span id="troco">R$ 0,00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="venda-actions">
+                            <button class="btn-action btn-cancelar" id="btnCancelarVenda">
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </button>
+                            <button class="btn-action btn-salvar" id="btnSalvarVenda">
+                                <i class="fas fa-save"></i>
+                                Salvar
+                            </button>
+                            <button class="btn-action btn-finalizar" id="btnFinalizarVenda">
+                                <i class="fas fa-check"></i>
+                                Finalizar Venda
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer será carregado pelo home.js -->
+            <footer class="main-footer" id="mainFooter">
+                <!-- Conteúdo será preenchido pelo home.js -->
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal Busca Avançada -->
+    <div id="modalBuscaAvancada" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-search"></i> Busca Avançada</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="busca-filtros">
+                    <div class="filtro-row">
+                        <div class="filtro-group">
+                            <label for="filtroCategoria">Categoria:</label>
+                            <select id="filtroCategoria">
+                                <option value="">Todas categorias</option>
+                                <!-- Categorias serão carregadas dinamicamente -->
+                            </select>
+                        </div>
+                        <div class="filtro-group">
+                            <label for="filtroEstoque">Estoque Mínimo:</label>
+                            <input type="number" id="filtroEstoque" min="1" placeholder="Qtd mínima">
+                        </div>
+                    </div>
+                    <div class="filtro-row">
+                        <div class="filtro-group">
+                            <label for="filtroPrecoMin">Preço Mínimo:</label>
+                            <input type="number" id="filtroPrecoMin" min="0" step="0.01" placeholder="R$ 0,00">
+                        </div>
+                        <div class="filtro-group">
+                            <label for="filtroPrecoMax">Preço Máximo:</label>
+                            <input type="number" id="filtroPrecoMax" min="0" step="0.01" placeholder="R$ 0,00">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="resultados-avancados" id="resultadosAvancados">
+                    <!-- Resultados serão carregados dinamicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar">Cancelar</button>
+                <button class="btn-limpar">Limpar Filtros</button>
+                <button class="btn-buscar">Buscar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Selecionar Cliente -->
+    <div id="modalCliente" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-users"></i> Selecionar Cliente</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="cliente-busca">
+                    <input type="text" 
+                           id="buscaCliente" 
+                           placeholder="Digite nome, CPF ou telefone...">
+                    <button class="btn-novo-cliente">
+                        <i class="fas fa-user-plus"></i>
+                        Novo Cliente
+                    </button>
+                </div>
+                
+                <div class="clientes-lista" id="clientesLista">
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>Nenhum cliente cadastrado</p>
+                        <button class="btn-novo-cliente-lista">
+                            <i class="fas fa-user-plus"></i>
+                            Cadastrar Primeiro Cliente
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar">Cancelar</button>
+                <button class="btn-selecionar" disabled>Selecionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Finalizar Venda -->
+    <div id="modalFinalizar" class="modal modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Confirmar Venda</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="venda-resumo-final">
+                    <div class="resumo-item">
+                        <span>Total da Venda:</span>
+                        <span id="resumoTotal">R$ 0,00</span>
+                    </div>
+                    <div class="resumo-item">
+                        <span>Forma de Pagamento:</span>
+                        <span id="resumoPagamento">Dinheiro</span>
+                    </div>
+                    <div class="resumo-item">
+                        <span>Troco:</span>
+                        <span id="resumoTroco">R$ 0,00</span>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Esta ação irá atualizar o estoque e gerar uma nota de venda.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar">Cancelar</button>
+                <button class="btn-confirmar">Confirmar Venda</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3 id="loadingMessage">Carregando...</h3>
+            <p class="loading-subtitle">Por favor, aguarde</p>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <div class="message-text"></div>
+            <button class="message-close">&times;</button>
+        </div>
+    </div>
+
+    <script type="module" src="venda.js"></script>
+</body>
+</html>
