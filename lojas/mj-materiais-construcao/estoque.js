@@ -1,14 +1,25 @@
-// estoque.js - SISTEMA DE ESTOQUE COM FIREBASE 8.10.1 (Compatível com venda.js)
+// estoque.js - SISTEMA DE ESTOQUE COM FIREBASE 8.10.1
 console.log("📦 Sistema de Estoque MJ - Iniciando...");
 
 // ============================================
-// CONFIGURAÇÃO FIREBASE (Igual ao venda.js)
+// VARIÁVEIS GLOBAIS
 // ============================================
 let db;
+let usuario = null;
+let produtos = [];
+let produtosFiltrados = [];
 
+// Elementos DOM (serão inicializados quando o DOM carregar)
+let searchInput, btnNovoProduto, btnRelatorioEstoque, btnRefresh, filterStatus;
+let estoqueTableBody, totalProdutosElement, totalEstoqueElement, baixoEstoqueElement, valorTotalElement;
+let currentCountElement, lastUpdateElement, userNameElement, btnLogout;
+let modalProduto, formProduto, produtoIdInput, modalTitle;
+
+// ============================================
+// CONFIGURAÇÃO FIREBASE
+// ============================================
 function inicializarFirebase() {
     try {
-        // Configuração do seu projeto (mesma do venda.js)
         const firebaseConfig = {
             apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
             authDomain: "spdv-3872a.firebaseapp.com",
@@ -18,14 +29,10 @@ function inicializarFirebase() {
             appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
         };
         
-        // Inicializar Firebase (versão 8.10.1)
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
-        } else {
-            firebase.app();
         }
         
-        // Obter Firestore
         db = firebase.firestore();
         console.log("✅ Firebase inicializado com sucesso!");
         return true;
@@ -37,34 +44,36 @@ function inicializarFirebase() {
 }
 
 // ============================================
-// VARIÁVEIS GLOBAIS
-// ============================================
-let usuario = null;
-let produtos = [];
-let produtosFiltrados = [];
-
-// ============================================
-// 1. INICIALIZAÇÃO
+// 1. INICIALIZAÇÃO QUANDO O DOM ESTÁ PRONTO
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("📄 Página de estoque carregada");
+    console.log("📄 DOM completamente carregado");
     
-    // Obter elementos DOM com verificações
-    obterElementosDOM();
+    // Inicializar elementos DOM
+    inicializarElementosDOM();
     
-    // Esconder loading após 1 segundo
-    setTimeout(function() {
-        esconderLoading();
-    }, 1000);
+    // Verificar se elementos críticos existem
+    if (!estoqueTableBody) {
+        console.error("❌ CRÍTICO: estoqueTableBody não encontrado!");
+        // Tentar encontrar novamente
+        estoqueTableBody = document.getElementById('estoqueTableBody');
+        if (!estoqueTableBody) {
+            alert("Erro: Elemento da tabela não encontrado. Recarregue a página.");
+            return;
+        }
+    }
     
-    // Verificar sessão primeiro (igual ao venda.js)
+    // Esconder loading
+    setTimeout(esconderLoading, 500);
+    
+    // Verificar sessão
     if (!verificarSessao()) {
         return;
     }
     
     // Inicializar Firebase
     if (!inicializarFirebase()) {
-        mostrarErro("Não foi possível conectar ao banco de dados. Recarregue a página.");
+        mostrarErro("Não foi possível conectar ao banco de dados.");
         return;
     }
     
@@ -78,42 +87,50 @@ document.addEventListener('DOMContentLoaded', function() {
     atualizarUltimaAtualizacao();
     setInterval(atualizarUltimaAtualizacao, 1000);
     
-    console.log("✅ Estoque pronto para uso");
+    console.log("✅ Sistema de estoque inicializado");
 });
 
 // ============================================
-// OBTER ELEMENTOS DOM COM SEGURANÇA
+// INICIALIZAR ELEMENTOS DOM
 // ============================================
-function obterElementosDOM() {
-    // Buscar elementos com fallback seguro
-    window.searchInput = document.getElementById('searchInput');
-    window.btnNovoProduto = document.getElementById('btnNovoProduto');
-    window.btnRelatorioEstoque = document.getElementById('btnRelatorioEstoque');
-    window.btnRefresh = document.getElementById('btnRefresh');
-    window.filterStatus = document.getElementById('filterStatus');
-    window.estoqueTableBody = document.getElementById('estoqueTableBody');
-    window.totalProdutosElement = document.getElementById('totalProdutos');
-    window.totalEstoqueElement = document.getElementById('totalEstoque');
-    window.baixoEstoqueElement = document.getElementById('baixoEstoque');
-    window.valorTotalElement = document.getElementById('valorTotal');
-    window.currentCountElement = document.getElementById('currentCount');
-    window.lastUpdateElement = document.getElementById('lastUpdate');
-    window.userNameElement = document.getElementById('userName');
-    window.btnLogout = document.getElementById('btnLogout');
+function inicializarElementosDOM() {
+    console.log("🔍 Buscando elementos DOM...");
+    
+    // Buscar todos os elementos necessários
+    searchInput = document.getElementById('searchInput');
+    btnNovoProduto = document.getElementById('btnNovoProduto');
+    btnRelatorioEstoque = document.getElementById('btnRelatorioEstoque');
+    btnRefresh = document.getElementById('btnRefresh');
+    filterStatus = document.getElementById('filterStatus');
+    estoqueTableBody = document.getElementById('estoqueTableBody');
+    totalProdutosElement = document.getElementById('totalProdutos');
+    totalEstoqueElement = document.getElementById('totalEstoque');
+    baixoEstoqueElement = document.getElementById('baixoEstoque');
+    valorTotalElement = document.getElementById('valorTotal');
+    currentCountElement = document.getElementById('currentCount');
+    lastUpdateElement = document.getElementById('lastUpdate');
+    userNameElement = document.getElementById('userName');
+    btnLogout = document.getElementById('btnLogout');
     
     // Modal
-    window.modalProduto = document.getElementById('modalProduto');
-    window.formProduto = document.getElementById('formProduto');
-    window.produtoIdInput = document.getElementById('produtoId');
-    window.modalTitle = document.getElementById('modalTitle');
+    modalProduto = document.getElementById('modalProduto');
+    formProduto = document.getElementById('formProduto');
+    produtoIdInput = document.getElementById('produtoId');
+    modalTitle = document.getElementById('modalTitle');
     
-    // Verificar elementos críticos
-    if (!estoqueTableBody) console.warn("⚠️ estoqueTableBody não encontrado");
-    if (!totalProdutosElement) console.warn("⚠️ totalProdutosElement não encontrado");
+    // Log dos elementos encontrados
+    console.log("Elementos encontrados:", {
+        searchInput: !!searchInput,
+        btnNovoProduto: !!btnNovoProduto,
+        estoqueTableBody: !!estoqueTableBody,
+        totalProdutosElement: !!totalProdutosElement,
+        modalProduto: !!modalProduto,
+        formProduto: !!formProduto
+    });
 }
 
 // ============================================
-// 2. VERIFICAR SESSÃO (Igual ao venda.js)
+// 2. VERIFICAR SESSÃO
 // ============================================
 function verificarSessao() {
     const sessao = sessionStorage.getItem('pdv_sessao_temporaria') || 
@@ -121,9 +138,7 @@ function verificarSessao() {
     
     if (!sessao) {
         alert("⚠️ Sessão expirada! Faça login novamente.");
-        setTimeout(function() {
-            window.location.href = '../../login.html';
-        }, 1000);
+        setTimeout(() => window.location.href = '../../login.html', 1000);
         return false;
     }
     
@@ -131,7 +146,6 @@ function verificarSessao() {
         usuario = JSON.parse(sessao);
         console.log("✅ Usuário:", usuario.nome || usuario.login);
         
-        // Atualizar nome na interface
         if (userNameElement) {
             userNameElement.textContent = usuario.nome || usuario.login || 'Usuário';
         }
@@ -141,25 +155,20 @@ function verificarSessao() {
     } catch (error) {
         console.error("❌ Erro na sessão:", error);
         alert("Erro na sessão. Faça login novamente.");
-        setTimeout(function() {
-            window.location.href = '../../login.html';
-        }, 1000);
+        setTimeout(() => window.location.href = '../../login.html', 1000);
         return false;
     }
 }
 
 // ============================================
-// 3. CARREGAR PRODUTOS REAIS DO FIREBASE
+// 3. CARREGAR PRODUTOS DO FIREBASE
 // ============================================
 async function carregarProdutosReais() {
     console.log("📦 Buscando produtos do estoque...");
     mostrarLoading("Carregando estoque...");
     
     try {
-        // Buscar da coleção estoque_mj_construcoes
-        const querySnapshot = await db.collection('estoque_mj_construcoes')
-            .orderBy('nome')
-            .get();
+        const querySnapshot = await db.collection('estoque_mj_construcoes').get();
         
         produtos = [];
         
@@ -177,27 +186,20 @@ async function carregarProdutosReais() {
                 preco: parseFloat(data.preco) || 0,
                 unidade: data.unidade || 'UN',
                 fornecedor: data.fornecedor || '',
-                ativo: data.ativo !== false,
-                data_criacao: data.data_criacao || '',
-                data_atualizacao: data.data_atualizacao || ''
+                ativo: data.ativo !== false
             });
         });
         
         console.log(`✅ ${produtos.length} produtos carregados`);
         
         produtosFiltrados = [...produtos];
-        
-        // Renderizar tabela
         renderizarProdutos();
-        
-        // Atualizar estatísticas
         atualizarEstatisticas();
         
     } catch (error) {
         console.error("❌ Erro ao carregar produtos:", error);
         mostrarErro(`Erro ao carregar estoque: ${error.message}`);
         
-        // Mostrar estado vazio
         if (estoqueTableBody) {
             estoqueTableBody.innerHTML = `
                 <tr>
@@ -215,11 +217,11 @@ async function carregarProdutosReais() {
 }
 
 // ============================================
-// 4. RENDERIZAR PRODUTOS NA TABELA
+// 4. RENDERIZAR PRODUTOS
 // ============================================
 function renderizarProdutos() {
     if (!estoqueTableBody) {
-        console.error("Elemento estoqueTableBody não encontrado");
+        console.error("❌ Não é possível renderizar: estoqueTableBody não encontrado");
         return;
     }
     
@@ -294,7 +296,7 @@ function adicionarEventosBotoes() {
     // Botão editar
     document.querySelectorAll('.btn-editar').forEach(btn => {
         btn.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
+            const produtoId = this.getAttribute('data-id');
             abrirModalEditar(produtoId);
         });
     });
@@ -302,7 +304,7 @@ function adicionarEventosBotoes() {
     // Botão excluir/ativar
     document.querySelectorAll('.btn-excluir').forEach(btn => {
         btn.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
+            const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
             if (produto) {
                 confirmarAlteracaoStatus(produto);
@@ -356,9 +358,17 @@ function filtrarProdutos() {
 // ============================================
 function atualizarEstatisticas() {
     // Verificar se os elementos existem
-    if (!totalProdutosElement || !totalEstoqueElement || 
-        !baixoEstoqueElement || !valorTotalElement) {
-        console.warn("Elementos de estatísticas não encontrados");
+    const elementos = [
+        totalProdutosElement, 
+        totalEstoqueElement, 
+        baixoEstoqueElement, 
+        valorTotalElement
+    ];
+    
+    const todosExistem = elementos.every(el => el !== null);
+    
+    if (!todosExistem) {
+        console.warn("⚠️ Alguns elementos de estatísticas não foram encontrados");
         return;
     }
     
@@ -388,11 +398,13 @@ function atualizarEstatisticas() {
 }
 
 // ============================================
-// 7. MODAL - NOVO/EDITAR PRODUTO
+// 7. MODAL - NOVO PRODUTO
 // ============================================
 function abrirModalNovoProduto() {
+    console.log("Abrindo modal para novo produto");
+    
     if (!produtoIdInput || !modalTitle || !formProduto) {
-        mostrarErro("Erro ao abrir modal. Elementos não encontrados.");
+        mostrarErro("Erro: Elementos do modal não encontrados");
         return;
     }
     
@@ -406,101 +418,101 @@ function abrirModalNovoProduto() {
         codigoInput.value = `MJ-${Date.now().toString().slice(-6)}`;
     }
     
-    // Configurar cálculo de margem
-    const precoCustoInput = document.getElementById('preco_custo');
-    const precoVendaInput = document.getElementById('preco');
-    
-    if (precoCustoInput && precoVendaInput) {
-        const calcularMargem = function() {
-            const precoCusto = parseFloat(precoCustoInput.value) || 0;
-            const precoVenda = parseFloat(precoVendaInput.value) || 0;
-            
-            if (precoCusto > 0 && precoVenda > 0) {
-                const margem = ((precoVenda - precoCusto) / precoCusto * 100).toFixed(2);
-                const lucro = precoVenda - precoCusto;
-                
-                // Adicionar ou atualizar dica
-                let hint = document.getElementById('margemHint');
-                if (!hint) {
-                    hint = document.createElement('small');
-                    hint.id = 'margemHint';
-                    hint.className = 'form-hint';
-                    precoVendaInput.parentNode.appendChild(hint);
-                }
-                
-                hint.textContent = `Lucro: R$ ${lucro.toFixed(2)} | Margem: ${margem}%`;
-                hint.style.color = margem >= 0 ? '#27ae60' : '#c0392b';
-            }
-        };
-        
-        // Remover listeners antigos
-        precoCustoInput.removeEventListener('input', calcularMargem);
-        precoVendaInput.removeEventListener('input', calcularMargem);
-        
-        // Adicionar novos listeners
-        precoCustoInput.addEventListener('input', calcularMargem);
-        precoVendaInput.addEventListener('input', calcularMargem);
-    }
-    
-    abrirModal(modalProduto);
-}
-
-async function abrirModalEditar(produtoId) {
-    try {
-        mostrarLoading('Carregando produto...');
-        
-        // Buscar produto específico do Firebase
-        const docRef = db.collection('estoque_mj_construcoes').doc(produtoId);
-        const doc = await docRef.get();
-        
-        if (doc.exists) {
-            const produto = { id: doc.id, ...doc.data() };
-            
-            // Verificar elementos do modal
-            if (!produtoIdInput || !modalTitle) {
-                throw new Error('Elementos do modal não encontrados');
-            }
-            
-            // Preencher formulário
-            produtoIdInput.value = produto.id;
-            modalTitle.textContent = 'Editar Produto';
-            
-            // Preencher campos do formulário
-            const campos = {
-                'codigo': produto.codigo || '',
-                'nome': produto.nome || '',
-                'categoria': produto.categoria || '',
-                'unidade': produto.unidade || 'UN',
-                'preco_custo': produto.preco_custo || 0,
-                'preco': produto.preco || 0,
-                'quantidade': produto.quantidade || 0,
-                'estoque_minimo': produto.estoque_minimo || 5,
-                'descricao': produto.descricao || '',
-                'fornecedor': produto.fornecedor || ''
-            };
-            
-            // Preencher cada campo
-            Object.keys(campos).forEach(campoId => {
-                const elemento = document.getElementById(campoId);
-                if (elemento) {
-                    elemento.value = campos[campoId];
-                }
-            });
-            
-            esconderLoading();
-            abrirModal(modalProduto);
-            
-        } else {
-            throw new Error('Produto não encontrado');
-        }
-        
-    } catch (error) {
-        esconderLoading();
-        console.error('Erro ao carregar produto:', error);
-        mostrarMensagem('Erro ao carregar produto para edição', 'error');
+    // Abrir modal
+    if (modalProduto) {
+        modalProduto.style.display = 'flex';
+        console.log("Modal aberto com sucesso");
+    } else {
+        console.error("Modal não encontrado");
     }
 }
 
+// ============================================
+// 8. CONFIGURAR EVENTOS
+// ============================================
+function configurarEventos() {
+    console.log("⚙️ Configurando eventos...");
+    
+    // Botão novo produto
+    if (btnNovoProduto) {
+        btnNovoProduto.addEventListener('click', abrirModalNovoProduto);
+        console.log("✅ Evento do botão Novo Produto configurado");
+    } else {
+        console.error("❌ Botão Novo Produto não encontrado");
+    }
+    
+    // Botão atualizar
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', async function() {
+            await carregarProdutosReais();
+            mostrarMensagem('Estoque atualizado', 'success');
+        });
+    }
+    
+    // Busca
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarProdutos);
+    }
+    
+    // Filtro
+    if (filterStatus) {
+        filterStatus.addEventListener('change', filtrarProdutos);
+    }
+    
+    // Botão relatório
+    if (btnRelatorioEstoque) {
+        btnRelatorioEstoque.addEventListener('click', function() {
+            mostrarMensagem('Relatório em desenvolvimento', 'info');
+        });
+    }
+    
+    // Modal - fechar
+    const modalClose = modalProduto?.querySelector('.modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            if (modalProduto) modalProduto.style.display = 'none';
+        });
+    }
+    
+    // Modal - cancelar
+    const btnCancel = document.querySelector('.btn-cancel');
+    if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+            if (modalProduto) modalProduto.style.display = 'none';
+        });
+    }
+    
+    // Modal - fechar ao clicar fora
+    if (modalProduto) {
+        modalProduto.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    }
+    
+    // Formulário de produto
+    if (formProduto) {
+        formProduto.addEventListener('submit', salvarProduto);
+    }
+    
+    // Logout
+    if (btnLogout) {
+        btnLogout.addEventListener('click', function() {
+            if (confirm("Deseja sair do sistema?")) {
+                sessionStorage.removeItem('pdv_sessao_temporaria');
+                localStorage.removeItem('pdv_sessao_backup');
+                window.location.href = '../../login.html';
+            }
+        });
+    }
+    
+    console.log("✅ Eventos configurados com sucesso");
+}
+
+// ============================================
+// 9. SALVAR PRODUTO (NOVO OU EDITAR)
+// ============================================
 async function salvarProduto(e) {
     e.preventDefault();
     
@@ -546,7 +558,11 @@ async function salvarProduto(e) {
         }
         
         esconderLoading();
-        fecharModal(modalProduto);
+        
+        // Fechar modal
+        if (modalProduto) {
+            modalProduto.style.display = 'none';
+        }
         
         // Recarregar dados
         await carregarProdutosReais();
@@ -559,152 +575,20 @@ async function salvarProduto(e) {
 }
 
 // ============================================
-// 8. CONFIRMAR ALTERAÇÃO DE STATUS
+// FUNÇÕES AUXILIARES
 // ============================================
-async function confirmarAlteracaoStatus(produto) {
-    const confirmar = confirm(
-        produto.ativo 
-            ? `Deseja realmente desativar o produto "${produto.nome}"?`
-            : `Deseja realmente ativar o produto "${produto.nome}"?`
-    );
-    
-    if (!confirmar) return;
-    
-    try {
-        mostrarLoading(produto.ativo ? 'Desativando produto...' : 'Ativando produto...');
-        
-        await db.collection('estoque_mj_construcoes').doc(produto.id).update({
-            ativo: !produto.ativo,
-            data_atualizacao: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // Atualizar lista local
-        const index = produtos.findIndex(p => p.id === produto.id);
-        if (index !== -1) {
-            produtos[index].ativo = !produto.ativo;
-        }
-        
-        esconderLoading();
-        renderizarProdutos();
-        atualizarEstatisticas();
-        
-        mostrarMensagem(
-            produto.ativo ? 'Produto desativado com sucesso!' : 'Produto ativado com sucesso!',
-            'success'
-        );
-        
-    } catch (error) {
-        esconderLoading();
-        console.error('Erro ao alterar status:', error);
-        mostrarMensagem('Erro ao alterar status do produto', 'error');
-    }
-}
-
-// ============================================
-// 9. CONFIGURAR EVENTOS
-// ============================================
-function configurarEventos() {
-    // Busca em tempo real
-    if (searchInput) {
-        searchInput.addEventListener('input', filtrarProdutos);
-    }
-    
-    // Filtro de status
-    if (filterStatus) {
-        filterStatus.addEventListener('change', filtrarProdutos);
-    }
-    
-    // Botão novo produto
-    if (btnNovoProduto) {
-        btnNovoProduto.addEventListener('click', abrirModalNovoProduto);
-    }
-    
-    // Botão relatório
-    if (btnRelatorioEstoque) {
-        btnRelatorioEstoque.addEventListener('click', function() {
-            mostrarMensagem('Relatório em desenvolvimento', 'info');
-        });
-    }
-    
-    // Botão atualizar
-    if (btnRefresh) {
-        btnRefresh.addEventListener('click', async function() {
-            await carregarProdutosReais();
-            mostrarMensagem('Estoque atualizado', 'success');
-        });
-    }
-    
-    // Modal eventos
-    const modalClose = modalProduto?.querySelector('.modal-close');
-    if (modalClose) {
-        modalClose.addEventListener('click', () => {
-            fecharModal(modalProduto);
-        });
-    }
-    
-    const btnCancel = document.querySelector('.btn-cancel');
-    if (btnCancel) {
-        btnCancel.addEventListener('click', () => {
-            fecharModal(modalProduto);
-        });
-    }
-    
-    // Fechar modal ao clicar fora
-    if (modalProduto) {
-        modalProduto.addEventListener('click', function(e) {
-            if (e.target === this) {
-                fecharModal(this);
-            }
-        });
-    }
-    
-    // Formulário de produto
-    if (formProduto) {
-        formProduto.addEventListener('submit', salvarProduto);
-    }
-    
-    // Logout
-    if (btnLogout) {
-        btnLogout.addEventListener('click', function() {
-            if (confirm("Deseja sair do sistema?")) {
-                sessionStorage.removeItem('pdv_sessao_temporaria');
-                localStorage.removeItem('pdv_sessao_backup');
-                window.location.href = '../../login.html';
-            }
-        });
-    }
-}
-
-// ============================================
-// 10. FUNÇÕES UTILITÁRIAS
-// ============================================
-function atualizarUltimaAtualizacao() {
-    if (!lastUpdateElement) return;
-    
-    const agora = new Date();
-    const horaFormatada = agora.toLocaleTimeString('pt-BR');
-    lastUpdateElement.textContent = `Última atualização: ${horaFormatada}`;
-}
-
 function formatarMoeda(valor) {
     return parseFloat(valor || 0).toFixed(2).replace('.', ',');
 }
 
-function abrirModal(modal) {
-    if (modal) {
-        modal.style.display = 'flex';
+function atualizarUltimaAtualizacao() {
+    if (lastUpdateElement) {
+        const agora = new Date();
+        const horaFormatada = agora.toLocaleTimeString('pt-BR');
+        lastUpdateElement.textContent = `Última atualização: ${horaFormatada}`;
     }
 }
 
-function fecharModal(modal) {
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-// ============================================
-// 11. FUNÇÕES DE UI (iguais ao venda.js)
-// ============================================
 function mostrarLoading(mensagem) {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
@@ -732,11 +616,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     const text = alert.querySelector('.message-text');
     const closeBtn = alert.querySelector('.message-close');
     
-    // Configurar alerta
     alert.className = `message-alert ${tipo}`;
     alert.style.display = 'block';
     
-    // Ícone
     const icons = {
         success: 'fas fa-check-circle',
         warning: 'fas fa-exclamation-triangle',
@@ -747,14 +629,12 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
     if (text) text.textContent = texto;
     
-    // Botão fechar
     if (closeBtn) {
         closeBtn.onclick = function() {
             alert.style.display = 'none';
         };
     }
     
-    // Auto-ocultar
     setTimeout(function() {
         if (alert.style.display === 'block') {
             alert.style.display = 'none';
@@ -766,8 +646,11 @@ function mostrarErro(texto) {
     mostrarMensagem(texto, 'error', 5000);
 }
 
+// Nota: As funções abrirModalEditar e confirmarAlteracaoStatus 
+// serão implementadas posteriormente
+
 // ============================================
-// 12. ADICIONAR ESTILOS DINÂMICOS
+// ESTILOS DINÂMICOS
 // ============================================
 (function adicionarEstilos() {
     const estiloBadge = document.createElement('style');
@@ -845,23 +728,8 @@ function mostrarErro(texto) {
             justify-content: center;
             gap: 5px;
         }
-        
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100%);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-        
-        .message-alert {
-            animation: slideInRight 0.3s ease;
-        }
     `;
     document.head.appendChild(estiloBadge);
 })();
 
-console.log("✅ Sistema de estoque completamente carregado!");
+console.log("✅ Sistema de estoque carregado e pronto!");
