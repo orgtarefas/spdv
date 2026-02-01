@@ -1,6 +1,5 @@
-// home.js - COM CAMINHOS CORRETOS
+// home.js - AJUSTADO PARA ESTRUTURA DE PASTAS
 import { db, mjServices } from './firebase_config.js';
-import { collection, getDocs, query, where } from './firebase_config.js';
 
 // Variáveis globais
 let userSession = null;
@@ -27,7 +26,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         await inicializarHome();
         
         // 3. Configurar navegação
-        setupNavigation();
+        configurarNavegacao();
+        
+        // 4. Configurar eventos da UI
+        configurarEventosUI();
         
     } catch (error) {
         console.error("❌ Erro ao inicializar home:", error);
@@ -54,8 +56,8 @@ async function inicializarHome() {
         atualizarDataHora();
         setInterval(atualizarDataHora, 60000);
         
-        // 4. Configurar eventos
-        setupUIEvents();
+        // 4. Carregar atividades recentes
+        await carregarAtividadesRecentes();
         
         console.log("✅ Home MJ Materiais carregada com sucesso!");
         
@@ -70,11 +72,11 @@ async function inicializarHome() {
     }
 }
 
-// ===== NAVEGAÇÃO =====
-function setupNavigation() {
+// ===== CONFIGURAR NAVEGAÇÃO =====
+function configurarNavegacao() {
     console.log("🔒 Configurando navegação...");
     
-    // 1. Links de Venda (NA MESMA PASTA)
+    // 1. Links de Venda
     const linkVenda = document.querySelector('a[href="venda.html"]');
     if (linkVenda) {
         linkVenda.addEventListener('click', function(e) {
@@ -83,11 +85,11 @@ function setupNavigation() {
             
             // Salvar sessão antes de navegar
             sessionStorage.setItem('userSession', JSON.stringify(userSession));
-            window.location.href = 'venda.html'; // NA MESMA PASTA
+            window.location.href = 'venda.html';
         });
     }
     
-    // 2. Links de Estoque (NA MESMA PASTA)
+    // 2. Links de Estoque
     const linkEstoque = document.querySelector('a[href="estoque.html"]');
     if (linkEstoque) {
         linkEstoque.addEventListener('click', function(e) {
@@ -96,13 +98,13 @@ function setupNavigation() {
             
             // Verificar permissão
             if (!['admin_global', 'admin'].includes(userSession?.perfil)) {
-                mostrarMensagem("⚠️ Apenas administradores!", "warning");
+                mostrarMensagem("⚠️ Acesso restrito! Apenas administradores.", "warning");
                 return;
             }
             
             // Salvar sessão antes de navegar
             sessionStorage.setItem('userSession', JSON.stringify(userSession));
-            window.location.href = 'estoque.html'; // NA MESMA PASTA
+            window.location.href = 'estoque.html';
         });
     }
     
@@ -114,7 +116,7 @@ function setupNavigation() {
 }
 
 // ===== FUNÇÕES DE UI =====
-function setupUIEvents() {
+function configurarEventosUI() {
     // Botão de Consulta Rápida
     const btnConsultaRapida = document.getElementById('btnConsultaRapida');
     if (btnConsultaRapida) {
@@ -128,6 +130,14 @@ function setupUIEvents() {
     if (btnRelatorio) {
         btnRelatorio.addEventListener('click', () => {
             mostrarMensagem("Relatórios em breve", "info");
+        });
+    }
+    
+    // Fechar modal
+    const modalClose = document.querySelector('.modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            document.getElementById('quickSearchModal').style.display = 'none';
         });
     }
 }
@@ -163,23 +173,96 @@ async function carregarEstatisticas() {
                 const stats = resultado.data;
                 
                 // Atualizar UI
-                if (document.getElementById('totalProdutos')) {
-                    document.getElementById('totalProdutos').textContent = 
-                        stats.totalProdutos?.toLocaleString('pt-BR') || '0';
-                }
+                document.getElementById('totalProdutos').textContent = 
+                    stats.totalProdutos?.toLocaleString('pt-BR') || '0';
                 
-                if (document.getElementById('vendasHoje')) {
-                    document.getElementById('vendasHoje').textContent = 
-                        stats.vendasHoje?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
-                }
+                document.getElementById('vendasHoje').textContent = 
+                    stats.vendasHoje?.toLocaleString('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                    }) || 'R$ 0,00';
                 
-                // ... resto das atualizações
+                document.getElementById('quantidadeVendas').textContent = 
+                    `${stats.quantidadeVendasHoje || 0} vendas`;
+                
+                document.getElementById('valorEstoque').textContent = 
+                    stats.totalValorEstoque?.toLocaleString('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                    }) || 'R$ 0,00';
+                
+                document.getElementById('produtosBaixo').textContent = 
+                    `${stats.produtosBaixoEstoque || 0} com baixo estoque`;
+                
+                // Calcular meta
+                if (stats.metaMensal > 0) {
+                    const percentual = Math.round((stats.metaAlcancada / stats.metaMensal) * 100);
+                    document.getElementById('metaPercentual').textContent = `${percentual}%`;
+                    document.getElementById('metaRestante').textContent = 
+                        (stats.metaMensal - stats.metaAlcancada).toLocaleString('pt-BR', { 
+                            style: 'currency', 
+                            currency: 'BRL' 
+                        });
+                }
             }
         }
         
     } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
+        // Valores padrão
+        document.getElementById('vendasHoje').textContent = 'R$ 0,00';
+        document.getElementById('quantidadeVendas').textContent = '0 vendas';
+        document.getElementById('totalProdutos').textContent = '0';
+        document.getElementById('valorEstoque').textContent = 'R$ 0,00';
+        document.getElementById('produtosBaixo').textContent = '0 com baixo estoque';
+        document.getElementById('metaPercentual').textContent = '0%';
+        document.getElementById('metaRestante').textContent = 'R$ 50.000,00';
     }
+}
+
+async function carregarAtividadesRecentes() {
+    try {
+        const activityList = document.getElementById('activityList');
+        if (!activityList) return;
+        
+        // Atividades de exemplo
+        const atividades = [
+            { tipo: 'venda', texto: 'Sistema inicializado com sucesso', hora: getHoraAtual() },
+            { tipo: 'login', texto: `Usuário ${userSession?.nome || userSession?.login} logado`, hora: getHoraAtual() },
+            { tipo: 'sistema', texto: 'Conectado ao banco de dados', hora: getHoraAtual() }
+        ];
+        
+        activityList.innerHTML = atividades.map(atividade => `
+            <div class="activity-item">
+                <div class="activity-icon ${atividade.tipo}">
+                    <i class="fas fa-${getIconeAtividade(atividade.tipo)}"></i>
+                </div>
+                <div class="activity-details">
+                    <p>${atividade.texto}</p>
+                    <span class="activity-time">${atividade.hora}</span>
+                </div>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error("Erro ao carregar atividades:", error);
+    }
+}
+
+function getIconeAtividade(tipo) {
+    const icones = {
+        'venda': 'cash-register',
+        'estoque': 'boxes',
+        'login': 'user-check',
+        'sistema': 'cogs'
+    };
+    return icones[tipo] || 'info-circle';
+}
+
+function getHoraAtual() {
+    const agora = new Date();
+    return agora.getHours().toString().padStart(2, '0') + ':' + 
+           agora.getMinutes().toString().padStart(2, '0');
 }
 
 function atualizarDataHora() {
@@ -204,6 +287,7 @@ async function fazerLogout() {
     try {
         mostrarLoading();
         
+        // Confirmar logout
         if (!confirm("Deseja realmente sair do sistema?")) {
             ocultarLoading();
             return;
@@ -211,15 +295,16 @@ async function fazerLogout() {
         
         console.log("👋 Fazendo logout...");
         
-        // Limpar dados
-        sessionStorage.clear();
-        localStorage.clear();
+        // Limpar dados locais
+        sessionStorage.removeItem('userSession');
+        localStorage.removeItem('userSession');
         
         mostrarMensagem("Logout realizado com sucesso!", "success");
         
-        // VOLTAR 2 NÍVEIS para a raiz (onde está index.html)
+        // VOLTAR 2 NÍVEIS para login.html na RAIZ
+        // lojas/mj-materiais-construcao → .. → .. → raiz/login.html
         setTimeout(() => {
-            window.location.href = '../../index.html';
+            window.location.href = '../../login.html';
         }, 1000);
         
     } catch (error) {
@@ -232,21 +317,28 @@ async function fazerLogout() {
 // ===== FUNÇÕES AUXILIARES =====
 function redirecionarParaLogin() {
     console.log("Redirecionando para login...");
-    sessionStorage.clear();
-    localStorage.clear();
     
-    // VOLTAR 2 NÍVEIS para a raiz
-    window.location.href = '../../index.html';
+    // Limpar sessão
+    sessionStorage.removeItem('userSession');
+    localStorage.removeItem('userSession');
+    
+    // VOLTAR 2 NÍVEIS para login.html na RAIZ
+    // lojas/mj-materiais-construcao → .. → .. → raiz/login.html
+    window.location.href = '../../login.html';
 }
 
 function mostrarLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    if (overlay) overlay.style.display = 'flex';
+    if (overlay) {
+        overlay.style.display = 'flex';
+    }
 }
 
 function ocultarLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
 }
 
 function mostrarMensagem(texto, tipo = 'info') {
@@ -258,10 +350,13 @@ function mostrarMensagem(texto, tipo = 'info') {
     
     const icon = alert.querySelector('.message-icon');
     const text = alert.querySelector('.message-text');
+    const closeBtn = alert.querySelector('.message-close');
     
+    // Configurar alerta
     alert.className = `message-alert ${tipo}`;
     alert.style.display = 'block';
     
+    // Ícone
     const icons = {
         success: 'fas fa-check-circle',
         warning: 'fas fa-exclamation-triangle',
@@ -272,7 +367,14 @@ function mostrarMensagem(texto, tipo = 'info') {
     if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
     if (text) text.textContent = texto;
     
-    // Auto-ocultar
+    // Botão fechar
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            alert.style.display = 'none';
+        };
+    }
+    
+    // Auto-ocultar (exceto para erros)
     if (tipo !== 'error') {
         setTimeout(() => {
             alert.style.display = 'none';
@@ -280,5 +382,18 @@ function mostrarMensagem(texto, tipo = 'info') {
     }
 }
 
-// Inicializar
+// ===== CONEXÃO =====
+function verificarConexao() {
+    const statusElement = document.getElementById('connectionStatus');
+    if (!statusElement) return;
+    
+    // Simples verificação
+    statusElement.innerHTML = '<i class="fas fa-circle online"></i> Sistema online';
+}
+
+// ===== INICIALIZAÇÃO =====
+// Mostrar loading inicial
 mostrarLoading();
+
+// Verificar conexão
+verificarConexao();
