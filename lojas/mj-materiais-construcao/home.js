@@ -1,4 +1,4 @@
-// home.js - MJ Materiais de Construção (SEM LOCALSTORAGE)
+// home.js - COM SUPORTE A ADMIN GLOBAL
 import { mjServices } from './firebase_config.js';
 
 // Elementos DOM
@@ -41,6 +41,12 @@ function verificarSessao() {
             return false;
         }
         
+        // Se for admin global, mostrar badge especial
+        if (sessaoUsuario.is_admin_global) {
+            console.log('👑 Usuário é Admin Global');
+            mostrarBadgeAdmin();
+        }
+        
         return true;
         
     } catch (error) {
@@ -52,7 +58,64 @@ function verificarSessao() {
 }
 
 // ============================================
-// 2. INICIALIZAÇÃO DO SISTEMA
+// 2. MOSTRAR BADGE DE ADMIN GLOBAL
+// ============================================
+function mostrarBadgeAdmin() {
+    // Adicionar badge de admin global ao nome do usuário
+    const userNameElements = document.querySelectorAll('#userName');
+    userNameElements.forEach(el => {
+        if (el) {
+            const originalText = el.textContent;
+            el.innerHTML = `${originalText} <span class="admin-badge">👑 Admin Global</span>`;
+        }
+    });
+    
+    // Adicionar CSS para o badge
+    const style = document.createElement('style');
+    style.textContent = `
+        .admin-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 8px;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Adicionar menu especial para admin
+    adicionarMenuAdmin();
+}
+
+// ============================================
+// 3. ADICIONAR MENU ESPECIAL PARA ADMIN
+// ============================================
+function adicionarMenuAdmin() {
+    // Adicionar link para voltar ao seletor de lojas
+    const userMenu = document.querySelector('.user-menu');
+    if (userMenu) {
+        const adminLink = document.createElement('a');
+        adminLink.href = '../../login.html';
+        adminLink.innerHTML = '<i class="fas fa-exchange-alt"></i> Trocar de Loja';
+        adminLink.style.color = '#FFD700';
+        adminLink.style.fontWeight = 'bold';
+        
+        userMenu.appendChild(adminLink);
+    }
+}
+
+// ============================================
+// 4. INICIALIZAÇÃO DO SISTEMA
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🏠 Home MJ Materiais - Inicializando...');
@@ -76,7 +139,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // ============================================
-// 3. CARREGAR DADOS DO USUÁRIO
+// 5. CARREGAR DADOS DO USUÁRIO
 // ============================================
 function carregarDadosUsuario() {
     if (sessaoUsuario) {
@@ -89,7 +152,7 @@ function carregarDadosUsuario() {
 }
 
 // ============================================
-// 4. CONFIGURAR EVENTOS
+// 6. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
     // Botão logout
@@ -100,11 +163,22 @@ function configurarEventos() {
         window.location.href = '../../login.html';
     });
     
+    // Se for admin global, adicionar atalho para voltar ao seletor
+    if (sessaoUsuario && sessaoUsuario.is_admin_global) {
+        const btnTrocarLoja = document.getElementById('btnTrocarLoja');
+        if (btnTrocarLoja) {
+            btnTrocarLoja.addEventListener('click', function() {
+                sessionStorage.removeItem('pdv_sessao_temporaria');
+                window.location.href = '../../login.html';
+            });
+        }
+    }
+    
     // Outros eventos conforme necessário...
 }
 
 // ============================================
-// 5. FUNÇÕES UTILITÁRIAS
+// 7. FUNÇÕES UTILITÁRIAS
 // ============================================
 function atualizarDataHora() {
     const agora = new Date();
