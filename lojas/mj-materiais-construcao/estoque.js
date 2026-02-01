@@ -43,33 +43,14 @@ let usuario = null;
 let produtos = [];
 let produtosFiltrados = [];
 
-// Elementos DOM
-const searchInput = document.getElementById('searchInput');
-const btnNovoProduto = document.getElementById('btnNovoProduto');
-const btnRelatorioEstoque = document.getElementById('btnRelatorioEstoque');
-const btnRefresh = document.getElementById('btnRefresh');
-const filterStatus = document.getElementById('filterStatus');
-const estoqueTableBody = document.getElementById('estoqueTableBody');
-const totalProdutosElement = document.getElementById('totalProdutos');
-const totalEstoqueElement = document.getElementById('totalEstoque');
-const baixoEstoqueElement = document.getElementById('baixoEstoque');
-const valorTotalElement = document.getElementById('valorTotal');
-const currentCountElement = document.getElementById('currentCount');
-const lastUpdateElement = document.getElementById('lastUpdate');
-const userNameElement = document.getElementById('userName');
-const btnLogout = document.getElementById('btnLogout');
-
-// Modal
-const modalProduto = document.getElementById('modalProduto');
-const formProduto = document.getElementById('formProduto');
-const produtoIdInput = document.getElementById('produtoId');
-const modalTitle = document.getElementById('modalTitle');
-
 // ============================================
 // 1. INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     console.log("📄 Página de estoque carregada");
+    
+    // Obter elementos DOM com verificações
+    obterElementosDOM();
     
     // Esconder loading após 1 segundo
     setTimeout(function() {
@@ -99,6 +80,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log("✅ Estoque pronto para uso");
 });
+
+// ============================================
+// OBTER ELEMENTOS DOM COM SEGURANÇA
+// ============================================
+function obterElementosDOM() {
+    // Buscar elementos com fallback seguro
+    window.searchInput = document.getElementById('searchInput');
+    window.btnNovoProduto = document.getElementById('btnNovoProduto');
+    window.btnRelatorioEstoque = document.getElementById('btnRelatorioEstoque');
+    window.btnRefresh = document.getElementById('btnRefresh');
+    window.filterStatus = document.getElementById('filterStatus');
+    window.estoqueTableBody = document.getElementById('estoqueTableBody');
+    window.totalProdutosElement = document.getElementById('totalProdutos');
+    window.totalEstoqueElement = document.getElementById('totalEstoque');
+    window.baixoEstoqueElement = document.getElementById('baixoEstoque');
+    window.valorTotalElement = document.getElementById('valorTotal');
+    window.currentCountElement = document.getElementById('currentCount');
+    window.lastUpdateElement = document.getElementById('lastUpdate');
+    window.userNameElement = document.getElementById('userName');
+    window.btnLogout = document.getElementById('btnLogout');
+    
+    // Modal
+    window.modalProduto = document.getElementById('modalProduto');
+    window.formProduto = document.getElementById('formProduto');
+    window.produtoIdInput = document.getElementById('produtoId');
+    window.modalTitle = document.getElementById('modalTitle');
+    
+    // Verificar elementos críticos
+    if (!estoqueTableBody) console.warn("⚠️ estoqueTableBody não encontrado");
+    if (!totalProdutosElement) console.warn("⚠️ totalProdutosElement não encontrado");
+}
 
 // ============================================
 // 2. VERIFICAR SESSÃO (Igual ao venda.js)
@@ -174,7 +186,11 @@ async function carregarProdutosReais() {
         console.log(`✅ ${produtos.length} produtos carregados`);
         
         produtosFiltrados = [...produtos];
+        
+        // Renderizar tabela
         renderizarProdutos();
+        
+        // Atualizar estatísticas
         atualizarEstatisticas();
         
     } catch (error) {
@@ -182,15 +198,17 @@ async function carregarProdutosReais() {
         mostrarErro(`Erro ao carregar estoque: ${error.message}`);
         
         // Mostrar estado vazio
-        estoqueTableBody.innerHTML = `
-            <tr>
-                <td colspan="9" class="empty-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Erro ao carregar estoque</p>
-                    <small>${error.message}</small>
-                </td>
-            </tr>
-        `;
+        if (estoqueTableBody) {
+            estoqueTableBody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Erro ao carregar estoque</p>
+                        <small>${error.message}</small>
+                    </td>
+                </tr>
+            `;
+        }
     } finally {
         esconderLoading();
     }
@@ -200,7 +218,10 @@ async function carregarProdutosReais() {
 // 4. RENDERIZAR PRODUTOS NA TABELA
 // ============================================
 function renderizarProdutos() {
-    if (!estoqueTableBody) return;
+    if (!estoqueTableBody) {
+        console.error("Elemento estoqueTableBody não encontrado");
+        return;
+    }
     
     if (produtosFiltrados.length === 0) {
         estoqueTableBody.innerHTML = `
@@ -212,7 +233,10 @@ function renderizarProdutos() {
                 </td>
             </tr>
         `;
-        currentCountElement.textContent = '0';
+        
+        if (currentCountElement) {
+            currentCountElement.textContent = '0';
+        }
         return;
     }
     
@@ -257,7 +281,10 @@ function renderizarProdutos() {
     });
     
     estoqueTableBody.innerHTML = html;
-    currentCountElement.textContent = produtosFiltrados.length;
+    
+    if (currentCountElement) {
+        currentCountElement.textContent = produtosFiltrados.length;
+    }
     
     // Adicionar eventos aos botões
     adicionarEventosBotoes();
@@ -288,6 +315,8 @@ function adicionarEventosBotoes() {
 // 5. FILTRAGEM DE PRODUTOS
 // ============================================
 function filtrarProdutos() {
+    if (!searchInput || !filterStatus) return;
+    
     const termoBusca = searchInput.value.toLowerCase().trim();
     const statusSelecionado = filterStatus.value;
     
@@ -326,7 +355,14 @@ function filtrarProdutos() {
 // 6. ATUALIZAR ESTATÍSTICAS
 // ============================================
 function atualizarEstatisticas() {
-    if (!produtosFiltrados.length) {
+    // Verificar se os elementos existem
+    if (!totalProdutosElement || !totalEstoqueElement || 
+        !baixoEstoqueElement || !valorTotalElement) {
+        console.warn("Elementos de estatísticas não encontrados");
+        return;
+    }
+    
+    if (!produtosFiltrados || produtosFiltrados.length === 0) {
         totalProdutosElement.textContent = '0';
         totalEstoqueElement.textContent = '0';
         baixoEstoqueElement.textContent = '0';
@@ -354,13 +390,21 @@ function atualizarEstatisticas() {
 // ============================================
 // 7. MODAL - NOVO/EDITAR PRODUTO
 // ============================================
-async function abrirModalNovoProduto() {
+function abrirModalNovoProduto() {
+    if (!produtoIdInput || !modalTitle || !formProduto) {
+        mostrarErro("Erro ao abrir modal. Elementos não encontrados.");
+        return;
+    }
+    
     produtoIdInput.value = '';
     modalTitle.textContent = 'Novo Produto';
     formProduto.reset();
     
     // Gerar código automático
-    document.getElementById('codigo').value = `MJ-${Date.now().toString().slice(-6)}`;
+    const codigoInput = document.getElementById('codigo');
+    if (codigoInput) {
+        codigoInput.value = `MJ-${Date.now().toString().slice(-6)}`;
+    }
     
     // Configurar cálculo de margem
     const precoCustoInput = document.getElementById('preco_custo');
@@ -389,6 +433,11 @@ async function abrirModalNovoProduto() {
             }
         };
         
+        // Remover listeners antigos
+        precoCustoInput.removeEventListener('input', calcularMargem);
+        precoVendaInput.removeEventListener('input', calcularMargem);
+        
+        // Adicionar novos listeners
         precoCustoInput.addEventListener('input', calcularMargem);
         precoVendaInput.addEventListener('input', calcularMargem);
     }
@@ -407,20 +456,36 @@ async function abrirModalEditar(produtoId) {
         if (doc.exists) {
             const produto = { id: doc.id, ...doc.data() };
             
+            // Verificar elementos do modal
+            if (!produtoIdInput || !modalTitle) {
+                throw new Error('Elementos do modal não encontrados');
+            }
+            
             // Preencher formulário
             produtoIdInput.value = produto.id;
             modalTitle.textContent = 'Editar Produto';
             
-            document.getElementById('codigo').value = produto.codigo || '';
-            document.getElementById('nome').value = produto.nome || '';
-            document.getElementById('categoria').value = produto.categoria || '';
-            document.getElementById('unidade').value = produto.unidade || 'UN';
-            document.getElementById('preco_custo').value = produto.preco_custo || 0;
-            document.getElementById('preco').value = produto.preco || 0;
-            document.getElementById('quantidade').value = produto.quantidade || 0;
-            document.getElementById('estoque_minimo').value = produto.estoque_minimo || 5;
-            document.getElementById('descricao').value = produto.descricao || '';
-            document.getElementById('fornecedor').value = produto.fornecedor || '';
+            // Preencher campos do formulário
+            const campos = {
+                'codigo': produto.codigo || '',
+                'nome': produto.nome || '',
+                'categoria': produto.categoria || '',
+                'unidade': produto.unidade || 'UN',
+                'preco_custo': produto.preco_custo || 0,
+                'preco': produto.preco || 0,
+                'quantidade': produto.quantidade || 0,
+                'estoque_minimo': produto.estoque_minimo || 5,
+                'descricao': produto.descricao || '',
+                'fornecedor': produto.fornecedor || ''
+            };
+            
+            // Preencher cada campo
+            Object.keys(campos).forEach(campoId => {
+                const elemento = document.getElementById(campoId);
+                if (elemento) {
+                    elemento.value = campos[campoId];
+                }
+            });
             
             esconderLoading();
             abrirModal(modalProduto);
@@ -442,17 +507,18 @@ async function salvarProduto(e) {
     try {
         mostrarLoading('Salvando produto...');
         
+        // Obter valores do formulário
         const dadosProduto = {
-            codigo: document.getElementById('codigo').value.trim(),
-            nome: document.getElementById('nome').value.trim(),
-            categoria: document.getElementById('categoria').value.trim(),
-            unidade: document.getElementById('unidade').value,
-            preco_custo: parseFloat(document.getElementById('preco_custo').value) || 0,
-            preco: parseFloat(document.getElementById('preco').value) || 0,
-            quantidade: parseInt(document.getElementById('quantidade').value) || 0,
-            estoque_minimo: parseInt(document.getElementById('estoque_minimo').value) || 5,
-            descricao: document.getElementById('descricao').value.trim(),
-            fornecedor: document.getElementById('fornecedor').value.trim(),
+            codigo: document.getElementById('codigo')?.value.trim() || '',
+            nome: document.getElementById('nome')?.value.trim() || '',
+            categoria: document.getElementById('categoria')?.value.trim() || '',
+            unidade: document.getElementById('unidade')?.value || 'UN',
+            preco_custo: parseFloat(document.getElementById('preco_custo')?.value) || 0,
+            preco: parseFloat(document.getElementById('preco')?.value) || 0,
+            quantidade: parseInt(document.getElementById('quantidade')?.value) || 0,
+            estoque_minimo: parseInt(document.getElementById('estoque_minimo')?.value) || 5,
+            descricao: document.getElementById('descricao')?.value.trim() || '',
+            fornecedor: document.getElementById('fornecedor')?.value.trim() || '',
             ativo: true,
             data_atualizacao: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -466,7 +532,7 @@ async function salvarProduto(e) {
             throw new Error('Preço de venda deve ser maior que zero');
         }
         
-        const produtoId = produtoIdInput.value;
+        const produtoId = produtoIdInput?.value || '';
         
         if (produtoId) {
             // Atualizar produto existente
@@ -613,12 +679,11 @@ function configurarEventos() {
 // 10. FUNÇÕES UTILITÁRIAS
 // ============================================
 function atualizarUltimaAtualizacao() {
+    if (!lastUpdateElement) return;
+    
     const agora = new Date();
     const horaFormatada = agora.toLocaleTimeString('pt-BR');
-    
-    if (lastUpdateElement) {
-        lastUpdateElement.textContent = `Última atualização: ${horaFormatada}`;
-    }
+    lastUpdateElement.textContent = `Última atualização: ${horaFormatada}`;
 }
 
 function formatarMoeda(valor) {
@@ -701,83 +766,102 @@ function mostrarErro(texto) {
     mostrarMensagem(texto, 'error', 5000);
 }
 
-// Adicionar estilos para badges
-const estiloBadge = document.createElement('style');
-estiloBadge.textContent = `
-    .status-badge {
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        display: inline-block;
-    }
-    
-    .status-ativo {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    
-    .status-baixo {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    
-    .status-inativo {
-        background-color: #f8d7da;
-        color: #721c24;
-    }
-    
-    .text-muted {
-        color: #6c757d;
-        font-size: 0.85rem;
-    }
-    
-    .text-primary {
-        color: #3498db;
-    }
-    
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: #6c757d;
-    }
-    
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 15px;
-        color: #bdc3c7;
-    }
-    
-    .btn-acao {
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-        margin: 0 5px;
-        padding: 5px;
-        border-radius: 4px;
-        transition: all 0.2s;
-    }
-    
-    .btn-acao:hover {
-        background-color: #f8f9fa;
-        transform: scale(1.1);
-    }
-    
-    .btn-editar {
-        color: #3498db;
-    }
-    
-    .btn-excluir {
-        color: #e74c3c;
-    }
-    
-    .acoes-cell {
-        display: flex;
-        justify-content: center;
-        gap: 5px;
-    }
-`;
-document.head.appendChild(estiloBadge);
+// ============================================
+// 12. ADICIONAR ESTILOS DINÂMICOS
+// ============================================
+(function adicionarEstilos() {
+    const estiloBadge = document.createElement('style');
+    estiloBadge.textContent = `
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .status-ativo {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-baixo {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-inativo {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .text-muted {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        
+        .text-primary {
+            color: #3498db;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        .btn-acao {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0 5px;
+            padding: 5px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .btn-acao:hover {
+            background-color: #f8f9fa;
+            transform: scale(1.1);
+        }
+        
+        .btn-editar {
+            color: #3498db;
+        }
+        
+        .btn-excluir {
+            color: #e74c3c;
+        }
+        
+        .acoes-cell {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .message-alert {
+            animation: slideInRight 0.3s ease;
+        }
+    `;
+    document.head.appendChild(estiloBadge);
+})();
 
 console.log("✅ Sistema de estoque completamente carregado!");
