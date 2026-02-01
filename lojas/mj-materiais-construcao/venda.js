@@ -1,4 +1,4 @@
-// venda.js - COM FIREBASE REAL
+// venda.js - USANDO mjServices DO firebase_config.js
 console.log("🛒 venda.js carregando...");
 
 // Elementos DOM
@@ -33,109 +33,32 @@ let carrinho = [];
 let produtoSelecionado = null;
 let desconto = 0;
 
-// Importações do Firebase
-let db;
-let collection, getDocs, query, where, orderBy;
-
 // ============================================
-// 1. INICIALIZAÇÃO - CARREGAR FIREBASE
+// 1. INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 venda.html carregada");
     
-    try {
-        // Carregar Firebase
-        await carregarFirebase();
-        
-        // Verificar sessão
-        if (!verificarSessao()) {
-            console.log("❌ Sem sessão - redirecionando para login");
-            return;
-        }
-        
-        // Configurar página
-        configurarPagina();
-        
-        // Carregar produtos do Firebase
-        await carregarProdutosFirebase();
-        
-        console.log("✅ venda.js inicializado com Firebase");
-        
-    } catch (error) {
-        console.error("❌ Erro ao inicializar:", error);
-        mostrarErro("Erro ao carregar sistema");
+    // PRIMEIRO: Verificar sessão
+    if (!verificarSessao()) {
+        return;
     }
+    
+    // SEGUNDO: Configurar página
+    configurarPagina();
+    
+    // TERCEIRO: Carregar produtos via mjServices
+    await carregarProdutosMJ();
+    
+    console.log("✅ venda.js inicializado com sucesso!");
 });
 
 // ============================================
-// 2. CARREGAR FIREBASE DINAMICAMENTE
-// ============================================
-async function carregarFirebase() {
-    try {
-        // Tentar importar do firebase_config.js
-        if (typeof mjServices !== 'undefined') {
-            console.log("✅ Usando mjServices do firebase_config.js");
-            return;
-        }
-        
-        // Se não tiver mjServices, carregar Firebase diretamente
-        console.log("📡 Carregando Firebase diretamente...");
-        
-        // Carregar scripts do Firebase
-        await carregarScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js');
-        await carregarScript('https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js');
-        
-        // Configuração do Firebase (mesma do seu projeto)
-        const firebaseConfig = {
-            apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
-            authDomain: "spdv-3872a.firebaseapp.com",
-            projectId: "spdv-3872a",
-            storageBucket: "spdv-3872a.firebasestorage.app",
-            messagingSenderId: "552499245950",
-            appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
-        };
-        
-        // Inicializar Firebase
-        const app = firebase.initializeApp(firebaseConfig, 'venda-app');
-        db = firebase.getFirestore(app);
-        
-        // Obter funções do Firestore
-        collection = firebase.collection;
-        getDocs = firebase.getDocs;
-        query = firebase.query;
-        where = firebase.where;
-        orderBy = firebase.orderBy;
-        
-        console.log("✅ Firebase carregado diretamente");
-        
-    } catch (error) {
-        console.error("❌ Erro ao carregar Firebase:", error);
-        throw error;
-    }
-}
-
-function carregarScript(src) {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-        }
-        
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = resolve;
-        script.onerror = reject;
-        document.head.appendChild(script);
-    });
-}
-
-// ============================================
-// 3. VERIFICAR SESSÃO
+// 2. VERIFICAR SESSÃO
 // ============================================
 function verificarSessao() {
     console.log("🔍 Verificando sessão...");
     
-    // Seu sistema salva a sessão como 'pdv_sessao_temporaria'
     const sessao = sessionStorage.getItem('pdv_sessao_temporaria') || 
                    localStorage.getItem('pdv_sessao_backup');
     
@@ -174,7 +97,7 @@ function verificarSessao() {
 }
 
 // ============================================
-// 4. CONFIGURAR PÁGINA
+// 3. CONFIGURAR PÁGINA
 // ============================================
 function configurarPagina() {
     console.log("⚙️ Configurando página...");
@@ -225,16 +148,15 @@ function configurarPagina() {
         });
     }
     
-    // Configurar finalizar venda (simulado)
+    // Configurar finalizar venda
     if (btnFinalizarVenda) {
         btnFinalizarVenda.addEventListener('click', function() {
             if (carrinho.length === 0) {
-                alert("Adicione produtos ao carrinho primeiro!");
+                mostrarMensagem("Adicione produtos ao carrinho primeiro!", "warning");
                 return;
             }
             
-            const total = calcularTotal();
-            alert(`Venda simulada!\nTotal: R$ ${formatarMoeda(total)}\n\nEm produção, esta venda seria salva no Firebase.`);
+            finalizarVendaMJ();
         });
     }
     
@@ -258,213 +180,11 @@ function configurarPagina() {
     setTimeout(function() {
         const loading = document.getElementById('loadingOverlay');
         if (loading) loading.style.display = 'none';
-    }, 800);
+    }, 500);
 }
 
 // ============================================
-// 5. CARREGAR PRODUTOS DO FIREBASE
-// ============================================
-async function carregarProdutosFirebase() {
-    console.log("📦 Carregando produtos do Firebase...");
-    
-    try {
-        mostrarLoading("Carregando produtos...");
-        
-        let produtosData = [];
-        
-        // OPÇÃO A: Usar mjServices se disponível
-        if (typeof mjServices !== 'undefined' && mjServices.buscarProdutosParaVenda) {
-            console.log("📡 Buscando via mjServices...");
-            const resultado = await mjServices.buscarProdutosParaVenda();
-            
-            if (resultado.success) {
-                produtosData = resultado.data;
-            } else {
-                throw new Error(resultado.error);
-            }
-        }
-        // OPÇÃO B: Buscar diretamente do Firebase
-        else if (db && collection && getDocs) {
-            console.log("📡 Buscando diretamente do Firestore...");
-            
-            // NOME DA COLEÇÃO: Verifique se é este mesmo
-            const colecaoEstoque = 'estoque_mj_construcoes'; // Ajuste se necessário
-            
-            // Buscar produtos ATIVOS com quantidade > 0
-            const estoqueRef = collection(db, colecaoEstoque);
-            const q = query(
-                estoqueRef,
-                where('ativo', '==', true),
-                where('quantidade', '>', 0),
-                orderBy('nome')
-            );
-            
-            const querySnapshot = await getDocs(q);
-            
-            querySnapshot.forEach((doc) => {
-                const produto = doc.data();
-                produtosData.push({
-                    id: doc.id,
-                    nome: produto.nome || 'Sem nome',
-                    codigo: produto.codigo || doc.id,
-                    preco: parseFloat(produto.preco) || 0,
-                    quantidade: parseInt(produto.quantidade) || 0,
-                    categoria: produto.categoria || '',
-                    unidade: produto.unidade || 'UN',
-                    estoque_minimo: parseInt(produto.estoque_minimo) || 5
-                });
-            });
-            
-            console.log(`✅ ${produtosData.length} produtos carregados do Firebase`);
-        }
-        // OPÇÃO C: Fallback (dados de exemplo)
-        else {
-            console.warn("⚠️ Firebase não disponível, usando dados de exemplo");
-            produtosData = obterProdutosExemplo();
-        }
-        
-        // Processar produtos
-        produtos = produtosData.filter(p => p.quantidade > 0);
-        produtosFiltrados = [...produtos];
-        
-        renderizarProdutos();
-        atualizarContadorProdutos();
-        
-        esconderLoading();
-        
-        if (produtos.length === 0) {
-            mostrarAviso("Nenhum produto disponível no estoque");
-        }
-        
-    } catch (error) {
-        console.error("❌ Erro ao carregar produtos:", error);
-        esconderLoading();
-        
-        // Mostrar produtos de exemplo em caso de erro
-        produtos = obterProdutosExemplo();
-        produtosFiltrados = [...produtos];
-        renderizarProdutos();
-        
-        mostrarErro(`Erro ao carregar produtos: ${error.message}\nUsando dados de exemplo.`);
-    }
-}
-
-function obterProdutosExemplo() {
-    return [
-        { 
-            id: 'ex1', 
-            codigo: 'CIM001', 
-            nome: 'Cimento 50kg', 
-            preco: 28.90, 
-            quantidade: 50, 
-            categoria: 'Cimento',
-            unidade: 'Saco'
-        },
-        { 
-            id: 'ex2', 
-            codigo: 'ARE001', 
-            nome: 'Areia Média', 
-            preco: 45.00, 
-            quantidade: 30, 
-            categoria: 'Areia',
-            unidade: 'M³'
-        },
-        { 
-            id: 'ex3', 
-            codigo: 'BR1101', 
-            nome: 'Brita 1', 
-            preco: 65.00, 
-            quantidade: 25, 
-            categoria: 'Brita',
-            unidade: 'M³'
-        },
-        { 
-            id: 'ex4', 
-            codigo: 'TEL001', 
-            nome: 'Tijolo 8 furos', 
-            preco: 1.20, 
-            quantidade: 1000, 
-            categoria: 'Tijolo',
-            unidade: 'UN'
-        },
-        { 
-            id: 'ex5', 
-            codigo: 'CAL001', 
-            nome: 'Cal Hidratada', 
-            preco: 12.50, 
-            quantidade: 40, 
-            categoria: 'Cal',
-            unidade: 'Saco'
-        }
-    ];
-}
-
-// ============================================
-// 6. RENDERIZAR PRODUTOS
-// ============================================
-function renderizarProdutos() {
-    if (!productsGrid) return;
-    
-    if (produtosFiltrados.length === 0) {
-        if (emptyProducts) {
-            emptyProducts.style.display = 'flex';
-        }
-        productsGrid.innerHTML = '';
-        return;
-    }
-    
-    if (emptyProducts) {
-        emptyProducts.style.display = 'none';
-    }
-    
-    let html = '';
-    
-    produtosFiltrados.forEach(produto => {
-        const temEstoque = produto.quantidade > 0;
-        const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
-        
-        html += `
-            <div class="product-card ${!temEstoque ? 'disabled' : ''}" data-id="${produto.id}">
-                <div class="product-header">
-                    <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
-                    <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
-                        ${produto.quantidade} ${produto.unidade || 'UN'}
-                    </span>
-                </div>
-                <div class="product-name">${produto.nome}</div>
-                ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
-                <div class="product-footer">
-                    <span class="product-price">R$ ${formatarMoeda(produto.preco)}</span>
-                    <button class="btn-add-product" ${!temEstoque ? 'disabled' : ''}>
-                        <i class="fas fa-cart-plus"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    productsGrid.innerHTML = html;
-    
-    // Adicionar eventos
-    document.querySelectorAll('.btn-add-product:not([disabled])').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const card = this.closest('.product-card');
-            const productId = card.dataset.id;
-            abrirModalProduto(productId);
-        });
-    });
-    
-    document.querySelectorAll('.product-card:not(.disabled)').forEach(card => {
-        card.addEventListener('click', function() {
-            const productId = this.dataset.id;
-            abrirModalProduto(productId);
-        });
-    });
-}
-
-// ============================================
-// 7. FUNÇÕES DO MODAL
+// 4. CONFIGURAR MODAL
 // ============================================
 function configurarModal() {
     if (!modalQuantidade) return;
@@ -517,18 +237,165 @@ function configurarModal() {
     }
 }
 
+// ============================================
+// 5. CARREGAR PRODUTOS VIA mjServices
+// ============================================
+async function carregarProdutosMJ() {
+    console.log("📦 Carregando produtos via mjServices...");
+    
+    try {
+        mostrarLoading("Carregando produtos do estoque...");
+        
+        // Verificar se mjServices está disponível
+        if (typeof mjServices === 'undefined') {
+            throw new Error("mjServices não está disponível. Verifique o import do firebase_config.js");
+        }
+        
+        console.log("✅ mjServices disponível:", mjServices);
+        
+        // Usar a função buscarProdutosParaVenda do mjServices
+        const resultado = await mjServices.buscarProdutosParaVenda();
+        
+        console.log("📊 Resultado da busca:", resultado);
+        
+        if (resultado.success) {
+            produtos = resultado.data;
+            produtosFiltrados = [...produtos];
+            
+            console.log(`✅ ${produtos.length} produtos carregados`);
+            console.log("Primeiro produto:", produtos[0]);
+            
+            renderizarProdutos();
+            atualizarContadorProdutos();
+            
+            if (produtos.length === 0) {
+                mostrarMensagem("Nenhum produto disponível no estoque", "info");
+            }
+            
+        } else {
+            throw new Error(resultado.error || "Erro ao buscar produtos");
+        }
+        
+    } catch (error) {
+        console.error("❌ Erro ao carregar produtos:", error);
+        mostrarMensagem(`Erro: ${error.message}`, "error");
+        
+        // Mostrar produtos de exemplo para teste
+        produtos = obterProdutosExemplo();
+        produtosFiltrados = [...produtos];
+        renderizarProdutos();
+        
+    } finally {
+        esconderLoading();
+    }
+}
+
+function obterProdutosExemplo() {
+    return [
+        { 
+            id: 'ex1', 
+            codigo: 'CIM001', 
+            nome: 'Cimento 50kg', 
+            preco: 28.90, 
+            quantidade: 50, 
+            categoria: 'Cimento',
+            unidade: 'Saco',
+            ativo: true
+        },
+        { 
+            id: 'ex2', 
+            codigo: 'ARE001', 
+            nome: 'Areia Média', 
+            preco: 45.00, 
+            quantidade: 30, 
+            categoria: 'Areia',
+            unidade: 'M³',
+            ativo: true
+        }
+    ];
+}
+
+// ============================================
+// 6. RENDERIZAR PRODUTOS
+// ============================================
+function renderizarProdutos() {
+    if (!productsGrid) return;
+    
+    if (produtosFiltrados.length === 0) {
+        if (emptyProducts) {
+            emptyProducts.style.display = 'flex';
+        }
+        productsGrid.innerHTML = '';
+        return;
+    }
+    
+    if (emptyProducts) {
+        emptyProducts.style.display = 'none';
+    }
+    
+    let html = '';
+    
+    produtosFiltrados.forEach(produto => {
+        const temEstoque = produto.quantidade > 0;
+        const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
+        
+        html += `
+            <div class="product-card ${!temEstoque ? 'disabled' : ''}" data-id="${produto.id}" data-nome="${produto.nome}">
+                <div class="product-header">
+                    <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
+                    <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
+                        ${produto.quantidade} ${produto.unidade || 'UN'}
+                    </span>
+                </div>
+                <div class="product-name" title="${produto.nome}">${produto.nome}</div>
+                ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
+                <div class="product-footer">
+                    <span class="product-price">R$ ${formatarMoeda(produto.preco)}</span>
+                    <button class="btn-add-product" ${!temEstoque ? 'disabled' : ''} title="Adicionar ao carrinho">
+                        <i class="fas fa-cart-plus"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    productsGrid.innerHTML = html;
+    
+    // Adicionar eventos aos botões
+    document.querySelectorAll('.btn-add-product:not([disabled])').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const card = this.closest('.product-card');
+            const productId = card.dataset.id;
+            abrirModalProduto(productId);
+        });
+    });
+    
+    // Adicionar evento aos cards
+    document.querySelectorAll('.product-card:not(.disabled)').forEach(card => {
+        card.addEventListener('click', function() {
+            const productId = this.dataset.id;
+            abrirModalProduto(productId);
+        });
+    });
+}
+
+// ============================================
+// 7. FUNÇÕES DO MODAL
+// ============================================
 function abrirModalProduto(productId) {
     produtoSelecionado = produtosFiltrados.find(p => p.id === productId);
     
     if (!produtoSelecionado || !modalQuantidade) return;
     
-    // Configurar informações
+    // Configurar informações no modal
     if (modalProductInfo) {
         modalProductInfo.innerHTML = `
             <h4>${produtoSelecionado.nome}</h4>
             <p><strong>Código:</strong> ${produtoSelecionado.codigo || 'N/A'}</p>
             <p><strong>Estoque disponível:</strong> ${produtoSelecionado.quantidade} ${produtoSelecionado.unidade || 'UN'}</p>
             <p><strong>Preço unitário:</strong> R$ ${formatarMoeda(produtoSelecionado.preco)}</p>
+            ${produtoSelecionado.categoria ? `<p><strong>Categoria:</strong> ${produtoSelecionado.categoria}</p>` : ''}
         `;
     }
     
@@ -536,6 +403,7 @@ function abrirModalProduto(productId) {
     if (quantidadeInput) {
         quantidadeInput.value = 1;
         quantidadeInput.max = produtoSelecionado.quantidade;
+        quantidadeInput.min = 1;
     }
     
     // Mostrar modal
@@ -550,7 +418,7 @@ function adicionarAoCarrinho() {
     
     // Verificar estoque
     if (quantidade > estoqueDisponivel) {
-        alert(`Estoque insuficiente!\nDisponível: ${estoqueDisponivel} ${produtoSelecionado.unidade || 'UN'}`);
+        mostrarMensagem(`Estoque insuficiente! Disponível: ${estoqueDisponivel}`, "warning");
         return;
     }
     
@@ -561,12 +429,13 @@ function adicionarAoCarrinho() {
         const novaQuantidade = itemExistente.quantidade + quantidade;
         
         if (novaQuantidade > estoqueDisponivel) {
-            alert(`Estoque insuficiente para quantidade adicional!\nDisponível: ${estoqueDisponivel}`);
+            mostrarMensagem(`Estoque insuficiente para quantidade adicional! Disponível: ${estoqueDisponivel}`, "warning");
             return;
         }
         
         itemExistente.quantidade = novaQuantidade;
         itemExistente.subtotal = itemExistente.preco * novaQuantidade;
+        mostrarMensagem(`Quantidade atualizada: ${novaQuantidade}x ${produtoSelecionado.nome}`, "success");
     } else {
         carrinho.push({
             id: produtoSelecionado.id,
@@ -579,6 +448,7 @@ function adicionarAoCarrinho() {
             subtotal: produtoSelecionado.preco * quantidade,
             estoque_disponivel: estoqueDisponivel
         });
+        mostrarMensagem(`${quantidade}x ${produtoSelecionado.nome} adicionado ao carrinho!`, "success");
     }
     
     // Fechar modal
@@ -589,13 +459,10 @@ function adicionarAoCarrinho() {
     // Atualizar interface
     renderizarCarrinho();
     atualizarTotal();
-    
-    // Mensagem
-    mostrarMensagem(`${quantidade}x ${produtoSelecionado.nome} adicionado ao carrinho!`, 'success');
 }
 
 // ============================================
-// 8. FUNÇÕES DO CARRINHO (continuação similar...)
+// 8. FUNÇÕES DO CARRINHO
 // ============================================
 function renderizarCarrinho() {
     if (!cartItems) return;
@@ -620,7 +487,7 @@ function renderizarCarrinho() {
                     <div class="cart-item-name">${item.nome}</div>
                     <div class="cart-item-details">
                         <span>Código: ${item.codigo || 'N/A'}</span>
-                        <span>${item.categoria || ''}</span>
+                        ${item.categoria ? `<span>${item.categoria}</span>` : ''}
                     </div>
                 </div>
                 
@@ -629,7 +496,8 @@ function renderizarCarrinho() {
                         <button class="qty-btn minus" data-action="decrease" data-index="${index}">
                             <i class="fas fa-minus"></i>
                         </button>
-                        <input type="number" class="qty-input" value="${item.quantidade}" min="1" max="${item.estoque_disponivel}" data-index="${index}">
+                        <input type="number" class="qty-input" value="${item.quantidade}" 
+                               min="1" max="${item.estoque_disponivel}" data-index="${index}">
                         <button class="qty-btn plus" data-action="increase" data-index="${index}">
                             <i class="fas fa-plus"></i>
                         </button>
@@ -639,7 +507,7 @@ function renderizarCarrinho() {
                         R$ ${formatarMoeda(item.subtotal)}
                     </div>
                     
-                    <button class="btn-remove-item" data-index="${index}">
+                    <button class="btn-remove-item" data-index="${index}" title="Remover item">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -692,7 +560,7 @@ function alterarQuantidadeItem(index, action) {
     }
     
     if (novaQuantidade > item.estoque_disponivel) {
-        mostrarMensagem(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, 'warning');
+        mostrarMensagem(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, "warning");
         return;
     }
     
@@ -709,7 +577,7 @@ function atualizarQuantidadeItem(index, novaQuantidade) {
     if (!item) return;
     
     if (novaQuantidade > item.estoque_disponivel) {
-        mostrarMensagem(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, 'warning');
+        mostrarMensagem(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, "warning");
         return;
     }
     
@@ -722,10 +590,11 @@ function atualizarQuantidadeItem(index, novaQuantidade) {
 
 function removerItemCarrinho(index) {
     if (confirm('Remover item do carrinho?')) {
+        const itemRemovido = carrinho[index].nome;
         carrinho.splice(index, 1);
         renderizarCarrinho();
         atualizarTotal();
-        mostrarMensagem('Item removido do carrinho', 'info');
+        mostrarMensagem(`${itemRemovido} removido do carrinho`, "info");
     }
 }
 
@@ -733,28 +602,109 @@ function limparCarrinho() {
     carrinho = [];
     renderizarCarrinho();
     atualizarTotal();
-    mostrarMensagem('Carrinho limpo', 'info');
-}
-
-function calcularTotal() {
-    const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
-    const descontoValor = subtotal * (desconto / 100);
-    return subtotal - descontoValor;
-}
-
-function atualizarTotal() {
-    if (!subtotalElement || !totalElement) return;
-    
-    const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
-    const descontoValor = subtotal * (desconto / 100);
-    const total = subtotal - descontoValor;
-    
-    subtotalElement.textContent = `R$ ${formatarMoeda(subtotal)}`;
-    totalElement.textContent = `R$ ${formatarMoeda(total)}`;
+    mostrarMensagem("Carrinho limpo", "info");
 }
 
 // ============================================
-// 9. FUNÇÕES UTILITÁRIAS
+// 9. FINALIZAR VENDA COM mjServices
+// ============================================
+async function finalizarVendaMJ() {
+    try {
+        // Calcular totais
+        const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
+        const valorDesconto = subtotal * (desconto / 100);
+        const total = subtotal - valorDesconto;
+        
+        // Obter forma de pagamento
+        const formaPagamento = document.querySelector('input[name="payment"]:checked')?.value || 'dinheiro';
+        const formaPagamentoNome = getFormaPagamentoNome(formaPagamento);
+        
+        const confirmar = confirm(
+            `CONFIRMAR VENDA\n\n` +
+            `Itens: ${carrinho.length}\n` +
+            `Subtotal: R$ ${formatarMoeda(subtotal)}\n` +
+            `Desconto: R$ ${formatarMoeda(valorDesconto)}\n` +
+            `Total: R$ ${formatarMoeda(total)}\n` +
+            `Forma de pagamento: ${formaPagamentoNome}\n\n` +
+            `Deseja finalizar esta venda?`
+        );
+        
+        if (!confirmar) return;
+        
+        mostrarLoading("Processando venda...");
+        
+        // Preparar dados da venda
+        const dadosVenda = {
+            itens: carrinho.map(item => ({
+                produto_id: item.id,
+                codigo: item.codigo,
+                nome: item.nome,
+                quantidade: item.quantidade,
+                preco_unitario: item.preco,
+                subtotal: item.subtotal
+            })),
+            subtotal: subtotal,
+            desconto: valorDesconto,
+            total: total,
+            forma_pagamento: formaPagamento,
+            vendedor: usuario.nome || usuario.login,
+            observacoes: ''
+        };
+        
+        console.log("📤 Enviando venda para mjServices:", dadosVenda);
+        
+        // Usar mjServices para criar a venda
+        const resultado = await mjServices.criarVenda(dadosVenda);
+        
+        console.log("📥 Resultado da venda:", resultado);
+        
+        if (resultado.success) {
+            // Limpar carrinho
+            carrinho = [];
+            renderizarCarrinho();
+            atualizarTotal();
+            
+            // Mostrar mensagem de sucesso
+            const numeroVenda = resultado.data?.numero_venda || 'N/A';
+            mostrarMensagem(
+                `✅ Venda finalizada com sucesso!\n` +
+                `Número: ${numeroVenda}\n` +
+                `Total: R$ ${formatarMoeda(total)}`,
+                "success",
+                5000
+            );
+            
+            // Recarregar produtos (estoque foi atualizado)
+            setTimeout(async () => {
+                await carregarProdutosMJ();
+            }, 2000);
+            
+        } else {
+            throw new Error(resultado.error || "Erro ao criar venda");
+        }
+        
+    } catch (error) {
+        console.error("❌ Erro ao finalizar venda:", error);
+        mostrarMensagem(`Erro: ${error.message}`, "error");
+        
+    } finally {
+        esconderLoading();
+    }
+}
+
+function getFormaPagamentoNome(codigo) {
+    const formas = {
+        'dinheiro': 'Dinheiro',
+        'cartao_debito': 'Cartão de Débito',
+        'cartao_credito': 'Cartão de Crédito',
+        'pix': 'PIX'
+    };
+    
+    return formas[codigo] || codigo;
+}
+
+// ============================================
+// 10. FUNÇÕES UTILITÁRIAS
 // ============================================
 function filtrarProdutos() {
     if (!searchProduct) return;
@@ -795,12 +745,29 @@ function atualizarDataHora() {
     });
 }
 
+function atualizarTotal() {
+    if (!subtotalElement || !totalElement) return;
+    
+    const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
+    const descontoValor = subtotal * (desconto / 100);
+    const total = subtotal - descontoValor;
+    
+    subtotalElement.textContent = `R$ ${formatarMoeda(subtotal)}`;
+    totalElement.textContent = `R$ ${formatarMoeda(total)}`;
+}
+
+function calcularTotal() {
+    const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
+    const descontoValor = subtotal * (desconto / 100);
+    return subtotal - descontoValor;
+}
+
 function formatarMoeda(valor) {
     return parseFloat(valor || 0).toFixed(2).replace('.', ',');
 }
 
 // ============================================
-// 10. FUNÇÕES DE UI
+// 11. FUNÇÕES DE UI
 // ============================================
 function mostrarLoading(mensagem) {
     const loading = document.getElementById('loadingOverlay');
@@ -818,7 +785,7 @@ function esconderLoading() {
     }
 }
 
-function mostrarMensagem(texto, tipo = 'info') {
+function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     const alert = document.getElementById('messageAlert');
     if (!alert) {
         console.log(`[${tipo}] ${texto}`);
@@ -845,15 +812,10 @@ function mostrarMensagem(texto, tipo = 'info') {
     // Auto-ocultar
     setTimeout(() => {
         alert.style.display = 'none';
-    }, 3000);
+    }, tempo);
 }
 
-function mostrarAviso(texto) {
-    mostrarMensagem(texto, 'warning');
-}
-
-function mostrarErro(texto) {
-    mostrarMensagem(texto, 'error');
-}
-
+// ============================================
+// 12. TESTE DE FUNCIONAMENTO
+// ============================================
 console.log("✅ venda.js carregado com sucesso!");
