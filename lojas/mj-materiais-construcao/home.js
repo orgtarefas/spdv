@@ -92,7 +92,8 @@ function verificarSessao() {
     if (!sessao) {
         alert("⚠️ Sessão expirada! Faça login novamente.");
         setTimeout(function() {
-            window.location.href = '../login.html';
+            // CORREÇÃO: Caminho correto para login
+            window.location.href = '../../login.html';
         }, 1000);
         return false;
     }
@@ -113,7 +114,8 @@ function verificarSessao() {
         console.error("❌ Erro na sessão:", error);
         alert("Erro na sessão. Faça login novamente.");
         setTimeout(function() {
-            window.location.href = '../login.html';
+            // CORREÇÃO: Caminho correto para login
+            window.location.href = '../../login.html';
         }, 1000);
         return false;
     }
@@ -149,11 +151,13 @@ function configurarEventos() {
             if (confirm("Deseja sair do sistema?")) {
                 sessionStorage.removeItem('pdv_sessao_temporaria');
                 localStorage.removeItem('pdv_sessao_backup');
-                window.location.href = '../login.html';
+                // CORREÇÃO: Caminho correto para login
+                window.location.href = '../../login.html';
             }
         });
     }
     
+    // Resto do código permanece igual...
     // Botão consulta rápida
     const btnConsultaRapida = document.getElementById('btnConsultaRapida');
     if (btnConsultaRapida) {
@@ -1012,3 +1016,4 @@ function mostrarErro(texto) {
 })();
 
 console.log("✅ Sistema home completamente carregado!");
+
