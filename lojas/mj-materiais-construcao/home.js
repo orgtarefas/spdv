@@ -1,245 +1,307 @@
-// home.js - ADICIONAR/ATUALIZAR ESTAS FUNÇÕES
+// home.js - MJ Materiais de Construção
+import { mjServices } from './firebase_config.js';
+
+// Elementos DOM
+const userNameElement = document.getElementById('userName');
+const btnLogout = document.getElementById('btnLogout');
+const currentDateTimeElement = document.getElementById('currentDateTime');
+const vendasHojeElement = document.getElementById('vendasHoje');
+const quantidadeVendasElement = document.getElementById('quantidadeVendas');
+const totalProdutosElement = document.getElementById('totalProdutos');
+const produtosBaixoElement = document.getElementById('produtosBaixo');
+const valorEstoqueElement = document.getElementById('valorEstoque');
+const metaPercentualElement = document.getElementById('metaPercentual');
+const metaRestanteElement = document.getElementById('metaRestante');
+const activityListElement = document.getElementById('activityList');
+const connectionStatusElement = document.getElementById('connectionStatus');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const messageAlert = document.getElementById('messageAlert');
+
+// Botões de ação
+const btnConsultaRapida = document.getElementById('btnConsultaRapida');
+const btnRelatorio = document.getElementById('btnRelatorio');
+const quickSearchModal = document.getElementById('quickSearchModal');
+const searchProductInput = document.getElementById('searchProductInput');
+const searchResultsElement = document.getElementById('searchResults');
+
+// Variáveis globais
+let usuario = null;
+let lojaInfo = null;
 
 // ============================================
-// NAVEGAÇÃO PARA PÁGINAS COMPLETAS
+// 1. INICIALIZAÇÃO DO SISTEMA
 // ============================================
-function abrirPagina(pagina) {
-    // Fechar sidebar no mobile
-    if (window.innerWidth <= 992) {
-        sidebar.classList.remove('active');
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🏠 Home MJ Materiais - Inicializando...');
+    
+    // Verificar autenticação
+    if (!verificarAutenticacao()) {
+        return;
     }
     
-    // Redirecionar para páginas completas
-    switch(pagina) {
-        case 'pdv':
-            window.location.href = 'venda.html';
-            break;
-        case 'produtos':
-            window.location.href = 'estoque.html';
-            break;
-        case 'clientes':
-            // Aqui você pode criar clientes.html no futuro
-            showMessage('Módulo de clientes em desenvolvimento', 'info');
-            break;
-        case 'relatorios':
-            // Aqui você pode criar relatorios.html no futuro
-            showMessage('Módulo de relatórios em desenvolvimento', 'info');
-            break;
-        case 'configuracoes':
-            // Aqui você pode criar configuracoes.html no futuro
-            showMessage('Módulo de configurações em desenvolvimento', 'info');
-            break;
-        case 'dashboard':
-        default:
-            // Já estamos na dashboard
-            atualizarConteudoDashboard(pagina);
-            break;
+    // Carregar dados do usuário
+    carregarDadosUsuario();
+    
+    // Configurar eventos
+    configurarEventos();
+    
+    // Carregar dados da loja
+    await carregarDadosLoja();
+    
+    // Atualizar data e hora
+    atualizarDataHora();
+    setInterval(atualizarDataHora, 1000);
+    
+    // Carregar estatísticas
+    await carregarEstatisticas();
+    
+    // Carregar atividade recente
+    await carregarAtividadeRecente();
+    
+    console.log('✅ Home MJ Materiais carregada com sucesso!');
+});
+
+// ============================================
+// 2. VERIFICAÇÃO DE AUTENTICAÇÃO
+// ============================================
+function verificarAutenticacao() {
+    const autenticado = localStorage.getItem('pdv_autenticado');
+    const usuarioData = localStorage.getItem('pdv_usuario');
+    
+    if (autenticado !== 'true' || !usuarioData) {
+        // Redirecionar para login
+        window.location.href = '../../login.html';
+        return false;
+    }
+    
+    usuario = JSON.parse(usuarioData);
+    return true;
+}
+
+// ============================================
+// 3. CARREGAR DADOS DO USUÁRIO
+// ============================================
+function carregarDadosUsuario() {
+    if (usuario) {
+        // Atualizar nome do usuário em todos os lugares
+        const userNameElements = document.querySelectorAll('#userName');
+        userNameElements.forEach(el => {
+            if (el) el.textContent = usuario.nomeCompleto || usuario.login;
+        });
     }
 }
 
-function atualizarConteudoDashboard(pagina) {
-    // Ocultar todas as páginas
-    const pages = document.querySelectorAll('.page-content');
-    pages.forEach(page => {
-        page.classList.remove('active');
+// ============================================
+// 4. CARREGAR DADOS DA LOJA
+// ============================================
+async function carregarDadosLoja() {
+    try {
+        const resultado = await mjServices.buscarDadosLoja();
+        
+        if (resultado.success) {
+            lojaInfo = resultado.data;
+            console.log('📊 Dados da loja carregados:', lojaInfo);
+        } else {
+            console.error('Erro ao carregar dados da loja:', resultado.error);
+            lojaInfo = {
+                nome: "MJ Materiais de Construção",
+                local: "Cajazeiras 11 - Salvador/BA",
+                telefone: "(71) 99999-9999"
+            };
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dados da loja:', error);
+        lojaInfo = {
+            nome: "MJ Materiais de Construção",
+            local: "Cajazeiras 11 - Salvador/BA",
+            telefone: "(71) 99999-9999"
+        };
+    }
+}
+
+// ============================================
+// 5. CONFIGURAR EVENTOS
+// ============================================
+function configurarEventos() {
+    // Botão logout
+    btnLogout.addEventListener('click', function() {
+        localStorage.clear();
+        window.location.href = '../../login.html';
     });
     
-    // Mostrar página solicitada
-    const targetPage = document.getElementById(`page${pagina.charAt(0).toUpperCase() + pagina.slice(1)}`);
-    if (targetPage) {
-        targetPage.classList.add('active');
+    // Botão consulta rápida
+    if (btnConsultaRapida) {
+        btnConsultaRapida.addEventListener('click', abrirConsultaRapida);
+    }
+    
+    // Botão relatório
+    if (btnRelatorio) {
+        btnRelatorio.addEventListener('click', function() {
+            showMessage('Relatórios em desenvolvimento', 'info');
+        });
+    }
+    
+    // Fechar modal
+    const modalClose = quickSearchModal?.querySelector('.modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            quickSearchModal.style.display = 'none';
+        });
+    }
+    
+    // Fechar modal ao clicar fora
+    if (quickSearchModal) {
+        quickSearchModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    }
+    
+    // Busca em tempo real
+    if (searchProductInput) {
+        searchProductInput.addEventListener('input', function() {
+            const termo = this.value.trim();
+            if (termo.length >= 2) {
+                buscarProdutosConsulta(termo);
+            } else {
+                searchResultsElement.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>Digite para buscar produtos</p>
+                        <small>Mínimo 2 caracteres</small>
+                    </div>
+                `;
+            }
+        });
         
-        // Atualizar título
-        const pageNames = {
-            dashboard: 'Dashboard',
-            pdv: 'PDV Vendas',
-            produtos: 'Produtos',
-            clientes: 'Clientes',
-            relatorios: 'Relatórios',
-            configuracoes: 'Configurações'
-        };
-        
-        pageTitleElement.textContent = pageNames[pagina] || pagina;
-        pageSubtitleElement.textContent = lojaInfo?.nome || 'MJ Materiais de Construção';
-        
-        // Atualizar menu ativo
-        const menuItems = document.querySelectorAll('.sidebar-menu li');
-        menuItems.forEach(item => {
-            item.classList.remove('active');
-            if (item.dataset.page === pagina) {
-                item.classList.add('active');
+        searchProductInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                buscarProdutosConsulta(this.value.trim());
             }
         });
     }
 }
 
 // ============================================
-// ATUALIZAR ESTATÍSTICAS REAIS
+// 6. FUNÇÕES DE DASHBOARD
 // ============================================
-async function inicializarEstatisticas() {
+async function carregarEstatisticas() {
     try {
         showLoading('Carregando estatísticas...');
         
-        // Buscar estatísticas reais do Firebase
-        const resultado = await lojaServices.buscarEstatisticas();
+        const resultado = await mjServices.buscarEstatisticas();
         
         if (resultado.success) {
-            const estatisticas = resultado.data;
+            const stats = resultado.data;
             
-            // Atualizar elementos com dados reais
-            document.getElementById('vendasHoje').textContent = 
-                new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(estatisticas.vendasHoje);
+            // Formatar valores monetários
+            const formatadorMoeda = new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            });
             
-            document.getElementById('produtosEstoque').textContent = estatisticas.totalProdutos.toLocaleString('pt-BR');
+            // Atualizar elementos
+            vendasHojeElement.textContent = formatadorMoeda.format(stats.vendasHoje);
+            quantidadeVendasElement.textContent = `${stats.quantidadeVendasHoje} vendas`;
+            totalProdutosElement.textContent = stats.totalProdutos.toLocaleString('pt-BR');
+            produtosBaixoElement.textContent = `${stats.produtosBaixoEstoque} com baixo estoque`;
+            valorEstoqueElement.textContent = formatadorMoeda.format(stats.totalValorEstoque);
             
-            // Calcular porcentagem da meta
-            const metaPercent = estatisticas.metaEsperadaAteHoje > 0 ? 
-                (estatisticas.metaAlcancada / estatisticas.metaEsperadaAteHoje * 100).toFixed(1) : 0;
+            // Calcular meta
+            const metaPercent = (stats.metaAlcancada / stats.metaMensal * 100).toFixed(1);
+            const metaRestante = stats.metaMensal - stats.metaAlcancada;
             
-            document.getElementById('metaMensal').textContent = `${metaPercent}%`;
-            
-            // Atualizar badges do menu
-            document.getElementById('vendasBadge').textContent = estatisticas.quantidadeVendasHoje;
-            document.getElementById('produtosBadge').textContent = estatisticas.totalProdutos;
-            
-            // Atualizar clientes (fixo por enquanto)
-            document.getElementById('clientesAtivos').textContent = '0';
-            document.getElementById('clientesBadge').textContent = '0';
+            metaPercentualElement.textContent = `${metaPercent}%`;
+            metaRestanteElement.textContent = formatadorMoeda.format(metaRestante);
             
             hideLoading();
             
         } else {
-            throw new Error('Erro ao carregar estatísticas');
+            throw new Error(resultado.error);
         }
         
     } catch (error) {
         hideLoading();
         console.error('Erro ao carregar estatísticas:', error);
-        
-        // Usar valores simulados como fallback
-        const estatisticas = {
-            vendasHoje: Math.random() * 10000,
-            totalProdutos: Math.floor(Math.random() * 500),
-            quantidadeVendasHoje: Math.floor(Math.random() * 50)
-        };
-        
-        document.getElementById('vendasHoje').textContent = 
-            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(estatisticas.vendasHoje);
-        
-        document.getElementById('produtosEstoque').textContent = estatisticas.totalProdutos.toLocaleString('pt-BR');
-        document.getElementById('metaMensal').textContent = `${Math.floor(Math.random() * 100)}%`;
-        document.getElementById('clientesAtivos').textContent = '0';
-        document.getElementById('vendasBadge').textContent = estatisticas.quantidadeVendasHoje;
-        document.getElementById('produtosBadge').textContent = estatisticas.totalProdutos;
-        document.getElementById('clientesBadge').textContent = '0';
+        showMessage('Erro ao carregar estatísticas', 'error');
     }
 }
 
-// ============================================
-// ADICIONAR FUNÇÕES NOVA VENDA E CONSULTA
-// ============================================
-function configurarEventosAdicionais() {
-    // Botão Nova Venda - Redirecionar para página de vendas
-    btnNovaVenda.addEventListener('click', function() {
-        window.location.href = 'venda.html';
-    });
-    
-    // Botões de ação rápida na dashboard
-    const actionButtons = document.querySelectorAll('.action-btn');
-    actionButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const text = this.querySelector('span').textContent;
+async function carregarAtividadeRecente() {
+    try {
+        // Buscar últimas vendas
+        const resultado = await mjServices.buscarVendas(10);
+        
+        if (resultado.success && resultado.data.length > 0) {
+            let html = '';
             
-            if (text.includes('Nova Venda')) {
-                window.location.href = 'venda.html';
-            } 
-            else if (text.includes('Cadastrar Produto') || text.includes('Ver Estoque')) {
-                window.location.href = 'estoque.html';
-            }
-            else if (text.includes('Consulta Preço')) {
-                abrirConsultaPreco();
-            }
-            else if (text.includes('Fechar Caixa')) {
-                abrirFechamentoCaixa();
-            }
-        });
-    });
-    
-    // Adicionar evento para botão consulta preço específico
-    const btnConsultaPreco = document.getElementById('btnConsultaPreco');
-    if (btnConsultaPreco) {
-        btnConsultaPreco.addEventListener('click', abrirConsultaPreco);
-    }
-    
-    // Adicionar evento para botão fechar caixa específico
-    const btnFecharCaixa = document.getElementById('btnFecharCaixa');
-    if (btnFecharCaixa) {
-        btnFecharCaixa.addEventListener('click', abrirFechamentoCaixa);
-    }
-}
-
-function abrirConsultaPreco() {
-    const modalHTML = `
-        <div id="modalConsultaPreco" class="modal">
-            <div class="modal-content modal-sm">
-                <div class="modal-header">
-                    <h3><i class="fas fa-search-dollar"></i> Consulta de Preço</h3>
-                    <button class="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="search-box">
-                        <i class="fas fa-barcode"></i>
-                        <input type="text" id="inputConsultaCodigo" placeholder="Digite código ou nome do produto" autocomplete="off">
-                    </div>
-                    <div class="resultados-consulta" id="resultadosConsulta">
-                        <div class="empty-state">
-                            <i class="fas fa-search"></i>
-                            <p>Digite para consultar</p>
-                            <small>Escaneie ou digite o código</small>
+            resultado.data.forEach(venda => {
+                const dataVenda = venda.data_venda?.toDate ? venda.data_venda.toDate() : new Date();
+                const horaFormatada = dataVenda.toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                html += `
+                    <div class="activity-item">
+                        <div class="activity-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="activity-content">
+                            <p>Venda realizada - ${venda.numero_venda || 'N/A'}</p>
+                            <small>${formatarMoeda(venda.total)} • ${horaFormatada}</small>
                         </div>
                     </div>
+                `;
+            });
+            
+            activityListElement.innerHTML = html;
+            
+        } else {
+            activityListElement.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-info-circle"></i>
+                    <p>Nenhuma atividade recente</p>
+                    <small>Realize a primeira venda</small>
                 </div>
-            </div>
-        </div>
-    `;
-    
-    // Adicionar modal ao body
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modal = document.getElementById('modalConsultaPreco');
-    
-    // Configurar eventos
-    const inputConsulta = document.getElementById('inputConsultaCodigo');
-    const modalClose = modal.querySelector('.modal-close');
-    
-    inputConsulta.focus();
-    
-    inputConsulta.addEventListener('input', async function() {
-        const termo = this.value.trim();
-        if (termo.length < 2) return;
-        
-        await buscarProdutosConsulta(termo);
-    });
-    
-    inputConsulta.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && this.value.trim()) {
-            buscarProdutosConsulta(this.value.trim());
+            `;
         }
-    });
-    
-    modalClose.addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) modal.remove();
-    });
-    
-    abrirModal(modal);
+        
+    } catch (error) {
+        console.error('Erro ao carregar atividade:', error);
+        activityListElement.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Erro ao carregar atividade</p>
+            </div>
+        `;
+    }
+}
+
+// ============================================
+// 7. CONSULTA RÁPIDA
+// ============================================
+function abrirConsultaRapida() {
+    if (quickSearchModal) {
+        quickSearchModal.style.display = 'flex';
+        searchProductInput.value = '';
+        searchProductInput.focus();
+        
+        searchResultsElement.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-search"></i>
+                <p>Digite para buscar produtos</p>
+                <small>Busque por código ou nome</small>
+            </div>
+        `;
+    }
 }
 
 async function buscarProdutosConsulta(termo) {
     try {
-        const resultadosDiv = document.getElementById('resultadosConsulta');
-        
-        // Buscar produtos no Firebase
-        const resultado = await lojaServices.buscarProdutosParaVenda();
+        // Buscar produtos para venda (com estoque disponível)
+        const resultado = await mjServices.buscarProdutosParaVenda();
         
         if (resultado.success) {
             const produtos = resultado.data;
@@ -252,11 +314,11 @@ async function buscarProdutosConsulta(termo) {
             );
             
             if (produtosFiltrados.length === 0) {
-                resultadosDiv.innerHTML = `
+                searchResultsElement.innerHTML = `
                     <div class="empty-state">
                         <i class="fas fa-search"></i>
-                        <p>Produto não encontrado</p>
-                        <small>Tente outro código ou nome</small>
+                        <p>Nenhum produto encontrado</p>
+                        <small>Tente outro termo de busca</small>
                     </div>
                 `;
                 return;
@@ -264,25 +326,94 @@ async function buscarProdutosConsulta(termo) {
             
             // Mostrar resultados
             let html = '';
-            produtosFiltrados.slice(0, 5).forEach(produto => {
+            produtosFiltrados.slice(0, 10).forEach(produto => {
+                const estoqueBaixo = produto.quantidade <= produto.estoque_minimo;
+                
                 html += `
-                    <div class="produto-consulta">
+                    <div class="produto-resultado ${estoqueBaixo ? 'estoque-baixo' : ''}">
                         <div class="produto-info">
                             <h4>${produto.nome}</h4>
                             <p><strong>Código:</strong> ${produto.codigo || 'N/A'}</p>
-                            <p><strong>Categoria:</strong> ${produto.categoria || 'N/A'}</p>
                             <p><strong>Estoque:</strong> ${produto.quantidade} ${produto.unidade || 'UN'}</p>
+                            ${produto.categoria ? `<p><strong>Categoria:</strong> ${produto.categoria}</p>` : ''}
                         </div>
                         <div class="produto-preco">
                             <strong>R$ ${formatarMoeda(produto.preco)}</strong>
-                            ${produto.quantidade <= (produto.estoque_minimo || 5) ? 
-                                '<span class="estoque-baixo">⚠️ Baixo estoque</span>' : ''}
+                            ${estoqueBaixo ? '<span class="alerta">⚠️ Baixo</span>' : ''}
                         </div>
                     </div>
                 `;
             });
             
-            resultadosDiv.innerHTML = html;
+            searchResultsElement.innerHTML = html;
+            
+            // Adicionar estilos CSS dinâmicos
+            const style = document.createElement('style');
+            style.textContent = `
+                .produto-resultado {
+                    padding: 15px;
+                    border-bottom: 1px solid #eee;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                }
+                
+                .produto-resultado:last-child {
+                    border-bottom: none;
+                }
+                
+                .produto-resultado:hover {
+                    background: #f9f9f9;
+                }
+                
+                .produto-info h4 {
+                    margin-bottom: 5px;
+                    color: var(--primary-color);
+                }
+                
+                .produto-info p {
+                    margin: 2px 0;
+                    font-size: 0.9rem;
+                    color: var(--gray-color);
+                }
+                
+                .produto-preco {
+                    text-align: right;
+                }
+                
+                .produto-preco strong {
+                    font-size: 1.2rem;
+                    color: var(--success-color);
+                }
+                
+                .produto-preco .alerta {
+                    display: block;
+                    font-size: 0.8rem;
+                    color: var(--warning-color);
+                    margin-top: 5px;
+                }
+                
+                .estoque-baixo {
+                    border-left: 3px solid var(--warning-color);
+                }
+                
+                .empty-state {
+                    text-align: center;
+                    padding: 40px 20px;
+                    color: var(--gray-color);
+                }
+                
+                .empty-state i {
+                    font-size: 3rem;
+                    margin-bottom: 15px;
+                    opacity: 0.3;
+                }
+            `;
+            
+            if (!document.querySelector('#dynamic-search-styles')) {
+                style.id = 'dynamic-search-styles';
+                document.head.appendChild(style);
+            }
             
         } else {
             throw new Error('Erro na busca');
@@ -290,7 +421,7 @@ async function buscarProdutosConsulta(termo) {
         
     } catch (error) {
         console.error('Erro na consulta:', error);
-        document.getElementById('resultadosConsulta').innerHTML = `
+        searchResultsElement.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Erro na consulta</p>
@@ -300,8 +431,32 @@ async function buscarProdutosConsulta(termo) {
     }
 }
 
-function abrirFechamentoCaixa() {
-    showMessage('Funcionalidade de fechamento de caixa em desenvolvimento', 'info');
+// ============================================
+// 8. FUNÇÕES UTILITÁRIAS
+// ============================================
+function atualizarDataHora() {
+    const agora = new Date();
+    
+    // Formatar data
+    const optionsDate = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    };
+    
+    const optionsTime = {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    };
+    
+    const dataFormatada = agora.toLocaleDateString('pt-BR', optionsDate);
+    const horaFormatada = agora.toLocaleTimeString('pt-BR', optionsTime);
+    
+    if (currentDateTimeElement) {
+        currentDateTimeElement.textContent = `${dataFormatada} - ${horaFormatada}`;
+    }
 }
 
 function formatarMoeda(valor) {
@@ -311,48 +466,71 @@ function formatarMoeda(valor) {
     });
 }
 
-// ============================================
-// ATUALIZAR INICIALIZAÇÃO
-// ============================================
-async function inicializarSistema() {
-    if (!verificarAutenticacao()) {
-        return;
-    }
-    
-    showLoading('Carregando sistema...');
-    
-    try {
-        // 1. Carregar dados do usuário
-        carregarDadosUsuario();
-        
-        // 2. Carregar informações da loja
-        await carregarDadosLoja();
-        
-        // 3. Configurar eventos
-        configurarEventos();
-        configurarEventosAdicionais();
-        
-        // 4. Atualizar data e hora
-        atualizarDataHora();
-        setInterval(atualizarDataHora, 1000);
-        
-        // 5. Inicializar estatísticas (AGORA COM DADOS REAIS)
-        await inicializarEstatisticas();
-        
-        // 6. Verificar conexão Firebase
-        testarConexaoFirebase();
-        
-        hideLoading();
-        
-        console.log(`✅ Sistema carregado: ${usuario.loja_nome || loja}`);
-        
-    } catch (error) {
-        hideLoading();
-        console.error('❌ Erro ao inicializar sistema:', error);
-        showMessage('Erro ao carregar sistema', 'error');
+function showLoading(mensagem = 'Carregando...') {
+    if (loadingOverlay) {
+        const loadingMessage = loadingOverlay.querySelector('h3');
+        if (loadingMessage) loadingMessage.textContent = mensagem;
+        loadingOverlay.style.display = 'flex';
     }
 }
 
-// ADICIONAR ESTA LINHA NO FINAL DO ARQUIVO
-// Importar lojaServices do firebase_config
-import { lojaServices } from './firebase_config.js';
+function hideLoading() {
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+}
+
+function showMessage(text, type = 'info', tempo = 5000) {
+    if (!messageAlert) return;
+    
+    const messageText = messageAlert.querySelector('.message-text');
+    const messageIcon = messageAlert.querySelector('.message-icon');
+    
+    messageText.textContent = text;
+    messageAlert.className = `message-alert ${type}`;
+    messageAlert.style.display = 'block';
+    messageAlert.style.animation = 'slideInRight 0.3s ease';
+    
+    // Auto-fechar
+    setTimeout(() => {
+        if (messageAlert.style.display === 'block') {
+            messageAlert.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => {
+                messageAlert.style.display = 'none';
+            }, 300);
+        }
+    }, tempo);
+    
+    // Fechar ao clicar no botão
+    const messageClose = messageAlert.querySelector('.message-close');
+    if (messageClose) {
+        messageClose.addEventListener('click', function() {
+            messageAlert.style.display = 'none';
+        });
+    }
+}
+
+// Testar conexão Firebase
+function testarConexaoFirebase() {
+    const statusElement = connectionStatusElement?.querySelector('i');
+    if (statusElement) {
+        statusElement.className = 'fas fa-circle online';
+        connectionStatusElement.innerHTML = '<i class="fas fa-circle online"></i> Conectado ao Firebase';
+    }
+}
+
+// Adicionar animação de slide out
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideOutRight {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+`;
+document.head.appendChild(style);
