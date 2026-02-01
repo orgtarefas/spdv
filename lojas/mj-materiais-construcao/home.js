@@ -1,85 +1,125 @@
-// home.js - VERSÃO SUPER SIMPLES QUE FUNCIONA
-console.log("✅ home.js carregado - MJ Materiais");
+// home.js - VERSÃO CORRETA PARA SEU SISTEMA
+console.log("🏠 Home MJ - Carregando...");
 
-// 1. Quando a página carregar
-window.onload = function() {
-    console.log("🏠 Página home carregada");
+// Aguardar página carregar
+window.addEventListener('load', function() {
+    console.log("✅ Página totalmente carregada");
     
-    // Esconder o loading
-    const loading = document.getElementById('loadingOverlay');
-    if (loading) {
-        loading.style.display = 'none';
+    // 1. Verificar se tem sessão
+    verificarSessao();
+    
+    // 2. Configurar botões
+    configurarBotoes();
+    
+    // 3. Esconder loading
+    setTimeout(function() {
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }, 500);
+});
+
+// ===== VERIFICAR SESSÃO =====
+function verificarSessao() {
+    console.log("🔍 Verificando sessão...");
+    
+    // Seu login salva a sessão como 'pdv_sessao_temporaria'
+    const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
+    
+    if (!sessao) {
+        console.log("❌ Nenhuma sessão encontrada!");
+        alert("Sessão não encontrada. Faça login novamente.");
+        
+        // Voltar para login (2 níveis acima: lojas/mj-materiais-construcao → raiz)
+        setTimeout(function() {
+            window.location.href = '../../login.html';
+        }, 1000);
+        return;
     }
     
-    // Configurar data/hora
-    atualizarDataHora();
-    
-    // Configurar o botão de VENDA
-    configurarBotaoVenda();
-};
-
-// 2. Função para configurar o botão de Venda
-function configurarBotaoVenda() {
-    console.log("🔧 Configurando botão Nova Venda...");
-    
-    // Encontrar o botão pelo HTML EXATO que você tem
-    const botaoVenda = document.querySelector('a[href="venda.html"]');
-    
-    if (botaoVenda) {
-        console.log("🎯 Botão encontrado:", botaoVenda);
+    try {
+        const dadosUsuario = JSON.parse(sessao);
+        console.log("✅ Usuário logado:", dadosUsuario);
         
-        // Adicionar evento de clique SIMPLES
-        botaoVenda.addEventListener('click', function(evento) {
-            console.log("🖱️ CLICOU EM NOVA VENDA!");
+        // Mostrar nome do usuário
+        const nomeElemento = document.getElementById('userName');
+        if (nomeElemento) {
+            nomeElemento.textContent = dadosUsuario.nome || dadosUsuario.login;
+        }
+        
+    } catch (error) {
+        console.error("Erro ao ler sessão:", error);
+    }
+}
+
+// ===== CONFIGURAR BOTÕES =====
+function configurarBotoes() {
+    console.log("🔧 Configurando botões...");
+    
+    // BOTÃO NOVA VENDA
+    const botaoVenda = document.querySelector('a[href="venda.html"]');
+    if (botaoVenda) {
+        console.log("✅ Botão Nova Venda encontrado");
+        
+        botaoVenda.addEventListener('click', function(e) {
+            e.preventDefault(); // IMPORTANTE!
             
-            // Impedir o comportamento normal
-            evento.preventDefault();
+            console.log("🖱️ Clicou em Nova Venda");
             
-            // Verificar se tem sessão (opcional, mas importante)
-            const temSessao = sessionStorage.getItem('userSession');
-            if (!temSessao) {
+            // Verificar sessão novamente
+            const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
+            if (!sessao) {
                 alert("Sessão expirada! Faça login novamente.");
                 window.location.href = '../../login.html';
                 return;
             }
+            
+            // Salvar sessão também no localStorage para garantir
+            localStorage.setItem('pdv_sessao_backup', sessao);
             
             console.log("📍 Indo para venda.html...");
             
             // Navegar para venda.html na MESMA pasta
             window.location.href = 'venda.html';
         });
-        
-        console.log("✅ Botão configurado com sucesso!");
     } else {
-        console.error("❌ ERRO: Não encontrei o botão de Venda!");
+        console.error("❌ Botão Nova Venda não encontrado!");
     }
-}
-
-// 3. Função para atualizar data/hora
-function atualizarDataHora() {
-    const elemento = document.getElementById('currentDateTime');
-    if (elemento) {
-        const agora = new Date();
-        elemento.textContent = agora.toLocaleDateString('pt-BR', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+    
+    // BOTÃO LOGOUT
+    const botaoLogout = document.getElementById('btnLogout');
+    if (botaoLogout) {
+        botaoLogout.addEventListener('click', function() {
+            if (confirm("Deseja realmente sair do sistema?")) {
+                // Limpar sessões
+                sessionStorage.removeItem('pdv_sessao_temporaria');
+                localStorage.removeItem('pdv_sessao_backup');
+                
+                // Voltar para login
+                window.location.href = '../../login.html';
+            }
         });
     }
 }
 
-// 4. Configurar botão de Logout (opcional)
-const btnLogout = document.getElementById('btnLogout');
-if (btnLogout) {
-    btnLogout.addEventListener('click', function() {
-        if (confirm("Deseja sair do sistema?")) {
-            sessionStorage.removeItem('userSession');
-            window.location.href = '../../login.html';
-        }
-    });
+// ===== ATUALIZAR DATA/HORA =====
+function atualizarDataHora() {
+    const elemento = document.getElementById('currentDateTime');
+    if (!elemento) return;
+    
+    const agora = new Date();
+    const opcoes = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    
+    elemento.textContent = agora.toLocaleDateString('pt-BR', opcoes);
 }
 
-console.log("🚀 home.js pronto!");
+// Chamar função inicial
+atualizarDataHora();
+setInterval(atualizarDataHora, 60000);
+
+console.log("✅ home.js configurado!");
