@@ -443,3 +443,6 @@ export {
 };
 
 console.log('✅ Firebase configurado para MJ Materiais de Construção');
+// firebase_config.js - ADICIONE NO FINAL
+window.mjServices = mjServices; // Torna mjServices disponível globalmente
+console.log('🌐 mjServices disponível globalmente');
