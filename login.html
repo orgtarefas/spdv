@@ -6,7 +6,6 @@
     <title>PDV - Sistema de Ponto de Venda</title>
     <link rel="stylesheet" href="login.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>">
 </head>
 <body>
     <div class="login-container">
@@ -77,10 +76,6 @@
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
-                    <div class="password-strength">
-                        <div class="strength-bar"></div>
-                        <div class="strength-text">Segurança da senha</div>
-                    </div>
                 </div>
 
                 <div class="form-actions">
@@ -146,13 +141,6 @@
                 <p>© 2024 PDV Sistema - Todos os direitos reservados</p>
                 <p class="build-info">Build: 2.0.1 | Firebase SDK v10.7.1</p>
             </div>
-            <div class="environment">
-                <span class="env-tag" id="environmentTag">Ambiente: Desenvolvimento</span>
-                <span class="server-status" id="serverStatus">
-                    <i class="fas fa-circle online"></i>
-                    Online
-                </span>
-            </div>
         </div>
 
         <!-- Loading Overlay -->
@@ -161,9 +149,6 @@
                 <div class="loading-spinner"></div>
                 <h3 id="loadingMessage">Conectando ao sistema...</h3>
                 <p class="loading-subtitle">Por favor, aguarde</p>
-                <div class="loading-progress">
-                    <div class="progress-bar"></div>
-                </div>
             </div>
         </div>
 
@@ -175,32 +160,8 @@
                 <button class="message-close">&times;</button>
             </div>
         </div>
-
-        <!-- Session Timeout Warning -->
-        <div id="sessionWarning" class="session-warning">
-            <div class="warning-content">
-                <i class="fas fa-clock"></i>
-                <div class="warning-text">
-                    <h4>Sessão Expirando</h4>
-                    <p>Sua sessão expirará em <span id="countdown">60</span> segundos</p>
-                </div>
-                <button id="extendSession" class="btn-extend">Estender Sessão</button>
-            </div>
-        </div>
     </div>
 
     <script type="module" src="login.js"></script>
-    
-    <!-- Script para corrigir favicon -->
-    <script>
-        // Prevenir erro de favicon
-        document.addEventListener('DOMContentLoaded', function() {
-            const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-            link.type = 'image/x-icon';
-            link.rel = 'shortcut icon';
-            link.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💰</text></svg>';
-            document.getElementsByTagName('head')[0].appendChild(link);
-        });
-    </script>
 </body>
 </html>
