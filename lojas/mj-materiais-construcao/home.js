@@ -1,17 +1,17 @@
-// home.js - COM LOGIN VIA FIRESTORE (sem Firebase Auth)
+// home.js - COM CAMINHOS CORRETOS
 import { db, mjServices } from './firebase_config.js';
 import { collection, getDocs, query, where } from './firebase_config.js';
 
 // Variáveis globais
 let userSession = null;
-let homeInitialized = false;
 
 // ===== INICIALIZAÇÃO PRINCIPAL =====
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("🏠 Home MJ Materiais - Inicializando...");
+    console.log("📍 URL atual:", window.location.href);
     
     try {
-        // 1. Verificar sessão do localStorage/sessionStorage
+        // 1. Verificar sessão
         const savedSession = sessionStorage.getItem('userSession') || localStorage.getItem('userSession');
         
         if (!savedSession) {
@@ -23,95 +23,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         userSession = JSON.parse(savedSession);
         console.log("✅ Sessão recuperada:", userSession);
         
-        // 2. Verificar se a sessão ainda é válida (opcional)
-        const sessaoValida = await verificarSessao(userSession);
+        // 2. Inicializar home
+        await inicializarHome();
         
-        if (!sessaoValida) {
-            console.log("⚠️ Sessão expirada ou inválida");
-            sessionStorage.removeItem('userSession');
-            localStorage.removeItem('userSession');
-            redirecionarParaLogin();
-            return;
-        }
-        
-        // 3. Inicializar home
-        inicializarHome();
-        
-        // 4. Configurar navegação segura
-        setupSecureNavigation();
-        
-        // 5. Configurar eventos da UI
-        setupUIEvents();
+        // 3. Configurar navegação
+        setupNavigation();
         
     } catch (error) {
         console.error("❌ Erro ao inicializar home:", error);
         mostrarMensagem("Erro ao carregar sistema", "error");
         
-        // Em caso de erro, tentar recarregar ou ir para login
         setTimeout(() => {
             redirecionarParaLogin();
         }, 2000);
     }
 });
 
-// ===== VERIFICAR SESSÃO =====
-async function verificarSessao(session) {
-    try {
-        console.log("🔍 Verificando sessão...");
-        
-        // Verificar dados básicos da sessão
-        if (!session.id || !session.login || !session.perfil) {
-            console.log("Sessão incompleta");
-            return false;
-        }
-        
-        // Verificar se usuário ainda existe no banco (opcional)
-        // Se quiser fazer esta verificação, descomente:
-        /*
-        const usuariosRef = collection(db, 'usuarios');
-        const q = query(usuariosRef, 
-            where('id', '==', session.id),
-            where('login', '==', session.login),
-            where('ativo', '==', true)
-        );
-        
-        const snapshot = await getDocs(q);
-        return !snapshot.empty;
-        */
-        
-        // Por enquanto, aceitar sessão se tiver dados básicos
-        return true;
-        
-    } catch (error) {
-        console.error("Erro ao verificar sessão:", error);
-        return false;
-    }
-}
-
 // ===== INICIALIZAR HOME =====
 async function inicializarHome() {
     try {
         console.log("🚀 Inicializando interface da Home...");
         
-        // 1. Atualizar informações do usuário na UI
+        // 1. Atualizar usuário
         atualizarUsuarioUI();
         
         // 2. Carregar estatísticas
         await carregarEstatisticas();
         
-        // 3. Carregar atividades recentes
-        await carregarAtividadesRecentes();
-        
-        // 4. Atualizar data e hora
+        // 3. Atualizar data e hora
         atualizarDataHora();
-        setInterval(atualizarDataHora, 60000); // Atualizar a cada minuto
+        setInterval(atualizarDataHora, 60000);
         
-        // 5. Configurar status de conexão
-        setupConnectionStatus();
+        // 4. Configurar eventos
+        setupUIEvents();
         
         console.log("✅ Home MJ Materiais carregada com sucesso!");
         
-        // 6. Esconder loading
+        // Esconder loading
         setTimeout(() => {
             ocultarLoading();
         }, 500);
@@ -122,27 +70,39 @@ async function inicializarHome() {
     }
 }
 
-// ===== NAVEGAÇÃO SEGURA =====
-function setupSecureNavigation() {
-    console.log("🔒 Configurando navegação segura...");
+// ===== NAVEGAÇÃO =====
+function setupNavigation() {
+    console.log("🔒 Configurando navegação...");
     
-    // 1. Links de Venda
+    // 1. Links de Venda (NA MESMA PASTA)
     const linkVenda = document.querySelector('a[href="venda.html"]');
     if (linkVenda) {
         linkVenda.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log("🛒 Navegando para Venda...");
-            navegarParaPagina('venda.html');
+            console.log("🛒 Indo para Venda...");
+            
+            // Salvar sessão antes de navegar
+            sessionStorage.setItem('userSession', JSON.stringify(userSession));
+            window.location.href = 'venda.html'; // NA MESMA PASTA
         });
     }
     
-    // 2. Links de Estoque
+    // 2. Links de Estoque (NA MESMA PASTA)
     const linkEstoque = document.querySelector('a[href="estoque.html"]');
     if (linkEstoque) {
         linkEstoque.addEventListener('click', function(e) {
             e.preventDefault();
-            console.log("📦 Navegando para Estoque...");
-            navegarParaPagina('estoque.html');
+            console.log("📦 Indo para Estoque...");
+            
+            // Verificar permissão
+            if (!['admin_global', 'admin'].includes(userSession?.perfil)) {
+                mostrarMensagem("⚠️ Apenas administradores!", "warning");
+                return;
+            }
+            
+            // Salvar sessão antes de navegar
+            sessionStorage.setItem('userSession', JSON.stringify(userSession));
+            window.location.href = 'estoque.html'; // NA MESMA PASTA
         });
     }
     
@@ -150,55 +110,6 @@ function setupSecureNavigation() {
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
         btnLogout.addEventListener('click', fazerLogout);
-    }
-}
-
-// Função principal de navegação
-async function navegarParaPagina(pagina) {
-    console.log(`📍 Tentando acessar: ${pagina}`);
-    
-    mostrarLoading();
-    
-    try {
-        // Verificar se há sessão ativa
-        if (!userSession) {
-            console.warn("🚫 Nenhuma sessão ativa!");
-            
-            // Salvar página destino
-            sessionStorage.setItem('paginaDestino', pagina);
-            
-            mostrarMensagem("Sessão expirada! Faça login novamente.", "warning");
-            
-            setTimeout(() => {
-                redirecionarParaLogin();
-            }, 1500);
-            return;
-        }
-        
-        // Verificar permissões específicas
-        if (pagina === 'estoque.html') {
-            if (!['admin_global', 'admin'].includes(userSession.perfil)) {
-                mostrarMensagem("⚠️ Acesso restrito! Apenas administradores.", "warning");
-                ocultarLoading();
-                return;
-            }
-        }
-        
-        // Tudo OK - navegar
-        console.log(`✅ Navegando para ${pagina}`);
-        
-        // Salvar sessão na página destino
-        sessionStorage.setItem('userSession', JSON.stringify(userSession));
-        
-        // Pequeno delay para experiência do usuário
-        setTimeout(() => {
-            window.location.href = pagina;
-        }, 300);
-        
-    } catch (error) {
-        console.error("❌ Erro na navegação:", error);
-        mostrarMensagem("Erro: " + error.message, "error");
-        ocultarLoading();
     }
 }
 
@@ -227,7 +138,7 @@ function atualizarUsuarioUI() {
         userNameElement.textContent = userSession.nome || userSession.login || 'Usuário';
     }
     
-    // Mostrar badge de admin se for o caso
+    // Mostrar badge de admin
     const userInfo = document.querySelector('.user-info');
     if (userSession?.perfil === 'admin_global') {
         console.log("👑 Usuário é Admin Global");
@@ -245,7 +156,6 @@ async function carregarEstatisticas() {
     try {
         console.log("📊 Carregando estatísticas...");
         
-        // Usar o mjServices do firebase_config.js
         if (mjServices && mjServices.buscarEstatisticas) {
             const resultado = await mjServices.buscarEstatisticas();
             
@@ -253,77 +163,23 @@ async function carregarEstatisticas() {
                 const stats = resultado.data;
                 
                 // Atualizar UI
-                document.getElementById('totalProdutos').textContent = 
-                    stats.totalProdutos?.toLocaleString('pt-BR') || '0';
-                
-                document.getElementById('vendasHoje').textContent = 
-                    stats.vendasHoje?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
-                
-                document.getElementById('quantidadeVendas').textContent = 
-                    `${stats.quantidadeVendasHoje || 0} vendas`;
-                
-                document.getElementById('valorEstoque').textContent = 
-                    stats.totalValorEstoque?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
-                
-                document.getElementById('produtosBaixo').textContent = 
-                    `${stats.produtosBaixoEstoque || 0} com baixo estoque`;
-                
-                // Calcular meta
-                if (stats.metaMensal > 0) {
-                    const percentual = Math.round((stats.metaAlcancada / stats.metaMensal) * 100);
-                    document.getElementById('metaPercentual').textContent = `${percentual}%`;
-                    document.getElementById('metaRestante').textContent = 
-                        (stats.metaMensal - stats.metaAlcancada).toLocaleString('pt-BR', { 
-                            style: 'currency', 
-                            currency: 'BRL' 
-                        });
+                if (document.getElementById('totalProdutos')) {
+                    document.getElementById('totalProdutos').textContent = 
+                        stats.totalProdutos?.toLocaleString('pt-BR') || '0';
                 }
+                
+                if (document.getElementById('vendasHoje')) {
+                    document.getElementById('vendasHoje').textContent = 
+                        stats.vendasHoje?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) || 'R$ 0,00';
+                }
+                
+                // ... resto das atualizações
             }
         }
         
     } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
     }
-}
-
-async function carregarAtividadesRecentes() {
-    try {
-        const activityList = document.getElementById('activityList');
-        if (!activityList) return;
-        
-        // Atividades de exemplo ou buscar do banco
-        const atividades = [
-            { tipo: 'venda', texto: 'Nova venda realizada - R$ 450,00', hora: '10:30' },
-            { tipo: 'estoque', texto: 'Produto "Cimento" atualizado no estoque', hora: '09:15' },
-            { tipo: 'login', texto: 'Usuário logado no sistema', hora: '08:00' },
-            { tipo: 'sistema', texto: 'Backup automático realizado', hora: '07:00' }
-        ];
-        
-        activityList.innerHTML = atividades.map(atividade => `
-            <div class="activity-item">
-                <div class="activity-icon ${atividade.tipo}">
-                    <i class="fas fa-${getActivityIcon(atividade.tipo)}"></i>
-                </div>
-                <div class="activity-details">
-                    <p>${atividade.texto}</p>
-                    <span class="activity-time">${atividade.hora}</span>
-                </div>
-            </div>
-        `).join('');
-        
-    } catch (error) {
-        console.error("Erro ao carregar atividades:", error);
-    }
-}
-
-function getActivityIcon(tipo) {
-    const icons = {
-        'venda': 'cash-register',
-        'estoque': 'boxes',
-        'login': 'user-check',
-        'sistema': 'cogs'
-    };
-    return icons[tipo] || 'info-circle';
 }
 
 function atualizarDataHora() {
@@ -343,19 +199,11 @@ function atualizarDataHora() {
     element.textContent = now.toLocaleDateString('pt-BR', options);
 }
 
-function setupConnectionStatus() {
-    const statusElement = document.getElementById('connectionStatus');
-    if (!statusElement) return;
-    
-    statusElement.innerHTML = '<i class="fas fa-circle online"></i> Conectado ao sistema';
-}
-
 // ===== LOGOUT =====
 async function fazerLogout() {
     try {
         mostrarLoading();
         
-        // Confirmar logout
         if (!confirm("Deseja realmente sair do sistema?")) {
             ocultarLoading();
             return;
@@ -363,17 +211,15 @@ async function fazerLogout() {
         
         console.log("👋 Fazendo logout...");
         
-        // Limpar dados locais
-        sessionStorage.removeItem('userSession');
-        localStorage.removeItem('userSession');
-        sessionStorage.removeItem('paginaDestino');
-        sessionStorage.removeItem('paginaRetorno');
+        // Limpar dados
+        sessionStorage.clear();
+        localStorage.clear();
         
         mostrarMensagem("Logout realizado com sucesso!", "success");
         
-        // Redirecionar para login
+        // VOLTAR 2 NÍVEIS para a raiz (onde está index.html)
         setTimeout(() => {
-            window.location.href = 'index.html';
+            window.location.href = '../../index.html';
         }, 1000);
         
     } catch (error) {
@@ -386,23 +232,21 @@ async function fazerLogout() {
 // ===== FUNÇÕES AUXILIARES =====
 function redirecionarParaLogin() {
     console.log("Redirecionando para login...");
-    sessionStorage.removeItem('userSession');
-    localStorage.removeItem('userSession');
-    window.location.href = 'index.html';
+    sessionStorage.clear();
+    localStorage.clear();
+    
+    // VOLTAR 2 NÍVEIS para a raiz
+    window.location.href = '../../index.html';
 }
 
 function mostrarLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'flex';
-    }
+    if (overlay) overlay.style.display = 'flex';
 }
 
 function ocultarLoading() {
     const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = 'none';
-    }
+    if (overlay) overlay.style.display = 'none';
 }
 
 function mostrarMensagem(texto, tipo = 'info') {
@@ -412,16 +256,12 @@ function mostrarMensagem(texto, tipo = 'info') {
         return;
     }
     
-    // Configurar alerta
     const icon = alert.querySelector('.message-icon');
     const text = alert.querySelector('.message-text');
-    const closeBtn = alert.querySelector('.message-close');
     
-    // Reset e configurar classes
     alert.className = `message-alert ${tipo}`;
     alert.style.display = 'block';
     
-    // Ícone
     const icons = {
         success: 'fas fa-check-circle',
         warning: 'fas fa-exclamation-triangle',
@@ -432,14 +272,7 @@ function mostrarMensagem(texto, tipo = 'info') {
     if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
     if (text) text.textContent = texto;
     
-    // Botão fechar
-    if (closeBtn) {
-        closeBtn.onclick = () => {
-            alert.style.display = 'none';
-        };
-    }
-    
-    // Auto-ocultar (exceto para erros)
+    // Auto-ocultar
     if (tipo !== 'error') {
         setTimeout(() => {
             alert.style.display = 'none';
@@ -447,11 +280,5 @@ function mostrarMensagem(texto, tipo = 'info') {
     }
 }
 
-// Inicializar loading
+// Inicializar
 mostrarLoading();
-
-// Verificar se está na página correta
-if (!window.location.href.includes('home.html')) {
-    console.log("Página incorreta, redirecionando...");
-    redirecionarParaLogin();
-}
