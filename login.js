@@ -1,4 +1,4 @@
-// login.js - VERSÃO CORRIGIDA
+// login.js - VERSÃO COMPLETA AJUSTADA
 import { db, collection, getDocs, doc, getDoc } from './firebase_login.js';
 
 // Elementos DOM
@@ -29,12 +29,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         if (usuario && loja) {
             console.log(`✅ Usuário já autenticado: ${usuario.login}`);
-            // Verificar se é a loja MJ Materiais
-            if (loja === 'mj-materiais-construcao') {
-                window.location.href = `lojas/${loja}/home.html`;
-            } else {
-                window.location.href = `lojas/${loja}/home.html`;
-            }
+            window.location.href = `lojas/${loja}/home.html`;
             return;
         }
     }
@@ -133,19 +128,20 @@ function showMessage(text, type = 'info', tempo = 5000) {
     
     // Auto-fechar
     setTimeout(() => {
-        messageAlert.style.display = 'none';
+        if (messageAlert.style.display === 'block') {
+            messageAlert.style.display = 'none';
+        }
     }, tempo);
 }
 
 // ============================================
-// 4. CARREGAR LOJAS DA COLEÇÃO "lojas" - VERSÃO SIMPLIFICADA
+// 4. CARREGAR LOJAS DA COLEÇÃO "lojas"
 // ============================================
 async function carregarLojas() {
     try {
         showLoading('Carregando lojas disponíveis...');
         
-        // Vamos usar uma abordagem mais simples para evitar problemas de CORS
-        // Primeiro, vamos tentar buscar todas as lojas
+        // Buscar todas as lojas ativas da coleção "lojas"
         const lojasRef = collection(db, "lojas");
         const querySnapshot = await getDocs(lojasRef);
         
@@ -169,9 +165,13 @@ async function carregarLojas() {
             const lojaId = doc.id;
             const dadosLoja = doc.data();
             
-            console.log(`📋 Loja encontrada: ${lojaId}`, dadosLoja);
+            // Verificar se a loja está ativa
+            if (dadosLoja.ativo === false) {
+                console.log(`⚠️ Loja ${lojaId} está inativa`);
+                return;
+            }
             
-            // Verificar se a loja tem o campo banco_login
+            // Verificar se tem o campo banco_login
             if (!dadosLoja.banco_login) {
                 console.log(`⚠️ Loja ${lojaId} não tem banco_login configurado`);
                 return;
@@ -179,28 +179,14 @@ async function carregarLojas() {
             
             // Adicionar à lista de lojas válidas
             lojasValidas.push({
-                id: lojaId, // ID do documento
+                id: lojaId, // ID do documento (ex: "loja1")
                 banco_login: dadosLoja.banco_login, // ID para coleção logins
                 nome: dadosLoja.nome || `Loja ${lojaId}`,
                 local: dadosLoja.local || '',
-                telefone: dadosLoja.contato?.telefone || '',
-                ativo: dadosLoja.ativo !== false // Padrão é ativo se não especificado
+                telefone: dadosLoja.contato?.telefone ? 
+                    String(dadosLoja.contato.telefone) : ''
             });
         });
-        
-        // Se nenhuma loja for encontrada, adicionar a MJ Materiais manualmente
-        if (lojasValidas.length === 0) {
-            console.log('ℹ️ Nenhuma loja encontrada no Firebase, adicionando MJ Materiais manualmente');
-            
-            lojasValidas.push({
-                id: "mj-materiais-construcao",
-                banco_login: "mj-materiais-construcao",
-                nome: "MJ Materiais de Construção",
-                local: "Cajazeiras 11 - Salvador/BA",
-                telefone: "(71) 99999-9999",
-                ativo: true
-            });
-        }
         
         // Ordenar lojas por nome
         lojasValidas.sort((a, b) => a.nome.localeCompare(b.nome));
@@ -221,37 +207,29 @@ async function carregarLojas() {
             showMessage('Nenhuma loja disponível no momento', 'warning');
             lojaSelect.disabled = true;
         } else {
-            console.log(`📊 Lojas carregadas: ${lojasValidas.length}`, lojasValidas);
-            showMessage(`${lojasValidas.length} loja(s) disponível(is)`, 'success', 3000);
+            // Selecionar primeira loja se houver apenas uma
+            if (lojasValidas.length === 1) {
+                lojaSelect.selectedIndex = 1;
+            }
+            
+            showMessage(`${lojasValidas.length} loja(s) carregada(s)`, 'success', 3000);
+            console.log(`📊 Lojas carregadas:`, lojasValidas);
         }
         
     } catch (error) {
         hideLoading();
         console.error('❌ Erro ao carregar lojas:', error);
         
-        // Opção de fallback - Adicionar MJ Materiais manualmente
-        console.log('⚠️ Usando fallback para MJ Materiais');
-        
-        // Limpar select
+        // Opção de fallback
+        const errorOption = document.createElement('option');
+        errorOption.value = "";
+        errorOption.textContent = "Erro ao carregar lojas";
+        errorOption.disabled = true;
         lojaSelect.innerHTML = '';
+        lojaSelect.appendChild(errorOption);
+        lojaSelect.disabled = true;
         
-        // Adicionar MJ Materials manualmente
-        const option = document.createElement('option');
-        option.value = "mj-materiais-construcao";
-        option.textContent = "MJ Materiais de Construção";
-        option.dataset.id = "mj-materiais-construcao";
-        option.dataset.local = "Cajazeiras 11 - Salvador/BA";
-        lojaSelect.appendChild(option);
-        
-        // Adicionar opção padrão no início
-        const defaultOption = document.createElement('option');
-        defaultOption.value = "";
-        defaultOption.textContent = "Selecione sua loja";
-        defaultOption.disabled = true;
-        defaultOption.selected = true;
-        lojaSelect.insertBefore(defaultOption, lojaSelect.firstChild);
-        
-        showMessage('Carregado com configuração padrão', 'info');
+        showMessage('Erro ao carregar lista de lojas', 'error');
     }
 }
 
@@ -262,101 +240,92 @@ async function validarLogin(banco_login, usuario, senha) {
     try {
         console.log(`🔍 Validando login: ${usuario} na loja ${banco_login}`);
         
-        // Para MJ Materiais, usar validação simplificada
-        if (banco_login === 'mj-materiais-construcao') {
-            // Validação direta para MJ Materiais
-            // Em produção, isso viria do Firebase
-            const usuariosMJ = {
-                'admin': { senha: 'admin123', perfil: 'admin', nomeCompleto: 'Administrador' },
-                'vendedor': { senha: 'venda123', perfil: 'vendedor', nomeCompleto: 'Vendedor' },
-                'pia': { senha: 'pia123', perfil: 'admin', nomeCompleto: 'Pia' }
-            };
-            
-            const usuarioData = usuariosMJ[usuario];
-            
-            if (!usuarioData) {
-                return { success: false, message: "Usuário não encontrado" };
-            }
-            
-            if (usuarioData.senha !== senha) {
-                return { success: false, message: "Senha incorreta" };
-            }
-            
-            // Login bem-sucedido
+        // Acessar documento específico na coleção "logins"
+        const loginRef = doc(db, "logins", banco_login);
+        const loginDoc = await getDoc(loginRef);
+        
+        if (!loginDoc.exists()) {
+            console.log(`❌ Documento de login não encontrado: ${banco_login}`);
             return { 
-                success: true, 
-                usuario: {
-                    login: usuario,
-                    perfil: usuarioData.perfil,
-                    loja: banco_login,
-                    loja_nome: "MJ Materiais de Construção",
-                    loja_local: "Cajazeiras 11 - Salvador/BA",
-                    loja_telefone: "(71) 99999-9999",
-                    nomeCompleto: usuarioData.nomeCompleto,
-                    acessoTotal: true,
-                    data_validade: null
-                }
+                success: false, 
+                message: "Credenciais de acesso não encontradas para esta loja" 
             };
         }
         
-        // Para outras lojas, tentar buscar do Firebase
-        try {
-            const loginRef = doc(db, "logins", banco_login);
-            const loginDoc = await getDoc(loginRef);
-            
-            if (!loginDoc.exists()) {
-                return { 
-                    success: false, 
-                    message: "Credenciais de acesso não encontradas" 
-                };
+        const dadosLogin = loginDoc.data();
+        console.log(`📄 Dados do documento login:`, dadosLogin);
+        
+        // Buscar usuário pelo login nos subdocumentos/mapas
+        let usuarioEncontrado = null;
+        let usuarioKey = null;
+        
+        // Percorrer todas as chaves do documento para encontrar o usuário
+        for (const [key, userData] of Object.entries(dadosLogin)) {
+            // Verificar se é um objeto de usuário (tem propriedade login)
+            if (userData && typeof userData === 'object' && userData.login === usuario) {
+                usuarioEncontrado = userData;
+                usuarioKey = key;
+                console.log(`✅ Usuário encontrado na chave: ${usuarioKey}`);
+                break;
             }
-            
-            const dadosLogin = loginDoc.data();
-            
-            // Buscar usuário pelo login
-            let usuarioData = null;
-            for (const [key, userData] of Object.entries(dadosLogin)) {
-                if (userData.login === usuario) {
-                    usuarioData = userData;
-                    break;
-                }
-            }
-            
-            if (!usuarioData) {
-                return { success: false, message: "Usuário não encontrado" };
-            }
-            
-            // Verificar senha
-            if (usuarioData.senha !== senha) {
-                return { success: false, message: "Senha incorreta" };
-            }
-            
-            // Buscar informações da loja
-            const lojaInfo = await buscarInformacoesLoja(banco_login);
-            
-            // Login bem-sucedido
-            return { 
-                success: true, 
-                usuario: {
-                    login: usuario,
-                    perfil: usuarioData.perfil,
-                    loja: banco_login,
-                    loja_nome: lojaInfo.nome || banco_login,
-                    loja_local: lojaInfo.local || '',
-                    loja_telefone: lojaInfo.telefone || '',
-                    nomeCompleto: usuarioData.nomeCompleto || usuario,
-                    acessoTotal: false,
-                    data_validade: usuarioData.data_validade || null
-                }
-            };
-            
-        } catch (firebaseError) {
-            console.error('Erro ao acessar Firebase:', firebaseError);
-            return { 
-                success: false, 
-                message: "Erro de conexão com o servidor" 
-            };
         }
+        
+        if (!usuarioEncontrado) {
+            console.log(`❌ Usuário não encontrado: ${usuario}`);
+            return { success: false, message: "Usuário não encontrado" };
+        }
+        
+        console.log(`✅ Dados do usuário:`, usuarioEncontrado);
+        
+        // Verificar se usuário está ativo
+        if (usuarioEncontrado.ativo === false) {
+            console.log(`❌ Usuário inativo: ${usuario}`);
+            return { success: false, message: "Usuário inativo" };
+        }
+        
+        // Verificar senha
+        if (usuarioEncontrado.senha !== senha) {
+            console.log(`❌ Senha incorreta para: ${usuario}`);
+            return { success: false, message: "Senha incorreta" };
+        }
+        
+        // Verificar validade da conta
+        if (usuarioEncontrado.data_validade) {
+            try {
+                const dataValidade = usuarioEncontrado.data_validade.toDate();
+                const agora = new Date();
+                
+                if (dataValidade < agora) {
+                    console.log(`❌ Conta expirada: ${usuario}`);
+                    return { success: false, message: "Conta expirada" };
+                }
+            } catch (dateError) {
+                console.warn('⚠️ Erro ao verificar data de validade:', dateError);
+                // Continua mesmo se houver erro na data
+            }
+        }
+        
+        // Buscar informações da loja na coleção "lojas"
+        const lojaInfo = await buscarInformacoesLoja(banco_login);
+        
+        // Login bem-sucedido
+        return { 
+            success: true, 
+            usuario: {
+                id: usuarioKey, // ID do usuário no documento
+                login: usuario,
+                perfil: usuarioEncontrado.perfil || 'usuario',
+                loja: banco_login,
+                loja_nome: lojaInfo.nome || banco_login,
+                loja_local: lojaInfo.local || '',
+                loja_telefone: lojaInfo.telefone || '',
+                nomeCompleto: usuarioEncontrado.nome || usuarioEncontrado.nomeCompleto || usuario,
+                data_ativacao: usuarioEncontrado.data_ativacao || null,
+                data_criacao: usuarioEncontrado.data_criacao || null,
+                data_validade: usuarioEncontrado.data_validade || null,
+                acessoTotal: (usuarioEncontrado.perfil === 'admin' || usuarioEncontrado.perfil === 'gerente')
+            }
+        };
         
     } catch (error) {
         console.error("❌ Erro ao validar login:", error);
@@ -372,16 +341,7 @@ async function validarLogin(banco_login, usuario, senha) {
 // ============================================
 async function buscarInformacoesLoja(banco_login) {
     try {
-        // Para MJ Materiais, retornar informações fixas
-        if (banco_login === 'mj-materiais-construcao') {
-            return {
-                nome: "MJ Materiais de Construção",
-                local: "Cajazeiras 11 - Salvador/BA",
-                telefone: "(71) 99999-9999"
-            };
-        }
-        
-        // Para outras lojas, buscar do Firebase
+        // Buscar na coleção "lojas" onde banco_login = banco_login
         const lojasRef = collection(db, "lojas");
         const querySnapshot = await getDocs(lojasRef);
         
@@ -397,6 +357,7 @@ async function buscarInformacoesLoja(banco_login) {
             }
         }
         
+        // Se não encontrou, retornar informações básicas
         return {
             nome: banco_login,
             local: '',
@@ -464,18 +425,14 @@ async function fazerLogin() {
             }
             
             // Registrar log de acesso
-            console.log(`✅ Login realizado: ${usuario} na loja ${usuarioData.loja_nome}`);
+            console.log(`✅ Login realizado: ${usuario} (${usuarioData.perfil}) na loja ${usuarioData.loja_nome}`);
             
             // Mostrar mensagem de sucesso
-            showMessage(`Bem-vindo(a) à ${usuarioData.loja_nome}!`, 'success');
+            showMessage(`Bem-vindo(a) ${usuarioData.nomeCompleto} à ${usuarioData.loja_nome}!`, 'success');
             
-            // Redirecionar para a loja específica
+            // Redirecionar após delay
             setTimeout(() => {
-                if (banco_login === 'mj-materiais-construcao') {
-                    window.location.href = `lojas/${banco_login}/home.html`;
-                } else {
-                    window.location.href = `lojas/${banco_login}/home.html`;
-                }
+                window.location.href = `lojas/${banco_login}/home.html`;
             }, 1500);
             
         } else {
@@ -486,7 +443,7 @@ async function fazerLogin() {
             senhaInput.value = '';
             senhaInput.focus();
             
-            console.log(`❌ Tentativa de login falhou: ${usuario}`);
+            console.log(`❌ Tentativa de login falhou: ${usuario} - ${resultado.message}`);
         }
         
     } catch (error) {
@@ -516,3 +473,11 @@ link.rel = 'icon';
 link.type = 'image/svg+xml';
 link.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏪</text></svg>';
 document.head.appendChild(link);
+
+// Adicionar crossorigin ao Font Awesome para evitar bloqueio
+const fontAwesomeLinks = document.querySelectorAll('link[href*="font-awesome"]');
+fontAwesomeLinks.forEach(link => {
+    link.crossOrigin = 'anonymous';
+});
+
+console.log('✅ login.js carregado com sucesso!');
