@@ -126,11 +126,10 @@ async function carregarProdutosReais() {
     mostrarLoading("Carregando produtos...");
     
     try {
-        // Buscar da coleção estoque_mj_construcoes
-        // Firebase 8.10.1 usa sintaxe diferente
+        // CORREÇÃO: Não podemos usar where com > e orderBy por outro campo
+        // Buscar todos os produtos ativos primeiro
         const querySnapshot = await db.collection('estoque_mj_construcoes')
             .where('ativo', '==', true)
-            .where('quantidade', '>', 0)
             .orderBy('nome')
             .get();
         
@@ -138,22 +137,27 @@ async function carregarProdutosReais() {
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            produtos.push({
-                id: doc.id,
-                codigo: data.codigo || doc.id,
-                nome: data.nome || 'Produto sem nome',
-                preco: parseFloat(data.preco) || 0,
-                quantidade: parseInt(data.quantidade) || 0,
-                categoria: data.categoria || '',
-                unidade: data.unidade || 'UN',
-                estoque_minimo: parseInt(data.estoque_minimo) || 5,
-                ativo: data.ativo !== false,
-                descricao: data.descricao || '',
-                fornecedor: data.fornecedor || ''
-            });
+            
+            // Filtrar localmente os que têm quantidade > 0
+            const quantidade = parseInt(data.quantidade) || 0;
+            if (quantidade > 0) {
+                produtos.push({
+                    id: doc.id,
+                    codigo: data.codigo || doc.id,
+                    nome: data.nome || 'Produto sem nome',
+                    preco: parseFloat(data.preco) || 0,
+                    quantidade: quantidade,
+                    categoria: data.categoria || '',
+                    unidade: data.unidade || 'UN',
+                    estoque_minimo: parseInt(data.estoque_minimo) || 5,
+                    ativo: data.ativo !== false,
+                    descricao: data.descricao || '',
+                    fornecedor: data.fornecedor || ''
+                });
+            }
         });
         
-        console.log(`✅ ${produtos.length} produtos carregados`);
+        console.log(`✅ ${produtos.length} produtos carregados (${querySnapshot.size} ativos no total)`);
         
         if (produtos.length === 0) {
             mostrarMensagem("⚠️ Nenhum produto disponível no estoque", "info");
@@ -166,21 +170,23 @@ async function carregarProdutosReais() {
     } catch (error) {
         console.error("❌ Erro ao carregar produtos:", error);
         
-        // Tentar carregar sem os where para ver se funciona
+        // Se der erro com o where, tentar sem filtro algum
         try {
+            console.log("🔄 Tentando carregar todos os produtos...");
             const querySnapshot = await db.collection('estoque_mj_construcoes').get();
             produtos = [];
             
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                // Filtrar localmente
-                if (data.ativo !== false && (data.quantidade || 0) > 0) {
+                // Filtrar localmente: ativos e com quantidade > 0
+                const quantidade = parseInt(data.quantidade) || 0;
+                if (data.ativo !== false && quantidade > 0) {
                     produtos.push({
                         id: doc.id,
                         codigo: data.codigo || doc.id,
                         nome: data.nome || 'Produto sem nome',
                         preco: parseFloat(data.preco) || 0,
-                        quantidade: parseInt(data.quantidade) || 0,
+                        quantidade: quantidade,
                         categoria: data.categoria || '',
                         unidade: data.unidade || 'UN',
                         estoque_minimo: parseInt(data.estoque_minimo) || 5,
@@ -189,11 +195,14 @@ async function carregarProdutosReais() {
                 }
             });
             
+            // Ordenar localmente por nome
+            produtos.sort((a, b) => a.nome.localeCompare(b.nome));
+            
             produtosFiltrados = [...produtos];
             renderizarProdutos();
             atualizarContadorProdutos();
             
-            mostrarMensagem(`Carregados ${produtos.length} produtos (modo compatibilidade)`, "info");
+            console.log(`🔄 Carregados ${produtos.length} produtos (modo compatibilidade)`);
             
         } catch (error2) {
             console.error("❌ Erro crítico:", error2);
@@ -212,7 +221,10 @@ function renderizarProdutos() {
     const productsGrid = document.getElementById('productsGrid');
     const emptyProducts = document.getElementById('emptyProducts');
     
-    if (!productsGrid) return;
+    if (!productsGrid) {
+        console.error("❌ Elemento productsGrid não encontrado");
+        return;
+    }
     
     if (produtosFiltrados.length === 0) {
         if (emptyProducts) {
@@ -236,7 +248,7 @@ function renderizarProdutos() {
         html += `
             <div class="product-card ${!temEstoque ? 'disabled' : ''}" 
                  onclick="selecionarProdutoParaVenda('${produto.id}')"
-                 title="${produto.nome} - Estoque: ${produto.quantidade}">
+                 title="${produto.nome} - Estoque: ${produto.quantidade} ${produto.unidade || 'UN'}">
                 <div class="product-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
                     <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
@@ -264,7 +276,12 @@ function renderizarProdutos() {
 // ============================================
 function selecionarProdutoParaVenda(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
-    if (!produto || produto.quantidade <= 0) {
+    if (!produto) {
+        mostrarMensagem("Produto não encontrado", "warning");
+        return;
+    }
+    
+    if (produto.quantidade <= 0) {
         mostrarMensagem("Produto sem estoque disponível", "warning");
         return;
     }
@@ -706,10 +723,6 @@ function atualizarDataHora() {
     
     elemento.textContent = dataFormatada;
 }
-
-// Iniciar atualização de data/hora
-setInterval(atualizarDataHora, 60000);
-atualizarDataHora();
 
 // ============================================
 // INICIAR SISTEMA
