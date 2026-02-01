@@ -1,551 +1,416 @@
-// venda.js - Sistema de Ponto de Venda
-import { lojaServices } from './firebase_config.js';
+// venda.js - MJ Materiais de Construção
+import { mjServices } from './firebase_config.js';
 
 // Elementos DOM
-const inputBusca = document.getElementById('inputBusca');
-const resultadosBusca = document.getElementById('resultadosBusca');
-const produtosFrequentes = document.getElementById('produtosFrequentes');
-const btnSelecionarCliente = document.getElementById('btnSelecionarCliente');
-const clienteAtual = document.getElementById('clienteAtual');
-const carrinhoItems = document.getElementById('carrinhoItems');
+const searchProduct = document.getElementById('searchProduct');
+const btnScan = document.getElementById('btnScan');
+const productsGrid = document.getElementById('productsGrid');
+const productCount = document.getElementById('productCount');
+const emptyProducts = document.getElementById('emptyProducts');
+const cartItems = document.getElementById('cartItems');
+const btnClearCart = document.getElementById('btnClearCart');
 const subtotalElement = document.getElementById('subtotal');
-const totalFinalElement = document.getElementById('totalFinal');
-const btnAplicarDesconto = document.getElementById('btnAplicarDesconto');
-const inputDesconto = document.getElementById('inputDesconto');
-const formasPagamento = document.querySelectorAll('input[name="formaPagamento"]');
-const valorRecebido = document.getElementById('valorRecebido');
-const trocoElement = document.getElementById('troco');
-const btnCancelarVenda = document.getElementById('btnCancelarVenda');
-const btnSalvarVenda = document.getElementById('btnSalvarVenda');
+const descontoInput = document.getElementById('desconto');
+const totalElement = document.getElementById('total');
 const btnFinalizarVenda = document.getElementById('btnFinalizarVenda');
-const numeroVenda = document.getElementById('numeroVenda');
-const btnBuscaAvancada = document.getElementById('btnBuscaAvancada');
+const btnCancelarVenda = document.getElementById('btnCancelarVenda');
+const userNameElement = document.getElementById('userName');
+const btnLogout = document.getElementById('btnLogout');
+const currentDateTimeElement = document.getElementById('currentDateTime');
 
-// Modais
-const modalBuscaAvancada = document.getElementById('modalBuscaAvancada');
-const modalCliente = document.getElementById('modalCliente');
-const modalFinalizar = document.getElementById('modalFinalizar');
-
-// Elementos modais
-const filtroCategoria = document.getElementById('filtroCategoria');
-const filtroEstoque = document.getElementById('filtroEstoque');
-const filtroPrecoMin = document.getElementById('filtroPrecoMin');
-const filtroPrecoMax = document.getElementById('filtroPrecoMax');
-const resultadosAvancados = document.getElementById('resultadosAvancados');
-const buscaCliente = document.getElementById('buscaCliente');
-const clientesLista = document.getElementById('clientesLista');
+// Modal
+const modalQuantidade = document.getElementById('modalQuantidade');
+const modalProductInfo = document.getElementById('modalProductInfo');
+const quantidadeInput = document.getElementById('quantidade');
+const btnDecrease = document.getElementById('btnDecrease');
+const btnIncrease = document.getElementById('btnIncrease');
+const btnAddToCart = document.getElementById('btnAddToCart');
 
 // Variáveis globais
+let usuario = null;
 let produtos = [];
 let produtosFiltrados = [];
-let clientes = [];
-let produtosFrequentesLista = [];
 let carrinho = [];
-let clienteSelecionado = null;
-let modoBusca = 'codigo'; // 'codigo', 'nome', 'categoria'
-let formaPagamentoSelecionada = 'dinheiro';
-let descontoPercentual = 0;
-let numeroVendaAtual = '000001';
+let produtoSelecionado = null;
+let desconto = 0;
 
 // ============================================
 // 1. INICIALIZAÇÃO DO SISTEMA
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🛒 Sistema de Venda - Inicializando...');
+    console.log('🛒 PDV MJ Materiais - Inicializando...');
+    
+    // Verificar autenticação
+    if (!verificarAutenticacao()) {
+        return;
+    }
+    
+    // Carregar dados do usuário
+    carregarDadosUsuario();
     
     // Configurar eventos
     configurarEventos();
     
-    // Carregar dados iniciais
-    await carregarDadosIniciais();
+    // Carregar produtos para venda
+    await carregarProdutosParaVenda();
     
-    // Atualizar menu ativo
-    atualizarMenuAtivo();
+    // Atualizar data/hora
+    atualizarDataHora();
+    setInterval(atualizarDataHora, 1000);
     
-    // Configurar teclas de atalho
-    configurarAtalhosTeclado();
-    
-    // Gerar número da venda
-    gerarNumeroVenda();
+    console.log('✅ PDV MJ Materiais carregado com sucesso!');
 });
 
 // ============================================
-// 2. CONFIGURAR EVENTOS
+// 2. VERIFICAÇÃO DE AUTENTICAÇÃO
+// ============================================
+function verificarAutenticacao() {
+    const autenticado = localStorage.getItem('pdv_autenticado');
+    const usuarioData = localStorage.getItem('pdv_usuario');
+    
+    if (autenticado !== 'true' || !usuarioData) {
+        // Redirecionar para login
+        window.location.href = '../../login.html';
+        return false;
+    }
+    
+    usuario = JSON.parse(usuarioData);
+    return true;
+}
+
+// ============================================
+// 3. CARREGAR DADOS DO USUÁRIO
+// ============================================
+function carregarDadosUsuario() {
+    if (usuario) {
+        userNameElement.textContent = usuario.nomeCompleto || usuario.login;
+    }
+    
+    // Configurar logout
+    btnLogout.addEventListener('click', function() {
+        localStorage.clear();
+        window.location.href = '../../login.html';
+    });
+}
+
+// ============================================
+// 4. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
-    // Busca rápida
-    inputBusca.addEventListener('input', buscarProdutos);
-    inputBusca.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            adicionarPrimeiroResultado();
-        }
-        if (e.key === 'F2') {
-            e.preventDefault();
-            abrirModalBuscaAvancada();
-        }
+    // Busca de produtos
+    searchProduct.addEventListener('input', function() {
+        filtrarProdutos();
     });
     
-    // Botões de tipo de busca
-    document.querySelectorAll('.btn-busca-tipo').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.btn-busca-tipo').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            modoBusca = this.dataset.tipo;
-            buscarProdutos();
-        });
+    // Botão scan (simulado)
+    btnScan.addEventListener('click', function() {
+        showMessage('Funcionalidade de scanner em desenvolvimento', 'info');
     });
     
-    // Botão busca avançada
-    btnBuscaAvancada.addEventListener('click', abrirModalBuscaAvancada);
-    
-    // Botão selecionar cliente
-    btnSelecionarCliente.addEventListener('click', abrirModalCliente);
-    
-    // Botões do carrinho (desconto)
-    btnAplicarDesconto.addEventListener('click', function() {
-        const desconto = parseFloat(inputDesconto.value) || 0;
-        aplicarDesconto(desconto);
-        calcularTotal();
-    });
-    
-    inputDesconto.addEventListener('change', function() {
-        const desconto = parseFloat(this.value) || 0;
-        aplicarDesconto(desconto);
-        calcularTotal();
-    });
-    
-    // Formas de pagamento
-    formasPagamento.forEach(radio => {
-        radio.addEventListener('change', function() {
-            formaPagamentoSelecionada = this.value;
-            atualizarDetalhesPagamento();
-        });
-    });
-    
-    // Valor recebido
-    valorRecebido.addEventListener('input', calcularTroco);
-    
-    // Botões de ação
-    btnCancelarVenda.addEventListener('click', confirmarCancelarVenda);
-    btnSalvarVenda.addEventListener('click', salvarVenda);
-    btnFinalizarVenda.addEventListener('click', abrirModalFinalizar);
-    
-    // Modais
-    const modalCloses = document.querySelectorAll('.modal-close');
-    modalCloses.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const modal = this.closest('.modal');
-            fecharModal(modal);
-        });
-    });
-    
-    // Botões cancelar nos modais
-    const btnCancels = document.querySelectorAll('.btn-cancelar');
-    btnCancels.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const modal = this.closest('.modal');
-            fecharModal(modal);
-        });
-    });
-    
-    // Fechar modal ao clicar fora
-    [modalBuscaAvancada, modalCliente, modalFinalizar].forEach(modal => {
-        if (modal) {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    fecharModal(this);
-                }
-            });
-        }
-    });
-    
-    // Botões no modal de busca avançada
-    const btnLimparFiltros = document.querySelector('.btn-limpar');
-    const btnBuscarAvancado = document.querySelector('.btn-buscar');
-    
-    if (btnLimparFiltros) {
-        btnLimparFiltros.addEventListener('click', limparFiltrosBusca);
-    }
-    
-    if (btnBuscarAvancado) {
-        btnBuscarAvancado.addEventListener('click', buscarProdutosAvancado);
-    }
-    
-    // Busca de clientes
-    if (buscaCliente) {
-        buscaCliente.addEventListener('input', buscarClientes);
-    }
-    
-    // Botão novo cliente
-    const btnNovoCliente = document.querySelector('.btn-novo-cliente');
-    if (btnNovoCliente) {
-        btnNovoCliente.addEventListener('click', function() {
-            showMessage('Funcionalidade em desenvolvimento', 'info');
-        });
-    }
-    
-    // Botão confirmar venda
-    const btnConfirmarVenda = document.querySelector('#modalFinalizar .btn-confirmar');
-    if (btnConfirmarVenda) {
-        btnConfirmarVenda.addEventListener('click', finalizarVenda);
-    }
-}
-
-function configurarAtalhosTeclado() {
-    document.addEventListener('keydown', function(e) {
-        // F2 - Busca avançada
-        if (e.key === 'F2' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-            e.preventDefault();
-            abrirModalBuscaAvancada();
-        }
-        
-        // F3 - Foco na busca
-        if (e.key === 'F3' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-            e.preventDefault();
-            inputBusca.focus();
-            inputBusca.select();
-        }
-        
-        // F4 - Selecionar cliente
-        if (e.key === 'F4' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-            e.preventDefault();
-            abrirModalCliente();
-        }
-        
-        // F5 - Finalizar venda
-        if (e.key === 'F5' && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-            e.preventDefault();
-            abrirModalFinalizar();
-        }
-        
-        // ESC - Cancelar venda
-        if (e.key === 'Escape') {
-            if (document.querySelector('.modal[style*="display: flex"]')) {
-                const modal = document.querySelector('.modal[style*="display: flex"]');
-                fecharModal(modal);
-            } else if (carrinho.length > 0) {
-                confirmarCancelarVenda();
+    // Limpar carrinho
+    btnClearCart.addEventListener('click', function() {
+        if (carrinho.length > 0) {
+            if (confirm('Deseja realmente limpar o carrinho?')) {
+                limparCarrinho();
             }
         }
-        
-        // Ctrl+Enter - Adicionar produto selecionado
-        if (e.ctrlKey && e.key === 'Enter') {
+    });
+    
+    // Desconto
+    descontoInput.addEventListener('input', function() {
+        desconto = parseFloat(this.value) || 0;
+        if (desconto < 0) desconto = 0;
+        if (desconto > 100) desconto = 100;
+        this.value = desconto;
+        atualizarTotal();
+    });
+    
+    // Finalizar venda
+    btnFinalizarVenda.addEventListener('click', finalizarVenda);
+    
+    // Cancelar venda
+    btnCancelarVenda.addEventListener('click', function() {
+        if (carrinho.length > 0) {
+            if (confirm('Deseja realmente cancelar esta venda?')) {
+                window.location.href = 'home.html';
+            }
+        } else {
+            window.location.href = 'home.html';
+        }
+    });
+    
+    // Modal eventos
+    const modalClose = modalQuantidade?.querySelector('.modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            fecharModal(modalQuantidade);
+        });
+    }
+    
+    const btnCancel = modalQuantidade?.querySelector('.btn-cancel');
+    if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+            fecharModal(modalQuantidade);
+        });
+    }
+    
+    // Fechar modal ao clicar fora
+    if (modalQuantidade) {
+        modalQuantidade.addEventListener('click', function(e) {
+            if (e.target === this) {
+                fecharModal(this);
+            }
+        });
+    }
+    
+    // Controles de quantidade no modal
+    if (btnDecrease) {
+        btnDecrease.addEventListener('click', function() {
+            let qty = parseInt(quantidadeInput.value) || 1;
+            if (qty > 1) {
+                qty--;
+                quantidadeInput.value = qty;
+            }
+        });
+    }
+    
+    if (btnIncrease) {
+        btnIncrease.addEventListener('click', function() {
+            let qty = parseInt(quantidadeInput.value) || 1;
+            qty++;
+            quantidadeInput.value = qty;
+        });
+    }
+    
+    // Adicionar ao carrinho
+    if (btnAddToCart) {
+        btnAddToCart.addEventListener('click', adicionarAoCarrinho);
+    }
+    
+    // Atalhos de teclado
+    document.addEventListener('keydown', function(e) {
+        // F1 - Nova venda (recarregar página)
+        if (e.key === 'F1') {
             e.preventDefault();
-            adicionarPrimeiroResultado();
+            location.reload();
         }
         
-        // Ctrl+D - Aplicar desconto
-        if (e.ctrlKey && e.key === 'd') {
+        // F2 - Focar na busca
+        if (e.key === 'F2') {
             e.preventDefault();
-            inputDesconto.focus();
-            inputDesconto.select();
+            searchProduct.focus();
+            searchProduct.select();
         }
         
-        // Ctrl+P - Imprimir venda (futuro)
-        if (e.ctrlKey && e.key === 'p') {
+        // F3 - Limpar carrinho
+        if (e.key === 'F3' && e.ctrlKey) {
             e.preventDefault();
-            // showMessage('Funcionalidade de impressão em desenvolvimento', 'info');
+            limparCarrinho();
+        }
+        
+        // F9 - Finalizar venda
+        if (e.key === 'F9') {
+            e.preventDefault();
+            btnFinalizarVenda.click();
+        }
+        
+        // F12 - Cancelar venda
+        if (e.key === 'F12') {
+            e.preventDefault();
+            btnCancelarVenda.click();
         }
     });
 }
 
 // ============================================
-// 3. CARREGAR DADOS INICIAIS
+// 5. CARREGAR PRODUTOS PARA VENDA
 // ============================================
-async function carregarDadosIniciais() {
+async function carregarProdutosParaVenda() {
     try {
-        showLoading('Carregando dados da venda...');
+        showLoading('Carregando produtos...');
         
-        // Carregar produtos
-        await carregarProdutos();
-        
-        // Carregar produtos frequentes
-        await carregarProdutosFrequentes();
-        
-        // Carregar clientes
-        await carregarClientes();
-        
-        // Carregar categorias para filtro
-        await carregarCategorias();
-        
-        hideLoading();
-        
-    } catch (error) {
-        hideLoading();
-        console.error('❌ Erro ao carregar dados iniciais:', error);
-        showMessage('Erro ao carregar dados da venda', 'error');
-    }
-}
-
-async function carregarProdutos() {
-    try {
-        const resultado = await lojaServices.buscarProdutos({ ativo: true });
+        const resultado = await mjServices.buscarProdutosParaVenda();
         
         if (resultado.success) {
-            produtos = resultado.data.filter(p => p.ativo && (p.quantidade || 0) > 0);
+            produtos = resultado.data;
             produtosFiltrados = [...produtos];
-        } else {
-            throw new Error(resultado.error);
-        }
-        
-    } catch (error) {
-        console.error('Erro ao carregar produtos:', error);
-        produtos = [];
-        produtosFiltrados = [];
-    }
-}
-
-async function carregarProdutosFrequentes() {
-    try {
-        // Para demonstração, pegar os primeiros 8 produtos
-        // Na implementação real, pegar produtos mais vendidos
-        produtosFrequentesLista = produtos.slice(0, 8);
-        renderizarProdutosFrequentes();
-        
-    } catch (error) {
-        console.error('Erro ao carregar produtos frequentes:', error);
-        produtosFrequentesLista = [];
-    }
-}
-
-async function carregarClientes() {
-    try {
-        const resultado = await lojaServices.buscarClientes();
-        
-        if (resultado.success) {
-            clientes = resultado.data;
-        } else {
-            throw new Error(resultado.error);
-        }
-        
-    } catch (error) {
-        console.error('Erro ao carregar clientes:', error);
-        clientes = [];
-    }
-}
-
-async function carregarCategorias() {
-    try {
-        const resultado = await lojaServices.buscarCategorias();
-        
-        if (resultado.success && filtroCategoria) {
-            const categorias = resultado.data;
             
-            // Limpar e adicionar categorias
-            filtroCategoria.innerHTML = '<option value="">Todas categorias</option>';
-            categorias.forEach(categoria => {
-                const option = document.createElement('option');
-                option.value = categoria;
-                option.textContent = categoria;
-                filtroCategoria.appendChild(option);
-            });
+            renderizarProdutos();
+            atualizarContadorProdutos();
+            
+            hideLoading();
+            
+        } else {
+            throw new Error(resultado.error);
         }
         
     } catch (error) {
-        console.error('Erro ao carregar categorias:', error);
+        hideLoading();
+        console.error('Erro ao carregar produtos:', error);
+        showMessage('Erro ao carregar produtos', 'error');
+        
+        emptyProducts.style.display = 'flex';
+        productsGrid.innerHTML = '';
     }
 }
 
 // ============================================
-// 4. BUSCA E SELEÇÃO DE PRODUTOS
+// 6. RENDERIZAR PRODUTOS
 // ============================================
-function buscarProdutos() {
-    const termo = inputBusca.value.toLowerCase().trim();
-    
-    if (!termo) {
-        resultadosBusca.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-search"></i>
-                <p>Digite para buscar produtos</p>
-                <small>ou pressione F2 para busca avançada</small>
-            </div>
-        `;
-        return;
-    }
-    
-    produtosFiltrados = produtos.filter(produto => {
-        switch(modoBusca) {
-            case 'codigo':
-                return produto.codigo?.toLowerCase().includes(termo);
-            case 'nome':
-                return produto.nome.toLowerCase().includes(termo);
-            case 'categoria':
-                return produto.categoria?.toLowerCase().includes(termo);
-            default:
-                return produto.nome.toLowerCase().includes(termo) ||
-                       produto.codigo?.toLowerCase().includes(termo);
-        }
-    });
-    
-    renderizarResultadosBusca();
-}
-
-function renderizarResultadosBusca() {
+function renderizarProdutos() {
     if (produtosFiltrados.length === 0) {
-        resultadosBusca.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-search"></i>
-                <p>Nenhum produto encontrado</p>
-                <small>Tente outro termo de busca</small>
-            </div>
-        `;
+        emptyProducts.style.display = 'flex';
+        productsGrid.innerHTML = '';
         return;
     }
+    
+    emptyProducts.style.display = 'none';
     
     let html = '';
     
     produtosFiltrados.forEach(produto => {
+        const estoqueBaixo = produto.quantidade <= produto.estoque_minimo;
+        const semEstoque = produto.quantidade <= 0;
+        
         html += `
-            <div class="resultado-item" data-id="${produto.id}">
-                <div class="resultado-info">
-                    <h4>${produto.nome}</h4>
-                    <p class="text-muted">${produto.codigo} | ${produto.categoria || 'Sem categoria'}</p>
+            <div class="product-card ${semEstoque ? 'disabled' : ''}" data-id="${produto.id}">
+                <div class="product-header">
+                    <span class="product-code">${produto.codigo || 'N/A'}</span>
+                    <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
+                        ${produto.quantidade} ${produto.unidade || 'UN'}
+                    </span>
                 </div>
-                <div class="resultado-preco">
-                    <strong class="text-primary">R$ ${formatarMoeda(produto.preco)}</strong>
-                    <small>Estoque: ${produto.quantidade || 0} ${produto.unidade || 'UN'}</small>
+                <div class="product-name">${produto.nome}</div>
+                ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
+                <div class="product-footer">
+                    <span class="product-price">R$ ${formatarMoeda(produto.preco)}</span>
+                    <button class="btn-add-product" ${semEstoque ? 'disabled' : ''}>
+                        <i class="fas fa-cart-plus"></i>
+                    </button>
                 </div>
-                <button class="btn-adicionar" data-id="${produto.id}">
-                    <i class="fas fa-plus"></i>
-                </button>
             </div>
         `;
     });
     
-    resultadosBusca.innerHTML = html;
+    productsGrid.innerHTML = html;
     
-    // Adicionar eventos aos botões
-    document.querySelectorAll('.btn-adicionar').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
-            const produto = produtos.find(p => p.id === produtoId);
-            if (produto) {
-                adicionarAoCarrinho(produto);
-            }
+    // Adicionar eventos aos botões de adicionar
+    document.querySelectorAll('.btn-add-product').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const productCard = this.closest('.product-card');
+            const productId = productCard.dataset.id;
+            abrirModalQuantidade(productId);
         });
     });
     
-    // Adicionar evento de clique nos itens
-    document.querySelectorAll('.resultado-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (!e.target.closest('.btn-adicionar')) {
-                const produtoId = this.dataset.id;
-                const produto = produtos.find(p => p.id === produtoId);
-                if (produto) {
-                    adicionarAoCarrinho(produto);
-                }
-            }
+    // Adicionar evento de clique no card inteiro
+    document.querySelectorAll('.product-card:not(.disabled)').forEach(card => {
+        card.addEventListener('click', function() {
+            const productId = this.dataset.id;
+            abrirModalQuantidade(productId);
         });
     });
 }
 
-function adicionarPrimeiroResultado() {
-    if (produtosFiltrados.length > 0) {
-        adicionarAoCarrinho(produtosFiltrados[0]);
-        inputBusca.value = '';
-        inputBusca.focus();
+// ============================================
+// 7. FILTRAR PRODUTOS
+// ============================================
+function filtrarProdutos() {
+    const termo = searchProduct.value.toLowerCase().trim();
+    
+    if (termo === '') {
+        produtosFiltrados = [...produtos];
+    } else {
+        produtosFiltrados = produtos.filter(produto => 
+            produto.codigo?.toLowerCase().includes(termo) ||
+            produto.nome.toLowerCase().includes(termo) ||
+            produto.categoria?.toLowerCase().includes(termo)
+        );
     }
+    
+    renderizarProdutos();
+    atualizarContadorProdutos();
 }
 
 // ============================================
-// 5. PRODUTOS FREQUENTES
+// 8. MODAL DE QUANTIDADE
 // ============================================
-function renderizarProdutosFrequentes() {
-    if (produtosFrequentesLista.length === 0) {
-        produtosFrequentes.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-star"></i>
-                <p>Nenhum produto frequente</p>
-                <small>Produtos serão exibidos conforme as vendas</small>
-            </div>
-        `;
+function abrirModalQuantidade(productId) {
+    produtoSelecionado = produtos.find(p => p.id === productId);
+    
+    if (!produtoSelecionado) return;
+    
+    // Configurar quantidade máxima baseada no estoque
+    const estoqueMaximo = produtoSelecionado.quantidade;
+    quantidadeInput.max = estoqueMaximo;
+    quantidadeInput.value = 1;
+    
+    // Atualizar informações do produto no modal
+    modalProductInfo.innerHTML = `
+        <h4>${produtoSelecionado.nome}</h4>
+        <p><strong>Código:</strong> ${produtoSelecionado.codigo || 'N/A'}</p>
+        <p><strong>Estoque disponível:</strong> ${estoqueMaximo} ${produtoSelecionado.unidade || 'UN'}</p>
+        <p><strong>Preço unitário:</strong> R$ ${formatarMoeda(produtoSelecionado.preco)}</p>
+    `;
+    
+    abrirModal(modalQuantidade);
+}
+
+// ============================================
+// 9. CARRINHO DE COMPRAS
+// ============================================
+function adicionarAoCarrinho() {
+    if (!produtoSelecionado) return;
+    
+    const quantidade = parseInt(quantidadeInput.value) || 1;
+    const estoqueDisponivel = produtoSelecionado.quantidade;
+    
+    // Verificar estoque
+    if (quantidade > estoqueDisponivel) {
+        showMessage(`Estoque insuficiente. Disponível: ${estoqueDisponivel}`, 'warning');
         return;
     }
     
-    let html = '';
-    
-    produtosFrequentesLista.forEach(produto => {
-        html += `
-            <div class="produto-card" data-id="${produto.id}">
-                <i class="fas fa-box"></i>
-                <div class="produto-info">
-                    <h4>${produto.nome.substring(0, 15)}${produto.nome.length > 15 ? '...' : ''}</h4>
-                    <p>${produto.codigo}</p>
-                    <div class="produto-preco">R$ ${formatarMoeda(produto.preco)}</div>
-                </div>
-            </div>
-        `;
-    });
-    
-    produtosFrequentes.innerHTML = html;
-    
-    // Adicionar eventos
-    document.querySelectorAll('.produto-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
-            const produto = produtos.find(p => p.id === produtoId);
-            if (produto) {
-                adicionarAoCarrinho(produto);
-            }
-        });
-    });
-}
-
-// ============================================
-// 6. CARRINHO DE COMPRAS
-// ============================================
-function adicionarAoCarrinho(produto, quantidade = 1) {
     // Verificar se produto já está no carrinho
-    const itemExistente = carrinho.find(item => item.id === produto.id);
+    const itemExistente = carrinho.find(item => item.produto_id === produtoSelecionado.id);
     
     if (itemExistente) {
         // Atualizar quantidade
-        itemExistente.quantidade += quantidade;
-        showMessage(`${produto.nome} atualizado no carrinho`, 'success');
+        const novaQuantidade = itemExistente.quantidade + quantidade;
+        
+        if (novaQuantidade > estoqueDisponivel) {
+            showMessage(`Estoque insuficiente. Disponível: ${estoqueDisponivel}`, 'warning');
+            return;
+        }
+        
+        itemExistente.quantidade = novaQuantidade;
+        itemExistente.subtotal = itemExistente.preco * novaQuantidade;
     } else {
         // Adicionar novo item
         carrinho.push({
-            id: produto.id,
-            codigo: produto.codigo,
-            nome: produto.nome,
-            preco: produto.preco,
+            produto_id: produtoSelecionado.id,
+            codigo: produtoSelecionado.codigo,
+            nome: produtoSelecionado.nome,
+            categoria: produtoSelecionado.categoria,
+            unidade: produtoSelecionado.unidade,
+            preco: produtoSelecionado.preco,
             quantidade: quantidade,
-            unidade: produto.unidade || 'UN'
+            subtotal: produtoSelecionado.preco * quantidade,
+            estoque_disponivel: estoqueDisponivel
         });
-        showMessage(`${produto.nome} adicionado ao carrinho`, 'success');
     }
     
+    fecharModal(modalQuantidade);
     renderizarCarrinho();
-    calcularTotal();
-}
-
-function removerDoCarrinho(produtoId) {
-    const index = carrinho.findIndex(item => item.id === produtoId);
-    if (index !== -1) {
-        carrinho.splice(index, 1);
-        renderizarCarrinho();
-        calcularTotal();
-        showMessage('Produto removido do carrinho', 'info');
-    }
-}
-
-function atualizarQuantidade(produtoId, novaQuantidade) {
-    if (novaQuantidade < 1) {
-        removerDoCarrinho(produtoId);
-        return;
-    }
+    atualizarTotal();
     
-    const item = carrinho.find(item => item.id === produtoId);
-    if (item) {
-        item.quantidade = novaQuantidade;
-        renderizarCarrinho();
-        calcularTotal();
-    }
+    showMessage('Produto adicionado ao carrinho!', 'success');
 }
 
 function renderizarCarrinho() {
     if (carrinho.length === 0) {
-        carrinhoItems.innerHTML = `
+        cartItems.innerHTML = `
             <div class="empty-cart">
                 <i class="fas fa-shopping-cart"></i>
                 <p>Carrinho vazio</p>
@@ -557,482 +422,220 @@ function renderizarCarrinho() {
     
     let html = '';
     
-    carrinho.forEach(item => {
-        const total = item.preco * item.quantidade;
-        
+    carrinho.forEach((item, index) => {
         html += `
-            <div class="carrinho-item" data-id="${item.id}">
-                <div>
-                    <div class="produto-nome">${item.nome}</div>
-                    <div class="produto-codigo">${item.codigo}</div>
+            <div class="cart-item" data-index="${index}">
+                <div class="cart-item-info">
+                    <div class="cart-item-name">${item.nome}</div>
+                    <div class="cart-item-details">
+                        <span>Código: ${item.codigo || 'N/A'}</span>
+                        <span>${item.categoria || ''}</span>
+                    </div>
                 </div>
-                <div class="quantidade-control">
-                    <button class="btn-quantidade btn-diminuir" data-id="${item.id}">
-                        <i class="fas fa-minus"></i>
-                    </button>
-                    <input type="number" 
-                           class="quantidade-input" 
-                           value="${item.quantidade}" 
-                           min="1" 
-                           data-id="${item.id}">
-                    <button class="btn-quantidade btn-aumentar" data-id="${item.id}">
-                        <i class="fas fa-plus"></i>
+                
+                <div class="cart-item-controls">
+                    <div class="cart-item-qty">
+                        <button class="qty-btn minus" data-action="decrease" data-index="${index}">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" class="qty-input" value="${item.quantidade}" min="1" max="${item.estoque_disponivel}" data-index="${index}">
+                        <button class="qty-btn plus" data-action="increase" data-index="${index}">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="cart-item-price">
+                        R$ ${formatarMoeda(item.subtotal)}
+                    </div>
+                    
+                    <button class="btn-remove-item" data-index="${index}">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
-                <div class="produto-preco">R$ ${formatarMoeda(item.preco)}</div>
-                <div class="produto-total">R$ ${formatarMoeda(total)}</div>
-                <button class="btn-remover-item" data-id="${item.id}">
-                    <i class="fas fa-trash"></i>
-                </button>
             </div>
         `;
     });
     
-    carrinhoItems.innerHTML = html;
+    cartItems.innerHTML = html;
     
-    // Adicionar eventos aos controles
-    document.querySelectorAll('.btn-diminuir').forEach(btn => {
+    // Adicionar eventos aos controles do carrinho
+    document.querySelectorAll('.qty-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
-            const item = carrinho.find(item => item.id === produtoId);
-            if (item) {
-                atualizarQuantidade(produtoId, item.quantidade - 1);
-            }
+            const index = parseInt(this.dataset.index);
+            const action = this.dataset.action;
+            alterarQuantidadeItem(index, action);
         });
     });
     
-    document.querySelectorAll('.btn-aumentar').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
-            const item = carrinho.find(item => item.id === produtoId);
-            if (item) {
-                atualizarQuantidade(produtoId, item.quantidade + 1);
-            }
-        });
-    });
-    
-    document.querySelectorAll('.quantidade-input').forEach(input => {
+    document.querySelectorAll('.qty-input').forEach(input => {
         input.addEventListener('change', function() {
-            const produtoId = this.dataset.id;
+            const index = parseInt(this.dataset.index);
             const novaQuantidade = parseInt(this.value) || 1;
-            atualizarQuantidade(produtoId, novaQuantidade);
+            atualizarQuantidadeItem(index, novaQuantidade);
         });
     });
     
-    document.querySelectorAll('.btn-remover-item').forEach(btn => {
+    document.querySelectorAll('.btn-remove-item').forEach(btn => {
         btn.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
-            removerDoCarrinho(produtoId);
+            const index = parseInt(this.dataset.index);
+            removerItemCarrinho(index);
         });
     });
 }
 
-function calcularTotal() {
-    let subtotal = 0;
+function alterarQuantidadeItem(index, action) {
+    const item = carrinho[index];
+    if (!item) return;
     
-    carrinho.forEach(item => {
-        subtotal += item.preco * item.quantidade;
-    });
+    let novaQuantidade = item.quantidade;
     
-    const desconto = subtotal * (descontoPercentual / 100);
-    const total = subtotal - desconto;
+    if (action === 'increase') {
+        novaQuantidade++;
+    } else if (action === 'decrease') {
+        novaQuantidade--;
+    }
     
+    if (novaQuantidade < 1) {
+        removerItemCarrinho(index);
+        return;
+    }
+    
+    if (novaQuantidade > item.estoque_disponivel) {
+        showMessage(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, 'warning');
+        return;
+    }
+    
+    atualizarQuantidadeItem(index, novaQuantidade);
+}
+
+function atualizarQuantidadeItem(index, novaQuantidade) {
+    if (novaQuantidade < 1) {
+        removerItemCarrinho(index);
+        return;
+    }
+    
+    const item = carrinho[index];
+    if (!item) return;
+    
+    if (novaQuantidade > item.estoque_disponivel) {
+        showMessage(`Estoque insuficiente. Disponível: ${item.estoque_disponivel}`, 'warning');
+        return;
+    }
+    
+    item.quantidade = novaQuantidade;
+    item.subtotal = item.preco * novaQuantidade;
+    
+    renderizarCarrinho();
+    atualizarTotal();
+}
+
+function removerItemCarrinho(index) {
+    if (confirm('Remover item do carrinho?')) {
+        carrinho.splice(index, 1);
+        renderizarCarrinho();
+        atualizarTotal();
+        showMessage('Item removido do carrinho', 'info');
+    }
+}
+
+function limparCarrinho() {
+    carrinho = [];
+    renderizarCarrinho();
+    atualizarTotal();
+    showMessage('Carrinho limpo', 'info');
+}
+
+// ============================================
+// 10. CÁLCULOS DE VALORES
+// ============================================
+function atualizarTotal() {
+    // Calcular subtotal
+    const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
+    
+    // Calcular desconto
+    const valorDesconto = subtotal * (desconto / 100);
+    const total = subtotal - valorDesconto;
+    
+    // Atualizar elementos
     subtotalElement.textContent = `R$ ${formatarMoeda(subtotal)}`;
-    totalFinalElement.textContent = `R$ ${formatarMoeda(total)}`;
-    
-    // Atualizar troco
-    calcularTroco();
-}
-
-function aplicarDesconto(percentual) {
-    if (percentual < 0 || percentual > 100) {
-        showMessage('Desconto deve estar entre 0 e 100%', 'warning');
-        inputDesconto.value = 0;
-        percentual = 0;
-    }
-    
-    descontoPercentual = percentual;
-    calcularTotal();
+    totalElement.textContent = `R$ ${formatarMoeda(total)}`;
 }
 
 // ============================================
-// 7. CLIENTES
+// 11. FINALIZAR VENDA
 // ============================================
-function abrirModalCliente() {
-    buscarClientes();
-    abrirModal(modalCliente);
-}
-
-function buscarClientes() {
-    const termo = buscaCliente?.value.toLowerCase().trim() || '';
-    
-    let clientesFiltrados = clientes;
-    
-    if (termo) {
-        clientesFiltrados = clientes.filter(cliente => {
-            return cliente.nome?.toLowerCase().includes(termo) ||
-                   cliente.cpf_cnpj?.toLowerCase().includes(termo) ||
-                   cliente.telefone?.toLowerCase().includes(termo);
-        });
-    }
-    
-    renderizarClientes(clientesFiltrados);
-}
-
-function renderizarClientes(clientesLista) {
-    if (clientesLista.length === 0) {
-        clientesLista.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-users"></i>
-                <p>Nenhum cliente encontrado</p>
-                <button class="btn-novo-cliente-lista" id="btnNovoClienteLista">
-                    <i class="fas fa-user-plus"></i>
-                    Cadastrar Primeiro Cliente
-                </button>
-            </div>
-        `;
-        
-        document.getElementById('btnNovoClienteLista')?.addEventListener('click', function() {
-            showMessage('Funcionalidade em desenvolvimento', 'info');
-        });
-        
-        return;
-    }
-    
-    let html = '';
-    
-    clientesLista.forEach(cliente => {
-        html += `
-            <div class="cliente-item" data-id="${cliente.id}">
-                <div class="cliente-info">
-                    <h4>${cliente.nome}</h4>
-                    <p class="text-muted">
-                        ${cliente.cpf_cnpj ? `CPF/CNPJ: ${cliente.cpf_cnpj}` : ''}
-                        ${cliente.telefone ? ` | Tel: ${cliente.telefone}` : ''}
-                    </p>
-                </div>
-                <div class="cliente-acoes">
-                    <button class="btn-selecionar-cliente-modal" data-id="${cliente.id}">
-                        Selecionar
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    clientesLista.innerHTML = html;
-    
-    // Adicionar eventos
-    document.querySelectorAll('.btn-selecionar-cliente-modal').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const clienteId = this.dataset.id;
-            selecionarCliente(clienteId);
-        });
-    });
-    
-    // Selecionar ao clicar no item
-    document.querySelectorAll('.cliente-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (!e.target.closest('.btn-selecionar-cliente-modal')) {
-                const clienteId = this.dataset.id;
-                selecionarCliente(clienteId);
-            }
-        });
-    });
-}
-
-function selecionarCliente(clienteId) {
-    const cliente = clientes.find(c => c.id === clienteId);
-    if (cliente) {
-        clienteSelecionado = cliente;
-        atualizarClienteAtual();
-        fecharModal(modalCliente);
-        showMessage(`Cliente ${cliente.nome} selecionado`, 'success');
-    }
-}
-
-function atualizarClienteAtual() {
-    if (clienteSelecionado) {
-        clienteAtual.innerHTML = `
-            <div class="cliente-selecionado">
-                <h4>${clienteSelecionado.nome}</h4>
-                <p>${clienteSelecionado.cpf_cnpj ? `CPF/CNPJ: ${clienteSelecionado.cpf_cnpj}` : ''}</p>
-                <p>${clienteSelecionado.telefone ? `Telefone: ${clienteSelecionado.telefone}` : ''}</p>
-                <button class="btn-remover-cliente" id="btnRemoverCliente">
-                    <i class="fas fa-times"></i> Remover
-                </button>
-            </div>
-        `;
-        
-        document.getElementById('btnRemoverCliente')?.addEventListener('click', function(e) {
-            e.stopPropagation();
-            clienteSelecionado = null;
-            atualizarClienteAtual();
-            showMessage('Cliente removido da venda', 'info');
-        });
-    } else {
-        clienteAtual.innerHTML = `
-            <div class="cliente-vazio">
-                <i class="fas fa-user-circle"></i>
-                <div>
-                    <p>Cliente não selecionado</p>
-                    <small>Venda para consumidor final</small>
-                </div>
-            </div>
-        `;
-    }
-}
-
-// ============================================
-// 8. FORMAS DE PAGAMENTO
-// ============================================
-function atualizarDetalhesPagamento() {
-    const pagamentoDetalhes = document.getElementById('pagamentoDetalhes');
-    
-    if (formaPagamentoSelecionada === 'dinheiro') {
-        pagamentoDetalhes.innerHTML = `
-            <div class="detalhes-dinheiro">
-                <div class="input-group">
-                    <label>Valor Recebido:</label>
-                    <input type="number" 
-                           id="valorRecebido" 
-                           step="0.01" 
-                           min="0"
-                           placeholder="0,00">
-                </div>
-                <div class="troco-info">
-                    <span>Troco:</span>
-                    <span id="troco">R$ 0,00</span>
-                </div>
-            </div>
-        `;
-        
-        // Re-adicionar evento ao novo input
-        const novoValorRecebido = document.getElementById('valorRecebido');
-        if (novoValorRecebido) {
-            novoValorRecebido.addEventListener('input', calcularTroco);
-        }
-    } else {
-        pagamentoDetalhes.innerHTML = `
-            <div class="detalhes-outro">
-                <p><i class="fas fa-info-circle"></i> Pagamento via ${formaPagamentoSelecionada.replace('_', ' ').toUpperCase()}</p>
-                <p>O valor será confirmado no final da venda.</p>
-            </div>
-        `;
-    }
-    
-    calcularTroco();
-}
-
-function calcularTroco() {
-    if (formaPagamentoSelecionada !== 'dinheiro') {
-        trocoElement.textContent = 'R$ 0,00';
-        return;
-    }
-    
-    const total = parseFloat(totalFinalElement.textContent.replace('R$ ', '').replace('.', '').replace(',', '.'));
-    const recebido = parseFloat(valorRecebido?.value) || 0;
-    
-    let troco = 0;
-    if (recebido > total) {
-        troco = recebido - total;
-    }
-    
-    trocoElement.textContent = `R$ ${formatarMoeda(troco)}`;
-}
-
-// ============================================
-// 9. BUSCA AVANÇADA
-// ============================================
-function abrirModalBuscaAvancada() {
-    abrirModal(modalBuscaAvancada);
-    buscarProdutosAvancado();
-}
-
-function limparFiltrosBusca() {
-    filtroCategoria.value = '';
-    filtroEstoque.value = '';
-    filtroPrecoMin.value = '';
-    filtroPrecoMax.value = '';
-    buscarProdutosAvancado();
-}
-
-function buscarProdutosAvancado() {
-    const categoria = filtroCategoria.value;
-    const estoqueMin = parseInt(filtroEstoque.value) || 0;
-    const precoMin = parseFloat(filtroPrecoMin.value) || 0;
-    const precoMax = parseFloat(filtroPrecoMax.value) || Infinity;
-    
-    const produtosFiltradosAvancado = produtos.filter(produto => {
-        // Filtro por categoria
-        if (categoria && produto.categoria !== categoria) {
-            return false;
-        }
-        
-        // Filtro por estoque mínimo
-        if (estoqueMin > 0 && (produto.quantidade || 0) < estoqueMin) {
-            return false;
-        }
-        
-        // Filtro por faixa de preço
-        if (produto.preco < precoMin || produto.preco > precoMax) {
-            return false;
-        }
-        
-        return true;
-    });
-    
-    renderizarResultadosAvancados(produtosFiltradosAvancado);
-}
-
-function renderizarResultadosAvancados(produtosLista) {
-    if (produtosLista.length === 0) {
-        resultadosAvancados.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-search"></i>
-                <p>Nenhum produto encontrado com os filtros aplicados</p>
-                <small>Tente ajustar os filtros</small>
-            </div>
-        `;
-        return;
-    }
-    
-    let html = '';
-    
-    produtosLista.forEach(produto => {
-        html += `
-            <div class="resultado-avancado-item" data-id="${produto.id}">
-                <div class="resultado-avancado-info">
-                    <h4>${produto.nome}</h4>
-                    <p class="text-muted">${produto.codigo} | ${produto.categoria || 'Sem categoria'}</p>
-                    <p>Estoque: ${produto.quantidade || 0} ${produto.unidade || 'UN'}</p>
-                </div>
-                <div class="resultado-avancado-preco">
-                    <strong class="text-primary">R$ ${formatarMoeda(produto.preco)}</strong>
-                </div>
-                <button class="btn-adicionar-avancado" data-id="${produto.id}">
-                    <i class="fas fa-plus"></i> Adicionar
-                </button>
-            </div>
-        `;
-    });
-    
-    resultadosAvancados.innerHTML = html;
-    
-    // Adicionar eventos
-    document.querySelectorAll('.btn-adicionar-avancado').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const produtoId = this.dataset.id;
-            const produto = produtos.find(p => p.id === produtoId);
-            if (produto) {
-                adicionarAoCarrinho(produto);
-                fecharModal(modalBuscaAvancada);
-            }
-        });
-    });
-    
-    document.querySelectorAll('.resultado-avancado-item').forEach(item => {
-        item.addEventListener('click', function(e) {
-            if (!e.target.closest('.btn-adicionar-avancado')) {
-                const produtoId = this.dataset.id;
-                const produto = produtos.find(p => p.id === produtoId);
-                if (produto) {
-                    adicionarAoCarrinho(produto);
-                    fecharModal(modalBuscaAvancada);
-                }
-            }
-        });
-    });
-}
-
-// ============================================
-// 10. FINALIZAÇÃO DA VENDA
-// ============================================
-function abrirModalFinalizar() {
-    if (carrinho.length === 0) {
-        showMessage('Adicione produtos ao carrinho antes de finalizar', 'warning');
-        return;
-    }
-    
-    // Atualizar resumo no modal
-    document.getElementById('resumoTotal').textContent = totalFinalElement.textContent;
-    document.getElementById('resumoPagamento').textContent = 
-        formaPagamentoSelecionada.replace('_', ' ').toUpperCase();
-    document.getElementById('resumoTroco').textContent = trocoElement.textContent;
-    
-    abrirModal(modalFinalizar);
-}
-
 async function finalizarVenda() {
+    if (carrinho.length === 0) {
+        showMessage('Adicione produtos ao carrinho para finalizar a venda', 'warning');
+        return;
+    }
+    
+    // Calcular totais
+    const subtotal = carrinho.reduce((total, item) => total + item.subtotal, 0);
+    const valorDesconto = subtotal * (desconto / 100);
+    const total = subtotal - valorDesconto;
+    
+    // Obter forma de pagamento
+    const formaPagamento = document.querySelector('input[name="payment"]:checked')?.value || 'dinheiro';
+    
+    const confirmar = confirm(
+        `Confirmar venda?\n\n` +
+        `Itens: ${carrinho.length}\n` +
+        `Subtotal: R$ ${formatarMoeda(subtotal)}\n` +
+        `Desconto: R$ ${formatarMoeda(valorDesconto)}\n` +
+        `Total: R$ ${formatarMoeda(total)}\n` +
+        `Forma de pagamento: ${getFormaPagamentoNome(formaPagamento)}`
+    );
+    
+    if (!confirmar) return;
+    
     try {
-        if (carrinho.length === 0) {
-            showMessage('Carrinho vazio', 'warning');
-            return;
-        }
-        
-        // Verificar estoque
-        for (const item of carrinho) {
-            const produto = produtos.find(p => p.id === item.id);
-            if (!produto || (produto.quantidade || 0) < item.quantidade) {
-                showMessage(`Estoque insuficiente para ${item.nome}`, 'error');
-                return;
-            }
-        }
-        
         showLoading('Processando venda...');
         
         // Preparar dados da venda
-        const vendaData = {
-            numero: numeroVendaAtual,
-            cliente: clienteSelecionado ? {
-                id: clienteSelecionado.id,
-                nome: clienteSelecionado.nome,
-                cpf_cnpj: clienteSelecionado.cpf_cnpj
-            } : null,
+        const dadosVenda = {
             itens: carrinho.map(item => ({
-                produto_id: item.id,
+                produto_id: item.produto_id,
                 codigo: item.codigo,
                 nome: item.nome,
                 quantidade: item.quantidade,
                 preco_unitario: item.preco,
-                total: item.preco * item.quantidade,
-                unidade: item.unidade
+                subtotal: item.subtotal
             })),
-            subtotal: carrinho.reduce((sum, item) => sum + (item.preco * item.quantidade), 0),
-            desconto: descontoPercentual,
-            total: parseFloat(totalFinalElement.textContent.replace('R$ ', '').replace('.', '').replace(',', '.')),
-            forma_pagamento: formaPagamentoSelecionada,
-            valor_recebido: formaPagamentoSelecionada === 'dinheiro' ? parseFloat(valorRecebido.value) || 0 : null,
-            troco: formaPagamentoSelecionada === 'dinheiro' ? parseFloat(trocoElement.textContent.replace('R$ ', '').replace('.', '').replace(',', '.')) : 0,
-            status: 'finalizada',
-            data: new Date().toISOString()
+            subtotal: subtotal,
+            desconto: valorDesconto,
+            total: total,
+            forma_pagamento: formaPagamento,
+            vendedor: usuario.nomeCompleto || usuario.login,
+            observacoes: ''
         };
         
-        // Salvar venda
-        const resultado = await lojaServices.cadastrarVenda(vendaData);
+        // Enviar para o Firebase
+        const resultado = await mjServices.criarVenda(dadosVenda);
         
         if (resultado.success) {
-            // Atualizar estoque dos produtos
-            for (const item of carrinho) {
-                const produto = produtos.find(p => p.id === item.id);
-                if (produto) {
-                    const novaQuantidade = (produto.quantidade || 0) - item.quantidade;
-                    await lojaServices.atualizarProduto(produto.id, {
-                        quantidade: novaQuantidade
-                    });
-                }
-            }
-            
             hideLoading();
-            fecharModal(modalFinalizar);
+            
+            // Limpar carrinho
+            carrinho = [];
+            renderizarCarrinho();
+            atualizarTotal();
             
             // Mostrar recibo
-            mostrarRecibo(vendaData);
+            const numeroVenda = resultado.data.numero_venda;
+            const mensagem = `
+                ✅ Venda finalizada com sucesso!\n
+                Número da venda: ${numeroVenda}\n
+                Total: R$ ${formatarMoeda(total)}\n
+                Forma de pagamento: ${getFormaPagamentoNome(formaPagamento)}
+            `;
             
-            // Reiniciar venda
-            reiniciarVenda();
+            showMessage(mensagem, 'success', 8000);
             
-            showMessage('Venda finalizada com sucesso!', 'success');
+            // Atualizar lista de produtos (estoque foi atualizado)
+            setTimeout(async () => {
+                await carregarProdutosParaVenda();
+            }, 1000);
             
         } else {
             throw new Error(resultado.error);
@@ -1041,175 +644,38 @@ async function finalizarVenda() {
     } catch (error) {
         hideLoading();
         console.error('Erro ao finalizar venda:', error);
-        showMessage('Erro ao finalizar venda: ' + error.message, 'error');
+        showMessage(`Erro ao finalizar venda: ${error.message}`, 'error');
     }
 }
 
-function mostrarRecibo(vendaData) {
-    const reciboWindow = window.open('', '_blank');
+function getFormaPagamentoNome(codigo) {
+    const formas = {
+        'dinheiro': 'Dinheiro',
+        'cartao_debito': 'Cartão de Débito',
+        'cartao_credito': 'Cartão de Crédito',
+        'pix': 'PIX'
+    };
     
-    const reciboHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Recibo Venda #${vendaData.numero}</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                .recibo { max-width: 400px; margin: 0 auto; }
-                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
-                .header h1 { margin: 0; font-size: 24px; }
-                .header h2 { margin: 5px 0; font-size: 18px; color: #666; }
-                .info { margin-bottom: 20px; }
-                .info-item { display: flex; justify-content: space-between; margin-bottom: 5px; }
-                .items { margin-bottom: 20px; }
-                .item { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
-                .item-name { flex: 2; }
-                .item-qtd { flex: 1; text-align: center; }
-                .item-price { flex: 1; text-align: right; }
-                .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 20px; padding-top: 10px; border-top: 2px solid #000; }
-                .footer { text-align: center; margin-top: 40px; color: #666; font-size: 12px; }
-                @media print {
-                    body { margin: 0; }
-                    .no-print { display: none; }
-                }
-            </style>
-        </head>
-        <body>
-            <div class="recibo">
-                <div class="header">
-                    <h1>MJ Materiais de Construção</h1>
-                    <h2>RECIBO DE VENDA</h2>
-                    <p>Venda #${vendaData.numero}</p>
-                </div>
-                
-                <div class="info">
-                    <div class="info-item">
-                        <span>Data:</span>
-                        <span>${new Date(vendaData.data).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                    ${vendaData.cliente ? `
-                    <div class="info-item">
-                        <span>Cliente:</span>
-                        <span>${vendaData.cliente.nome}</span>
-                    </div>
-                    <div class="info-item">
-                        <span>CPF/CNPJ:</span>
-                        <span>${vendaData.cliente.cpf_cnpj || ''}</span>
-                    </div>
-                    ` : ''}
-                </div>
-                
-                <div class="items">
-                    ${vendaData.itens.map(item => `
-                        <div class="item">
-                            <div class="item-name">${item.nome}</div>
-                            <div class="item-qtd">${item.quantidade} x</div>
-                            <div class="item-price">R$ ${formatarMoeda(item.preco_unitario)}</div>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="info">
-                    <div class="info-item">
-                        <span>Subtotal:</span>
-                        <span>R$ ${formatarMoeda(vendaData.subtotal)}</span>
-                    </div>
-                    ${vendaData.desconto > 0 ? `
-                    <div class="info-item">
-                        <span>Desconto (${vendaData.desconto}%):</span>
-                        <span>-R$ ${formatarMoeda(vendaData.subtotal * (vendaData.desconto/100))}</span>
-                    </div>
-                    ` : ''}
-                    <div class="info-item">
-                        <strong>Total:</strong>
-                        <strong>R$ ${formatarMoeda(vendaData.total)}</strong>
-                    </div>
-                    <div class="info-item">
-                        <span>Forma de Pagamento:</span>
-                        <span>${vendaData.forma_pagamento.replace('_', ' ').toUpperCase()}</span>
-                    </div>
-                    ${vendaData.valor_recebido ? `
-                    <div class="info-item">
-                        <span>Valor Recebido:</span>
-                        <span>R$ ${formatarMoeda(vendaData.valor_recebido)}</span>
-                    </div>
-                    <div class="info-item">
-                        <span>Troco:</span>
-                        <span>R$ ${formatarMoeda(vendaData.troco)}</span>
-                    </div>
-                    ` : ''}
-                </div>
-                
-                <div class="footer">
-                    <p>Obrigado pela preferência!</p>
-                    <p>Volte sempre!</p>
-                    <p>Este não é um documento fiscal</p>
-                    <button class="no-print" onclick="window.print()">Imprimir Recibo</button>
-                </div>
-            </div>
-        </body>
-        </html>
-    `;
-    
-    reciboWindow.document.write(reciboHTML);
-    reciboWindow.document.close();
-}
-
-async function salvarVenda() {
-    showMessage('Funcionalidade de salvar venda em desenvolvimento', 'info');
-}
-
-function confirmarCancelarVenda() {
-    if (carrinho.length === 0) {
-        limparVenda();
-        return;
-    }
-    
-    if (confirm('Deseja cancelar esta venda? Todos os itens serão removidos.')) {
-        limparVenda();
-        showMessage('Venda cancelada', 'info');
-    }
-}
-
-function limparVenda() {
-    carrinho = [];
-    clienteSelecionado = null;
-    descontoPercentual = 0;
-    formaPagamentoSelecionada = 'dinheiro';
-    
-    renderizarCarrinho();
-    calcularTotal();
-    atualizarClienteAtual();
-    atualizarDetalhesPagamento();
-    
-    inputBusca.value = '';
-    resultadosBusca.innerHTML = `
-        <div class="empty-state">
-            <i class="fas fa-search"></i>
-            <p>Digite para buscar produtos</p>
-            <small>ou pressione F2 para busca avançada</small>
-        </div>
-    `;
-    
-    inputBusca.focus();
-}
-
-function reiniciarVenda() {
-    gerarNumeroVenda();
-    limparVenda();
-}
-
-function gerarNumeroVenda() {
-    // Gerar número sequencial (na prática, buscar do banco)
-    const numeroAtual = parseInt(numeroVendaAtual) || 0;
-    const novoNumero = (numeroAtual + 1).toString().padStart(6, '0');
-    numeroVendaAtual = novoNumero;
-    numeroVenda.textContent = novoNumero;
+    return formas[codigo] || codigo;
 }
 
 // ============================================
-// 11. FUNÇÕES UTILITÁRIAS
+// 12. FUNÇÕES UTILITÁRIAS
 // ============================================
+function atualizarContadorProdutos() {
+    productCount.textContent = `${produtosFiltrados.length} produto${produtosFiltrados.length !== 1 ? 's' : ''}`;
+}
+
+function atualizarDataHora() {
+    const agora = new Date();
+    const horaFormatada = agora.toLocaleTimeString('pt-BR');
+    const dataFormatada = agora.toLocaleDateString('pt-BR');
+    
+    if (currentDateTimeElement) {
+        currentDateTimeElement.textContent = `${dataFormatada} ${horaFormatada}`;
+    }
+}
+
 function formatarMoeda(valor) {
     return parseFloat(valor).toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
@@ -1218,16 +684,20 @@ function formatarMoeda(valor) {
 }
 
 function abrirModal(modal) {
-    modal.style.display = 'flex';
+    if (modal) {
+        modal.style.display = 'flex';
+    }
 }
 
 function fecharModal(modal) {
-    modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
-function showLoading(mensagem) {
+function showLoading(mensagem = 'Carregando...') {
     const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingMessage = document.getElementById('loadingMessage');
+    const loadingMessage = loadingOverlay?.querySelector('h3');
     
     if (loadingOverlay && loadingMessage) {
         loadingMessage.textContent = mensagem;
@@ -1254,10 +724,10 @@ function showMessage(text, type = 'info', tempo = 5000) {
     messageAlert.style.display = 'block';
     messageAlert.style.animation = 'slideInRight 0.3s ease';
     
-    // Fechar ao clicar no X
-    const closeBtn = messageAlert.querySelector('.message-close');
-    if (closeBtn) {
-        closeBtn.onclick = function() {
+    // Fechar ao clicar no botão
+    const messageClose = messageAlert.querySelector('.message-close');
+    if (messageClose) {
+        messageClose.onclick = () => {
             messageAlert.style.display = 'none';
         };
     }
@@ -1265,39 +735,7 @@ function showMessage(text, type = 'info', tempo = 5000) {
     // Auto-fechar
     setTimeout(() => {
         if (messageAlert.style.display === 'block') {
-            messageAlert.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => {
-                messageAlert.style.display = 'none';
-            }, 300);
+            messageAlert.style.display = 'none';
         }
     }, tempo);
 }
-
-function atualizarMenuAtivo() {
-    // Atualizar menu ativo na sidebar
-    const menuItems = document.querySelectorAll('.sidebar-menu li');
-    menuItems.forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.page === 'venda') {
-            item.classList.add('active');
-        }
-    });
-    
-    // Atualizar título da página
-    const pageTitle = document.querySelector('.page-title h1');
-    if (pageTitle) {
-        pageTitle.textContent = 'Ponto de Venda';
-    }
-}
-
-// Exportar funções para debug (opcional)
-if (typeof window !== 'undefined') {
-    window.vendaDebug = {
-        carrinho: () => carrinho,
-        produtos: () => produtos,
-        cliente: () => clienteSelecionado,
-        reiniciar: reiniciarVenda
-    };
-}
-
-console.log('✅ Sistema de venda carregado e pronto!');
