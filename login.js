@@ -1,437 +1,699 @@
-// login.js - VERSÃO COMPLETA COM NOVA ESTRUTURA
-import { db, collection, getDocs, doc, getDoc } from './firebase_login.js';
+/* login.css - VERSÃO COMPLETA E ATUALIZADA */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-// Elementos DOM
-const lojaSelect = document.getElementById('loja');
-const usuarioInput = document.getElementById('usuario');
-const senhaInput = document.getElementById('senha');
-const togglePassword = document.getElementById('togglePassword');
-const btnLogin = document.getElementById('btnLogin');
-const loadingOverlay = document.getElementById('loading');
-const messageAlert = document.getElementById('message');
-const loadingMessage = document.getElementById('loadingMessage');
-const rememberMe = document.getElementById('rememberMe');
-const forgotPassword = document.getElementById('forgotPassword');
-const serverStatus = document.getElementById('serverStatus');
+:root {
+    --primary-color: #667eea;
+    --primary-dark: #5a67d8;
+    --secondary-color: #764ba2;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #3b82f6;
+    --light-color: #f8fafc;
+    --dark-color: #1e293b;
+    --gray-color: #64748b;
+    --gray-light: #e2e8f0;
+    --border-radius: 12px;
+    --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    --box-shadow-hover: 0 15px 35px rgba(0, 0, 0, 0.15);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-// ============================================
-// 1. INICIALIZAÇÃO DO SISTEMA
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 PDV Sistema - Iniciando login...');
-    
-    // Configurar eventos
-    configurarEventos();
-    
-    // Verificar se já está autenticado
-    if (localStorage.getItem('pdv_autenticado') === 'true') {
-        const usuario = JSON.parse(localStorage.getItem('pdv_usuario'));
-        const loja = localStorage.getItem('pdv_loja');
-        
-        if (usuario && loja) {
-            console.log(`✅ Usuário já autenticado: ${usuario.login}`);
-            window.location.href = `lojas/${loja}/home.html`;
-            return;
-        }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    line-height: 1.6;
+    color: var(--dark-color);
+}
+
+/* Login Container */
+.login-container {
+    width: 100%;
+    max-width: 480px;
+    animation: fadeIn 0.8s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
     }
-    
-    // Carregar dados salvos
-    carregarDadosSalvos();
-    
-    // Carregar lojas do Firebase
-    carregarLojas();
-});
-
-// ============================================
-// 2. CONFIGURAR EVENTOS
-// ============================================
-function configurarEventos() {
-    // Botão mostrar/ocultar senha
-    togglePassword.addEventListener('click', function() {
-        const type = senhaInput.getAttribute('type');
-        const isPassword = type === 'password';
-        
-        senhaInput.setAttribute('type', isPassword ? 'text' : 'password');
-        
-        const icon = this.querySelector('i');
-        if (isPassword) {
-            icon.className = 'fas fa-eye-slash';
-            this.title = "Ocultar senha";
-        } else {
-            icon.className = 'fas fa-eye';
-            this.title = "Mostrar senha";
-        }
-        
-        senhaInput.focus();
-    });
-    
-    // Evento de login com Enter
-    usuarioInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            senhaInput.focus();
-        }
-    });
-    
-    senhaInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            btnLogin.click();
-        }
-    });
-    
-    // Botão de login
-    btnLogin.addEventListener('click', fazerLogin);
-    
-    // Esqueceu senha
-    forgotPassword.addEventListener('click', function(e) {
-        e.preventDefault();
-        showMessage('Entre em contato com o administrador do sistema', 'info');
-    });
-    
-    // Fechar mensagem
-    const messageClose = document.querySelector('.message-close');
-    if (messageClose) {
-        messageClose.addEventListener('click', function() {
-            messageAlert.style.display = 'none';
-        });
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-// ============================================
-// 3. FUNÇÕES DE LOADING E MENSAGENS
-// ============================================
-function showLoading(mensagem = 'Processando...') {
-    loadingMessage.textContent = mensagem;
-    loadingOverlay.style.display = 'flex';
-    btnLogin.classList.add('loading');
-    btnLogin.disabled = true;
+/* Login Header */
+.login-header {
+    text-align: center;
+    color: white;
+    margin-bottom: 40px;
 }
 
-function hideLoading() {
-    loadingOverlay.style.display = 'none';
-    btnLogin.classList.remove('loading');
-    btnLogin.disabled = false;
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 15px;
 }
 
-function showMessage(text, type = 'info', tempo = 5000) {
-    const messageText = messageAlert.querySelector('.message-text');
-    messageText.textContent = text;
-    messageAlert.className = `message-alert ${type}`;
-    messageAlert.style.display = 'block';
+.logo i {
+    font-size: 3.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 50%;
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.version {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.system-description {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.5;
+}
+
+/* Login Card */
+.login-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 40px;
+    box-shadow: var(--box-shadow);
+    margin-bottom: 30px;
+    transition: var(--transition);
+}
+
+.login-card:hover {
+    box-shadow: var(--box-shadow-hover);
+}
+
+.card-header {
+    text-align: center;
+    margin-bottom: 35px;
+}
+
+.card-header h2 {
+    color: var(--dark-color);
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.card-header h2 i {
+    color: var(--primary-color);
+}
+
+.card-subtitle {
+    color: var(--gray-color);
+    font-size: 0.95rem;
+}
+
+/* Form Styles */
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: var(--dark-color);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.form-label i {
+    color: var(--primary-color);
+    width: 16px;
+}
+
+.required {
+    color: var(--danger-color);
+    font-size: 1.2rem;
+}
+
+.select-wrapper {
+    position: relative;
+}
+
+.form-control {
+    width: 100%;
+    padding: 16px 20px;
+    border: 2px solid var(--gray-light);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: var(--transition);
+    background: white;
+    color: var(--dark-color);
+    appearance: none;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+select.form-control {
+    padding-right: 50px;
+    cursor: pointer;
+}
+
+.select-icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-color);
+    pointer-events: none;
+    font-size: 0.9rem;
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-color);
+    font-size: 1rem;
+}
+
+.input-with-icon .form-control {
+    padding-left: 50px;
+}
+
+/* Password Container */
+.password-container {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--gray-color);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 8px;
+    transition: var(--transition);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-toggle:hover {
+    color: var(--primary-color);
+    background: var(--gray-light);
+}
+
+.password-toggle:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Form Hints */
+.form-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--gray-color);
+    margin-top: 8px;
+}
+
+.form-hint i {
+    font-size: 0.9rem;
+}
+
+/* Form Actions */
+.form-actions {
+    margin-top: 30px;
+}
+
+.btn-login {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    transition: opacity 0.3s ease;
+}
+
+.btn-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-login.loading .btn-content {
+    opacity: 0;
+}
+
+.btn-login.loading .btn-loading {
+    opacity: 1;
+}
+
+.btn-login:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-login:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-login:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top: 3px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Login Options */
+.login-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--gray-light);
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--gray-color);
+    user-select: none;
+}
+
+.remember-me input {
+    display: none;
+}
+
+.checkmark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--gray-light);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+
+.remember-me input:checked + .checkmark {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.remember-me input:checked + .checkmark::after {
+    content: '✓';
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.forgot-password {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition);
+}
+
+.forgot-password:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Login Footer */
+.login-footer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 1px solid var(--gray-light);
+}
+
+.security-info, .support-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.security-info i, .support-info i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    background: var(--gray-light);
+    padding: 12px;
+    border-radius: 50%;
+}
+
+.security-info h4, .support-info h4 {
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    color: var(--dark-color);
+}
+
+.security-info p, .support-info p {
+    font-size: 0.8rem;
+    color: var(--gray-color);
+}
+
+/* System Info */
+.system-info {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+}
+
+.info-item i {
+    font-size: 1rem;
+}
+
+/* Footer Bottom */
+.login-footer-bottom {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.copyright p {
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.build-info {
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(5px);
+}
+
+.loading-content {
+    text-align: center;
+    max-width: 400px;
+    padding: 40px;
+}
+
+.loading-spinner {
+    width: 80px;
+    height: 80px;
+    border: 5px solid rgba(255, 255, 255, 0.1);
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 30px;
+}
+
+#loadingMessage {
+    color: white;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.loading-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 20px;
+}
+
+/* Message Alert */
+.message-alert {
+    position: fixed;
+    top: 30px;
+    right: 30px;
+    max-width: 400px;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    display: none;
+    z-index: 1001;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.message-content {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    gap: 15px;
+    color: white;
+}
+
+.message-alert.success .message-content {
+    background: linear-gradient(135deg, var(--success-color), #1e824c);
+}
+
+.message-alert.error .message-content {
+    background: linear-gradient(135deg, var(--danger-color), #96281b);
+}
+
+.message-alert.warning .message-content {
+    background: linear-gradient(135deg, var(--warning-color), #d35400);
+}
+
+.message-alert.info .message-content {
+    background: linear-gradient(135deg, var(--info-color), #1f4788);
+}
+
+.message-icon {
+    font-size: 1.5rem;
+    width: 24px;
+}
+
+.message-alert.success .message-icon::before {
+    content: '✓';
+    font-weight: bold;
+}
+
+.message-alert.error .message-icon::before {
+    content: '✗';
+    font-weight: bold;
+}
+
+.message-alert.warning .message-icon::before {
+    content: '⚠';
+}
+
+.message-alert.info .message-icon::before {
+    content: 'ℹ';
+}
+
+.message-text {
+    flex: 1;
+    font-weight: 500;
+}
+
+.message-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.message-close:hover {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .login-container {
+        max-width: 100%;
+    }
     
-    // Auto-fechar
-    setTimeout(() => {
-        messageAlert.style.display = 'none';
-    }, tempo);
-}
-
-// ============================================
-// 4. CARREGAR LOJAS DA COLEÇÃO "lojas"
-// ============================================
-async function carregarLojas() {
-    try {
-        showLoading('Carregando lojas disponíveis...');
-        
-        // Buscar todas as lojas ativas da coleção "lojas"
-        const lojasRef = collection(db, "lojas");
-        const querySnapshot = await getDocs(lojasRef);
-        
-        // Limpar options existentes
-        while (lojaSelect.options.length > 0) {
-            lojaSelect.remove(0);
-        }
-        
-        // Adicionar opção padrão
-        const defaultOption = document.createElement('option');
-        defaultOption.value = "";
-        defaultOption.textContent = "Selecione sua loja";
-        defaultOption.disabled = true;
-        defaultOption.selected = true;
-        lojaSelect.appendChild(defaultOption);
-        
-        // Array para armazenar lojas válidas
-        const lojasValidas = [];
-        
-        querySnapshot.forEach((doc) => {
-            const lojaId = doc.id;
-            const dadosLoja = doc.data();
-            
-            // Verificar se a loja está ativa
-            if (!dadosLoja.ativo) {
-                console.log(`⚠️ Loja ${lojaId} está inativa`);
-                return;
-            }
-            
-            // Verificar se tem o campo banco_login
-            if (!dadosLoja.banco_login) {
-                console.log(`⚠️ Loja ${lojaId} não tem banco_login configurado`);
-                return;
-            }
-            
-            // Adicionar à lista de lojas válidas
-            lojasValidas.push({
-                id: lojaId, // ID do documento (ex: "loja1")
-                banco_login: dadosLoja.banco_login, // ID para coleção logins (ex: "mj-materiais-construcao")
-                nome: dadosLoja.nome || `Loja ${lojaId}`, // Nome real da loja
-                local: dadosLoja.local || '',
-                telefone: dadosLoja.contato?.telefone || ''
-            });
-        });
-        
-        // Ordenar lojas por nome
-        lojasValidas.sort((a, b) => a.nome.localeCompare(b.nome));
-        
-        // Adicionar lojas ao select
-        lojasValidas.forEach(loja => {
-            const option = document.createElement('option');
-            option.value = loja.banco_login; // Usar banco_login como valor
-            option.textContent = loja.nome;
-            option.dataset.id = loja.id; // Guardar ID do documento
-            option.dataset.local = loja.local;
-            lojaSelect.appendChild(option);
-        });
-        
-        hideLoading();
-        
-        if (lojasValidas.length === 0) {
-            showMessage('Nenhuma loja disponível no momento', 'warning');
-            lojaSelect.disabled = true;
-        } else {
-            // Selecionar primeira loja se houver apenas uma
-            if (lojasValidas.length === 1) {
-                lojaSelect.selectedIndex = 1;
-            }
-            
-            showMessage(`${lojasValidas.length} loja(s) carregada(s)`, 'success', 3000);
-            console.log(`📊 Lojas carregadas:`, lojasValidas);
-        }
-        
-    } catch (error) {
-        hideLoading();
-        console.error('❌ Erro ao carregar lojas:', error);
-        
-        // Opção de fallback
-        const errorOption = document.createElement('option');
-        errorOption.value = "";
-        errorOption.textContent = "Erro ao carregar lojas";
-        errorOption.disabled = true;
-        lojaSelect.innerHTML = '';
-        lojaSelect.appendChild(errorOption);
-        lojaSelect.disabled = true;
-        
-        showMessage('Erro ao carregar lista de lojas', 'error');
-    }
-}
-
-// ============================================
-// 5. VALIDAÇÃO DE LOGIN (usando coleção "logins")
-// ============================================
-async function validarLogin(banco_login, usuario, senha) {
-    try {
-        // Acessar coleção "logins" usando o banco_login
-        const loginRef = doc(db, "logins", banco_login);
-        const loginDoc = await getDoc(loginRef);
-        
-        if (!loginDoc.exists()) {
-            return { 
-                success: false, 
-                message: "Credenciais de acesso não encontradas" 
-            };
-        }
-        
-        const dadosLogin = loginDoc.data();
-        
-        // Buscar usuário pelo login
-        let usuarioData = null;
-        for (const [key, userData] of Object.entries(dadosLogin)) {
-            if (userData.login === usuario) {
-                usuarioData = userData;
-                break;
-            }
-        }
-        
-        if (!usuarioData) {
-            return { success: false, message: "Usuário não encontrado" };
-        }
-        
-        // Verificar senha
-        if (usuarioData.senha !== senha) {
-            return { success: false, message: "Senha incorreta" };
-        }
-        
-        // Verificar se usuário está ativo
-        if (!usuarioData.ativo) {
-            return { success: false, message: "Usuário inativo" };
-        }
-        
-        // Verificar validade da conta
-        if (usuarioData.data_validade) {
-            const dataValidade = usuarioData.data_validade.toDate();
-            const agora = new Date();
-            
-            if (dataValidade < agora) {
-                return { success: false, message: "Conta expirada" };
-            }
-        }
-        
-        // Buscar informações da loja na coleção "lojas"
-        const lojaNome = await buscarNomeLojaPorBancoLogin(banco_login);
-        
-        // Login bem-sucedido
-        return { 
-            success: true, 
-            usuario: {
-                login: usuario,
-                perfil: usuarioData.perfil,
-                loja: banco_login, // Usar banco_login para redirecionamento
-                loja_nome: lojaNome || banco_login,
-                nomeCompleto: usuarioData.nomeCompleto || usuario,
-                acessoTotal: false,
-                data_validade: usuarioData.data_validade || null
-            }
-        };
-        
-    } catch (error) {
-        console.error("❌ Erro ao validar login:", error);
-        return { 
-            success: false, 
-            message: "Erro de conexão com o servidor" 
-        };
-    }
-}
-
-// ============================================
-// 6. BUSCAR NOME DA LOJA NA COLEÇÃO "lojas"
-// ============================================
-async function buscarNomeLojaPorBancoLogin(banco_login) {
-    try {
-        // Buscar na coleção "lojas" onde banco_login = banco_login
-        const lojasRef = collection(db, "lojas");
-        const querySnapshot = await getDocs(lojasRef);
-        
-        for (const doc of querySnapshot.docs) {
-            const dadosLoja = doc.data();
-            if (dadosLoja.banco_login === banco_login) {
-                return dadosLoja.nome;
-            }
-        }
-        
-        return null;
-        
-    } catch (error) {
-        console.error("Erro ao buscar nome da loja:", error);
-        return null;
-    }
-}
-
-// ============================================
-// 7. PROCESSO DE LOGIN
-// ============================================
-async function fazerLogin() {
-    const banco_login = lojaSelect.value;
-    const usuario = usuarioInput.value.trim();
-    const senha = senhaInput.value.trim();
-    
-    // Validações
-    if (!banco_login) {
-        showMessage("Selecione uma loja", "warning");
-        lojaSelect.focus();
-        return;
+    .login-card {
+        padding: 30px 25px;
     }
     
-    if (!usuario) {
-        showMessage("Digite o usuário", "warning");
-        usuarioInput.focus();
-        return;
+    .logo {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
     }
     
-    if (!senha) {
-        showMessage("Digite a senha", "warning");
-        senhaInput.focus();
-        return;
+    .logo h1 {
+        font-size: 2rem;
     }
     
-    // Mostrar loading
-    showLoading('Validando credenciais...');
+    .system-info {
+        gap: 20px;
+    }
     
-    try {
-        // Validar login
-        const resultado = await validarLogin(banco_login, usuario, senha);
-        
-        if (resultado.success) {
-            // Salvar dados do usuário
-            const usuarioData = resultado.usuario;
-            localStorage.setItem('pdv_usuario', JSON.stringify(usuarioData));
-            localStorage.setItem('pdv_autenticado', 'true');
-            localStorage.setItem('pdv_loja', banco_login);
-            localStorage.setItem('pdv_loja_nome', usuarioData.loja_nome);
-            localStorage.setItem('pdv_login_time', new Date().getTime());
-            
-            // Salvar usuário se "lembrar" estiver marcado
-            if (rememberMe.checked) {
-                localStorage.setItem('pdv_last_user', usuario);
-            } else {
-                localStorage.removeItem('pdv_last_user');
-            }
-            
-            // Registrar log de acesso
-            console.log(`✅ Login realizado: ${usuario} na loja ${usuarioData.loja_nome}`);
-            
-            // Mostrar mensagem de sucesso
-            showMessage(`Bem-vindo(a) à ${usuarioData.loja_nome}!`, 'success');
-            
-            // Redirecionar após delay
-            setTimeout(() => {
-                window.location.href = `lojas/${banco_login}/home.html`;
-            }, 1500);
-            
-        } else {
-            hideLoading();
-            showMessage(resultado.message, "error");
-            
-            // Limpar senha e focar
-            senhaInput.value = '';
-            senhaInput.focus();
-            
-            console.log(`❌ Tentativa de login falhou: ${usuario}`);
-        }
-        
-    } catch (error) {
-        hideLoading();
-        showMessage("Erro ao conectar com o servidor", "error");
-        console.error("❌ Erro no processo de login:", error);
+    .login-footer {
+        grid-template-columns: 1fr;
+        gap: 25px;
+    }
+    
+    .message-alert {
+        left: 20px;
+        right: 20px;
+        max-width: none;
     }
 }
 
-// ============================================
-// 8. FUNÇÕES AUXILIARES
-// ============================================
-function carregarDadosSalvos() {
-    const lastUser = localStorage.getItem('pdv_last_user');
-    if (lastUser) {
-        usuarioInput.value = lastUser;
-        rememberMe.checked = true;
+@media (max-width: 480px) {
+    body {
+        padding: 15px;
+    }
+    
+    .login-card {
+        padding: 25px 20px;
+    }
+    
+    .card-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .form-control {
+        padding: 14px 16px;
+    }
+    
+    .input-with-icon .form-control {
+        padding-left: 45px;
+    }
+    
+    .input-icon {
+        left: 16px;
+    }
+    
+    .login-options {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
     }
 }
 
-// ============================================
-// 9. TESTE DE CONEXÃO
-// ============================================
-async function testarConexaoServidor() {
-    try {
-        // Testar conexão com Firebase
-        const lojasRef = collection(db, "lojas");
-        await getDocs(lojasRef);
-        
-        // Atualizar status
-        serverStatus.innerHTML = '<i class="fas fa-circle online"></i> Online';
-        console.log('✅ Conexão com Firebase estabelecida');
-        
-    } catch (error) {
-        serverStatus.innerHTML = '<i class="fas fa-circle offline"></i> Offline';
-        console.warn('⚠️ Conexão com Firebase interrompida');
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }
-
-// Iniciar teste de conexão
-testarConexaoServidor();
