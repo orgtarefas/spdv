@@ -1,13 +1,15 @@
-// home.js - Sistema Home MJ Materiais de Construção
+// home.js - SISTEMA HOME MJ MATERIAIS DE CONSTRUÇÃO
 console.log("🏠 Sistema Home MJ - Iniciando...");
 
 // ============================================
-// CONFIGURAÇÃO FIREBASE
+// CONFIGURAÇÃO FIREBASE (Versão 8.10.1)
 // ============================================
 let db;
 
+// Inicializar Firebase
 function inicializarFirebase() {
     try {
+        // Configuração do seu projeto
         const firebaseConfig = {
             apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
             authDomain: "spdv-3872a.firebaseapp.com",
@@ -17,16 +19,24 @@ function inicializarFirebase() {
             appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
         };
         
+        // Inicializar Firebase (versão 8.10.1)
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
+        } else {
+            firebase.app(); // Se já inicializado, usar o existente
         }
         
+        // Obter Firestore
         db = firebase.firestore();
         console.log("✅ Firebase inicializado com sucesso!");
+        
+        // Atualizar status de conexão
+        atualizarStatusConexao(true);
         return true;
         
     } catch (error) {
         console.error("❌ Erro ao inicializar Firebase:", error);
+        atualizarStatusConexao(false);
         return false;
     }
 }
@@ -190,61 +200,36 @@ function configurarEventos() {
 // ============================================
 async function carregarProdutos() {
     try {
-        const querySnapshot = await db.collection('estoque_mj_construcoes')
-            .where('ativo', '==', true)
-            .get();
+        // Buscar todos os produtos ativos
+        const querySnapshot = await db.collection('estoque_mj_construcoes').get();
         
         produtos = [];
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            produtos.push({
-                id: doc.id,
-                codigo: data.codigo || doc.id,
-                nome: data.nome || 'Produto sem nome',
-                preco: parseFloat(data.preco) || 0,
-                quantidade: parseInt(data.quantidade) || 0,
-                categoria: data.categoria || '',
-                unidade: data.unidade || 'UN',
-                estoque_minimo: parseInt(data.estoque_minimo) || 5,
-                descricao: data.descricao || '',
-                fornecedor: data.fornecedor || ''
-            });
+            
+            // Filtrar localmente os que estão ativos
+            if (data.ativo !== false) {
+                produtos.push({
+                    id: doc.id,
+                    codigo: data.codigo || doc.id,
+                    nome: data.nome || 'Produto sem nome',
+                    preco: parseFloat(data.preco) || 0,
+                    quantidade: parseInt(data.quantidade) || 0,
+                    categoria: data.categoria || '',
+                    unidade: data.unidade || 'UN',
+                    estoque_minimo: parseInt(data.estoque_minimo) || 5,
+                    descricao: data.descricao || '',
+                    fornecedor: data.fornecedor || ''
+                });
+            }
         });
         
         console.log(`✅ ${produtos.length} produtos carregados para consulta`);
         
     } catch (error) {
         console.error("❌ Erro ao carregar produtos:", error);
-        
-        // Tentar sem filtro
-        try {
-            const querySnapshot = await db.collection('estoque_mj_construcoes').get();
-            produtos = [];
-            
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.ativo !== false) {
-                    produtos.push({
-                        id: doc.id,
-                        codigo: data.codigo || doc.id,
-                        nome: data.nome || 'Produto sem nome',
-                        preco: parseFloat(data.preco) || 0,
-                        quantidade: parseInt(data.quantidade) || 0,
-                        categoria: data.categoria || '',
-                        unidade: data.unidade || 'UN',
-                        estoque_minimo: parseInt(data.estoque_minimo) || 5,
-                        descricao: data.descricao || '',
-                        fornecedor: data.fornecedor || ''
-                    });
-                }
-            });
-            
-            console.log(`🔄 ${produtos.length} produtos carregados (modo compatibilidade)`);
-            
-        } catch (error2) {
-            console.error("❌ Erro crítico ao carregar produtos:", error2);
-        }
+        mostrarMensagem("Erro ao carregar produtos", "error");
     }
 }
 
@@ -350,7 +335,8 @@ function buscarProdutoConsultaRapida(termo) {
     searchResults.innerHTML = html;
 }
 
-function verDetalhesProduto(produtoId) {
+// Funções globais para os botões do modal
+window.verDetalhesProduto = function(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
     if (!produto) return;
     
@@ -369,9 +355,9 @@ function verDetalhesProduto(produtoId) {
         `${produto.descricao ? `Descrição: ${produto.descricao}\n` : ''}` +
         `${produto.fornecedor ? `Fornecedor: ${produto.fornecedor}\n` : ''}`
     );
-}
+};
 
-function irParaVendaComProduto(produtoId) {
+window.irParaVendaComProduto = function(produtoId) {
     // Salvar o produto selecionado para a página de vendas
     sessionStorage.setItem('produto_selecionado_venda', produtoId);
     
@@ -383,7 +369,7 @@ function irParaVendaComProduto(produtoId) {
     
     // Ir para página de vendas
     window.location.href = 'venda.html';
-}
+};
 
 // ============================================
 // 7. CARREGAR ESTATÍSTICAS
@@ -394,15 +380,23 @@ async function carregarEstatisticas() {
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
         
+        // Buscar vendas de hoje (sem filtro de data para simplificar)
         const querySnapshot = await db.collection('vendas_mj_construcoes')
-            .where('data_venda', '>=', hoje)
             .where('status', '==', 'concluida')
             .get();
         
         let totalVendas = 0;
+        let vendasHojeCount = 0;
+        
         querySnapshot.forEach(doc => {
             const data = doc.data();
-            totalVendas += parseFloat(data.total) || 0;
+            const dataVenda = data.data_venda?.toDate() || new Date();
+            
+            // Verificar se é hoje
+            if (dataVenda.toDateString() === hoje.toDateString()) {
+                totalVendas += parseFloat(data.total) || 0;
+                vendasHojeCount++;
+            }
         });
         
         // Atualizar elementos
@@ -413,28 +407,20 @@ async function carregarEstatisticas() {
             vendasHojeElement.textContent = `R$ ${formatarMoeda(totalVendas)}`;
         }
         if (quantidadeVendasElement) {
-            quantidadeVendasElement.textContent = `${querySnapshot.size} venda${querySnapshot.size !== 1 ? 's' : ''}`;
+            quantidadeVendasElement.textContent = `${vendasHojeCount} venda${vendasHojeCount !== 1 ? 's' : ''}`;
         }
         
         // Total de produtos em estoque
-        const produtosQuery = await db.collection('estoque_mj_construcoes')
-            .where('ativo', '==', true)
-            .get();
-        
         let totalProdutos = 0;
         let produtosBaixoEstoque = 0;
         let valorTotalEstoque = 0;
         
-        produtosQuery.forEach(doc => {
-            const data = doc.data();
-            const quantidade = parseInt(data.quantidade) || 0;
-            const precoCusto = parseFloat(data.preco_custo) || 0;
-            
-            if (quantidade > 0) {
+        produtos.forEach(produto => {
+            if (produto.quantidade > 0) {
                 totalProdutos++;
-                valorTotalEstoque += precoCusto * quantidade;
+                valorTotalEstoque += (produto.preco || 0) * produto.quantidade;
                 
-                if (quantidade <= (parseInt(data.estoque_minimo) || 5)) {
+                if (produto.quantidade <= produto.estoque_minimo) {
                     produtosBaixoEstoque++;
                 }
             }
@@ -452,13 +438,13 @@ async function carregarEstatisticas() {
         // Meta do mês (exemplo fixo)
         const metaMensal = 50000; // R$ 50.000,00
         const percentual = Math.min(Math.round((totalVendas / metaMensal) * 100), 100);
-        const restante = metaMensal - totalVendas;
+        const restante = Math.max(metaMensal - totalVendas, 0);
         
         const metaPercentualElement = document.getElementById('metaPercentual');
         const metaRestanteElement = document.getElementById('metaRestante');
         
         if (metaPercentualElement) metaPercentualElement.textContent = `${percentual}%`;
-        if (metaRestanteElement) metaRestanteElement.textContent = `R$ ${formatarMoeda(Math.max(restante, 0))}`;
+        if (metaRestanteElement) metaRestanteElement.textContent = `R$ ${formatarMoeda(restante)}`;
         
     } catch (error) {
         console.error("❌ Erro ao carregar estatísticas:", error);
@@ -556,6 +542,28 @@ function atualizarDataHora() {
     elemento.textContent = dataFormatada;
 }
 
+function atualizarStatusConexao(conectado) {
+    const statusElement = document.getElementById('connectionStatus');
+    if (!statusElement) return;
+    
+    const statusText = statusElement.querySelector('#statusText') || statusElement;
+    const icon = statusElement.querySelector('i');
+    
+    if (conectado) {
+        if (statusText.textContent) statusText.textContent = 'Conectado ao Firebase';
+        if (icon) {
+            icon.className = 'fas fa-circle';
+            icon.style.color = '#27ae60';
+        }
+    } else {
+        if (statusText.textContent) statusText.textContent = 'Desconectado';
+        if (icon) {
+            icon.className = 'fas fa-circle';
+            icon.style.color = '#e74c3c';
+        }
+    }
+}
+
 function mostrarLoading(mensagem) {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
@@ -618,12 +626,75 @@ function mostrarErro(texto) {
 }
 
 // ============================================
-// 10. ADICIONAR ESTILOS DINÂMICOS PARA O MODAL
+// 10. ADICIONAR ESTILOS DINÂMICOS
 // ============================================
-(function adicionarEstilosModal() {
-    const estiloModal = document.createElement('style');
-    estiloModal.textContent = `
+(function adicionarEstilos() {
+    const estilo = document.createElement('style');
+    estilo.textContent = `
         /* Estilos para o modal de consulta rápida */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #FF9800, #E65100);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .modal-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
         .search-box {
             position: relative;
             margin-bottom: 1.5rem;
@@ -639,8 +710,8 @@ function mostrarErro(texto) {
         
         .search-box input {
             width: 100%;
-            padding: 0.75rem 1rem 0.75rem 3rem;
-            border: 2px solid #3498db;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 1rem;
             transition: all 0.3s;
@@ -648,8 +719,8 @@ function mostrarErro(texto) {
         
         .search-box input:focus {
             outline: none;
-            border-color: #2980b9;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+            border-color: #FF9800;
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);
         }
         
         .search-results {
@@ -657,6 +728,7 @@ function mostrarErro(texto) {
             overflow-y: auto;
             border-radius: 8px;
             background: #f8f9fa;
+            border: 1px solid #eee;
         }
         
         .empty-results {
@@ -685,8 +757,8 @@ function mostrarErro(texto) {
         }
         
         .product-result:hover {
-            border-color: #3498db;
-            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+            border-color: #FF9800;
+            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
         }
         
         .product-result-header {
@@ -700,10 +772,13 @@ function mostrarErro(texto) {
             font-weight: 600;
             color: #2c3e50;
             font-size: 0.9rem;
+            background: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
         }
         
         .product-stock {
-            padding: 0.25rem 0.5rem;
+            padding: 0.25rem 0.75rem;
             border-radius: 12px;
             font-size: 0.85rem;
             font-weight: 600;
@@ -806,6 +881,12 @@ function mostrarErro(texto) {
             border-radius: 8px;
             margin-bottom: 0.75rem;
             border-left: 4px solid #3498db;
+            transition: all 0.2s;
+        }
+        
+        .activity-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
         }
         
         .activity-icon {
@@ -845,8 +926,89 @@ function mostrarErro(texto) {
             font-weight: 600;
             color: #27ae60;
         }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Message alert */
+        .message-alert {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 400px;
+            z-index: 3000;
+        }
+        
+        .message-content {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .message-alert.success .message-icon {
+            color: #27ae60;
+        }
+        
+        .message-alert.error .message-icon {
+            color: #e74c3c;
+        }
+        
+        .message-alert.warning .message-icon {
+            color: #f39c12;
+        }
+        
+        .message-alert.info .message-icon {
+            color: #3498db;
+        }
+        
+        .message-text {
+            flex: 1;
+        }
+        
+        .message-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
     `;
-    document.head.appendChild(estiloModal);
+    document.head.appendChild(estilo);
 })();
 
 console.log("✅ Sistema home completamente carregado!");
