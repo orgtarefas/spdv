@@ -1,22 +1,34 @@
-// home.js - SISTEMA HOME MJ MATERIAIS DE CONSTRUÇÃO
-console.log("🏠 Sistema Home MJ - Iniciando...");
+// home.js - SISTEMA HOME PDV MULTILOJA
+console.log("🏠 Sistema PDV - Página Inicial");
 
 // ============================================
 // CONFIGURAÇÃO FIREBASE (Versão 8.10.1)
 // ============================================
 let db;
+let configLoja = null;
 
-// Inicializar Firebase
+// Inicializar Firebase com configuração da loja
 function inicializarFirebase() {
     try {
-        // Configuração do seu projeto
+        // Buscar configuração da loja do localStorage
+        const configString = localStorage.getItem('config_loja_pdv');
+        
+        if (!configString) {
+            mostrarErro("Configuração da loja não encontrada!");
+            return false;
+        }
+        
+        configLoja = JSON.parse(configString);
+        console.log("📋 Configuração da loja carregada:", configLoja.nome || "Loja");
+        
+        // Usar configuração do Firebase da loja
         const firebaseConfig = {
-            apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
-            authDomain: "spdv-3872a.firebaseapp.com",
-            projectId: "spdv-3872a",
-            storageBucket: "spdv-3872a.firebasestorage.app",
-            messagingSenderId: "552499245950",
-            appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
+            apiKey: configLoja.firebase_apiKey || "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
+            authDomain: configLoja.firebase_authDomain || "spdv-3872a.firebaseapp.com",
+            projectId: configLoja.firebase_projectId || "spdv-3872a",
+            storageBucket: configLoja.firebase_storageBucket || "spdv-3872a.firebasestorage.app",
+            messagingSenderId: configLoja.firebase_messagingSenderId || "552499245950",
+            appId: configLoja.firebase_appId || "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
         };
         
         // Inicializar Firebase (versão 8.10.1)
@@ -32,6 +44,10 @@ function inicializarFirebase() {
         
         // Atualizar status de conexão
         atualizarStatusConexao(true);
+        
+        // Atualizar nome da loja na interface
+        atualizarNomeLoja();
+        
         return true;
         
     } catch (error) {
@@ -63,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Inicializar Firebase
+    // Inicializar Firebase com configuração da loja
     if (!inicializarFirebase()) {
         mostrarErro("Não foi possível conectar ao banco de dados.");
         return;
@@ -92,7 +108,6 @@ function verificarSessao() {
     if (!sessao) {
         alert("⚠️ Sessão expirada! Faça login novamente.");
         setTimeout(function() {
-            // CORREÇÃO: Caminho correto para login
             window.location.href = '../../login.html';
         }, 1000);
         return false;
@@ -114,7 +129,6 @@ function verificarSessao() {
         console.error("❌ Erro na sessão:", error);
         alert("Erro na sessão. Faça login novamente.");
         setTimeout(function() {
-            // CORREÇÃO: Caminho correto para login
             window.location.href = '../../login.html';
         }, 1000);
         return false;
@@ -151,13 +165,11 @@ function configurarEventos() {
             if (confirm("Deseja sair do sistema?")) {
                 sessionStorage.removeItem('pdv_sessao_temporaria');
                 localStorage.removeItem('pdv_sessao_backup');
-                // CORREÇÃO: Caminho correto para login
                 window.location.href = '../../login.html';
             }
         });
     }
     
-    // Resto do código permanece igual...
     // Botão consulta rápida
     const btnConsultaRapida = document.getElementById('btnConsultaRapida');
     if (btnConsultaRapida) {
@@ -169,6 +181,14 @@ function configurarEventos() {
     if (btnRelatorio) {
         btnRelatorio.addEventListener('click', function() {
             mostrarMensagem("Relatórios em desenvolvimento", "info");
+        });
+    }
+    
+    // Botão configurações
+    const btnConfig = document.getElementById('btnConfig');
+    if (btnConfig) {
+        btnConfig.addEventListener('click', function() {
+            mostrarMensagem("Configurações em desenvolvimento", "info");
         });
     }
     
@@ -204,8 +224,13 @@ function configurarEventos() {
 // ============================================
 async function carregarProdutos() {
     try {
+        if (!db) return;
+        
+        // Usar coleção da loja configurada
+        const colecao = configLoja?.colecao_estoque || 'estoque_pdv';
+        
         // Buscar todos os produtos ativos
-        const querySnapshot = await db.collection('estoque_mj_construcoes').get();
+        const querySnapshot = await db.collection(colecao).get();
         
         produtos = [];
         
@@ -380,12 +405,17 @@ window.irParaVendaComProduto = function(produtoId) {
 // ============================================
 async function carregarEstatisticas() {
     try {
+        if (!db) return;
+        
+        // Usar coleção da loja configurada
+        const colecaoVendas = configLoja?.colecao_vendas || 'vendas_pdv';
+        
         // Vendas de hoje
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
         
         // Buscar vendas de hoje (sem filtro de data para simplificar)
-        const querySnapshot = await db.collection('vendas_mj_construcoes')
+        const querySnapshot = await db.collection(colecaoVendas)
             .where('status', '==', 'concluida')
             .get();
         
@@ -440,7 +470,7 @@ async function carregarEstatisticas() {
         if (valorEstoqueElement) valorEstoqueElement.textContent = `R$ ${formatarMoeda(valorTotalEstoque)}`;
         
         // Meta do mês (exemplo fixo)
-        const metaMensal = 50000; // R$ 50.000,00
+        const metaMensal = configLoja?.meta_mensal || 50000;
         const percentual = Math.min(Math.round((totalVendas / metaMensal) * 100), 100);
         const restante = Math.max(metaMensal - totalVendas, 0);
         
@@ -460,11 +490,16 @@ async function carregarEstatisticas() {
 // ============================================
 async function carregarAtividadesRecentes() {
     try {
+        if (!db) return;
+        
         const activityList = document.getElementById('activityList');
         if (!activityList) return;
         
+        // Usar coleção da loja configurada
+        const colecaoVendas = configLoja?.colecao_vendas || 'vendas_pdv';
+        
         // Buscar últimas 5 vendas
-        const querySnapshot = await db.collection('vendas_mj_construcoes')
+        const querySnapshot = await db.collection(colecaoVendas)
             .orderBy('data_venda', 'desc')
             .limit(5)
             .get();
@@ -568,6 +603,22 @@ function atualizarStatusConexao(conectado) {
     }
 }
 
+function atualizarNomeLoja() {
+    if (!configLoja) return;
+    
+    // Atualizar título da página
+    const pageTitle = document.querySelector('title');
+    if (pageTitle && configLoja.nome) {
+        pageTitle.textContent = `PDV - ${configLoja.nome}`;
+    }
+    
+    // Atualizar nome na interface se houver elemento
+    const lojaNameElement = document.getElementById('lojaName');
+    if (lojaNameElement && configLoja.nome) {
+        lojaNameElement.textContent = configLoja.nome;
+    }
+}
+
 function mostrarLoading(mensagem) {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
@@ -665,7 +716,7 @@ function mostrarErro(texto) {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, #FF9800, #E65100);
+            background: linear-gradient(135deg, #3498db, #2980b9);
             color: white;
             border-radius: 12px 12px 0 0;
         }
@@ -723,8 +774,8 @@ function mostrarErro(texto) {
         
         .search-box input:focus {
             outline: none;
-            border-color: #FF9800;
-            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
         }
         
         .search-results {
@@ -761,8 +812,8 @@ function mostrarErro(texto) {
         }
         
         .product-result:hover {
-            border-color: #FF9800;
-            box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);
+            border-color: #3498db;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
         }
         
         .product-result-header {
@@ -1016,4 +1067,3 @@ function mostrarErro(texto) {
 })();
 
 console.log("✅ Sistema home completamente carregado!");
-
