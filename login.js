@@ -1,4 +1,4 @@
-// login.js - VERSÃO COM ACESSO ADMIN PARA TODAS AS LOJAS
+// login.js - VERSÃO COM ACESSO ADMIN PARA TODAS AS LOJAS E CONFIGURAÇÃO DINÂMICA
 import { db, collection, getDocs, doc, getDoc } from './firebase_login.js';
 
 // Elementos DOM
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Carregar dados salvos do último usuário (apenas para conveniência)
     carregarUltimoUsuario();
     
-    // Carregar lojas do Firebase
+    // Carregar lojas do arquivo lojas.js ou do Firebase
     await carregarLojas();
 });
 
@@ -123,13 +123,92 @@ function showMessage(text, type = 'info', tempo = 5000) {
 }
 
 // ============================================
-// 4. CARREGAR LOJAS DA COLEÇÃO "lojas"
+// 4. CARREGAR LOJAS DINÂMICAMENTE
 // ============================================
 async function carregarLojas() {
     try {
         showLoading('Carregando lojas disponíveis...');
         
-        // Buscar todas as lojas ativas da coleção "lojas"
+        // Tentar carregar do arquivo lojas.js primeiro
+        if (typeof LOJAS_CONFIG !== 'undefined') {
+            console.log('📋 Carregando lojas do arquivo lojas.js');
+            carregarLojasDoArquivo();
+        } else {
+            console.log('📋 Carregando lojas do Firebase como fallback');
+            await carregarLojasDoFirebase();
+        }
+        
+        hideLoading();
+        
+    } catch (error) {
+        hideLoading();
+        console.error('❌ Erro ao carregar lojas:', error);
+        
+        // Opção de fallback
+        const errorOption = document.createElement('option');
+        errorOption.value = "";
+        errorOption.textContent = "Erro ao carregar lojas";
+        errorOption.disabled = true;
+        lojaSelect.innerHTML = '';
+        lojaSelect.appendChild(errorOption);
+        lojaSelect.disabled = true;
+        
+        showMessage('Erro ao carregar lista de lojas', 'error');
+    }
+}
+
+function carregarLojasDoArquivo() {
+    // Limpar options existentes
+    while (lojaSelect.options.length > 0) {
+        lojaSelect.remove(0);
+    }
+    
+    // Adicionar opção padrão
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.textContent = "Selecione sua loja";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    lojaSelect.appendChild(defaultOption);
+    
+    // Ordenar lojas por nome
+    const lojasOrdenadas = Object.entries(LOJAS_CONFIG)
+        .map(([id, config]) => ({
+            id: id,
+            banco_login: id, // O ID da loja é o mesmo que banco_login
+            nome: config.nome,
+            banco_estoque: config.banco_estoque,
+            banco_vendas: config.banco_vendas
+        }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+    
+    // Adicionar lojas ao select
+    lojasOrdenadas.forEach(loja => {
+        const option = document.createElement('option');
+        option.value = loja.banco_login; // Usar o ID da loja como valor
+        option.textContent = loja.nome;
+        option.dataset.id = loja.id;
+        option.dataset.banco_estoque = loja.banco_estoque;
+        option.dataset.banco_vendas = loja.banco_vendas;
+        lojaSelect.appendChild(option);
+    });
+    
+    if (lojasOrdenadas.length === 0) {
+        showMessage('Nenhuma loja configurada no sistema', 'warning');
+        lojaSelect.disabled = true;
+    } else {
+        // Selecionar primeira loja se houver apenas uma
+        if (lojasOrdenadas.length === 1) {
+            lojaSelect.selectedIndex = 1;
+        }
+        
+        console.log(`📊 Lojas carregadas do arquivo:`, lojasOrdenadas);
+    }
+}
+
+async function carregarLojasDoFirebase() {
+    try {
+        // Buscar todas as lojas ativas da coleção "lojas" (fallback)
         const lojasRef = collection(db, "lojas");
         const querySnapshot = await getDocs(lojasRef);
         
@@ -159,20 +238,13 @@ async function carregarLojas() {
                 return;
             }
             
-            // Verificar se tem o campo banco_login
-            if (!dadosLoja.banco_login) {
-                console.log(`⚠️ Loja ${lojaId} não tem banco_login configurado`);
-                return;
-            }
-            
             // Adicionar à lista de lojas válidas
             lojasValidas.push({
-                id: lojaId, // ID do documento (ex: "loja1")
-                banco_login: dadosLoja.banco_login, // ID para coleção logins
+                id: lojaId,
+                banco_login: dadosLoja.banco_login || lojaId,
                 nome: dadosLoja.nome || `Loja ${lojaId}`,
-                local: dadosLoja.local || '',
-                telefone: dadosLoja.contato?.telefone ? 
-                    String(dadosLoja.contato.telefone) : ''
+                banco_estoque: dadosLoja.banco_estoque || `estoque_${lojaId.replace(/-/g, '_')}`,
+                banco_vendas: dadosLoja.banco_vendas || `vendas_${lojaId.replace(/-/g, '_')}`
             });
         });
         
@@ -182,14 +254,13 @@ async function carregarLojas() {
         // Adicionar lojas ao select
         lojasValidas.forEach(loja => {
             const option = document.createElement('option');
-            option.value = loja.banco_login; // Usar banco_login como valor
+            option.value = loja.banco_login;
             option.textContent = loja.nome;
-            option.dataset.id = loja.id; // Guardar ID do documento
-            option.dataset.local = loja.local;
+            option.dataset.id = loja.id;
+            option.dataset.banco_estoque = loja.banco_estoque;
+            option.dataset.banco_vendas = loja.banco_vendas;
             lojaSelect.appendChild(option);
         });
-        
-        hideLoading();
         
         if (lojasValidas.length === 0) {
             showMessage('Nenhuma loja disponível no momento', 'warning');
@@ -200,24 +271,12 @@ async function carregarLojas() {
                 lojaSelect.selectedIndex = 1;
             }
             
-            showMessage(`${lojasValidas.length} loja(s) carregada(s)`, 'success', 3000);
-            console.log(`📊 Lojas carregadas:`, lojasValidas);
+            console.log(`📊 Lojas carregadas do Firebase:`, lojasValidas);
         }
         
     } catch (error) {
-        hideLoading();
-        console.error('❌ Erro ao carregar lojas:', error);
-        
-        // Opção de fallback
-        const errorOption = document.createElement('option');
-        errorOption.value = "";
-        errorOption.textContent = "Erro ao carregar lojas";
-        errorOption.disabled = true;
-        lojaSelect.innerHTML = '';
-        lojaSelect.appendChild(errorOption);
-        lojaSelect.disabled = true;
-        
-        showMessage('Erro ao carregar lista de lojas', 'error');
+        console.error('❌ Erro ao carregar lojas do Firebase:', error);
+        throw error;
     }
 }
 
@@ -282,6 +341,8 @@ async function validarLogin(banco_login, usuario, senha) {
                         loja_nome: lojaInfo.nome || banco_login,
                         loja_local: lojaInfo.local || '',
                         loja_telefone: lojaInfo.telefone || '',
+                        banco_estoque: lojaInfo.banco_estoque || `estoque_${banco_login.replace(/-/g, '_')}`,
+                        banco_vendas: lojaInfo.banco_vendas || `vendas_${banco_login.replace(/-/g, '_')}`,
                         nome: adminEncontrado.nome || adminEncontrado.nomeCompleto || usuario,
                         data_login: new Date().toISOString(),
                         is_admin_global: true, // Flag especial para admin global
@@ -359,7 +420,7 @@ async function validarLogin(banco_login, usuario, senha) {
             }
         }
         
-        // Buscar informações da loja na coleção "lojas"
+        // Buscar informações da loja
         const lojaInfo = await buscarInformacoesLoja(banco_login);
         
         // Login bem-sucedido - usuário normal da loja
@@ -369,10 +430,12 @@ async function validarLogin(banco_login, usuario, senha) {
                 id: usuarioKey,
                 login: usuario,
                 perfil: usuarioEncontrado.perfil || 'usuario',
-                banco_login: banco_login, // ID da loja no Firebase
+                banco_login: banco_login, // ID da loja
                 loja_nome: lojaInfo.nome || banco_login,
                 loja_local: lojaInfo.local || '',
                 loja_telefone: lojaInfo.telefone || '',
+                banco_estoque: lojaInfo.banco_estoque || `estoque_${banco_login.replace(/-/g, '_')}`,
+                banco_vendas: lojaInfo.banco_vendas || `vendas_${banco_login.replace(/-/g, '_')}`,
                 nome: usuarioEncontrado.nome || usuarioEncontrado.nomeCompleto || usuario,
                 data_login: new Date().toISOString(),
                 is_admin_global: false, // Não é admin global
@@ -390,22 +453,47 @@ async function validarLogin(banco_login, usuario, senha) {
 }
 
 // ============================================
-// 6. BUSCAR INFORMAÇÕES DA LOJA
+// 6. BUSCAR INFORMAÇÕES DA LOJA (agora dinâmico)
 // ============================================
 async function buscarInformacoesLoja(banco_login) {
     try {
-        // Buscar na coleção "lojas" onde banco_login = banco_login
+        // PRIMEIRO: Tentar buscar do arquivo lojas.js
+        if (typeof LOJAS_CONFIG !== 'undefined' && LOJAS_CONFIG[banco_login]) {
+            const configLoja = LOJAS_CONFIG[banco_login];
+            return {
+                nome: configLoja.nome,
+                local: configLoja.local || '',
+                telefone: configLoja.telefone || '',
+                banco_estoque: configLoja.banco_estoque,
+                banco_vendas: configLoja.banco_vendas
+            };
+        }
+        
+        // SEGUNDO: Tentar buscar do elemento select (opção selecionada)
+        const optionSelecionada = lojaSelect.options[lojaSelect.selectedIndex];
+        if (optionSelecionada && optionSelecionada.dataset) {
+            return {
+                nome: optionSelecionada.textContent,
+                local: optionSelecionada.dataset.local || '',
+                telefone: optionSelecionada.dataset.telefone || '',
+                banco_estoque: optionSelecionada.dataset.banco_estoque || `estoque_${banco_login.replace(/-/g, '_')}`,
+                banco_vendas: optionSelecionada.dataset.banco_vendas || `vendas_${banco_login.replace(/-/g, '_')}`
+            };
+        }
+        
+        // TERCEIRO: Buscar do Firebase como fallback
         const lojasRef = collection(db, "lojas");
         const querySnapshot = await getDocs(lojasRef);
         
         for (const doc of querySnapshot.docs) {
             const dadosLoja = doc.data();
-            if (dadosLoja.banco_login === banco_login) {
+            if (dadosLoja.banco_login === banco_login || doc.id === banco_login) {
                 return {
-                    nome: dadosLoja.nome,
-                    local: dadosLoja.local,
-                    telefone: dadosLoja.contato?.telefone ? 
-                        String(dadosLoja.contato.telefone) : ''
+                    nome: dadosLoja.nome || banco_login,
+                    local: dadosLoja.local || '',
+                    telefone: dadosLoja.contato?.telefone ? String(dadosLoja.contato.telefone) : '',
+                    banco_estoque: dadosLoja.banco_estoque || `estoque_${banco_login.replace(/-/g, '_')}`,
+                    banco_vendas: dadosLoja.banco_vendas || `vendas_${banco_login.replace(/-/g, '_')}`
                 };
             }
         }
@@ -414,7 +502,9 @@ async function buscarInformacoesLoja(banco_login) {
         return {
             nome: banco_login,
             local: '',
-            telefone: ''
+            telefone: '',
+            banco_estoque: `estoque_${banco_login.replace(/-/g, '_')}`,
+            banco_vendas: `vendas_${banco_login.replace(/-/g, '_')}`
         };
         
     } catch (error) {
@@ -422,7 +512,9 @@ async function buscarInformacoesLoja(banco_login) {
         return {
             nome: banco_login,
             local: '',
-            telefone: ''
+            telefone: '',
+            banco_estoque: `estoque_${banco_login.replace(/-/g, '_')}`,
+            banco_vendas: `vendas_${banco_login.replace(/-/g, '_')}`
         };
     }
 }
@@ -462,8 +554,14 @@ async function fazerLogin() {
         const resultado = await validarLogin(banco_login, usuario, senha);
         
         if (resultado.success) {
+            // Salvar TODAS as informações na sessão
+            const dadosSessao = resultado.data;
+            
             // Salvar sessão temporária
-            sessionStorage.setItem('pdv_sessao_temporaria', JSON.stringify(resultado.data));
+            sessionStorage.setItem('pdv_sessao_temporaria', JSON.stringify(dadosSessao));
+            
+            // Salvar backup em localStorage (para recuperação)
+            localStorage.setItem('pdv_sessao_backup', JSON.stringify(dadosSessao));
             
             // Salvar apenas o último usuário para conveniência (se marcado "Lembrar")
             if (rememberMe.checked) {
@@ -477,18 +575,23 @@ async function fazerLogin() {
             // Registrar log de acesso no Firebase (opcional)
             await registrarLogAcesso(banco_login, usuario, resultado.data.is_admin_global);
             
-            console.log(`✅ Login realizado: ${usuario} (${resultado.data.perfil}) na loja ${resultado.data.loja_nome}`);
+            console.log(`✅ Login realizado: ${usuario} (${dadosSessao.perfil}) na loja ${dadosSessao.loja_nome}`);
+            console.log(`📊 Configurações da loja:`, {
+                banco_estoque: dadosSessao.banco_estoque,
+                banco_vendas: dadosSessao.banco_vendas
+            });
             
             // Mensagem especial para admin global
-            let mensagem = `Bem-vindo(a) ${resultado.data.nome}!`;
-            if (resultado.data.is_admin_global) {
-                mensagem = `👑 Admin Global ${resultado.data.nome} acessando ${resultado.data.loja_nome}`;
+            let mensagem = `Bem-vindo(a) ${dadosSessao.nome}!`;
+            if (dadosSessao.is_admin_global) {
+                mensagem = `👑 Admin Global ${dadosSessao.nome} acessando ${dadosSessao.loja_nome}`;
             }
             
             showMessage(mensagem, 'success');
             
             // Redirecionar após delay
             setTimeout(() => {
+                // Usar banco_login como ID da pasta da loja
                 window.location.href = `lojas/${banco_login}/home.html`;
             }, 1500);
             
@@ -518,19 +621,7 @@ async function registrarLogAcesso(banco_login, usuario, is_admin_global = false)
         console.log(`📝 Log de acesso: ${usuario} (${is_admin_global ? 'Admin Global' : 'Usuário Normal'}) na loja ${banco_login} - ${new Date().toLocaleString()}`);
         
         // Aqui você pode implementar o registro no Firebase se quiser
-        /*
-        import { collection, addDoc, serverTimestamp } from './firebase_login.js';
-        
-        const logsRef = collection(db, "logs_acesso");
-        await addDoc(logsRef, {
-            loja_id: banco_login,
-            usuario: usuario,
-            tipo_usuario: is_admin_global ? "admin_global" : "usuario_loja",
-            data_acesso: serverTimestamp(),
-            ip: await getIP(),
-            navegador: navigator.userAgent
-        });
-        */
+        // ...
         
     } catch (error) {
         console.warn('⚠️ Erro ao registrar log de acesso:', error);
@@ -577,4 +668,4 @@ fontAwesomeLinks.forEach(link => {
     link.crossOrigin = 'anonymous';
 });
 
-console.log('✅ login.js carregado com sucesso! Sistema com Admin Global ativado.');
+console.log('✅ login.js carregado com sucesso! Sistema com Admin Global e configuração dinâmica.');
