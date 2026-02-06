@@ -630,21 +630,13 @@ async function registrarLogAcesso(banco_login, usuario, is_admin_global = false)
 // ============================================
 function redirecionarParaLoja(dadosSessao) {
     try {
-        console.log(`🚀 Redirecionando para loja: ${dadosSessao.banco_login}`);
-        
-        // Usar banco_login (ID da loja) como nome da pasta
         const pastaLoja = dadosSessao.banco_login;
-        console.log(`📁 Pasta da loja: ${pastaLoja}`);
-        
-        // Construir o caminho dinamicamente
         const caminhoHome = `lojas/${pastaLoja}/home.html`;
         
-        console.log(`📍 Caminho completo: ${caminhoHome}`);
+        console.log(`📍 Redirecionando para: ${caminhoHome}`);
         
-        // Redirecionar após um pequeno delay
-        setTimeout(() => {
-            window.location.href = caminhoHome;
-        }, 1000);
+        // Redirecionar
+        window.location.href = caminhoHome;
         
     } catch (error) {
         console.error('❌ Erro no redirecionamento:', error);
@@ -693,3 +685,4 @@ fontAwesomeLinks.forEach(link => {
 });
 
 console.log('✅ login.js carregado com sucesso! Sistema com Admin Global e configuração dinâmica.');
+
