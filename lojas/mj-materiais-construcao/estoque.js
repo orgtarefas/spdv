@@ -412,10 +412,12 @@ function renderizarProdutos() {
                             <i class="fas fa-plus-circle"></i>
                             <span class="acao-tooltip">Entrada</span>
                         </button>
-                        <!-- BOTÃO DE EXCLUIR ADICIONADO AQUI -->
+                        <!-- BOTÃO DE EXCLUIR - CORRIGIDO: SEMPRE MOSTRAR -->
                         <button class="btn-acao btn-excluir" title="Excluir produto permanentemente" data-id="${produto.id}" ${produto.quantidade > 0 ? 'disabled' : ''}>
                             <i class="fas fa-trash-alt"></i>
-                            <span class="acao-tooltip">${produto.quantidade > 0 ? 'Baixe estoque para excluir' : 'Excluir'}</span>
+                            <span class="acao-tooltip">
+                                ${produto.quantidade > 0 ? 'Baixe estoque para excluir' : 'Excluir permanentemente'}
+                            </span>
                         </button>
                     </div>
                 </td>
@@ -467,7 +469,7 @@ function adicionarEventosBotoes() {
         });
     });
     
-    // BOTÃO EXCLUIR - ADICIONE ESTE BLOCO
+    // BOTÃO EXCLUIR
     document.querySelectorAll('.btn-excluir').forEach(btn => {
         btn.addEventListener('click', function() {
             if (this.disabled) {
@@ -851,7 +853,7 @@ async function excluirProduto(produto) {
         if (resultado.success) {
             mostrarMensagem('Produto excluído permanentemente!', 'success');
             
-            // Recarregar produtos
+            // Recarregar produtos - IMPORTANTE: Aguardar carregamento
             await carregarProdutos();
             
         } else {
@@ -1267,6 +1269,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
