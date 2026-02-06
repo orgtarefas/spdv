@@ -412,6 +412,11 @@ function renderizarProdutos() {
                             <i class="fas fa-plus-circle"></i>
                             <span class="acao-tooltip">Entrada</span>
                         </button>
+                        <!-- BOTÃO DE EXCLUIR ADICIONADO AQUI -->
+                        <button class="btn-acao btn-excluir" title="Excluir produto permanentemente" data-id="${produto.id}" ${produto.quantidade > 0 ? 'disabled' : ''}>
+                            <i class="fas fa-trash-alt"></i>
+                            <span class="acao-tooltip">${produto.quantidade > 0 ? 'Baixe estoque para excluir' : 'Excluir'}</span>
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -458,6 +463,22 @@ function adicionarEventosBotoes() {
             const produto = produtos.find(p => p.id === produtoId);
             if (produto) {
                 abrirModalEntradaEstoque(produto);
+            }
+        });
+    });
+    
+    // BOTÃO EXCLUIR - ADICIONE ESTE BLOCO
+    document.querySelectorAll('.btn-excluir').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (this.disabled) {
+                mostrarMensagem('Baixe o estoque para zero antes de excluir o produto.', 'warning');
+                return;
+            }
+            
+            const produtoId = this.getAttribute('data-id');
+            const produto = produtos.find(p => p.id === produtoId);
+            if (produto) {
+                excluirProduto(produto);
             }
         });
     });
@@ -747,47 +768,106 @@ async function alterarStatusProduto(produto) {
 async function abrirModalEntradaEstoque(produto) {
     if (!produto) return;
     
-    const quantidade = prompt(
-        `Entrada de estoque para: ${produto.nome}\n\n` +
+    const promptText = `Entrada de estoque para: ${produto.nome}\n\n` +
         `Estoque atual: ${produto.quantidade || 0} ${produto.unidade || 'UN'}\n` +
         `${produto.peso_por_unidade > 0 ? `Peso/unidade: ${produto.peso_por_unidade} ${produto.unidade_peso || 'kg'}\n` : ''}\n` +
-        `Quantidade a adicionar:`,
-        "1"
-    );
+        `Digite:\n` +
+        `• Número positivo para ADICIONAR estoque\n` +
+        `• Número negativo para REMOVER estoque\n` +
+        `(Ex: -10 para remover 10 unidades)\n\n` +
+        `Quantidade:`;
+    
+    const quantidade = prompt(promptText, "1");
     
     if (quantidade === null) return;
     
     const qtd = parseInt(quantidade);
-    if (isNaN(qtd) || qtd <= 0) {
+    if (isNaN(qtd)) {
         mostrarMensagem('Quantidade inválida', 'error');
         return;
     }
     
+    const tipo = qtd >= 0 ? 'entrada' : 'saida';
+    const quantidadeAbs = Math.abs(qtd);
+    
     try {
-        mostrarLoading('Registrando entrada...', 'Atualizando estoque...');
+        mostrarLoading('Registrando alteração de estoque...', 'Processando...');
         
-        // Usar a função atualizarEstoque
-        const resultado = await lojaServices.atualizarEstoque(produto.id, qtd, 'entrada');
+        const resultado = await lojaServices.atualizarEstoque(
+            produto.id, 
+            quantidadeAbs, 
+            tipo
+        );
         
         if (resultado.success) {
-            mostrarMensagem(`${qtd} unidade(s) adicionada(s) ao estoque!`, 'success');
+            if (tipo === 'entrada') {
+                mostrarMensagem(`${quantidadeAbs} unidade(s) adicionada(s) ao estoque!`, 'success');
+            } else {
+                mostrarMensagem(`${quantidadeAbs} unidade(s) removida(s) do estoque!`, 'warning');
+                
+                // Se estoque chegou a zero, sugerir exclusão
+                if ((produto.quantidade - quantidadeAbs) === 0) {
+                    setTimeout(() => {
+                        mostrarMensagem('Estoque zerado. Você pode agora excluir o produto se desejar.', 'info');
+                    }, 1500);
+                }
+            }
             
             // Recarregar produtos
             await carregarProdutos();
+            
         } else {
-            mostrarMensagem(resultado.error || 'Erro ao registrar entrada', 'error');
+            mostrarMensagem(resultado.error || 'Erro ao registrar alteração de estoque', 'error');
         }
         
     } catch (error) {
-        console.error('❌ Erro ao registrar entrada:', error);
-        mostrarMensagem('Erro ao registrar entrada de estoque', 'error');
+        console.error('❌ Erro ao registrar alteração de estoque:', error);
+        mostrarMensagem('Erro ao registrar alteração de estoque', 'error');
     } finally {
         esconderLoading();
     }
 }
 
 // ============================================
-// 16. CONFIGURAR EVENTOS
+// 16. EXCLUIR PRODUTO PERMANENTEMENTE
+// ============================================
+async function excluirProduto(produto) {
+    if (!produto) return;
+    
+    const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE e IRREVERSÍVEL!\n\n` +
+                          `Deseja EXCLUIR permanentemente o produto:\n` +
+                          `"${produto.nome}" (${produto.codigo || 'sem código'})?\n\n` +
+                          `Esta ação não poderá ser desfeita!`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    try {
+        mostrarLoading('Excluindo produto...', 'Esta ação é permanente...');
+        
+        const resultado = await lojaServices.excluirProduto(produto.id);
+        
+        if (resultado.success) {
+            mostrarMensagem('Produto excluído permanentemente!', 'success');
+            
+            // Recarregar produtos
+            await carregarProdutos();
+            
+        } else {
+            mostrarMensagem(resultado.error || 'Erro ao excluir produto', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir produto:', error);
+        mostrarMensagem('Erro ao excluir produto', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// 17. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
     console.log("⚙️ Configurando eventos...");
@@ -880,7 +960,7 @@ function configurarEventos() {
 }
 
 // ============================================
-// 17. FUNÇÕES UTILITÁRIAS
+// 18. FUNÇÕES UTILITÁRIAS
 // ============================================
 function formatarMoeda(valor) {
     const numero = parseFloat(valor) || 0;
@@ -961,7 +1041,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 // ============================================
-// 18. ESTILOS DINÂMICOS
+// 19. ESTILOS DINÂMICOS
 // ============================================
 (function adicionarEstilos() {
     const estiloBadge = document.createElement('style');
@@ -1138,6 +1218,28 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         .estoque-table tbody tr:hover {
             background-color: #f8f9fa;
         }
+
+        .btn-excluir {
+            color: #e74c3c;
+        }
+        
+        .btn-excluir:hover {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        .btn-excluir:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            color: #95a5a6;
+        }
+        
+        .btn-excluir:disabled:hover {
+            background-color: #f8f9fa;
+            color: #95a5a6;
+            transform: none;
+            box-shadow: none;
+        }
         
         /* Responsividade */
         @media (max-width: 768px) {
@@ -1165,5 +1267,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
