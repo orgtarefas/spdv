@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estoque - MJ Materiais de Construção</title>
+    <title>Estoque - Sistema PDV</title>
     <link rel="stylesheet" href="estoque.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- FIREBASE -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
     <div class="container">
@@ -22,13 +18,13 @@
                 </a>
                 <div class="page-title">
                     <h1><i class="fas fa-boxes"></i> Controle de Estoque</h1>
-                    <p class="page-subtitle">MJ Materiais de Construção</p>
+                    <p class="page-subtitle" id="lojaNomeSubtitle">Sistema PDV</p>
                 </div>
             </div>
             <div class="header-right">
                 <div class="user-info">
-                    <span id="userName">Usuário</span>
-                    <button id="btnLogout" class="btn-logout">
+                    <span id="userName">Carregando...</span>
+                    <button id="btnLogout" class="btn-logout" title="Sair">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
@@ -41,7 +37,7 @@
             <div class="estoque-actions">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar produto por código ou nome...">
+                    <input type="text" id="searchInput" placeholder="Buscar produto por código, nome ou categoria...">
                 </div>
                 
                 <div class="action-buttons">
@@ -152,7 +148,7 @@
         <!-- Footer -->
         <footer class="main-footer">
             <div class="footer-content">
-                <p><i class="fas fa-store"></i> MJ Materiais de Construção - Estoque</p>
+                <p><i class="fas fa-store"></i> <span id="lojaNomeFooter">Sistema PDV</span> - Estoque</p>
                 <p id="lastUpdate">Última atualização: --:--:--</p>
             </div>
         </footer>
@@ -261,6 +257,7 @@
         <div class="loading-content">
             <div class="loading-spinner"></div>
             <h3>Carregando...</h3>
+            <p id="loadingDetail"></p>
         </div>
     </div>
 
@@ -273,7 +270,8 @@
         </div>
     </div>
 
-    <!-- Script principal -->
-    <script src="estoque.js"></script>
+    <!-- Scripts MÓDULOS -->
+    <script type="module" src="firebase_config.js"></script>
+    <script type="module" src="estoque.js"></script>
 </body>
 </html>
