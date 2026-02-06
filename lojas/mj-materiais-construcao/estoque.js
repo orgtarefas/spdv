@@ -1221,26 +1221,56 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             background-color: #f8f9fa;
         }
 
+        /* Estilos para botão excluir - CORRIGIDOS */
         .btn-excluir {
-            color: #e74c3c;
+            color: #e74c3c !important; /* !important para forçar a cor */
+            display: flex !important; /* Garantir que aparece */
+            visibility: visible !important; /* Garantir visibilidade */
+            opacity: 1 !important; /* Garantir opacidade total */
         }
         
-        .btn-excluir:hover {
-            background-color: #e74c3c;
-            color: white;
+        .btn-excluir:hover:not(:disabled) {
+            background-color: #e74c3c !important;
+            color: white !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
         }
         
         .btn-excluir:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            color: #95a5a6;
+            color: #95a5a6 !important;
+            background-color: transparent !important;
         }
         
         .btn-excluir:disabled:hover {
-            background-color: #f8f9fa;
-            color: #95a5a6;
+            background-color: transparent !important;
+            color: #95a5a6 !important;
             transform: none;
             box-shadow: none;
+        }
+        
+        /* Garantir que o ícone aparece */
+        .btn-excluir i {
+            font-size: 1rem !important;
+            display: inline-block !important;
+        }
+        
+        /* Tooltip para botão excluir */
+        .btn-excluir .acao-tooltip {
+            background-color: #e74c3c;
+        }
+        
+        .btn-excluir:disabled .acao-tooltip {
+            background-color: #7f8c8d;
+        }
+        
+        .btn-excluir .acao-tooltip::after {
+            border-color: #e74c3c transparent transparent transparent;
+        }
+        
+        .btn-excluir:disabled .acao-tooltip::after {
+            border-color: #7f8c8d transparent transparent transparent;
         }
         
         /* Responsividade */
@@ -1269,6 +1299,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
