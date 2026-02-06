@@ -413,10 +413,10 @@ function renderizarProdutos() {
                             <span class="acao-tooltip">Entrada</span>
                         </button>
                         <!-- BOTÃO DE EXCLUIR - CORRIGIDO: SEMPRE MOSTRAR -->
-                        <button class="btn-acao btn-excluir" title="Excluir produto permanentemente" data-id="${produto.id}" ${produto.quantidade > 0 ? 'disabled' : ''}>
+                        <button class="btn-acao btn-excluir" title="Excluir produto permanentemente" data-id="${produto.id}">
                             <i class="fas fa-trash-alt"></i>
                             <span class="acao-tooltip">
-                                ${produto.quantidade > 0 ? 'Baixe estoque para excluir' : 'Excluir permanentemente'}
+                                Excluir permanentemente
                             </span>
                         </button>
                     </div>
@@ -470,18 +470,46 @@ function adicionarEventosBotoes() {
     });
     
     // BOTÃO EXCLUIR
+    // BOTÃO EXCLUIR - SEMPRE HABILITADO
     document.querySelectorAll('.btn-excluir').forEach(btn => {
-        btn.addEventListener('click', function() {
-            if (this.disabled) {
-                mostrarMensagem('Baixe o estoque para zero antes de excluir o produto.', 'warning');
-                return;
-            }
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
-            if (produto) {
-                excluirProduto(produto);
+            
+            if (!produto) {
+                mostrarMensagem('Produto não encontrado', 'error');
+                return;
             }
+            
+            // Pergunta de confirmação
+            const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE!\n\n` +
+                                  `Deseja EXCLUIR o produto:\n` +
+                                  `"${produto.nome}"\n` +
+                                  `Código: ${produto.codigo || 'sem código'}\n` +
+                                  `Estoque atual: ${produto.quantidade}\n\n` +
+                                  `Esta ação não poderá ser desfeita!`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Se tem estoque, confirmação extra
+            if (produto.quantidade > 0) {
+                const estoqueConfirm = confirm(
+                    `ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
+                    `Você realmente deseja excluir mesmo com estoque?\n` +
+                    `Todo o estoque será perdido permanentemente.`
+                );
+                
+                if (!estoqueConfirm) {
+                    return;
+                }
+            }
+            
+            excluirProduto(produto);
         });
     });
 }
@@ -836,15 +864,6 @@ async function abrirModalEntradaEstoque(produto) {
 async function excluirProduto(produto) {
     if (!produto) return;
     
-    const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE e IRREVERSÍVEL!\n\n` +
-                          `Deseja EXCLUIR permanentemente o produto:\n` +
-                          `"${produto.nome}" (${produto.codigo || 'sem código'})?\n\n` +
-                          `Esta ação não poderá ser desfeita!`;
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-    
     try {
         mostrarLoading('Excluindo produto...', 'Esta ação é permanente...');
         
@@ -853,7 +872,7 @@ async function excluirProduto(produto) {
         if (resultado.success) {
             mostrarMensagem('Produto excluído permanentemente!', 'success');
             
-            // Recarregar produtos - IMPORTANTE: Aguardar carregamento
+            // Recarregar produtos
             await carregarProdutos();
             
         } else {
@@ -1294,6 +1313,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
