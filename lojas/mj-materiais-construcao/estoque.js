@@ -111,8 +111,34 @@ function inicializarElementosDOM() {
     estoqueMinimoInput = document.getElementById('estoque_minimo');
     descricaoTextarea = document.getElementById('descricao');
     fornecedorInput = document.getElementById('fornecedor');
+
+    // Novos campos de peso
+    pesoPorUnidadeInput = document.getElementById('peso_por_unidade');
+    unidadePesoSelect = document.getElementById('unidade_peso');
+    totalPesoInput = document.getElementById('total_peso');
+    totalPesoUnidadeSpan = document.getElementById('total_peso_unidade');    
     
     console.log("✅ Elementos DOM inicializados");
+}
+
+function calcularPesoTotal() {
+    if (!pesoPorUnidadeInput || !quantidadeInput || !totalPesoInput || !totalPesoUnidadeSpan) {
+        return;
+    }
+    
+    const pesoPorUnidade = parseFloat(pesoPorUnidadeInput.value) || 0;
+    const quantidade = parseInt(quantidadeInput.value) || 0;
+    const unidadePeso = unidadePesoSelect ? unidadePesoSelect.value : 'kg';
+    
+    const pesoTotal = pesoPorUnidade * quantidade;
+    
+    if (totalPesoInput) {
+        totalPesoInput.value = pesoTotal.toFixed(2);
+    }
+    
+    if (totalPesoUnidadeSpan) {
+        totalPesoUnidadeSpan.textContent = unidadePeso;
+    }
 }
 
 // ============================================
@@ -285,37 +311,108 @@ function renderizarProdutos() {
         const statusText = !produto.ativo ? 'Inativo' : 
                           produto.quantidade <= produto.estoque_minimo ? 'Baixo' : 'Ativo';
         
+        // Calcular informações de peso se existirem
+        const pesoPorUnidade = produto.peso_por_unidade || 0;
+        const unidadeMedida = produto.unidade_medida || 'und';
+        const quantidade = produto.quantidade || 0;
+        
+        let pesoInfoHtml = '';
+        if (pesoPorUnidade > 0 && unidadeMedida !== 'und') {
+            const totalMedida = pesoPorUnidade * quantidade;
+            
+            // Formatador de unidades para exibição amigável
+            const formatarUnidade = (unidade) => {
+                const unidades = {
+                    'kg': 'kg',
+                    'g': 'g',
+                    'ton': 't',
+                    'l': 'L',
+                    'ml': 'mL',
+                    'm': 'm',
+                    'cm': 'cm',
+                    'm2': 'm²',
+                    'm3': 'm³',
+                    'und': 'und'
+                };
+                return unidades[unidade] || unidade;
+            };
+            
+            // Determinar casas decimais para formatação
+            const casasDecimais = ['kg', 'l', 'm'].includes(unidadeMedida) ? 2 : 
+                                  ['g', 'ml', 'cm'].includes(unidadeMedida) ? 0 : 
+                                  ['ton', 'm2', 'm3'].includes(unidadeMedida) ? 3 : 2;
+            
+            const unidadeFormatada = formatarUnidade(unidadeMedida);
+            const pesoFormatado = pesoPorUnidade.toFixed(casasDecimais);
+            const totalFormatado = totalMedida.toFixed(casasDecimais);
+            
+            pesoInfoHtml = `
+                <br>
+                <div class="peso-info">
+                    <small class="text-info">
+                        <i class="fas fa-weight-hanging"></i> 
+                        ${pesoFormatado} ${unidadeFormatada}/unid
+                        <span class="peso-total">
+                            (Total: ${totalFormatado} ${unidadeFormatada})
+                        </span>
+                    </small>
+                </div>
+            `;
+        }
+        
         html += `
             <tr data-id="${produto.id}">
-                <td>${produto.codigo || 'N/A'}</td>
-                <td>
-                    <strong>${produto.nome || 'Produto sem nome'}</strong>
-                    ${produto.descricao ? `<br><small class="text-muted">${produto.descricao.substring(0, 50)}${produto.descricao.length > 50 ? '...' : ''}</small>` : ''}
+                <td class="codigo-cell">${produto.codigo || 'N/A'}</td>
+                <td class="nome-cell">
+                    <div class="produto-info">
+                        <strong class="produto-nome">${produto.nome || 'Produto sem nome'}</strong>
+                        ${produto.descricao ? `
+                            <div class="produto-descricao">
+                                <small class="text-muted">${produto.descricao.substring(0, 60)}${produto.descricao.length > 60 ? '...' : ''}</small>
+                            </div>
+                        ` : ''}
+                        ${pesoInfoHtml}
+                    </div>
                 </td>
-                <td>${produto.categoria || 'Não informada'}</td>
-                <td>
-                    <strong>${produto.quantidade || 0} ${produto.unidade || 'UN'}</strong>
+                <td class="categoria-cell">
+                    <span class="categoria-badge">${produto.categoria || 'Sem categoria'}</span>
                 </td>
-                <td>${produto.estoque_minimo || 5}</td>
-                <td>${formatarMoeda(produto.preco_custo || 0)}</td>
-                <td>
-                    <strong class="text-primary">${formatarMoeda(produto.preco || 0)}</strong>
+                <td class="estoque-cell">
+                    <div class="estoque-info">
+                        <strong class="estoque-quantidade">${quantidade.toLocaleString('pt-BR')}</strong>
+                        <span class="estoque-unidade">${produto.unidade || 'UN'}</span>
+                    </div>
                 </td>
-                <td>
-                    <span class="status-badge ${statusClass}">${statusText}</span>
+                <td class="minimo-cell">${produto.estoque_minimo || 5}</td>
+                <td class="custo-cell">${formatarMoeda(produto.preco_custo || 0)}</td>
+                <td class="venda-cell">
+                    <strong class="preco-venda">${formatarMoeda(produto.preco || 0)}</strong>
+                </td>
+                <td class="status-cell">
+                    <span class="status-badge ${statusClass}">
+                        <i class="status-icon ${statusClass === 'status-ativo' ? 'fas fa-check-circle' : 
+                                             statusClass === 'status-baixo' ? 'fas fa-exclamation-circle' : 
+                                             'fas fa-times-circle'}"></i>
+                        ${statusText}
+                    </span>
                 </td>
                 <td class="acoes-cell">
-                    <button class="btn-acao btn-editar" title="Editar" data-id="${produto.id}">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-acao ${produto.ativo ? 'btn-desativar' : 'btn-ativar'}" 
-                            title="${produto.ativo ? 'Desativar' : 'Ativar'}" 
-                            data-id="${produto.id}">
-                        <i class="fas ${produto.ativo ? 'fa-ban' : 'fa-check'}"></i>
-                    </button>
-                    <button class="btn-acao btn-entrada" title="Entrada de estoque" data-id="${produto.id}">
-                        <i class="fas fa-plus-circle"></i>
-                    </button>
+                    <div class="acoes-container">
+                        <button class="btn-acao btn-editar" title="Editar produto" data-id="${produto.id}">
+                            <i class="fas fa-edit"></i>
+                            <span class="acao-tooltip">Editar</span>
+                        </button>
+                        <button class="btn-acao ${produto.ativo ? 'btn-desativar' : 'btn-ativar'}" 
+                                title="${produto.ativo ? 'Desativar produto' : 'Ativar produto'}" 
+                                data-id="${produto.id}">
+                            <i class="fas ${produto.ativo ? 'fa-ban' : 'fa-check'}"></i>
+                            <span class="acao-tooltip">${produto.ativo ? 'Desativar' : 'Ativar'}</span>
+                        </button>
+                        <button class="btn-acao btn-entrada" title="Entrada de estoque" data-id="${produto.id}">
+                            <i class="fas fa-plus-circle"></i>
+                            <span class="acao-tooltip">Entrada</span>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -506,12 +603,20 @@ async function abrirModalEditar(produtoId) {
             if (nomeInput) nomeInput.value = produto.nome || '';
             if (categoriaInput) categoriaInput.value = produto.categoria || '';
             if (unidadeSelect) unidadeSelect.value = produto.unidade || 'UN';
+            
+            // Novos campos de peso
+            if (pesoPorUnidadeInput) pesoPorUnidadeInput.value = produto.peso_por_unidade || 0;
+            if (unidadePesoSelect) unidadePesoSelect.value = produto.unidade_peso || 'kg';
+            
             if (precoCustoInput) precoCustoInput.value = produto.preco_custo || 0;
             if (precoInput) precoInput.value = produto.preco || 0;
             if (quantidadeInput) quantidadeInput.value = produto.quantidade || 0;
             if (estoqueMinimoInput) estoqueMinimoInput.value = produto.estoque_minimo || 5;
             if (descricaoTextarea) descricaoTextarea.value = produto.descricao || '';
             if (fornecedorInput) fornecedorInput.value = produto.fornecedor || '';
+            
+            // Calcular peso total
+            calcularPesoTotal();
             
             // Abrir modal
             if (modalProduto) {
@@ -553,6 +658,11 @@ async function salvarProduto(e) {
             nome: nomeInput.value.trim(),
             categoria: categoriaInput ? categoriaInput.value.trim() : '',
             unidade: unidadeSelect ? unidadeSelect.value : 'UN',
+            
+            // Novos campos de peso
+            peso_por_unidade: pesoPorUnidadeInput ? parseFloat(pesoPorUnidadeInput.value) || 0 : 0,
+            unidade_peso: unidadePesoSelect ? unidadePesoSelect.value : 'kg',
+            
             preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value) || 0 : 0,
             preco: precoInput ? parseFloat(precoInput.value) || 0 : 0,
             quantidade: quantidadeInput ? parseInt(quantidadeInput.value) || 0 : 0,
@@ -637,7 +747,13 @@ async function alterarStatusProduto(produto) {
 async function abrirModalEntradaEstoque(produto) {
     if (!produto) return;
     
-    const quantidade = prompt(`Entrada de estoque para: ${produto.nome}\n\nQuantidade a adicionar:`, "1");
+    const quantidade = prompt(
+        `Entrada de estoque para: ${produto.nome}\n\n` +
+        `Estoque atual: ${produto.quantidade || 0} ${produto.unidade || 'UN'}\n` +
+        `${produto.peso_por_unidade > 0 ? `Peso/unidade: ${produto.peso_por_unidade} ${produto.unidade_peso || 'kg'}\n` : ''}\n` +
+        `Quantidade a adicionar:`,
+        "1"
+    );
     
     if (quantidade === null) return;
     
@@ -650,12 +766,17 @@ async function abrirModalEntradaEstoque(produto) {
     try {
         mostrarLoading('Registrando entrada...', 'Atualizando estoque...');
         
-        await lojaServices.atualizarEstoque(produto.id, qtd);
+        // Usar a função atualizarEstoque
+        const resultado = await lojaServices.atualizarEstoque(produto.id, qtd, 'entrada');
         
-        mostrarMensagem(`${qtd} unidade(s) adicionada(s) ao estoque!`, 'success');
-        
-        // Recarregar produtos
-        await carregarProdutos();
+        if (resultado.success) {
+            mostrarMensagem(`${qtd} unidade(s) adicionada(s) ao estoque!`, 'success');
+            
+            // Recarregar produtos
+            await carregarProdutos();
+        } else {
+            mostrarMensagem(resultado.error || 'Erro ao registrar entrada', 'error');
+        }
         
     } catch (error) {
         console.error('❌ Erro ao registrar entrada:', error);
@@ -736,6 +857,21 @@ function configurarEventos() {
         btnLogout.addEventListener('click', function() {
             if (confirm("Deseja sair do sistema?")) {
                 lojaServices.logout();
+            }
+        });
+    }
+
+    // Eventos para calcular peso
+    if (quantidadeInput) {
+        quantidadeInput.addEventListener('input', calcularPesoTotal);
+    }
+    if (pesoPorUnidadeInput) {
+        pesoPorUnidadeInput.addEventListener('input', calcularPesoTotal);
+    }
+    if (unidadePesoSelect) {
+        unidadePesoSelect.addEventListener('change', function() {
+            if (totalPesoUnidadeSpan) {
+                totalPesoUnidadeSpan.textContent = this.value;
             }
         });
     }
@@ -1029,4 +1165,5 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
