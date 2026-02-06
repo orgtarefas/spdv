@@ -11,48 +11,103 @@ let atividades = [];
 // ============================================
 // 1. INICIALIZAÇÃO
 // ============================================
+
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página home carregada");
     
     // Mostrar loading inicial
     mostrarLoading('Inicializando sistema...');
     
-    // Verificar se o pdvManager está carregado
-    if (!pdvManager || !pdvManager.isLogged) {
-        mostrarMensagem('Sessão expirada! Redirecionando para login...', 'error');
-        setTimeout(() => {
-            window.location.href = '../../login.html';
-        }, 2000);
-        return;
-    }
-    
-    console.log(`✅ Loja atual: ${pdvManager.config?.nome || pdvManager.id}`);
-    
+    // Aguardar 1 segundo para o pdvManager carregar completamente
+    setTimeout(async () => {
+        try {
+            // Verificar se o pdvManager está carregado
+            if (!pdvManager || !pdvManager.isLogged) {
+                console.warn('pdvManager não carregado ou sessão inválida');
+                mostrarMensagem('Sessão expirada! Redirecionando para login...', 'error');
+                setTimeout(() => {
+                    window.location.href = '../../login.html';
+                }, 2000);
+                return;
+            }
+            
+            console.log(`✅ Loja atual: ${pdvManager.lojaId}`);
+            console.log(`📋 Configuração da loja:`, pdvManager.configLoja);
+            
+            // Atualizar interface com dados da loja
+            atualizarInterfaceLoja();
+            
+            // Configurar eventos
+            configurarEventos();
+            
+            // Atualizar data/hora
+            atualizarDataHora();
+            setInterval(atualizarDataHora, 60000);
+            
+            // Carregar dados iniciais
+            await carregarDadosIniciais();
+            
+            // Esconder loading
+            esconderLoading();
+            
+            console.log("✅ Sistema home pronto para uso");
+            
+        } catch (error) {
+            console.error("❌ Erro na inicialização:", error);
+            mostrarMensagem('Erro ao carregar sistema', 'error');
+            esconderLoading();
+        }
+    }, 1000);
+});
+
+// função para atualizar a interface:
+function atualizarInterfaceLoja() {
     try {
-        // Atualizar interface com dados da loja
-        atualizarInterfaceLoja();
+        // Usar configLoja que já foi carregada
+        const nomeLoja = pdvManager.configLoja?.nome || pdvManager.formatarNomeLoja(pdvManager.lojaId);
         
-        // Configurar eventos
-        configurarEventos();
+        console.log(`🎯 Atualizando interface para: ${nomeLoja}`);
         
-        // Atualizar data/hora
-        atualizarDataHora();
-        setInterval(atualizarDataHora, 60000);
+        // Atualizar todos os elementos com nome da loja
+        const elementos = [
+            'lojaNomeHeader',
+            'lojaNomeBemVindo', 
+            'lojaNomeFooter'
+        ];
         
-        // Carregar dados iniciais
-        await carregarDadosIniciais();
+        elementos.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.textContent = nomeLoja;
+            }
+        });
         
-        // Esconder loading
-        setTimeout(esconderLoading, 500);
+        // Atualizar título da página
+        document.title = `${nomeLoja} - PDV Sistema`;
         
-        console.log("✅ Sistema home pronto para uso");
+        // Atualizar local se existir
+        const lojaLocal = document.getElementById('lojaLocal');
+        if (lojaLocal && pdvManager.configLoja?.local) {
+            lojaLocal.textContent = pdvManager.configLoja.local;
+        }
+        
+        // Atualizar informações do usuário
+        const userName = document.getElementById('userName');
+        const userWelcome = document.getElementById('userWelcome');
+        const userPerfil = document.getElementById('userPerfil');
+        
+        if (userName) userName.textContent = pdvManager.nomeUsuario;
+        if (userWelcome) userWelcome.textContent = pdvManager.nomeUsuario;
+        if (userPerfil) {
+            const perfil = pdvManager.perfil || 'usuario';
+            userPerfil.textContent = perfil.includes('admin') ? '👑 Administrador' : '👤 Vendedor';
+            userPerfil.className = `user-perfil ${perfil.includes('admin') ? 'admin' : 'user'}`;
+        }
         
     } catch (error) {
-        console.error("❌ Erro na inicialização:", error);
-        mostrarMensagem('Erro ao carregar sistema', 'error');
-        esconderLoading();
+        console.error('❌ Erro ao atualizar interface da loja:', error);
     }
-});
+}
 
 // ============================================
 // 2. ATUALIZAR INTERFACE DA LOJA
@@ -1073,3 +1128,4 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
