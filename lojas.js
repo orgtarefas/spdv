@@ -27,7 +27,10 @@ const LOJAS_CONFIG = {
         telefone: '(11) 97777-7777'
     }
     
-    // Para adicionar nova loja:
+    // PARA ADICIONAR NOVA LOJA:
+    // 1. Crie uma nova pasta dentro da pasta "lojas" com o mesmo ID
+    // 2. Copie todos os arquivos de "template_lojas" para a nova pasta
+    // 3. Adicione a configuração aqui abaixo:
     // 'id-da-nova-loja': {
     //     nome: 'Nome da Nova Loja',
     //     banco_estoque: 'estoque_id_da_nova_loja',
@@ -54,6 +57,23 @@ function listarLojas() {
         id: id,
         nome: config.nome
     }));
+}
+
+// Função para adicionar nova loja dinamicamente
+function adicionarNovaLoja(id, nome, local = '', telefone = '') {
+    if (!LOJAS_CONFIG[id]) {
+        LOJAS_CONFIG[id] = {
+            nome: nome,
+            banco_estoque: `estoque_${id.replace(/-/g, '_')}`,
+            banco_vendas: `vendas_${id.replace(/-/g, '_')}`,
+            local: local,
+            telefone: telefone
+        };
+        console.log(`✅ Nova loja adicionada: ${nome} (${id})`);
+        return true;
+    }
+    console.log(`⚠️ Loja ${id} já existe`);
+    return false;
 }
 
 console.log('✅ lojas.js carregado:', Object.keys(LOJAS_CONFIG).length, 'lojas configuradas');
