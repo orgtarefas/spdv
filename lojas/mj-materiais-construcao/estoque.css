@@ -525,3 +525,38 @@ body {
         gap: 0.5rem;
     }
 }
+
+.input-with-unit {
+    display: flex;
+}
+
+.input-with-unit input {
+    flex: 1;
+    border-radius: 6px 0 0 6px;
+}
+
+.unit-select {
+    width: 120px;
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+    background-color: #f8f9fa;
+}
+
+.input-readonly {
+    position: relative;
+}
+
+.input-readonly input {
+    padding-right: 80px;
+    background-color: #f8f9fa;
+    color: #666;
+}
+
+.input-readonly span {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-weight: 500;
+}
