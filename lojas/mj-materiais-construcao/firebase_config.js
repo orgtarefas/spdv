@@ -292,6 +292,41 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
+
+    // Excluir produto permanentemente
+    async excluirProduto(produtoId) {
+        try {
+            const produtoRef = doc(db, this.bancoEstoque, produtoId);
+            
+            // Verificar se produto existe e pertence à loja
+            const produtoDoc = await getDoc(produtoRef);
+            
+            if (!produtoDoc.exists()) {
+                throw new Error('Produto não encontrado');
+            }
+            
+            const produtoData = produtoDoc.data();
+            
+            // Verificar se produto pertence à loja
+            if (produtoData.loja_id !== this.lojaId && !this.isAdmin) {
+                throw new Error('Produto não pertence a esta loja');
+            }
+            
+            // Verificar se tem estoque antes de excluir
+            if ((produtoData.quantidade || 0) > 0) {
+                throw new Error('Não é possível excluir produto com estoque. Baixe o estoque para zero primeiro.');
+            }
+            
+            // Excluir o produto
+            await deleteDoc(produtoRef);
+            
+            return { success: true };
+            
+        } catch (error) {
+            console.error('Erro ao excluir produto:', error);
+            return { success: false, error: error.message };
+        }
+    }
     
     // Buscar produtos para venda (com estoque)
     async buscarProdutosParaVenda() {
@@ -699,10 +734,9 @@ const lojaServices = {
     buscarProdutosParaVenda: () => lojaManager.buscarProdutosParaVenda(),
     cadastrarProduto: (dados) => lojaManager.cadastrarProduto(dados),
     buscarCategorias: () => lojaManager.buscarCategorias(),
-    
-    // NOVAS FUNÇÕES
     atualizarProduto: (id, dados) => lojaManager.atualizarProduto(id, dados),
     atualizarEstoque: (id, quantidade, tipo) => lojaManager.atualizarEstoque(id, quantidade, tipo),
+    excluirProduto: (id) => lojaManager.excluirProduto(id), 
     
     // Vendas
     criarVenda: (dados) => lojaManager.criarVenda(dados),
@@ -752,3 +786,4 @@ window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
+
