@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - MJ Materiais de Construção</title>
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- FIREBASE (igual às outras páginas) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-hard-hat"></i>
+                    <div>
+                        <h1>MJ Materiais</h1>
+                        <p class="subtitle">Sistema de Gestão</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="userName">Usuário</span>
+                    <button id="btnLogout" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <!-- Welcome Section -->
+            <div class="welcome-section">
+                <div class="welcome-content">
+                    <h2>Bem-vindo ao <span class="loja-name">MJ Materiais de Construção</span></h2>
+                    <p id="currentDateTime">Carregando data e hora...</p>
+                </div>
+                <div class="welcome-icon">
+                    <i class="fas fa-store"></i>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h2><i class="fas fa-bolt"></i> Ações Rápidas</h2>
+                <div class="actions-grid">
+                    <a href="venda.html" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #4CAF50, #2E7D32);">
+                            <i class="fas fa-cash-register"></i>
+                        </div>
+                        <h3>Nova Venda</h3>
+                        <p>Iniciar uma nova venda</p>
+                    </a>
+                    
+                    <a href="estoque.html" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #2196F3, #0D47A1);">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <h3>Estoque</h3>
+                        <p>Gerenciar produtos</p>
+                    </a>
+                    
+                    <div class="action-card" id="btnConsultaRapida">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #FF9800, #E65100);">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>Consulta Rápida</h3>
+                        <p>Buscar produto</p>
+                    </div>
+                    
+                    <div class="action-card" id="btnRelatorio">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #9C27B0, #4A148C);">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h3>Relatórios</h3>
+                        <p>Ver relatórios</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-section">
+                <h2><i class="fas fa-chart-line"></i> Estatísticas</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Vendas Hoje</h3>
+                            <p class="stat-number" id="vendasHoje">R$ 0,00</p>
+                            <p class="stat-subtitle" id="quantidadeVendas">0 vendas</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Produtos em Estoque</h3>
+                            <p class="stat-number" id="totalProdutos">0</p>
+                            <p class="stat-subtitle" id="produtosBaixo">0 com baixo estoque</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Valor em Estoque</h3>
+                            <p class="stat-number" id="valorEstoque">R$ 0,00</p>
+                            <p class="stat-subtitle">Valor total</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Meta do Mês</h3>
+                            <p class="stat-number" id="metaPercentual">0%</p>
+                            <p class="stat-subtitle" id="metaRestante">R$ 50.000,00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h2><i class="fas fa-history"></i> Atividade Recente</h2>
+                <div class="activity-list" id="activityList">
+                    <!-- Atividades serão carregadas aqui -->
+                    <div class="empty-activity">
+                        <i class="fas fa-history"></i>
+                        <p>Carregando atividades...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p><i class="fas fa-store"></i> MJ Materiais de Construção © 2024</p>
+                <p id="connectionStatus"><i class="fas fa-circle"></i> <span id="statusText">Conectando...</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <div class="message-text"></div>
+            <button class="message-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Quick Search Modal -->
+    <div id="quickSearchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-search"></i> Consulta Rápida</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <i class="fas fa-barcode"></i>
+                    <input type="text" id="searchProductInput" placeholder="Código ou nome do produto" autofocus>
+                </div>
+                <div class="search-results" id="searchResults">
+                    <div class="empty-results">
+                        <i class="fas fa-search"></i>
+                        <p>Digite para buscar um produto</p>
+                        <small>Busque por código, nome ou categoria</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script principal (NÃO É MÓDULO) -->
+    <script src="home.js"></script>
+</body>
+</html>
