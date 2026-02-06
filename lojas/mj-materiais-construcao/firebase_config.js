@@ -1,4 +1,4 @@
-// firebase_config.js - CONFIGURAÇÃO DINÂMICA PARA TODAS AS LOJAS (SEM ÍNDICES)
+// firebase_config.js - CONFIGURAÇÃO DINÂMICA PARA QUALQUER LOJA
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getFirestore, collection, doc, getDoc, getDocs, 
@@ -32,12 +32,17 @@ try {
     console.error('❌ Erro ao inicializar Firebase:', error);
 }
 
-// Classe principal para gerenciar sessão e serviços
-class PdvManager {
+// Sistema de gerenciamento de loja atual
+class LojaManager {
     constructor() {
         this.lojaId = null;
         this.usuario = null;
-        this.configLoja = null;
+        this.config = null;
+        this.dadosLoja = null;
+        this.inicializar();
+    }
+    
+    inicializar() {
         this.carregarSessao();
     }
     
@@ -49,8 +54,8 @@ class PdvManager {
                 const dados = JSON.parse(sessao);
                 this.lojaId = dados.banco_login;
                 this.usuario = dados;
-                this.carregarDadosLoja();
-                console.log(`✅ Sessão carregada: ${this.lojaId}`);
+                this.config = getLojaConfig(this.lojaId);
+                console.log(`✅ Loja identificada: ${this.lojaId}`);
                 return;
             }
             
@@ -60,131 +65,43 @@ class PdvManager {
                 const dados = JSON.parse(backup);
                 this.lojaId = dados.banco_login;
                 this.usuario = dados;
-                this.carregarDadosLoja();
-                console.log(`⚠️ Sessão carregada do backup: ${this.lojaId}`);
+                this.config = getLojaConfig(this.lojaId);
+                console.log(`⚠️ Loja identificada do backup: ${this.lojaId}`);
                 return;
             }
             
-            // 3. Tentar da URL (fallback para desenvolvimento)
+            // 3. Tentar da URL (fallback)
             const pathParts = window.location.pathname.split('/');
             const lojaIndex = pathParts.indexOf('lojas');
             if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
                 this.lojaId = pathParts[lojaIndex + 1];
+                this.config = getLojaConfig(this.lojaId);
                 console.log(`📍 Loja detectada da URL: ${this.lojaId}`);
                 
-                // Dados de usuário fake para desenvolvimento
+                // Dados mock para desenvolvimento
                 this.usuario = {
                     login: 'dev_user',
                     nome: 'Usuário Desenvolvimento',
-                    perfil: 'admin'
+                    perfil: 'admin',
+                    id: 'dev_001'
                 };
-                
-                this.carregarDadosLoja();
                 return;
             }
             
-            // 4. Redirecionar se não encontrou
-            console.error('❌ Sessão não encontrada');
-            this.redirecionarLogin();
+            console.error('❌ Não foi possível identificar a loja');
             
         } catch (error) {
             console.error('❌ Erro ao carregar sessão:', error);
-            this.redirecionarLogin();
         }
     }
     
-    async carregarDadosLoja() {
-        try {
-            if (!this.lojaId) {
-                console.warn('⚠️ Loja ID não definido');
-                return null;
-            }
-            
-            console.log(`🔍 Buscando dados da loja: ${this.lojaId}`);
-            
-            // 1. Primeiro, buscar configuração do lojas.js
-            this.configLoja = getLojaConfig(this.lojaId);
-            console.log('📋 Configuração do arquivo:', this.configLoja);
-            
-            // 2. Tentar buscar dados completos do Firebase
-            try {
-                const lojaRef = doc(db, "lojas", this.lojaId);
-                const lojaDoc = await getDoc(lojaRef);
-                
-                if (lojaDoc.exists()) {
-                    const dadosFirebase = lojaDoc.data();
-                    console.log('🔥 Dados do Firebase:', dadosFirebase);
-                    
-                    // Mesclar dados: Firebase tem prioridade, arquivo tem fallback
-                    this.configLoja = {
-                        // Dados do arquivo (bancos)
-                        banco_estoque: this.configLoja.banco_estoque,
-                        banco_vendas: this.configLoja.banco_vendas,
-                        // Dados do Firebase (sobrescrevem se existirem)
-                        nome: dadosFirebase.nome || this.formatarNomeLoja(this.lojaId),
-                        local: dadosFirebase.local || dadosFirebase.endereco || '',
-                        telefone: dadosFirebase.telefone || dadosFirebase.contato?.telefone || '',
-                        email: dadosFirebase.email || dadosFirebase.contato?.email || '',
-                        cnpj: dadosFirebase.cnpj || dadosFirebase.documento || '',
-                        tipo: dadosFirebase.tipo || 'padrao',
-                        meta_mensal: dadosFirebase.meta_mensal || 10000,
-                        // Outros dados do Firebase
-                        ...dadosFirebase
-                    };
-                    
-                } else {
-                    console.log(`ℹ️ Loja ${this.lojaId} não encontrada no Firebase, usando dados locais`);
-                    this.usarDadosLocais();
-                }
-            } catch (firebaseError) {
-                console.warn('⚠️ Erro ao buscar do Firebase, usando dados locais:', firebaseError.message);
-                this.usarDadosLocais();
-            }
-            
-            console.log(`✅ Configuração final da loja:`, this.configLoja);
-            return this.configLoja;
-            
-        } catch (error) {
-            console.error('❌ Erro ao carregar dados da loja:', error);
-            this.usarDadosLocais();
-            return this.configLoja;
-        }
-    }
-    
-    usarDadosLocais() {
-        this.configLoja = {
-            ...this.configLoja,
-            nome: this.formatarNomeLoja(this.lojaId),
-            local: '',
-            telefone: '',
-            email: '',
-            cnpj: '',
-            tipo: 'padrao',
-            meta_mensal: 10000
-        };
-    }
-    
-    formatarNomeLoja(id) {
-        return id
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, l => l.toUpperCase())
-            .replace(/\bmj\b/gi, 'MJ')
-            .replace(/\bacai\b/gi, 'Açaí');
-    }
-    
-    redirecionarLogin() {
-        setTimeout(() => {
-            window.location.href = '../../login.html';
-        }, 1500);
-    }
-    
-    // ========== GETTERS ==========
+    // ========== GETTERS IMPORTANTES ==========
     get bancoEstoque() {
-        return this.configLoja?.banco_estoque || `estoque_${this.lojaId?.replace(/-/g, '_')}`;
+        return this.config?.banco_estoque || `estoque_${this.lojaId?.replace(/-/g, '_')}`;
     }
     
     get bancoVendas() {
-        return this.configLoja?.banco_vendas || `vendas_${this.lojaId?.replace(/-/g, '_')}`;
+        return this.config?.banco_vendas || `vendas_${this.lojaId?.replace(/-/g, '_')}`;
     }
     
     get isLogged() {
@@ -203,89 +120,142 @@ class PdvManager {
         return this.usuario?.perfil || 'usuario';
     }
     
-    // ========== SERVIÇOS (SEM ÍNDICES) ==========
+    // ========== SERVIÇOS DA LOJA ==========
     
     // Buscar dados da loja do Firebase
     async buscarDadosLoja() {
         try {
+            console.log(`🔍 Buscando dados da loja no Firebase: ${this.lojaId}`);
+            
             if (!this.lojaId) {
-                return { success: false, error: "Loja não identificada" };
+                return { 
+                    success: false, 
+                    error: "ID da loja não identificado" 
+                };
             }
             
-            return {
-                success: true,
-                data: {
+            // Buscar documento da loja
+            const lojaRef = doc(db, "lojas", this.lojaId);
+            const lojaDoc = await getDoc(lojaRef);
+            
+            if (lojaDoc.exists()) {
+                this.dadosLoja = {
+                    id: lojaDoc.id,
+                    ...lojaDoc.data()
+                };
+                
+                console.log('✅ Dados da loja encontrados:', this.dadosLoja);
+                
+                return { 
+                    success: true, 
+                    data: this.dadosLoja 
+                };
+            } else {
+                console.warn(`⚠️ Documento da loja não encontrado: ${this.lojaId}`);
+                
+                // Criar estrutura básica se não existir
+                this.dadosLoja = {
                     id: this.lojaId,
-                    nome: this.configLoja?.nome || this.formatarNomeLoja(this.lojaId),
-                    local: this.configLoja?.local || '',
-                    telefone: this.configLoja?.telefone || '',
-                    email: this.configLoja?.email || '',
-                    cnpj: this.configLoja?.cnpj || '',
-                    tipo: this.configLoja?.tipo || 'padrao',
-                    meta_mensal: this.configLoja?.meta_mensal || 10000
-                }
-            };
+                    nome: this.formatarNomeLoja(this.lojaId),
+                    local: '',
+                    telefone: '',
+                    email: '',
+                    cnpj: '',
+                    tipo: 'padrao',
+                    meta_mensal: 10000
+                };
+                
+                return { 
+                    success: false, 
+                    error: "Dados da loja não encontrados",
+                    data: this.dadosLoja 
+                };
+            }
             
         } catch (error) {
-            console.error('Erro ao buscar dados da loja:', error);
+            console.error('❌ Erro ao buscar dados da loja:', error);
+            
+            // Fallback básico
+            this.dadosLoja = {
+                id: this.lojaId,
+                nome: this.formatarNomeLoja(this.lojaId),
+                local: '',
+                telefone: '',
+                email: '',
+                cnpj: '',
+                tipo: 'padrao',
+                meta_mensal: 10000
+            };
+            
             return { 
                 success: false, 
-                error: error.message 
+                error: error.message,
+                data: this.dadosLoja
             };
         }
     }
     
-    // ========== ESTOQUE ==========
+    formatarNomeLoja(id) {
+        if (!id) return 'Loja';
+        
+        // Formatar nome bonito
+        return id
+            .replace(/-/g, ' ')
+            .replace(/\b\w/g, l => l.toUpperCase())
+            .replace(/\bmj\b/gi, 'MJ')
+            .replace(/\bacai\b/gi, 'Açaí')
+            .replace(/\bpadaria\b/gi, 'Padaria');
+    }
     
+    // Buscar produtos do estoque (FILTRAGEM LOCAL para evitar índices)
     async buscarProdutos(filtro = {}) {
         try {
             console.log(`🔍 Buscando produtos em ${this.bancoEstoque}...`);
             const estoqueRef = collection(db, this.bancoEstoque);
             
-            // Buscar TODOS os produtos (sem filtros complexos)
+            // Buscar TODOS os produtos
             const snapshot = await getDocs(estoqueRef);
             
             const produtos = [];
             
             snapshot.forEach(doc => {
                 const data = doc.data();
-                
-                // FILTRAGEM LOCAL (para evitar índices)
-                let deveIncluir = true;
-                
-                // Filtro por loja
-                if (!this.isAdmin && data.loja_id !== this.lojaId) {
-                    deveIncluir = false;
+                produtos.push({
+                    id: doc.id,
+                    ...data
+                });
+            });
+            
+            // Filtrar localmente
+            const produtosFiltrados = produtos.filter(produto => {
+                // Filtro por loja (para admin mostrar todas)
+                if (!this.isAdmin && produto.loja_id !== this.lojaId) {
+                    return false;
                 }
                 
                 // Filtro por ativo
-                if (filtro.ativo !== undefined && data.ativo !== filtro.ativo) {
-                    deveIncluir = false;
+                if (filtro.ativo !== undefined && produto.ativo !== filtro.ativo) {
+                    return false;
                 }
                 
                 // Filtro por categoria
-                if (filtro.categoria && data.categoria !== filtro.categoria) {
-                    deveIncluir = false;
+                if (filtro.categoria && produto.categoria !== filtro.categoria) {
+                    return false;
                 }
                 
                 // Filtro por baixo estoque
-                if (filtro.baixo_estoque && data.quantidade > 10) {
-                    deveIncluir = false;
+                if (filtro.baixo_estoque && produto.quantidade > 10) {
+                    return false;
                 }
                 
-                if (deveIncluir) {
-                    produtos.push({
-                        id: doc.id,
-                        ...data
-                    });
-                }
+                return true;
             });
             
             // Ordenar localmente
-            produtos.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+            produtosFiltrados.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
             
-            console.log(`✅ ${produtos.length} produtos encontrados`);
-            return { success: true, data: produtos };
+            console.log(`✅ ${produtosFiltrados.length} produtos encontrados`);
+            return { success: true, data: produtosFiltrados };
             
         } catch (error) {
             console.error('Erro ao buscar produtos:', error);
@@ -293,6 +263,7 @@ class PdvManager {
         }
     }
     
+    // Buscar produto específico
     async buscarProdutoPorId(produtoId) {
         try {
             const produtoRef = doc(db, this.bancoEstoque, produtoId);
@@ -322,6 +293,36 @@ class PdvManager {
         }
     }
     
+    // Buscar produtos para venda (com estoque)
+    async buscarProdutosParaVenda() {
+        try {
+            console.log(`🛒 Buscando produtos disponíveis para venda...`);
+            
+            // Buscar produtos ativos
+            const resultado = await this.buscarProdutos({ ativo: true });
+            
+            if (!resultado.success) {
+                return resultado;
+            }
+            
+            // Filtrar os que têm estoque
+            const produtosComEstoque = resultado.data.filter(produto => {
+                return (produto.quantidade || 0) > 0;
+            });
+            
+            console.log(`✅ ${produtosComEstoque.length} produtos disponíveis para venda`);
+            return { 
+                success: true, 
+                data: produtosComEstoque 
+            };
+            
+        } catch (error) {
+            console.error('Erro ao buscar produtos para venda:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    // Cadastrar novo produto
     async cadastrarProduto(dadosProduto) {
         try {
             const estoqueRef = collection(db, this.bancoEstoque);
@@ -354,119 +355,7 @@ class PdvManager {
         }
     }
     
-    async atualizarProduto(produtoId, dadosAtualizacao) {
-        try {
-            const produtoRef = doc(db, this.bancoEstoque, produtoId);
-            
-            // Verificar se produto existe e pertence à loja
-            const produtoDoc = await getDoc(produtoRef);
-            if (!produtoDoc.exists()) {
-                return { success: false, error: 'Produto não encontrado' };
-            }
-            
-            const produtoData = produtoDoc.data();
-            if (produtoData.loja_id !== this.lojaId && !this.isAdmin) {
-                return { 
-                    success: false, 
-                    error: "Produto não pertence a esta loja" 
-                };
-            }
-            
-            const dadosAtualizados = {
-                ...dadosAtualizacao,
-                data_atualizacao: serverTimestamp()
-            };
-            
-            await updateDoc(produtoRef, dadosAtualizados);
-            
-            return { success: true };
-            
-        } catch (error) {
-            console.error('Erro ao atualizar produto:', error);
-            return { success: false, error: error.message };
-        }
-    }
-    
-    async atualizarEstoque(produtoId, quantidade) {
-        try {
-            const produtoRef = doc(db, this.bancoEstoque, produtoId);
-            
-            await updateDoc(produtoRef, {
-                quantidade: increment(quantidade),
-                data_atualizacao: serverTimestamp()
-            });
-            
-            return { success: true };
-            
-        } catch (error) {
-            console.error('Erro ao atualizar estoque:', error);
-            return { success: false, error: error.message };
-        }
-    }
-    
-    async buscarCategorias() {
-        try {
-            // Buscar todos produtos e extrair categorias localmente
-            const resultado = await this.buscarProdutos({ ativo: true });
-            
-            if (!resultado.success) {
-                return { success: false, error: resultado.error };
-            }
-            
-            const categorias = new Set();
-            resultado.data.forEach(produto => {
-                if (produto.categoria && produto.categoria.trim() !== '') {
-                    categorias.add(produto.categoria);
-                }
-            });
-            
-            return { 
-                success: true, 
-                data: Array.from(categorias).sort() 
-            };
-            
-        } catch (error) {
-            console.error('Erro ao buscar categorias:', error);
-            return { success: false, error: error.message };
-        }
-    }
-    
-    // ========== VENDAS ==========
-    
-    async buscarProdutosParaVenda() {
-        try {
-            console.log(`🔍 Buscando produtos para venda...`);
-            
-            // Buscar todos produtos ativos
-            const resultado = await this.buscarProdutos({ ativo: true });
-            
-            if (!resultado.success) {
-                return resultado;
-            }
-            
-            // Filtrar localmente os com estoque > 0
-            const produtosComEstoque = resultado.data.filter(produto => {
-                return (produto.quantidade || 0) > 0;
-            });
-            
-            // Ordenar por nome
-            produtosComEstoque.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-            
-            console.log(`✅ ${produtosComEstoque.length} produtos disponíveis para venda`);
-            return { 
-                success: true, 
-                data: produtosComEstoque.map(p => ({
-                    ...p,
-                    disponivel: true
-                }))
-            };
-            
-        } catch (error) {
-            console.error('Erro ao buscar produtos para venda:', error);
-            return { success: false, error: error.message };
-        }
-    }
-    
+    // Criar nova venda
     async criarVenda(dadosVenda) {
         try {
             const resultado = await runTransaction(db, async (transaction) => {
@@ -479,7 +368,7 @@ class PdvManager {
                     id: novaVendaRef.id,
                     numero_venda: `V${Date.now().toString().slice(-8)}`,
                     loja_id: this.lojaId,
-                    loja_nome: this.configLoja?.nome || this.lojaId,
+                    loja_nome: this.dadosLoja?.nome || this.formatarNomeLoja(this.lojaId),
                     vendedor_id: this.usuario?.id,
                     vendedor_nome: this.nomeUsuario,
                     status: 'concluida',
@@ -532,12 +421,13 @@ class PdvManager {
         }
     }
     
+    // Buscar vendas recentes
     async buscarVendas(limite = 10) {
         try {
-            console.log(`🔍 Buscando últimas ${limite} vendas...`);
+            console.log(`📋 Buscando últimas vendas...`);
             const vendasRef = collection(db, this.bancoVendas);
             
-            // Buscar TODAS as vendas e filtrar localmente
+            // Buscar TODAS as vendas
             const snapshot = await getDocs(vendasRef);
             
             const vendas = [];
@@ -554,7 +444,7 @@ class PdvManager {
                 }
             });
             
-            // Ordenar por data (mais recente primeiro) - localmente
+            // Ordenar por data (mais recente primeiro)
             vendas.sort((a, b) => {
                 const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
                 const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
@@ -573,11 +463,12 @@ class PdvManager {
         }
     }
     
+    // Buscar estatísticas
     async buscarEstatisticas() {
         try {
             console.log('📊 Calculando estatísticas...');
             
-            // 1. Buscar todos produtos
+            // 1. Buscar produtos
             const produtosResult = await this.buscarProdutos({ ativo: true });
             let totalProdutos = 0;
             let totalValorEstoque = 0;
@@ -597,15 +488,15 @@ class PdvManager {
                 });
             }
             
-            // 2. Buscar vendas do dia
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            
-            const vendasResult = await this.buscarVendas(100); // Buscar mais vendas para filtrar
+            // 2. Buscar vendas
+            const vendasResult = await this.buscarVendas(100);
             let totalVendasHoje = 0;
             let quantidadeVendasHoje = 0;
             
             if (vendasResult.success) {
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0);
+                
                 vendasResult.data.forEach(venda => {
                     const dataVenda = venda.data_venda?.toDate ? 
                         venda.data_venda.toDate() : 
@@ -618,7 +509,7 @@ class PdvManager {
                 });
             }
             
-            console.log(`📊 Estatísticas calculadas: ${quantidadeVendasHoje} vendas hoje`);
+            console.log(`📊 Estatísticas: ${quantidadeVendasHoje} vendas hoje`);
             
             return {
                 success: true,
@@ -627,7 +518,8 @@ class PdvManager {
                     totalValorEstoque: totalValorEstoque.toFixed(2),
                     produtosBaixoEstoque: produtosBaixoEstoque,
                     vendasHoje: totalVendasHoje.toFixed(2),
-                    quantidadeVendasHoje: quantidadeVendasHoje
+                    quantidadeVendasHoje: quantidadeVendasHoje,
+                    meta_mensal: this.dadosLoja?.meta_mensal || 10000
                 }
             };
             
@@ -640,20 +532,48 @@ class PdvManager {
                     totalValorEstoque: 0,
                     produtosBaixoEstoque: 0,
                     vendasHoje: 0,
-                    quantidadeVendasHoje: 0
+                    quantidadeVendasHoje: 0,
+                    meta_mensal: this.dadosLoja?.meta_mensal || 10000
                 }
             };
         }
     }
     
-    // ========== UTILIDADES ==========
+    // Buscar categorias
+    async buscarCategorias() {
+        try {
+            const resultado = await this.buscarProdutos({ ativo: true });
+            
+            if (!resultado.success) {
+                return { success: false, error: resultado.error };
+            }
+            
+            const categorias = new Set();
+            resultado.data.forEach(produto => {
+                if (produto.categoria && produto.categoria.trim() !== '') {
+                    categorias.add(produto.categoria);
+                }
+            });
+            
+            return { 
+                success: true, 
+                data: Array.from(categorias).sort() 
+            };
+            
+        } catch (error) {
+            console.error('Erro ao buscar categorias:', error);
+            return { success: false, error: error.message };
+        }
+    }
     
+    // Logout
     logout() {
         sessionStorage.removeItem('pdv_sessao_temporaria');
         localStorage.removeItem('pdv_sessao_backup');
         window.location.href = '../../login.html';
     }
     
+    // Formatar moeda
     formatarMoeda(valor) {
         const numero = parseFloat(valor) || 0;
         return numero.toLocaleString('pt-BR', {
@@ -661,39 +581,55 @@ class PdvManager {
             currency: 'BRL'
         });
     }
-    
-    formatarData(dataFirebase) {
-        if (!dataFirebase) return '';
-        
-        try {
-            const data = dataFirebase.toDate();
-            return data.toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        } catch (error) {
-            return String(dataFirebase);
-        }
-    }
 }
 
 // Criar instância global
-const pdvManager = new PdvManager();
+const lojaManager = new LojaManager();
 
-// Exportar para uso em outros arquivos
+// Criar objeto de serviços (similar ao mjServices)
+const lojaServices = {
+    // Dados da loja
+    buscarDadosLoja: () => lojaManager.buscarDadosLoja(),
+    
+    // Estoque
+    buscarProdutos: (filtro) => lojaManager.buscarProdutos(filtro),
+    buscarProdutoPorId: (id) => lojaManager.buscarProdutoPorId(id),
+    buscarProdutosParaVenda: () => lojaManager.buscarProdutosParaVenda(),
+    cadastrarProduto: (dados) => lojaManager.cadastrarProduto(dados),
+    buscarCategorias: () => lojaManager.buscarCategorias(),
+    
+    // Vendas
+    criarVenda: (dados) => lojaManager.criarVenda(dados),
+    buscarVendas: (limite) => lojaManager.buscarVendas(limite),
+    
+    // Estatísticas
+    buscarEstatisticas: () => lojaManager.buscarEstatisticas(),
+    
+    // Utilitários
+    formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
+    logout: () => lojaManager.logout(),
+    
+    // Getters
+    get lojaId() { return lojaManager.lojaId; },
+    get usuario() { return lojaManager.usuario; },
+    get nomeUsuario() { return lojaManager.nomeUsuario; },
+    get perfil() { return lojaManager.perfil; },
+    get isAdmin() { return lojaManager.isAdmin; },
+    get isLogged() { return lojaManager.isLogged; },
+    get dadosLoja() { return lojaManager.dadosLoja; }
+};
+
+// Exportar tudo
 export { 
     db, 
-    pdvManager,
+    lojaServices,
+    lojaManager,
     collection, 
     doc, 
     getDoc, 
     getDocs, 
     setDoc, 
     updateDoc, 
-    deleteDoc, 
     query, 
     where, 
     orderBy, 
@@ -704,8 +640,8 @@ export {
     limit
 };
 
-// Para uso global (opcional)
-window.pdvManager = pdvManager;
-window.db = db;
+// Para uso global
+window.lojaServices = lojaServices;
+window.lojaManager = lojaManager;
 
-console.log(`🏪 PDV Manager inicializado para: ${pdvManager.lojaId}`);
+console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
