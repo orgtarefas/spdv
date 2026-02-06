@@ -1320,3 +1320,4 @@ console.log("✅ Sistema de estoque dinâmico completamente carregado!");
 
 
 
+
