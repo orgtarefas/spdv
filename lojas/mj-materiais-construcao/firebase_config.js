@@ -206,8 +206,6 @@ class LojaManager {
             .replace(/\bacai\b/gi, 'Açaí')
             .replace(/\bpadaria\b/gi, 'Padaria');
     }
-
-    
     
     // Buscar produtos do estoque (FILTRAGEM LOCAL para evitar índices)
     async buscarProdutos(filtro = {}) {
@@ -323,7 +321,40 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
-
+    
+    // Cadastrar novo produto
+    async cadastrarProduto(dadosProduto) {
+        try {
+            const estoqueRef = collection(db, this.bancoEstoque);
+            const novoProdutoRef = doc(estoqueRef);
+            
+            const produtoData = {
+                ...dadosProduto,
+                id: novoProdutoRef.id,
+                codigo: dadosProduto.codigo || `P${Date.now().toString().slice(-6)}`,
+                loja_id: this.lojaId,
+                data_cadastro: serverTimestamp(),
+                data_atualizacao: serverTimestamp(),
+                ativo: true,
+                preco: parseFloat(dadosProduto.preco) || 0,
+                preco_custo: parseFloat(dadosProduto.preco_custo) || 0,
+                quantidade: parseInt(dadosProduto.quantidade) || 0,
+                estoque_minimo: parseInt(dadosProduto.estoque_minimo) || 5
+            };
+            
+            await setDoc(novoProdutoRef, produtoData);
+            
+            return { 
+                success: true, 
+                data: produtoData 
+            };
+            
+        } catch (error) {
+            console.error('Erro ao cadastrar produto:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
     // Atualizar produto existente
     async atualizarProduto(produtoId, dadosAtualizados) {
         try {
@@ -366,6 +397,10 @@ class LojaManager {
                 dadosParaAtualizar.estoque_minimo = parseInt(dadosParaAtualizar.estoque_minimo) || 5;
             }
             
+            if (dadosParaAtualizar.peso_por_unidade !== undefined) {
+                dadosParaAtualizar.peso_por_unidade = parseFloat(dadosParaAtualizar.peso_por_unidade) || 0;
+            }
+            
             await updateDoc(produtoRef, dadosParaAtualizar);
             
             return { 
@@ -378,7 +413,7 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
-
+    
     // Atualizar estoque (entrada/saída)
     async atualizarEstoque(produtoId, quantidadeAlterar, tipo = 'entrada') {
         try {
@@ -418,39 +453,6 @@ class LojaManager {
             
         } catch (error) {
             console.error('Erro ao atualizar estoque:', error);
-            return { success: false, error: error.message };
-        }
-    }
-        
-    // Cadastrar novo produto
-    async cadastrarProduto(dadosProduto) {
-        try {
-            const estoqueRef = collection(db, this.bancoEstoque);
-            const novoProdutoRef = doc(estoqueRef);
-            
-            const produtoData = {
-                ...dadosProduto,
-                id: novoProdutoRef.id,
-                codigo: dadosProduto.codigo || `P${Date.now().toString().slice(-6)}`,
-                loja_id: this.lojaId,
-                data_cadastro: serverTimestamp(),
-                data_atualizacao: serverTimestamp(),
-                ativo: true,
-                preco: parseFloat(dadosProduto.preco) || 0,
-                preco_custo: parseFloat(dadosProduto.preco_custo) || 0,
-                quantidade: parseInt(dadosProduto.quantidade) || 0,
-                estoque_minimo: parseInt(dadosProduto.estoque_minimo) || 5
-            };
-            
-            await setDoc(novoProdutoRef, produtoData);
-            
-            return { 
-                success: true, 
-                data: produtoData 
-            };
-            
-        } catch (error) {
-            console.error('Erro ao cadastrar produto:', error);
             return { success: false, error: error.message };
         }
     }
@@ -698,7 +700,7 @@ const lojaServices = {
     cadastrarProduto: (dados) => lojaManager.cadastrarProduto(dados),
     buscarCategorias: () => lojaManager.buscarCategorias(),
     
-    // ADICIONE AQUI AS NOVAS FUNÇÕES:
+    // NOVAS FUNÇÕES
     atualizarProduto: (id, dados) => lojaManager.atualizarProduto(id, dados),
     atualizarEstoque: (id, quantidade, tipo) => lojaManager.atualizarEstoque(id, quantidade, tipo),
     
@@ -723,7 +725,6 @@ const lojaServices = {
     get dadosLoja() { return lojaManager.dadosLoja; }
 };
 
-
 // Exportar tudo
 export { 
     db, 
@@ -735,6 +736,7 @@ export {
     getDocs, 
     setDoc, 
     updateDoc, 
+    deleteDoc,
     query, 
     where, 
     orderBy, 
@@ -745,14 +747,8 @@ export {
     limit
 };
 
-// Atualizar estoque
-atualizarProduto: (id, dados) => lojaManager.atualizarProduto(id, dados),
-atualizarEstoque: (id, quantidade, tipo) => lojaManager.atualizarEstoque(id, 
-
 // Para uso global
 window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
-
-
