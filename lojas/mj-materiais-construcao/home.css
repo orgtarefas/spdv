@@ -808,3 +808,46 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* home.css - Estilos básicos que já devem estar no seu arquivo */
+
+/* ... seus estilos existentes ... */
+
+/* Adicione apenas estas classes se não existirem */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.message-alert {
+    display: none;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+/* Estilos para as novas funcionalidades */
+.stat-progress {
+    margin-top: 8px;
+}
+
+.action-badge {
+    /* Adicionado no JS */
+}
+
+.filter-btn {
+    /* Adicionado no JS */
+}
+
+.user-perfil {
+    /* Adicionado no JS */
+}
