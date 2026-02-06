@@ -1,7 +1,7 @@
 // home.js - SISTEMA HOME PDV MULTILOJA (Versão Dinâmica)
 console.log("🏠 Sistema PDV - Página Inicial (Versão Dinâmica)");
 
-import { pdvManager } from './firebase_config.js';
+import { lojaServices } from './firebase_config.js';
 
 // Variáveis globais
 let produtos = [];
@@ -16,163 +16,88 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página home carregada");
     
     // Mostrar loading inicial
-    mostrarLoading('Inicializando sistema...');
+    mostrarLoading('Inicializando sistema...', 'Carregando configurações...');
     
-    // Aguardar 1 segundo para o pdvManager carregar completamente
-    setTimeout(async () => {
-        try {
-            // Verificar se o pdvManager está carregado
-            if (!pdvManager || !pdvManager.isLogged) {
-                console.warn('pdvManager não carregado ou sessão inválida');
-                mostrarMensagem('Sessão expirada! Redirecionando para login...', 'error');
-                setTimeout(() => {
-                    window.location.href = '../../login.html';
-                }, 2000);
-                return;
-            }
-            
-            console.log(`✅ Loja atual: ${pdvManager.lojaId}`);
-            console.log(`📋 Configuração da loja:`, pdvManager.configLoja);
-            
-            // Atualizar interface com dados da loja
-            atualizarInterfaceLoja();
-            
-            // Configurar eventos
-            configurarEventos();
-            
-            // Atualizar data/hora
-            atualizarDataHora();
-            setInterval(atualizarDataHora, 60000);
-            
-            // Carregar dados iniciais
-            await carregarDadosIniciais();
-            
-            // Esconder loading
-            esconderLoading();
-            
-            console.log("✅ Sistema home pronto para uso");
-            
-        } catch (error) {
-            console.error("❌ Erro na inicialização:", error);
-            mostrarMensagem('Erro ao carregar sistema', 'error');
-            esconderLoading();
-        }
-    }, 1000);
-});
-
-// função para atualizar a interface:
-function atualizarInterfaceLoja() {
     try {
-        // Usar configLoja que já foi carregada
-        const nomeLoja = pdvManager.configLoja?.nome || pdvManager.formatarNomeLoja(pdvManager.lojaId);
-        
-        console.log(`🎯 Atualizando interface para: ${nomeLoja}`);
-        
-        // Atualizar todos os elementos com nome da loja
-        const elementos = [
-            'lojaNomeHeader',
-            'lojaNomeBemVindo', 
-            'lojaNomeFooter'
-        ];
-        
-        elementos.forEach(id => {
-            const elemento = document.getElementById(id);
-            if (elemento) {
-                elemento.textContent = nomeLoja;
-            }
-        });
-        
-        // Atualizar título da página
-        document.title = `${nomeLoja} - PDV Sistema`;
-        
-        // Atualizar local se existir
-        const lojaLocal = document.getElementById('lojaLocal');
-        if (lojaLocal && pdvManager.configLoja?.local) {
-            lojaLocal.textContent = pdvManager.configLoja.local;
+        // Verificar se a loja está carregada
+        if (!lojaServices || !lojaServices.lojaId) {
+            console.warn('❌ Loja não identificada');
+            mostrarMensagem('Erro ao identificar a loja. Redirecionando...', 'error');
+            setTimeout(() => {
+                window.location.href = '../../login.html';
+            }, 2000);
+            return;
         }
         
-        // Atualizar informações do usuário
-        const userName = document.getElementById('userName');
-        const userWelcome = document.getElementById('userWelcome');
-        const userPerfil = document.getElementById('userPerfil');
+        console.log(`✅ Loja identificada: ${lojaServices.lojaId}`);
+        console.log(`👤 Usuário: ${lojaServices.nomeUsuario}`);
         
-        if (userName) userName.textContent = pdvManager.nomeUsuario;
-        if (userWelcome) userWelcome.textContent = pdvManager.nomeUsuario;
-        if (userPerfil) {
-            const perfil = pdvManager.perfil || 'usuario';
-            userPerfil.textContent = perfil.includes('admin') ? '👑 Administrador' : '👤 Vendedor';
-            userPerfil.className = `user-perfil ${perfil.includes('admin') ? 'admin' : 'user'}`;
-        }
+        // Atualizar interface com dados da loja
+        await atualizarInterfaceLoja();
+        
+        // Configurar eventos
+        configurarEventos();
+        
+        // Atualizar data/hora
+        atualizarDataHora();
+        setInterval(atualizarDataHora, 60000);
+        
+        // Carregar dados iniciais
+        await carregarDadosIniciais();
+        
+        // Esconder loading
+        esconderLoading();
+        
+        console.log("✅ Sistema home pronto para uso");
         
     } catch (error) {
-        console.error('❌ Erro ao atualizar interface da loja:', error);
+        console.error("❌ Erro na inicialização:", error);
+        mostrarMensagem('Erro ao carregar sistema', 'error');
+        esconderLoading();
     }
-}
+});
 
 // ============================================
 // 2. ATUALIZAR INTERFACE DA LOJA
 // ============================================
 async function atualizarInterfaceLoja() {
     try {
-        // 1. Atualizar título da página
-        const lojaNome = pdvManager.config?.nome || pdvManager.id;
-        document.title = `${lojaNome} - PDV Sistema`;
+        mostrarLoading('Carregando dados da loja...', 'Buscando informações...');
         
-        // 2. Atualizar nome da loja em todos os elementos
-        const elementosNome = [
-            'lojaNomeHeader',
-            'lojaNomeBemVindo', 
-            'lojaNomeFooter'
-        ];
-        
-        elementosNome.forEach(id => {
-            const elemento = document.getElementById(id);
-            if (elemento) {
-                elemento.textContent = lojaNome;
-            }
-        });
-        
-        // 3. Atualizar local da loja
-        const lojaLocal = document.getElementById('lojaLocal');
-        if (lojaLocal && pdvManager.config?.local) {
-            lojaLocal.textContent = pdvManager.config.local;
-        }
-        
-        // 4. Atualizar informações do usuário
-        const userName = document.getElementById('userName');
-        const userWelcome = document.getElementById('userWelcome');
-        const userPerfil = document.getElementById('userPerfil');
-        
-        if (userName) userName.textContent = pdvManager.nomeUsuario;
-        if (userWelcome) userWelcome.textContent = pdvManager.nomeUsuario;
-        if (userPerfil) {
-            const perfil = pdvManager.perfil || 'usuario';
-            userPerfil.textContent = perfil.includes('admin') ? '👑 Administrador' : '👤 Vendedor';
-            userPerfil.className = `user-perfil ${perfil.includes('admin') ? 'admin' : 'user'}`;
-        }
-        
-        // 5. Buscar dados completos da loja do Firebase
-        await carregarDadosLojaFirebase();
-        
-    } catch (error) {
-        console.error('❌ Erro ao atualizar interface da loja:', error);
-    }
-}
-
-// ============================================
-// 3. CARREGAR DADOS DA LOJA DO FIREBASE
-// ============================================
-async function carregarDadosLojaFirebase() {
-    try {
-        mostrarLoading('Carregando dados da loja...', 'Carregando...');
-        
-        // Usar o método buscarDadosLoja do pdvManager
-        const resultado = await pdvManager.buscarDadosLoja();
+        // Buscar dados da loja do Firebase
+        const resultado = await lojaServices.buscarDadosLoja();
         
         if (resultado.success) {
             const dadosLoja = resultado.data;
             
-            // Atualizar informações adicionais
+            console.log('🎯 Dados da loja carregados:', dadosLoja);
+            
+            // 1. Atualizar nome da loja em todos os elementos
+            const nomeLoja = dadosLoja.nome || lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeBemVindo', 
+                'lojaNomeFooter'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) {
+                    elemento.textContent = nomeLoja;
+                }
+            });
+            
+            // 2. Atualizar título da página
+            document.title = `${nomeLoja} - PDV Sistema`;
+            
+            // 3. Atualizar local da loja
+            const lojaLocal = document.getElementById('lojaLocal');
+            if (lojaLocal && dadosLoja.local) {
+                lojaLocal.textContent = dadosLoja.local;
+            }
+            
+            // 4. Atualizar informações adicionais no rodapé
             const footerInfo = document.getElementById('footerInfo');
             if (footerInfo) {
                 let infoText = '';
@@ -183,19 +108,62 @@ async function carregarDadosLojaFirebase() {
                 footerInfo.textContent = infoText;
             }
             
-            console.log('✅ Dados da loja carregados:', dadosLoja);
-            
         } else {
-            console.warn('⚠️ Dados da loja não encontrados no Firebase');
+            console.warn('⚠️ Dados da loja não encontrados no Firebase, usando dados básicos');
+            
+            // Fallback: usar ID da loja formatado como nome
+            const nomeLoja = lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeBemVindo', 
+                'lojaNomeFooter'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) {
+                    elemento.textContent = nomeLoja;
+                }
+            });
+            
+            document.title = `${nomeLoja} - PDV Sistema`;
+        }
+        
+        // 5. Atualizar informações do usuário
+        const userName = document.getElementById('userName');
+        const userWelcome = document.getElementById('userWelcome');
+        const userPerfil = document.getElementById('userPerfil');
+        
+        if (userName) userName.textContent = lojaServices.nomeUsuario;
+        if (userWelcome) userWelcome.textContent = lojaServices.nomeUsuario;
+        if (userPerfil) {
+            const perfil = lojaServices.perfil || 'usuario';
+            userPerfil.textContent = perfil.includes('admin') ? '👑 Administrador' : '👤 Vendedor';
+            userPerfil.className = `user-perfil ${perfil.includes('admin') ? 'admin' : 'user'}`;
         }
         
     } catch (error) {
-        console.error('❌ Erro ao carregar dados da loja:', error);
+        console.error('❌ Erro ao atualizar interface da loja:', error);
+        
+        // Fallback mínimo
+        const elementosNome = [
+            'lojaNomeHeader',
+            'lojaNomeBemVindo', 
+            'lojaNomeFooter'
+        ];
+        
+        elementosNome.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.textContent = lojaServices.lojaId || 'Loja';
+            }
+        });
     }
 }
 
 // ============================================
-// 4. CARREGAR DADOS INICIAIS
+// 3. CARREGAR DADOS INICIAIS
 // ============================================
 async function carregarDadosIniciais() {
     try {
@@ -218,7 +186,7 @@ async function carregarDadosIniciais() {
 }
 
 // ============================================
-// 5. CONFIGURAR EVENTOS
+// 4. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
     // Botão logout
@@ -226,7 +194,7 @@ function configurarEventos() {
     if (btnLogout) {
         btnLogout.addEventListener('click', function() {
             if (confirm("Tem certeza que deseja sair do sistema?")) {
-                pdvManager.logout();
+                lojaServices.logout();
             }
         });
     }
@@ -235,6 +203,14 @@ function configurarEventos() {
     const btnConsultaRapida = document.getElementById('btnConsultaRapida');
     if (btnConsultaRapida) {
         btnConsultaRapida.addEventListener('click', abrirModalConsulta);
+    }
+    
+    // Botão relatório
+    const btnRelatorio = document.getElementById('btnRelatorio');
+    if (btnRelatorio) {
+        btnRelatorio.addEventListener('click', function() {
+            mostrarMensagem("Relatórios em desenvolvimento", "info");
+        });
     }
     
     // Modal consulta rápida - fechar
@@ -316,13 +292,13 @@ function configurarEventos() {
 }
 
 // ============================================
-// 6. CARREGAR PRODUTOS PARA CONSULTA
+// 5. CARREGAR PRODUTOS PARA CONSULTA
 // ============================================
 async function carregarProdutos() {
     try {
-        mostrarLoading('Carregando produtos...', 'Carregando catálogo...');
+        mostrarLoading('Carregando produtos...', 'Atualizando catálogo...');
         
-        const resultado = await pdvManager.buscarProdutosParaVenda();
+        const resultado = await lojaServices.buscarProdutosParaVenda();
         
         if (resultado.success) {
             produtos = resultado.data;
@@ -348,13 +324,13 @@ async function carregarProdutos() {
 }
 
 // ============================================
-// 7. CARREGAR ESTATÍSTICAS
+// 6. CARREGAR ESTATÍSTICAS
 // ============================================
 async function carregarEstatisticas() {
     try {
         mostrarLoading('Calculando estatísticas...', 'Analisando dados...');
         
-        const resultado = await pdvManager.buscarEstatisticas();
+        const resultado = await lojaServices.buscarEstatisticas();
         
         if (resultado.success) {
             estatisticas = resultado.data;
@@ -399,9 +375,10 @@ function atualizarEstatisticasUI() {
         }
         
         // Meta do mês
-        const metaMensal = pdvManager.config?.meta_mensal || 10000;
-        const percentual = Math.min(Math.round((parseFloat(estatisticas.vendasHoje) / metaMensal) * 100), 100);
-        const restante = Math.max(metaMensal - parseFloat(estatisticas.vendasHoje), 0);
+        const metaMensal = estatisticas.meta_mensal || 10000;
+        const vendasHojeNumero = parseFloat(estatisticas.vendasHoje) || 0;
+        const percentual = metaMensal > 0 ? Math.min(Math.round((vendasHojeNumero / metaMensal) * 100), 100) : 0;
+        const restante = Math.max(metaMensal - vendasHojeNumero, 0);
         
         const metaPercentualElement = document.getElementById('metaPercentual');
         const metaRestanteElement = document.getElementById('metaRestante');
@@ -434,13 +411,13 @@ function atualizarEstatisticasUI() {
 }
 
 // ============================================
-// 8. CARREGAR ATIVIDADES RECENTES
+// 7. CARREGAR ATIVIDADES RECENTES
 // ============================================
 async function carregarAtividadesRecentes() {
     try {
         mostrarLoading('Carregando atividades...', 'Buscando histórico...');
         
-        const resultado = await pdvManager.buscarVendas(10);
+        const resultado = await lojaServices.buscarVendas(10);
         
         if (resultado.success) {
             atividades = resultado.data;
@@ -476,7 +453,22 @@ function exibirAtividades(listaAtividades) {
     let html = '';
     
     listaAtividades.forEach(atividade => {
-        const dataVenda = atividade.data_venda?.toDate ? atividade.data_venda.toDate() : new Date();
+        let dataVenda;
+        
+        try {
+            if (atividade.data_venda && typeof atividade.data_venda.toDate === 'function') {
+                dataVenda = atividade.data_venda.toDate();
+            } else if (atividade.data_criacao && typeof atividade.data_criacao.toDate === 'function') {
+                dataVenda = atividade.data_criacao.toDate();
+            } else if (atividade.data_venda) {
+                dataVenda = new Date(atividade.data_venda);
+            } else {
+                dataVenda = new Date();
+            }
+        } catch (e) {
+            dataVenda = new Date();
+        }
+        
         const horaFormatada = dataVenda.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const dataFormatada = dataVenda.toLocaleDateString('pt-BR');
         
@@ -486,8 +478,8 @@ function exibirAtividades(listaAtividades) {
         if (atividade.status === 'pendente') iconClass = 'fas fa-clock';
         
         html += `
-            <div class="activity-item" data-type="venda" data-status="${atividade.status}">
-                <div class="activity-icon ${atividade.status}">
+            <div class="activity-item" data-type="venda" data-status="${atividade.status || 'concluida'}">
+                <div class="activity-icon ${atividade.status || 'concluida'}">
                     <i class="${iconClass}"></i>
                 </div>
                 <div class="activity-content">
@@ -498,10 +490,14 @@ function exibirAtividades(listaAtividades) {
                     <div class="activity-details">
                         <span class="activity-vendedor">
                             <i class="fas fa-user"></i>
-                            ${atividade.vendedor_nome || 'Vendedor'}
+                            ${atividade.vendedor_nome || atividade.vendedor || 'Vendedor'}
                         </span>
-                        <span class="activity-status ${atividade.status}">${atividade.status === 'concluida' ? '✅ Concluída' : '⏳ Pendente'}</span>
-                        <span class="activity-amount">${formatarMoeda(atividade.total)}</span>
+                        <span class="activity-status ${atividade.status || 'concluida'}">
+                            ${atividade.status === 'concluida' ? '✅ Concluída' : 
+                              atividade.status === 'pendente' ? '⏳ Pendente' : 
+                              atividade.status === 'cancelada' ? '❌ Cancelada' : '✅ Concluída'}
+                        </span>
+                        <span class="activity-amount">${formatarMoeda(atividade.total || 0)}</span>
                     </div>
                 </div>
             </div>
@@ -528,7 +524,7 @@ function filtrarAtividades(filtro) {
 }
 
 // ============================================
-// 9. CONSULTA RÁPIDA - MODAL
+// 8. CONSULTA RÁPIDA - MODAL
 // ============================================
 function abrirModalConsulta() {
     const modal = document.getElementById('quickSearchModal');
@@ -579,7 +575,7 @@ function buscarProdutoConsultaRapida(termo) {
     if (tipoFiltro === 'estoque') {
         resultados = resultados.filter(p => p.quantidade > 0);
     } else if (tipoFiltro === 'baixo') {
-        resultados = resultados.filter(p => p.quantidade <= p.estoque_minimo);
+        resultados = resultados.filter(p => p.quantidade <= (p.estoque_minimo || 5));
     }
     
     if (resultados.length === 0) {
@@ -597,7 +593,7 @@ function buscarProdutoConsultaRapida(termo) {
     let html = '<div class="results-list">';
     
     resultados.forEach(produto => {
-        const estoqueBaixo = produto.quantidade <= produto.estoque_minimo;
+        const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
         const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = produto.quantidade > 0;
         
@@ -606,16 +602,16 @@ function buscarProdutoConsultaRapida(termo) {
                 <div class="product-result-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
                     <span class="product-stock ${estoqueBaixo ? 'low' : (temEstoque ? 'normal' : 'out')}">
-                        ${produto.quantidade} ${produto.unidade || 'UN'}
+                        ${produto.quantidade || 0} ${produto.unidade || 'UN'}
                         ${estoqueBaixo ? ' ⚠️' : ''}
                         ${!temEstoque ? ' (ESGOTADO)' : ''}
                     </span>
                 </div>
-                <div class="product-name">${produto.nome}</div>
+                <div class="product-name">${produto.nome || 'Produto sem nome'}</div>
                 ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
                 <div class="product-details">
                     <div class="product-price">
-                        <strong>Preço:</strong> ${formatarMoeda(produto.preco)}
+                        <strong>Preço:</strong> ${precoFormatado}
                     </div>
                     <div class="product-actions">
                         <button class="btn-action btn-info" onclick="verDetalhesProduto('${produto.id}')">
@@ -639,28 +635,33 @@ function buscarProdutoConsultaRapida(termo) {
 // Funções globais para os botões do modal
 window.verDetalhesProduto = async function(produtoId) {
     try {
-        const resultado = await pdvManager.buscarProdutoPorId(produtoId);
+        const resultado = await lojaServices.buscarProdutoPorId(produtoId);
         
         if (resultado.success) {
             const produto = resultado.data;
             
-            const estoqueStatus = produto.quantidade <= produto.estoque_minimo ? 'BAIXO' : 'NORMAL';
-            const statusClass = produto.quantidade <= produto.estoque_minimo ? 'danger' : 'success';
+            const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
+            const estoqueStatus = estoqueBaixo ? 'BAIXO' : 'NORMAL';
             
-            alert(
-                `📦 DETALHES DO PRODUTO\n\n` +
-                `Código: ${produto.codigo || 'Não informado'}\n` +
-                `Nome: ${produto.nome || 'Sem nome'}\n` +
-                `Categoria: ${produto.categoria || 'Não informada'}\n` +
-                `Estoque: ${produto.quantidade || 0} ${produto.unidade || 'UN'}\n` +
-                `Estoque mínimo: ${produto.estoque_minimo || 5} ${produto.unidade || 'UN'}\n` +
-                `Status: ${estoqueStatus}\n` +
-                `Preço venda: ${formatarMoeda(produto.preco)}\n` +
-                `Preço custo: ${formatarMoeda(produto.preco_custo)}\n` +
-                `Margem: ${calcularMargem(produto.preco_custo, produto.preco)}%\n` +
-                `${produto.descricao ? `Descrição: ${produto.descricao}\n` : ''}` +
-                `${produto.fornecedor ? `Fornecedor: ${produto.fornecedor}\n` : ''}`
-            );
+            let mensagem = `📦 DETALHES DO PRODUTO\n\n`;
+            mensagem += `Código: ${produto.codigo || 'Não informado'}\n`;
+            mensagem += `Nome: ${produto.nome || 'Sem nome'}\n`;
+            mensagem += `Categoria: ${produto.categoria || 'Não informada'}\n`;
+            mensagem += `Estoque: ${produto.quantidade || 0} ${produto.unidade || 'UN'}\n`;
+            mensagem += `Estoque mínimo: ${produto.estoque_minimo || 5} ${produto.unidade || 'UN'}\n`;
+            mensagem += `Status: ${estoqueStatus}\n`;
+            mensagem += `Preço venda: ${formatarMoeda(produto.preco)}\n`;
+            mensagem += `Preço custo: ${formatarMoeda(produto.preco_custo)}\n`;
+            
+            if (produto.preco_custo && produto.preco_custo > 0) {
+                const margem = calcularMargem(produto.preco_custo, produto.preco);
+                mensagem += `Margem: ${margem}%\n`;
+            }
+            
+            if (produto.descricao) mensagem += `Descrição: ${produto.descricao}\n`;
+            if (produto.fornecedor) mensagem += `Fornecedor: ${produto.fornecedor}\n`;
+            
+            alert(mensagem);
         } else {
             mostrarMensagem('Produto não encontrado', 'error');
         }
@@ -692,7 +693,7 @@ function calcularMargem(custo, venda) {
 }
 
 // ============================================
-// 10. FUNÇÕES UTILITÁRIAS
+// 9. FUNÇÕES UTILITÁRIAS
 // ============================================
 function formatarMoeda(valor) {
     const numero = parseFloat(valor) || 0;
@@ -942,6 +943,16 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             color: #721c24;
         }
         
+        .product-stock.low {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .product-stock.normal {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
         .activity-status.concluida {
             color: #27ae60;
         }
@@ -1128,4 +1139,3 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
-
