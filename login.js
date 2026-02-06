@@ -589,11 +589,8 @@ async function fazerLogin() {
             
             showMessage(mensagem, 'success');
             
-            // Redirecionar após delay
-            setTimeout(() => {
-                // Usar banco_login como ID da pasta da loja
-                window.location.href = `lojas/${banco_login}/home.html`;
-            }, 1500);
+            // Redirecionar dinamicamente
+            redirecionarParaLoja(dadosSessao);
             
         } else {
             hideLoading();
@@ -629,7 +626,34 @@ async function registrarLogAcesso(banco_login, usuario, is_admin_global = false)
 }
 
 // ============================================
-// 9. FUNÇÕES AUXILIARES
+// 9. REDIRECIONAMENTO DINÂMICO PARA LOJA
+// ============================================
+function redirecionarParaLoja(dadosSessao) {
+    try {
+        console.log(`🚀 Redirecionando para loja: ${dadosSessao.banco_login}`);
+        
+        // Usar banco_login (ID da loja) como nome da pasta
+        const pastaLoja = dadosSessao.banco_login;
+        console.log(`📁 Pasta da loja: ${pastaLoja}`);
+        
+        // Construir o caminho dinamicamente
+        const caminhoHome = `lojas/${pastaLoja}/home.html`;
+        
+        console.log(`📍 Caminho completo: ${caminhoHome}`);
+        
+        // Redirecionar após um pequeno delay
+        setTimeout(() => {
+            window.location.href = caminhoHome;
+        }, 1000);
+        
+    } catch (error) {
+        console.error('❌ Erro no redirecionamento:', error);
+        showMessage('Erro ao redirecionar para a loja', 'error');
+    }
+}
+
+// ============================================
+// 10. FUNÇÕES AUXILIARES
 // ============================================
 function carregarUltimoUsuario() {
     // Apenas para conveniência do usuário - NÃO É AUTENTICAÇÃO
@@ -653,7 +677,7 @@ function carregarUltimoUsuario() {
 }
 
 // ============================================
-// 10. CONFIGURAÇÕES ADICIONAIS
+// 11. CONFIGURAÇÕES ADICIONAIS
 // ============================================
 // Criar favicon dinamicamente
 const link = document.createElement('link');
