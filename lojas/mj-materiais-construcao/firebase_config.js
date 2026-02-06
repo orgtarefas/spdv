@@ -698,6 +698,10 @@ const lojaServices = {
     cadastrarProduto: (dados) => lojaManager.cadastrarProduto(dados),
     buscarCategorias: () => lojaManager.buscarCategorias(),
     
+    // ADICIONE AQUI AS NOVAS FUNÇÕES:
+    atualizarProduto: (id, dados) => lojaManager.atualizarProduto(id, dados),
+    atualizarEstoque: (id, quantidade, tipo) => lojaManager.atualizarEstoque(id, quantidade, tipo),
+    
     // Vendas
     criarVenda: (dados) => lojaManager.criarVenda(dados),
     buscarVendas: (limite) => lojaManager.buscarVendas(limite),
@@ -718,6 +722,7 @@ const lojaServices = {
     get isLogged() { return lojaManager.isLogged; },
     get dadosLoja() { return lojaManager.dadosLoja; }
 };
+
 
 // Exportar tudo
 export { 
@@ -740,9 +745,14 @@ export {
     limit
 };
 
+// Atualizar estoque
+atualizarProduto: (id, dados) => lojaManager.atualizarProduto(id, dados),
+atualizarEstoque: (id, quantidade, tipo) => lojaManager.atualizarEstoque(id, 
+
 // Para uso global
 window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
+
 
