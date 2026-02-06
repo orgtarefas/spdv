@@ -312,12 +312,7 @@ class LojaManager {
                 throw new Error('Produto não pertence a esta loja');
             }
             
-            // Verificar se tem estoque antes de excluir
-            if ((produtoData.quantidade || 0) > 0) {
-                throw new Error('Não é possível excluir produto com estoque. Baixe o estoque para zero primeiro.');
-            }
-            
-            // Excluir o produto
+            // EXCLUIR O PRODUTO - SEM VERIFICAÇÃO DE ESTOQUE
             await deleteDoc(produtoRef);
             
             return { success: true };
@@ -786,4 +781,5 @@ window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
+
 
