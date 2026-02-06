@@ -1,12 +1,16 @@
-// firebase_config.js - CONFIGURAÇÃO ESPECÍFICA PARA MJ MATERIAIS
+// firebase_config.js - CONFIGURAÇÃO DINÂMICA PARA TODAS AS LOJAS
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getFirestore, collection, doc, getDoc, getDocs, 
     setDoc, updateDoc, deleteDoc, query, where, orderBy, 
-    onSnapshot, serverTimestamp, increment, runTransaction 
+    onSnapshot, serverTimestamp, increment, runTransaction,
+    limit
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Configuração do Firebase (mesma configuração)
+// Importar configurações das lojas (arquivo na raiz)
+import { getLojaConfig } from '../../lojas.js';
+
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
     authDomain: "spdv-3872a.firebaseapp.com",
@@ -16,25 +20,128 @@ const firebaseConfig = {
     appId: "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
 };
 
-// Inicializar Firebase para esta loja específica
-const app = initializeApp(firebaseConfig, 'mj-materiais-app');
-const db = getFirestore(app);
+// Inicializar Firebase
+let app;
+let db;
 
-// Nome da loja no Firebase
-const LOJA_ID = 'mj-materiais-construcao';
+try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    console.log('✅ Firebase inicializado com sucesso');
+} catch (error) {
+    console.error('❌ Erro ao inicializar Firebase:', error);
+}
 
-// Serviços específicos para MJ Materiais
-const mjServices = {
+// Classe principal para gerenciar sessão e serviços
+class PdvManager {
+    constructor() {
+        this.lojaId = null;
+        this.usuario = null;
+        this.configLoja = null;
+        this.carregarSessao();
+    }
+    
+    carregarSessao() {
+        try {
+            // 1. Tentar da sessão
+            const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
+            if (sessao) {
+                const dados = JSON.parse(sessao);
+                this.lojaId = dados.banco_login;
+                this.usuario = dados;
+                this.configLoja = getLojaConfig(this.lojaId);
+                console.log(`✅ Sessão carregada: ${this.lojaId}`);
+                return;
+            }
+            
+            // 2. Tentar do backup
+            const backup = localStorage.getItem('pdv_sessao_backup');
+            if (backup) {
+                const dados = JSON.parse(backup);
+                this.lojaId = dados.banco_login;
+                this.usuario = dados;
+                this.configLoja = getLojaConfig(this.lojaId);
+                console.log(`⚠️ Sessão carregada do backup: ${this.lojaId}`);
+                return;
+            }
+            
+            // 3. Redirecionar se não encontrou
+            console.error('❌ Sessão não encontrada');
+            this.redirecionarLogin();
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar sessão:', error);
+            this.redirecionarLogin();
+        }
+    }
+    
+    redirecionarLogin() {
+        setTimeout(() => {
+            window.location.href = '../../login.html';
+        }, 1500);
+    }
+    
+    // ========== GETTERS ==========
+    get bancoEstoque() {
+        return this.configLoja?.banco_estoque || `estoque_${this.lojaId?.replace(/-/g, '_')}`;
+    }
+    
+    get bancoVendas() {
+        return this.configLoja?.banco_vendas || `vendas_${this.lojaId?.replace(/-/g, '_')}`;
+    }
+    
+    get isLogged() {
+        return !!this.lojaId && !!this.usuario;
+    }
+    
+    get isAdmin() {
+        return this.usuario?.is_admin_global || this.usuario?.perfil?.includes('admin');
+    }
+    
+    get nomeUsuario() {
+        return this.usuario?.nome || this.usuario?.login;
+    }
+    
+    // ========== SERVIÇOS ==========
+    
+    // Buscar dados da loja do Firebase
+    async buscarDadosLoja() {
+        try {
+            const lojaRef = doc(db, "lojas", this.lojaId);
+            const lojaDoc = await getDoc(lojaRef);
+            
+            if (lojaDoc.exists()) {
+                return { 
+                    success: true, 
+                    data: { id: lojaDoc.id, ...lojaDoc.data() } 
+                };
+            } else {
+                return { 
+                    success: false, 
+                    error: "Dados da loja não encontrados no Firebase" 
+                };
+            }
+        } catch (error) {
+            console.error('Erro ao buscar dados da loja:', error);
+            return { 
+                success: false, 
+                error: error.message 
+            };
+        }
+    }
+    
     // ========== ESTOQUE ==========
     
-    // Buscar todos os produtos do estoque
-    buscarProdutos: async (filtro = {}) => {
+    async buscarProdutos(filtro = {}) {
         try {
-            const estoqueRef = collection(db, 'estoque_mj_construcoes');
+            const estoqueRef = collection(db, this.bancoEstoque);
             let q = query(estoqueRef);
             
-            // Aplicar filtros
+            // Filtros
             const whereConditions = [];
+            
+            // Filtrar por loja (sempre)
+            whereConditions.push(where('loja_id', '==', this.lojaId));
             
             if (filtro.ativo !== undefined) {
                 whereConditions.push(where('ativo', '==', filtro.ativo));
@@ -48,20 +155,30 @@ const mjServices = {
                 whereConditions.push(where('quantidade', '<=', 10));
             }
             
-            // Construir query
-            if (whereConditions.length > 0) {
-                q = query(estoqueRef, ...whereConditions, orderBy('nome'));
-            } else {
-                q = query(estoqueRef, orderBy('nome'));
+            if (filtro.nome) {
+                // Para busca por nome, vamos filtrar no JavaScript
+                // Firebase não suporta pesquisa por substring diretamente
             }
             
+            q = query(estoqueRef, ...whereConditions, orderBy('nome'));
             const snapshot = await getDocs(q);
-            const produtos = [];
             
+            const produtos = [];
             snapshot.forEach(doc => {
+                const data = doc.data();
+                
+                // Filtro por nome (se especificado)
+                if (filtro.nome) {
+                    const nomeProduto = data.nome?.toLowerCase() || '';
+                    const busca = filtro.nome.toLowerCase();
+                    if (!nomeProduto.includes(busca)) {
+                        return;
+                    }
+                }
+                
                 produtos.push({
                     id: doc.id,
-                    ...doc.data()
+                    ...data
                 });
             });
             
@@ -71,18 +188,26 @@ const mjServices = {
             console.error('Erro ao buscar produtos:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
-    // Buscar produto por ID
-    buscarProdutoPorId: async (produtoId) => {
+    async buscarProdutoPorId(produtoId) {
         try {
-            const produtoRef = doc(db, 'estoque_mj_construcoes', produtoId);
+            const produtoRef = doc(db, this.bancoEstoque, produtoId);
             const produtoDoc = await getDoc(produtoRef);
             
             if (produtoDoc.exists()) {
+                const data = produtoDoc.data();
+                // Verificar se produto pertence à loja
+                if (data.loja_id !== this.lojaId && !this.isAdmin) {
+                    return { 
+                        success: false, 
+                        error: "Produto não pertence a esta loja" 
+                    };
+                }
+                
                 return { 
                     success: true, 
-                    data: { id: produtoDoc.id, ...produtoDoc.data() } 
+                    data: { id: produtoDoc.id, ...data } 
                 };
             } else {
                 return { success: false, error: 'Produto não encontrado' };
@@ -91,22 +216,21 @@ const mjServices = {
             console.error('Erro ao buscar produto:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
-    // Cadastrar novo produto
-    cadastrarProduto: async (dadosProduto) => {
+    async cadastrarProduto(dadosProduto) {
         try {
-            const estoqueRef = collection(db, 'estoque_mj_construcoes');
+            const estoqueRef = collection(db, this.bancoEstoque);
             const novoProdutoRef = doc(estoqueRef);
             
             const produtoData = {
                 ...dadosProduto,
                 id: novoProdutoRef.id,
-                codigo: dadosProduto.codigo || `MJ-${Date.now().toString().slice(-6)}`,
-                loja_id: LOJA_ID,
+                codigo: dadosProduto.codigo || `P${Date.now().toString().slice(-6)}`,
+                loja_id: this.lojaId,
                 data_cadastro: serverTimestamp(),
                 data_atualizacao: serverTimestamp(),
-                // Garantir tipos numéricos
+                ativo: true,
                 preco: parseFloat(dadosProduto.preco) || 0,
                 preco_custo: parseFloat(dadosProduto.preco_custo) || 0,
                 quantidade: parseInt(dadosProduto.quantidade) || 0,
@@ -124,12 +248,25 @@ const mjServices = {
             console.error('Erro ao cadastrar produto:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
-    // Atualizar produto
-    atualizarProduto: async (produtoId, dadosAtualizacao) => {
+    async atualizarProduto(produtoId, dadosAtualizacao) {
         try {
-            const produtoRef = doc(db, 'estoque_mj_construcoes', produtoId);
+            const produtoRef = doc(db, this.bancoEstoque, produtoId);
+            
+            // Verificar se produto existe e pertence à loja
+            const produtoDoc = await getDoc(produtoRef);
+            if (!produtoDoc.exists()) {
+                return { success: false, error: 'Produto não encontrado' };
+            }
+            
+            const produtoData = produtoDoc.data();
+            if (produtoData.loja_id !== this.lojaId && !this.isAdmin) {
+                return { 
+                    success: false, 
+                    error: "Produto não pertence a esta loja" 
+                };
+            }
             
             const dadosAtualizados = {
                 ...dadosAtualizacao,
@@ -144,30 +281,11 @@ const mjServices = {
             console.error('Erro ao atualizar produto:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
-    // Alterar status do produto (ativo/inativo)
-    alterarStatusProduto: async (produtoId, ativo) => {
+    async atualizarEstoque(produtoId, quantidade) {
         try {
-            const produtoRef = doc(db, 'estoque_mj_construcoes', produtoId);
-            
-            await updateDoc(produtoRef, {
-                ativo: ativo,
-                data_atualizacao: serverTimestamp()
-            });
-            
-            return { success: true };
-            
-        } catch (error) {
-            console.error('Erro ao alterar status:', error);
-            return { success: false, error: error.message };
-        }
-    },
-    
-    // Atualizar estoque
-    atualizarEstoque: async (produtoId, quantidade) => {
-        try {
-            const produtoRef = doc(db, 'estoque_mj_construcoes', produtoId);
+            const produtoRef = doc(db, this.bancoEstoque, produtoId);
             
             await updateDoc(produtoRef, {
                 quantidade: increment(quantidade),
@@ -180,19 +298,23 @@ const mjServices = {
             console.error('Erro ao atualizar estoque:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
-    // Buscar categorias únicas
-    buscarCategorias: async () => {
+    async buscarCategorias() {
         try {
-            const estoqueRef = collection(db, 'estoque_mj_construcoes');
-            const q = query(estoqueRef, where('ativo', '==', true));
-            const snapshot = await getDocs(q);
+            const estoqueRef = collection(db, this.bancoEstoque);
+            const q = query(
+                estoqueRef, 
+                where('loja_id', '==', this.lojaId),
+                where('ativo', '==', true)
+            );
             
+            const snapshot = await getDocs(q);
             const categorias = new Set();
+            
             snapshot.forEach(doc => {
                 const categoria = doc.data().categoria;
-                if (categoria) {
+                if (categoria && categoria.trim() !== '') {
                     categorias.add(categoria);
                 }
             });
@@ -206,74 +328,16 @@ const mjServices = {
             console.error('Erro ao buscar categorias:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
     // ========== VENDAS ==========
     
-    // Criar nova venda
-    criarVenda: async (dadosVenda) => {
+    async buscarProdutosParaVenda() {
         try {
-            // Usar transaction para garantir consistência
-            const resultado = await runTransaction(db, async (transaction) => {
-                // 1. Criar documento de venda
-                const vendasRef = collection(db, 'vendas_mj_construcoes');
-                const novaVendaRef = doc(vendasRef);
-                
-                const vendaData = {
-                    ...dadosVenda,
-                    id: novaVendaRef.id,
-                    numero_venda: `VENDA-${Date.now().toString().slice(-8)}`,
-                    loja_id: LOJA_ID,
-                    status: 'concluida',
-                    data_venda: serverTimestamp(),
-                    data_criacao: serverTimestamp(),
-                    total: parseFloat(dadosVenda.total) || 0
-                };
-                
-                transaction.set(novaVendaRef, vendaData);
-                
-                // 2. Atualizar estoque para cada item
-                for (const item of dadosVenda.itens) {
-                    const produtoRef = doc(db, 'estoque_mj_construcoes', item.produto_id);
-                    
-                    // Buscar produto atual
-                    const produtoDoc = await transaction.get(produtoRef);
-                    if (!produtoDoc.exists()) {
-                        throw new Error(`Produto ${item.produto_id} não encontrado`);
-                    }
-                    
-                    const produtoData = produtoDoc.data();
-                    const estoqueAtual = produtoData.quantidade || 0;
-                    const quantidadeVenda = item.quantidade || 0;
-                    
-                    if (estoqueAtual < quantidadeVenda) {
-                        throw new Error(`Estoque insuficiente para ${produtoData.nome}`);
-                    }
-                    
-                    // Atualizar estoque
-                    transaction.update(produtoRef, {
-                        quantidade: increment(-quantidadeVenda),
-                        data_atualizacao: serverTimestamp()
-                    });
-                }
-                
-                return vendaData;
-            });
-            
-            return { success: true, data: resultado };
-            
-        } catch (error) {
-            console.error('Erro ao criar venda:', error);
-            return { success: false, error: error.message };
-        }
-    },
-    
-    // Buscar produtos disponíveis para venda
-    buscarProdutosParaVenda: async () => {
-        try {
-            const estoqueRef = collection(db, 'estoque_mj_construcoes');
+            const estoqueRef = collection(db, this.bancoEstoque);
             const q = query(
                 estoqueRef,
+                where('loja_id', '==', this.lojaId),
                 where('ativo', '==', true),
                 where('quantidade', '>', 0),
                 orderBy('nome')
@@ -297,13 +361,81 @@ const mjServices = {
             console.error('Erro ao buscar produtos para venda:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
-    // Buscar vendas recentes
-    buscarVendas: async (limite = 50) => {
+    async criarVenda(dadosVenda) {
         try {
-            const vendasRef = collection(db, 'vendas_mj_construcoes');
-            const q = query(vendasRef, orderBy('data_venda', 'desc'), limit(limite));
+            const resultado = await runTransaction(db, async (transaction) => {
+                // 1. Criar documento de venda
+                const vendasRef = collection(db, this.bancoVendas);
+                const novaVendaRef = doc(vendasRef);
+                
+                const vendaData = {
+                    ...dadosVenda,
+                    id: novaVendaRef.id,
+                    numero_venda: `V${Date.now().toString().slice(-8)}`,
+                    loja_id: this.lojaId,
+                    vendedor_id: this.usuario?.id,
+                    vendedor_nome: this.nomeUsuario,
+                    status: 'concluida',
+                    data_venda: serverTimestamp(),
+                    data_criacao: serverTimestamp(),
+                    total: parseFloat(dadosVenda.total) || 0
+                };
+                
+                transaction.set(novaVendaRef, vendaData);
+                
+                // 2. Atualizar estoque para cada item
+                for (const item of dadosVenda.itens) {
+                    const produtoRef = doc(db, this.bancoEstoque, item.produto_id);
+                    
+                    // Buscar produto atual
+                    const produtoDoc = await transaction.get(produtoRef);
+                    if (!produtoDoc.exists()) {
+                        throw new Error(`Produto ${item.produto_id} não encontrado`);
+                    }
+                    
+                    const produtoData = produtoDoc.data();
+                    
+                    // Verificar se produto pertence à loja
+                    if (produtoData.loja_id !== this.lojaId) {
+                        throw new Error(`Produto não pertence a esta loja`);
+                    }
+                    
+                    const estoqueAtual = produtoData.quantidade || 0;
+                    const quantidadeVenda = item.quantidade || 0;
+                    
+                    if (estoqueAtual < quantidadeVenda) {
+                        throw new Error(`Estoque insuficiente para ${produtoData.nome}`);
+                    }
+                    
+                    // Atualizar estoque
+                    transaction.update(produtoRef, {
+                        quantidade: increment(-quantidadeVenda),
+                        data_atualizacao: serverTimestamp()
+                    });
+                }
+                
+                return vendaData;
+            });
+            
+            return { success: true, data: resultado };
+            
+        } catch (error) {
+            console.error('Erro ao criar venda:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async buscarVendas(limite = 50) {
+        try {
+            const vendasRef = collection(db, this.bancoVendas);
+            const q = query(
+                vendasRef,
+                where('loja_id', '==', this.lojaId),
+                orderBy('data_venda', 'desc'),
+                limit(limite)
+            );
             
             const snapshot = await getDocs(q);
             const vendas = [];
@@ -321,38 +453,17 @@ const mjServices = {
             console.error('Erro ao buscar vendas:', error);
             return { success: false, error: error.message };
         }
-    },
+    }
     
-    // ========== DADOS DA LOJA ==========
-    
-    // Buscar informações da loja
-    buscarDadosLoja: async () => {
+    async buscarEstatisticas() {
         try {
-            // Informações fixas da loja MJ Materiais
-            return {
-                success: true,
-                data: {
-                    id: LOJA_ID,
-                    nome: "MJ Materiais de Construção",
-                    local: "Cajazeiras 11 - Salvador/BA",
-                    telefone: "(71) 99999-9999",
-                    cnpj: "12.345.678/0001-99",
-                    email: "contato@mjmateriais.com.br"
-                }
-            };
-            
-        } catch (error) {
-            console.error('Erro ao buscar dados da loja:', error);
-            return { success: false, error: error.message };
-        }
-    },
-    
-    // Buscar estatísticas
-    buscarEstatisticas: async () => {
-        try {
-            // Buscar total de produtos
-            const estoqueRef = collection(db, 'estoque_mj_construcoes');
-            const produtosQuery = query(estoqueRef, where('ativo', '==', true));
+            // Produtos em estoque
+            const estoqueRef = collection(db, this.bancoEstoque);
+            const produtosQuery = query(
+                estoqueRef, 
+                where('loja_id', '==', this.lojaId),
+                where('ativo', '==', true)
+            );
             const produtosSnapshot = await getDocs(produtosQuery);
             
             let totalProdutos = 0;
@@ -364,20 +475,21 @@ const mjServices = {
                 totalProdutos += produto.quantidade || 0;
                 totalValorEstoque += (produto.preco_custo || 0) * (produto.quantidade || 0);
                 
-                if (produto.quantidade <= produto.estoque_minimo) {
+                if (produto.quantidade <= (produto.estoque_minimo || 5)) {
                     produtosBaixoEstoque++;
                 }
             });
             
-            // Buscar vendas do dia
+            // Vendas do dia
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
             const amanha = new Date(hoje);
             amanha.setDate(amanha.getDate() + 1);
             
-            const vendasRef = collection(db, 'vendas_mj_construcoes');
+            const vendasRef = collection(db, this.bancoVendas);
             const vendasQuery = query(
                 vendasRef,
+                where('loja_id', '==', this.lojaId),
                 where('data_venda', '>=', hoje),
                 where('data_venda', '<', amanha)
             );
@@ -396,12 +508,10 @@ const mjServices = {
                 success: true,
                 data: {
                     totalProdutos: totalProdutos,
-                    totalValorEstoque: totalValorEstoque,
+                    totalValorEstoque: totalValorEstoque.toFixed(2),
                     produtosBaixoEstoque: produtosBaixoEstoque,
-                    vendasHoje: totalVendasHoje,
-                    quantidadeVendasHoje: quantidadeVendasHoje,
-                    metaMensal: 50000,
-                    metaAlcancada: totalVendasHoje
+                    vendasHoje: totalVendasHoje.toFixed(2),
+                    quantidadeVendasHoje: quantidadeVendasHoje
                 }
             };
             
@@ -414,35 +524,71 @@ const mjServices = {
                     totalValorEstoque: 0,
                     produtosBaixoEstoque: 0,
                     vendasHoje: 0,
-                    quantidadeVendasHoje: 0,
-                    metaMensal: 50000,
-                    metaAlcancada: 0
+                    quantidadeVendasHoje: 0
                 }
             };
         }
     }
-};
+    
+    // ========== UTILIDADES ==========
+    
+    logout() {
+        sessionStorage.removeItem('pdv_sessao_temporaria');
+        localStorage.removeItem('pdv_sessao_backup');
+        window.location.href = '../../login.html';
+    }
+    
+    formatarMoeda(valor) {
+        return parseFloat(valor).toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+    }
+    
+    formatarData(dataFirebase) {
+        if (!dataFirebase) return '';
+        
+        try {
+            const data = dataFirebase.toDate();
+            return data.toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return dataFirebase;
+        }
+    }
+}
 
-// Exportar tudo
+// Criar instância global
+const pdvManager = new PdvManager();
+
+// Exportar para uso em outros arquivos
 export { 
     db, 
-    mjServices,
-    LOJA_ID,
+    pdvManager,
     collection, 
     doc, 
     getDoc, 
     getDocs, 
     setDoc, 
     updateDoc, 
+    deleteDoc, 
     query, 
     where, 
     orderBy, 
     onSnapshot,
     serverTimestamp,
-    increment
+    increment,
+    runTransaction,
+    limit
 };
 
-console.log('✅ Firebase configurado para MJ Materiais de Construção');
-// firebase_config.js - ADICIONE NO FINAL
-window.mjServices = mjServices; // Torna mjServices disponível globalmente
-console.log('🌐 mjServices disponível globalmente');
+// Para uso global (opcional)
+window.pdvManager = pdvManager;
+window.db = db;
+
+console.log(`🏪 PDV Manager inicializado para: ${pdvManager.lojaId}`);
