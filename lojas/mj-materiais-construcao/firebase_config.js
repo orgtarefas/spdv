@@ -206,6 +206,8 @@ class LojaManager {
             .replace(/\bacai\b/gi, 'Açaí')
             .replace(/\bpadaria\b/gi, 'Padaria');
     }
+
+    
     
     // Buscar produtos do estoque (FILTRAGEM LOCAL para evitar índices)
     async buscarProdutos(filtro = {}) {
@@ -321,7 +323,105 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
-    
+
+    // Atualizar produto existente
+    async atualizarProduto(produtoId, dadosAtualizados) {
+        try {
+            const produtoRef = doc(db, this.bancoEstoque, produtoId);
+            
+            // Buscar produto atual primeiro para verificar permissões
+            const produtoAtual = await getDoc(produtoRef);
+            
+            if (!produtoAtual.exists()) {
+                throw new Error('Produto não encontrado');
+            }
+            
+            const produtoData = produtoAtual.data();
+            
+            // Verificar se produto pertence à loja (exceto para admin)
+            if (produtoData.loja_id !== this.lojaId && !this.isAdmin) {
+                throw new Error('Produto não pertence a esta loja');
+            }
+            
+            // Preparar dados para atualização
+            const dadosParaAtualizar = {
+                ...dadosAtualizados,
+                data_atualizacao: serverTimestamp()
+            };
+            
+            // Garantir que números sejam convertidos corretamente
+            if (dadosParaAtualizar.preco !== undefined) {
+                dadosParaAtualizar.preco = parseFloat(dadosParaAtualizar.preco) || 0;
+            }
+            
+            if (dadosParaAtualizar.preco_custo !== undefined) {
+                dadosParaAtualizar.preco_custo = parseFloat(dadosParaAtualizar.preco_custo) || 0;
+            }
+            
+            if (dadosParaAtualizar.quantidade !== undefined) {
+                dadosParaAtualizar.quantidade = parseInt(dadosParaAtualizar.quantidade) || 0;
+            }
+            
+            if (dadosParaAtualizar.estoque_minimo !== undefined) {
+                dadosParaAtualizar.estoque_minimo = parseInt(dadosParaAtualizar.estoque_minimo) || 5;
+            }
+            
+            await updateDoc(produtoRef, dadosParaAtualizar);
+            
+            return { 
+                success: true, 
+                data: { id: produtoId, ...dadosParaAtualizar } 
+            };
+            
+        } catch (error) {
+            console.error('Erro ao atualizar produto:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Atualizar estoque (entrada/saída)
+    async atualizarEstoque(produtoId, quantidadeAlterar, tipo = 'entrada') {
+        try {
+            const produtoRef = doc(db, this.bancoEstoque, produtoId);
+            
+            // Usar transação para garantir consistência
+            await runTransaction(db, async (transaction) => {
+                const produtoDoc = await transaction.get(produtoRef);
+                
+                if (!produtoDoc.exists()) {
+                    throw new Error('Produto não encontrado');
+                }
+                
+                const produtoData = produtoDoc.data();
+                
+                // Verificar se produto pertence à loja
+                if (produtoData.loja_id !== this.lojaId && !this.isAdmin) {
+                    throw new Error('Produto não pertence a esta loja');
+                }
+                
+                const quantidadeAtual = produtoData.quantidade || 0;
+                const quantidadeNova = tipo === 'entrada' 
+                    ? quantidadeAtual + quantidadeAlterar
+                    : quantidadeAtual - quantidadeAlterar;
+                
+                if (quantidadeNova < 0) {
+                    throw new Error('Estoque não pode ficar negativo');
+                }
+                
+                transaction.update(produtoRef, {
+                    quantidade: quantidadeNova,
+                    data_atualizacao: serverTimestamp()
+                });
+            });
+            
+            return { success: true };
+            
+        } catch (error) {
+            console.error('Erro ao atualizar estoque:', error);
+            return { success: false, error: error.message };
+        }
+    }
+        
     // Cadastrar novo produto
     async cadastrarProduto(dadosProduto) {
         try {
@@ -645,3 +745,4 @@ window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
+
