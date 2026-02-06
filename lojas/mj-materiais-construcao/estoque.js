@@ -1110,21 +1110,12 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             transform: scale(1.1);
         }
         
-        .btn-editar {
-            color: #3498db;
-        }
-        
-        .btn-desativar {
-            color: #e74c3c;
-        }
-        
-        .btn-ativar {
-            color: #27ae60;
-        }
-        
-        .btn-entrada {
-            color: #f39c12;
-        }
+               
+        .btn-editar { color: #3498db; }
+        .btn-desativar { color: #e74c3c; }
+        .btn-ativar { color: #27ae60; }
+        .btn-entrada { color: #f39c12; }
+        .btn-excluir { color: #e74c3c; }
         
         .acoes-cell {
             display: flex;
@@ -1191,6 +1182,13 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             margin-top: 0.25rem;
         }
         
+        .acoes-container {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+        }
+        
         /* Estilos para a tabela */
         .estoque-table {
             width: 100%;
@@ -1221,17 +1219,14 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             background-color: #f8f9fa;
         }
 
-        /* Estilos para botão excluir - CORRIGIDOS */
+        /* Estilos para botão excluir
         .btn-excluir {
-            color: #e74c3c !important; /* !important para forçar a cor */
-            display: flex !important; /* Garantir que aparece */
-            visibility: visible !important; /* Garantir visibilidade */
-            opacity: 1 !important; /* Garantir opacidade total */
+            color: #e74c3c;
         }
         
         .btn-excluir:hover:not(:disabled) {
-            background-color: #e74c3c !important;
-            color: white !important;
+            background-color: #e74c3c;
+            color: white;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
         }
@@ -1239,21 +1234,21 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         .btn-excluir:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            color: #95a5a6 !important;
-            background-color: transparent !important;
+            color: #95a5a6;
+            background-color: transparent;
         }
         
         .btn-excluir:disabled:hover {
-            background-color: transparent !important;
-            color: #95a5a6 !important;
+            background-color: transparent;
+            color: #95a5a6;
             transform: none;
             box-shadow: none;
         }
         
         /* Garantir que o ícone aparece */
         .btn-excluir i {
-            font-size: 1rem !important;
-            display: inline-block !important;
+            font-size: 1rem;
+            display: inline-block;
         }
         
         /* Tooltip para botão excluir */
@@ -1299,6 +1294,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
