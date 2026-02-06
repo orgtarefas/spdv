@@ -1,171 +1,177 @@
-// home.js - SISTEMA HOME PDV MULTILOJA
-console.log("🏠 Sistema PDV - Página Inicial");
+// home.js - SISTEMA HOME PDV MULTILOJA (Versão Dinâmica)
+console.log("🏠 Sistema PDV - Página Inicial (Versão Dinâmica)");
 
-// ============================================
-// CONFIGURAÇÃO FIREBASE (Versão 8.10.1)
-// ============================================
-let db;
-let configLoja = null;
+import { pdvManager } from './firebase_config.js';
 
-// Inicializar Firebase com configuração da loja
-function inicializarFirebase() {
-    try {
-        // Buscar configuração da loja do localStorage
-        const configString = localStorage.getItem('config_loja_pdv');
-        
-        if (!configString) {
-            mostrarErro("Configuração da loja não encontrada!");
-            return false;
-        }
-        
-        configLoja = JSON.parse(configString);
-        console.log("📋 Configuração da loja carregada:", configLoja.nome || "Loja");
-        
-        // Usar configuração do Firebase da loja
-        const firebaseConfig = {
-            apiKey: configLoja.firebase_apiKey || "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
-            authDomain: configLoja.firebase_authDomain || "spdv-3872a.firebaseapp.com",
-            projectId: configLoja.firebase_projectId || "spdv-3872a",
-            storageBucket: configLoja.firebase_storageBucket || "spdv-3872a.firebasestorage.app",
-            messagingSenderId: configLoja.firebase_messagingSenderId || "552499245950",
-            appId: configLoja.firebase_appId || "1:552499245950:web:7f61f8d9c6d05a46d5b92f"
-        };
-        
-        // Inicializar Firebase (versão 8.10.1)
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        } else {
-            firebase.app(); // Se já inicializado, usar o existente
-        }
-        
-        // Obter Firestore
-        db = firebase.firestore();
-        console.log("✅ Firebase inicializado com sucesso!");
-        
-        // Atualizar status de conexão
-        atualizarStatusConexao(true);
-        
-        // Atualizar nome da loja na interface
-        atualizarNomeLoja();
-        
-        return true;
-        
-    } catch (error) {
-        console.error("❌ Erro ao inicializar Firebase:", error);
-        atualizarStatusConexao(false);
-        return false;
-    }
-}
-
-// ============================================
-// VARIÁVEIS GLOBAIS
-// ============================================
-let usuario = null;
+// Variáveis globais
 let produtos = [];
+let estatisticas = null;
+let atividades = [];
 
 // ============================================
 // 1. INICIALIZAÇÃO
 // ============================================
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página home carregada");
     
-    // Esconder loading após 1 segundo
-    setTimeout(function() {
+    // Mostrar loading inicial
+    mostrarLoading('Inicializando sistema...');
+    
+    // Verificar se o pdvManager está carregado
+    if (!pdvManager || !pdvManager.isLogged) {
+        mostrarMensagem('Sessão expirada! Redirecionando para login...', 'error');
+        setTimeout(() => {
+            window.location.href = '../../login.html';
+        }, 2000);
+        return;
+    }
+    
+    console.log(`✅ Loja atual: ${pdvManager.config?.nome || pdvManager.id}`);
+    
+    try {
+        // Atualizar interface com dados da loja
+        atualizarInterfaceLoja();
+        
+        // Configurar eventos
+        configurarEventos();
+        
+        // Atualizar data/hora
+        atualizarDataHora();
+        setInterval(atualizarDataHora, 60000);
+        
+        // Carregar dados iniciais
+        await carregarDadosIniciais();
+        
+        // Esconder loading
+        setTimeout(esconderLoading, 500);
+        
+        console.log("✅ Sistema home pronto para uso");
+        
+    } catch (error) {
+        console.error("❌ Erro na inicialização:", error);
+        mostrarMensagem('Erro ao carregar sistema', 'error');
         esconderLoading();
-    }, 1000);
-    
-    // Verificar sessão primeiro
-    if (!verificarSessao()) {
-        return;
     }
-    
-    // Inicializar Firebase com configuração da loja
-    if (!inicializarFirebase()) {
-        mostrarErro("Não foi possível conectar ao banco de dados.");
-        return;
-    }
-    
-    // Configurar eventos
-    configurarEventos();
-    
-    // Carregar dados iniciais
-    carregarDadosIniciais();
-    
-    // Atualizar data/hora
-    atualizarDataHora();
-    setInterval(atualizarDataHora, 60000);
-    
-    console.log("✅ Sistema home pronto para uso");
 });
 
 // ============================================
-// 2. VERIFICAR SESSÃO
+// 2. ATUALIZAR INTERFACE DA LOJA
 // ============================================
-function verificarSessao() {
-    const sessao = sessionStorage.getItem('pdv_sessao_temporaria') || 
-                   localStorage.getItem('pdv_sessao_backup');
-    
-    if (!sessao) {
-        alert("⚠️ Sessão expirada! Faça login novamente.");
-        setTimeout(function() {
-            window.location.href = '../../login.html';
-        }, 1000);
-        return false;
-    }
-    
+async function atualizarInterfaceLoja() {
     try {
-        usuario = JSON.parse(sessao);
-        console.log("✅ Usuário:", usuario.nome || usuario.login);
+        // 1. Atualizar título da página
+        const lojaNome = pdvManager.config?.nome || pdvManager.id;
+        document.title = `${lojaNome} - PDV Sistema`;
         
-        // Atualizar nome na interface
-        const userNameElement = document.getElementById('userName');
-        if (userNameElement) {
-            userNameElement.textContent = usuario.nome || usuario.login || 'Usuário';
+        // 2. Atualizar nome da loja em todos os elementos
+        const elementosNome = [
+            'lojaNomeHeader',
+            'lojaNomeBemVindo', 
+            'lojaNomeFooter'
+        ];
+        
+        elementosNome.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.textContent = lojaNome;
+            }
+        });
+        
+        // 3. Atualizar local da loja
+        const lojaLocal = document.getElementById('lojaLocal');
+        if (lojaLocal && pdvManager.config?.local) {
+            lojaLocal.textContent = pdvManager.config.local;
         }
         
-        return true;
+        // 4. Atualizar informações do usuário
+        const userName = document.getElementById('userName');
+        const userWelcome = document.getElementById('userWelcome');
+        const userPerfil = document.getElementById('userPerfil');
+        
+        if (userName) userName.textContent = pdvManager.nomeUsuario;
+        if (userWelcome) userWelcome.textContent = pdvManager.nomeUsuario;
+        if (userPerfil) {
+            const perfil = pdvManager.perfil || 'usuario';
+            userPerfil.textContent = perfil.includes('admin') ? '👑 Administrador' : '👤 Vendedor';
+            userPerfil.className = `user-perfil ${perfil.includes('admin') ? 'admin' : 'user'}`;
+        }
+        
+        // 5. Buscar dados completos da loja do Firebase
+        await carregarDadosLojaFirebase();
         
     } catch (error) {
-        console.error("❌ Erro na sessão:", error);
-        alert("Erro na sessão. Faça login novamente.");
-        setTimeout(function() {
-            window.location.href = '../../login.html';
-        }, 1000);
-        return false;
+        console.error('❌ Erro ao atualizar interface da loja:', error);
     }
 }
 
 // ============================================
-// 3. CARREGAR DADOS INICIAIS
+// 3. CARREGAR DADOS DA LOJA DO FIREBASE
+// ============================================
+async function carregarDadosLojaFirebase() {
+    try {
+        mostrarLoading('Carregando dados da loja...', 'Carregando...');
+        
+        // Usar o método buscarDadosLoja do pdvManager
+        const resultado = await pdvManager.buscarDadosLoja();
+        
+        if (resultado.success) {
+            const dadosLoja = resultado.data;
+            
+            // Atualizar informações adicionais
+            const footerInfo = document.getElementById('footerInfo');
+            if (footerInfo) {
+                let infoText = '';
+                if (dadosLoja.telefone) infoText += `📞 ${dadosLoja.telefone}`;
+                if (dadosLoja.email) infoText += infoText ? ` | ✉️ ${dadosLoja.email}` : `✉️ ${dadosLoja.email}`;
+                if (dadosLoja.cnpj) infoText += infoText ? ` | 🏢 ${dadosLoja.cnpj}` : `🏢 ${dadosLoja.cnpj}`;
+                
+                footerInfo.textContent = infoText;
+            }
+            
+            console.log('✅ Dados da loja carregados:', dadosLoja);
+            
+        } else {
+            console.warn('⚠️ Dados da loja não encontrados no Firebase');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados da loja:', error);
+    }
+}
+
+// ============================================
+// 4. CARREGAR DADOS INICIAIS
 // ============================================
 async function carregarDadosIniciais() {
     try {
-        // Carregar produtos para consulta rápida
+        // 1. Carregar produtos para consulta rápida
         await carregarProdutos();
         
-        // Carregar estatísticas
+        // 2. Carregar estatísticas
         await carregarEstatisticas();
         
-        // Carregar atividades recentes
+        // 3. Carregar atividades recentes
         await carregarAtividadesRecentes();
+        
+        // 4. Atualizar status de conexão
+        atualizarStatusConexao(true);
         
     } catch (error) {
         console.error("❌ Erro ao carregar dados iniciais:", error);
+        mostrarMensagem("Erro ao carregar dados do sistema", "error");
     }
 }
 
 // ============================================
-// 4. CONFIGURAR EVENTOS
+// 5. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
     // Botão logout
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
         btnLogout.addEventListener('click', function() {
-            if (confirm("Deseja sair do sistema?")) {
-                sessionStorage.removeItem('pdv_sessao_temporaria');
-                localStorage.removeItem('pdv_sessao_backup');
-                window.location.href = '../../login.html';
+            if (confirm("Tem certeza que deseja sair do sistema?")) {
+                pdvManager.logout();
             }
         });
     }
@@ -176,29 +182,27 @@ function configurarEventos() {
         btnConsultaRapida.addEventListener('click', abrirModalConsulta);
     }
     
-    // Botão relatório
-    const btnRelatorio = document.getElementById('btnRelatorio');
-    if (btnRelatorio) {
-        btnRelatorio.addEventListener('click', function() {
-            mostrarMensagem("Relatórios em desenvolvimento", "info");
-        });
-    }
-    
-    // Botão configurações
-    const btnConfig = document.getElementById('btnConfig');
-    if (btnConfig) {
-        btnConfig.addEventListener('click', function() {
-            mostrarMensagem("Configurações em desenvolvimento", "info");
-        });
-    }
-    
     // Modal consulta rápida - fechar
     const modalConsulta = document.getElementById('quickSearchModal');
     if (modalConsulta) {
+        // Botão fechar
         const modalClose = modalConsulta.querySelector('.modal-close');
         if (modalClose) {
             modalClose.addEventListener('click', () => {
                 modalConsulta.style.display = 'none';
+            });
+        }
+        
+        // Botão limpar busca
+        const searchClear = document.getElementById('searchClear');
+        if (searchClear) {
+            searchClear.addEventListener('click', () => {
+                const searchInput = document.getElementById('searchProductInput');
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                    buscarProdutoConsultaRapida('');
+                }
             });
         }
         
@@ -215,55 +219,261 @@ function configurarEventos() {
             searchProductInput.addEventListener('input', function() {
                 buscarProdutoConsultaRapida(this.value);
             });
+            
+            // Buscar ao pressionar Enter
+            searchProductInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    buscarProdutoConsultaRapida(this.value);
+                }
+            });
         }
+        
+        // Filtros de busca
+        const filterBtns = modalConsulta.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Atualizar botões ativos
+                filterBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Refiltrar resultados
+                const searchInput = document.getElementById('searchProductInput');
+                if (searchInput) {
+                    buscarProdutoConsultaRapida(searchInput.value);
+                }
+            });
+        });
     }
+    
+    // Filtros de atividades
+    const activityFilters = document.querySelectorAll('.activity-filters .filter-btn');
+    activityFilters.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Atualizar botões ativos
+            activityFilters.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Filtrar atividades
+            const filtro = this.dataset.filter;
+            filtrarAtividades(filtro);
+        });
+    });
 }
 
 // ============================================
-// 5. CARREGAR PRODUTOS PARA CONSULTA
+// 6. CARREGAR PRODUTOS PARA CONSULTA
 // ============================================
 async function carregarProdutos() {
     try {
-        if (!db) return;
+        mostrarLoading('Carregando produtos...', 'Carregando catálogo...');
         
-        // Usar coleção da loja configurada
-        const colecao = configLoja?.colecao_estoque || 'estoque_pdv';
+        const resultado = await pdvManager.buscarProdutosParaVenda();
         
-        // Buscar todos os produtos ativos
-        const querySnapshot = await db.collection(colecao).get();
-        
-        produtos = [];
-        
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
+        if (resultado.success) {
+            produtos = resultado.data;
             
-            // Filtrar localmente os que estão ativos
-            if (data.ativo !== false) {
-                produtos.push({
-                    id: doc.id,
-                    codigo: data.codigo || doc.id,
-                    nome: data.nome || 'Produto sem nome',
-                    preco: parseFloat(data.preco) || 0,
-                    quantidade: parseInt(data.quantidade) || 0,
-                    categoria: data.categoria || '',
-                    unidade: data.unidade || 'UN',
-                    estoque_minimo: parseInt(data.estoque_minimo) || 5,
-                    descricao: data.descricao || '',
-                    fornecedor: data.fornecedor || ''
-                });
+            // Atualizar badge de produtos
+            const totalProdutosBadge = document.getElementById('totalProdutosBadge');
+            if (totalProdutosBadge) {
+                totalProdutosBadge.textContent = produtos.length;
+                totalProdutosBadge.style.display = produtos.length > 0 ? 'flex' : 'none';
             }
-        });
-        
-        console.log(`✅ ${produtos.length} produtos carregados para consulta`);
+            
+            console.log(`✅ ${produtos.length} produtos carregados para consulta`);
+            
+        } else {
+            console.error('❌ Erro ao carregar produtos:', resultado.error);
+            produtos = [];
+        }
         
     } catch (error) {
         console.error("❌ Erro ao carregar produtos:", error);
-        mostrarMensagem("Erro ao carregar produtos", "error");
+        produtos = [];
     }
 }
 
 // ============================================
-// 6. CONSULTA RÁPIDA - MODAL
+// 7. CARREGAR ESTATÍSTICAS
+// ============================================
+async function carregarEstatisticas() {
+    try {
+        mostrarLoading('Calculando estatísticas...', 'Analisando dados...');
+        
+        const resultado = await pdvManager.buscarEstatisticas();
+        
+        if (resultado.success) {
+            estatisticas = resultado.data;
+            atualizarEstatisticasUI();
+        } else {
+            console.error('❌ Erro ao carregar estatísticas:', resultado.error);
+            estatisticas = null;
+        }
+        
+    } catch (error) {
+        console.error("❌ Erro ao carregar estatísticas:", error);
+        estatisticas = null;
+    }
+}
+
+function atualizarEstatisticasUI() {
+    if (!estatisticas) return;
+    
+    try {
+        // Vendas de hoje
+        const vendasHojeElement = document.getElementById('vendasHoje');
+        const quantidadeVendasElement = document.getElementById('quantidadeVendas');
+        
+        if (vendasHojeElement) {
+            vendasHojeElement.textContent = formatarMoeda(estatisticas.vendasHoje);
+        }
+        if (quantidadeVendasElement) {
+            quantidadeVendasElement.textContent = `${estatisticas.quantidadeVendasHoje} venda${estatisticas.quantidadeVendasHoje !== 1 ? 's' : ''}`;
+        }
+        
+        // Total de produtos
+        const totalProdutosElement = document.getElementById('totalProdutos');
+        const produtosBaixoElement = document.getElementById('produtosBaixo');
+        
+        if (totalProdutosElement) totalProdutosElement.textContent = estatisticas.totalProdutos;
+        if (produtosBaixoElement) produtosBaixoElement.textContent = `${estatisticas.produtosBaixoEstoque} com baixo estoque`;
+        
+        // Valor em estoque
+        const valorEstoqueElement = document.getElementById('valorEstoque');
+        if (valorEstoqueElement) {
+            valorEstoqueElement.textContent = formatarMoeda(estatisticas.totalValorEstoque);
+        }
+        
+        // Meta do mês
+        const metaMensal = pdvManager.config?.meta_mensal || 10000;
+        const percentual = Math.min(Math.round((parseFloat(estatisticas.vendasHoje) / metaMensal) * 100), 100);
+        const restante = Math.max(metaMensal - parseFloat(estatisticas.vendasHoje), 0);
+        
+        const metaPercentualElement = document.getElementById('metaPercentual');
+        const metaRestanteElement = document.getElementById('metaRestante');
+        const metaProgressBar = document.getElementById('metaProgressBar');
+        
+        if (metaPercentualElement) metaPercentualElement.textContent = `${percentual}%`;
+        if (metaRestanteElement) metaRestanteElement.textContent = formatarMoeda(restante);
+        if (metaProgressBar) metaProgressBar.style.width = `${percentual}%`;
+        
+        // Atualizar progresso das vendas
+        const progressBar = document.querySelector('.stat-progress .progress-bar');
+        if (progressBar && estatisticas.quantidadeVendasHoje > 0) {
+            progressBar.style.width = '100%';
+        }
+        
+        // Atualizar última atualização
+        const ultimaAtualizacao = document.getElementById('ultimaAtualizacao');
+        if (ultimaAtualizacao) {
+            ultimaAtualizacao.textContent = new Date().toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+        
+        console.log('✅ Estatísticas atualizadas na interface');
+        
+    } catch (error) {
+        console.error('❌ Erro ao atualizar estatísticas UI:', error);
+    }
+}
+
+// ============================================
+// 8. CARREGAR ATIVIDADES RECENTES
+// ============================================
+async function carregarAtividadesRecentes() {
+    try {
+        mostrarLoading('Carregando atividades...', 'Buscando histórico...');
+        
+        const resultado = await pdvManager.buscarVendas(10);
+        
+        if (resultado.success) {
+            atividades = resultado.data;
+            exibirAtividades(atividades);
+        } else {
+            console.error('❌ Erro ao carregar atividades:', resultado.error);
+            atividades = [];
+            exibirAtividades([]);
+        }
+        
+    } catch (error) {
+        console.error("❌ Erro ao carregar atividades:", error);
+        atividades = [];
+        exibirAtividades([]);
+    }
+}
+
+function exibirAtividades(listaAtividades) {
+    const activityList = document.getElementById('activityList');
+    if (!activityList) return;
+    
+    if (!listaAtividades || listaAtividades.length === 0) {
+        activityList.innerHTML = `
+            <div class="empty-activity">
+                <i class="fas fa-history"></i>
+                <p>Nenhuma atividade recente</p>
+                <small>Realize vendas para ver atividades</small>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    listaAtividades.forEach(atividade => {
+        const dataVenda = atividade.data_venda?.toDate ? atividade.data_venda.toDate() : new Date();
+        const horaFormatada = dataVenda.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const dataFormatada = dataVenda.toLocaleDateString('pt-BR');
+        
+        // Determinar ícone baseado no status
+        let iconClass = 'fas fa-shopping-cart';
+        if (atividade.status === 'cancelada') iconClass = 'fas fa-ban';
+        if (atividade.status === 'pendente') iconClass = 'fas fa-clock';
+        
+        html += `
+            <div class="activity-item" data-type="venda" data-status="${atividade.status}">
+                <div class="activity-icon ${atividade.status}">
+                    <i class="${iconClass}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">
+                        <strong>Venda #${atividade.numero_venda || atividade.id.slice(-6)}</strong>
+                        <span class="activity-time">${dataFormatada} ${horaFormatada}</span>
+                    </div>
+                    <div class="activity-details">
+                        <span class="activity-vendedor">
+                            <i class="fas fa-user"></i>
+                            ${atividade.vendedor_nome || 'Vendedor'}
+                        </span>
+                        <span class="activity-status ${atividade.status}">${atividade.status === 'concluida' ? '✅ Concluída' : '⏳ Pendente'}</span>
+                        <span class="activity-amount">${formatarMoeda(atividade.total)}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    activityList.innerHTML = html;
+}
+
+function filtrarAtividades(filtro) {
+    const activityList = document.getElementById('activityList');
+    if (!activityList) return;
+    
+    let atividadesFiltradas = atividades;
+    
+    if (filtro === 'vendas') {
+        atividadesFiltradas = atividades; // Já são todas vendas
+    } else if (filtro === 'estoque') {
+        // Se tivéssemos atividades de estoque, filtraríamos aqui
+        atividadesFiltradas = []; // Exemplo: sem atividades de estoque por enquanto
+    }
+    
+    exibirAtividades(atividadesFiltradas);
+}
+
+// ============================================
+// 9. CONSULTA RÁPIDA - MODAL
 // ============================================
 function abrirModalConsulta() {
     const modal = document.getElementById('quickSearchModal');
@@ -275,16 +485,7 @@ function abrirModalConsulta() {
         searchInput.focus();
         
         // Limpar resultados anteriores
-        const searchResults = document.getElementById('searchResults');
-        if (searchResults) {
-            searchResults.innerHTML = `
-                <div class="empty-results">
-                    <i class="fas fa-search"></i>
-                    <p>Digite para buscar um produto</p>
-                    <small>Busque por código, nome ou categoria</small>
-                </div>
-            `;
-        }
+        buscarProdutoConsultaRapida('');
     }
 }
 
@@ -305,8 +506,12 @@ function buscarProdutoConsultaRapida(termo) {
         return;
     }
     
+    // Obter filtro ativo
+    const filtroAtivo = document.querySelector('.search-filters .filter-btn.active');
+    const tipoFiltro = filtroAtivo ? filtroAtivo.dataset.filter : 'all';
+    
     // Filtrar produtos
-    const resultados = produtos.filter(produto => {
+    let resultados = produtos.filter(produto => {
         return (
             (produto.codigo && produto.codigo.toLowerCase().includes(termoLimpo)) ||
             (produto.nome && produto.nome.toLowerCase().includes(termoLimpo)) ||
@@ -315,12 +520,19 @@ function buscarProdutoConsultaRapida(termo) {
         );
     });
     
+    // Aplicar filtro adicional
+    if (tipoFiltro === 'estoque') {
+        resultados = resultados.filter(p => p.quantidade > 0);
+    } else if (tipoFiltro === 'baixo') {
+        resultados = resultados.filter(p => p.quantidade <= p.estoque_minimo);
+    }
+    
     if (resultados.length === 0) {
         searchResults.innerHTML = `
             <div class="empty-results">
                 <i class="fas fa-search"></i>
                 <p>Nenhum produto encontrado</p>
-                <small>Tente outro termo de busca</small>
+                <small>Tente outro termo de busca ou altere o filtro</small>
             </div>
         `;
         return;
@@ -332,28 +544,33 @@ function buscarProdutoConsultaRapida(termo) {
     resultados.forEach(produto => {
         const estoqueBaixo = produto.quantidade <= produto.estoque_minimo;
         const precoFormatado = formatarMoeda(produto.preco);
+        const temEstoque = produto.quantidade > 0;
         
         html += `
             <div class="product-result">
                 <div class="product-result-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
-                    <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
+                    <span class="product-stock ${estoqueBaixo ? 'low' : (temEstoque ? 'normal' : 'out')}">
                         ${produto.quantidade} ${produto.unidade || 'UN'}
+                        ${estoqueBaixo ? ' ⚠️' : ''}
+                        ${!temEstoque ? ' (ESGOTADO)' : ''}
                     </span>
                 </div>
                 <div class="product-name">${produto.nome}</div>
                 ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
                 <div class="product-details">
                     <div class="product-price">
-                        <strong>Preço:</strong> R$ ${precoFormatado}
+                        <strong>Preço:</strong> ${formatarMoeda(produto.preco)}
                     </div>
                     <div class="product-actions">
                         <button class="btn-action btn-info" onclick="verDetalhesProduto('${produto.id}')">
                             <i class="fas fa-info-circle"></i> Detalhes
                         </button>
+                        ${temEstoque ? `
                         <button class="btn-action btn-sell" onclick="irParaVendaComProduto('${produto.id}')">
                             <i class="fas fa-cart-plus"></i> Vender
                         </button>
+                        ` : ''}
                     </div>
                 </div>
             </div>
@@ -365,25 +582,38 @@ function buscarProdutoConsultaRapida(termo) {
 }
 
 // Funções globais para os botões do modal
-window.verDetalhesProduto = function(produtoId) {
-    const produto = produtos.find(p => p.id === produtoId);
-    if (!produto) return;
-    
-    const estoqueStatus = produto.quantidade <= produto.estoque_minimo ? 'BAIXO' : 'NORMAL';
-    const statusClass = produto.quantidade <= produto.estoque_minimo ? 'danger' : 'success';
-    
-    alert(
-        `📦 DETALHES DO PRODUTO\n\n` +
-        `Código: ${produto.codigo}\n` +
-        `Nome: ${produto.nome}\n` +
-        `Categoria: ${produto.categoria || 'Não informada'}\n` +
-        `Estoque: ${produto.quantidade} ${produto.unidade || 'UN'}\n` +
-        `Mínimo: ${produto.estoque_minimo} ${produto.unidade || 'UN'}\n` +
-        `Status: ${estoqueStatus}\n` +
-        `Preço: R$ ${formatarMoeda(produto.preco)}\n` +
-        `${produto.descricao ? `Descrição: ${produto.descricao}\n` : ''}` +
-        `${produto.fornecedor ? `Fornecedor: ${produto.fornecedor}\n` : ''}`
-    );
+window.verDetalhesProduto = async function(produtoId) {
+    try {
+        const resultado = await pdvManager.buscarProdutoPorId(produtoId);
+        
+        if (resultado.success) {
+            const produto = resultado.data;
+            
+            const estoqueStatus = produto.quantidade <= produto.estoque_minimo ? 'BAIXO' : 'NORMAL';
+            const statusClass = produto.quantidade <= produto.estoque_minimo ? 'danger' : 'success';
+            
+            alert(
+                `📦 DETALHES DO PRODUTO\n\n` +
+                `Código: ${produto.codigo || 'Não informado'}\n` +
+                `Nome: ${produto.nome || 'Sem nome'}\n` +
+                `Categoria: ${produto.categoria || 'Não informada'}\n` +
+                `Estoque: ${produto.quantidade || 0} ${produto.unidade || 'UN'}\n` +
+                `Estoque mínimo: ${produto.estoque_minimo || 5} ${produto.unidade || 'UN'}\n` +
+                `Status: ${estoqueStatus}\n` +
+                `Preço venda: ${formatarMoeda(produto.preco)}\n` +
+                `Preço custo: ${formatarMoeda(produto.preco_custo)}\n` +
+                `Margem: ${calcularMargem(produto.preco_custo, produto.preco)}%\n` +
+                `${produto.descricao ? `Descrição: ${produto.descricao}\n` : ''}` +
+                `${produto.fornecedor ? `Fornecedor: ${produto.fornecedor}\n` : ''}`
+            );
+        } else {
+            mostrarMensagem('Produto não encontrado', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao buscar detalhes do produto:', error);
+        mostrarMensagem('Erro ao carregar detalhes', 'error');
+    }
 };
 
 window.irParaVendaComProduto = function(produtoId) {
@@ -400,168 +630,21 @@ window.irParaVendaComProduto = function(produtoId) {
     window.location.href = 'venda.html';
 };
 
-// ============================================
-// 7. CARREGAR ESTATÍSTICAS
-// ============================================
-async function carregarEstatisticas() {
-    try {
-        if (!db) return;
-        
-        // Usar coleção da loja configurada
-        const colecaoVendas = configLoja?.colecao_vendas || 'vendas_pdv';
-        
-        // Vendas de hoje
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        
-        // Buscar vendas de hoje (sem filtro de data para simplificar)
-        const querySnapshot = await db.collection(colecaoVendas)
-            .where('status', '==', 'concluida')
-            .get();
-        
-        let totalVendas = 0;
-        let vendasHojeCount = 0;
-        
-        querySnapshot.forEach(doc => {
-            const data = doc.data();
-            const dataVenda = data.data_venda?.toDate() || new Date();
-            
-            // Verificar se é hoje
-            if (dataVenda.toDateString() === hoje.toDateString()) {
-                totalVendas += parseFloat(data.total) || 0;
-                vendasHojeCount++;
-            }
-        });
-        
-        // Atualizar elementos
-        const vendasHojeElement = document.getElementById('vendasHoje');
-        const quantidadeVendasElement = document.getElementById('quantidadeVendas');
-        
-        if (vendasHojeElement) {
-            vendasHojeElement.textContent = `R$ ${formatarMoeda(totalVendas)}`;
-        }
-        if (quantidadeVendasElement) {
-            quantidadeVendasElement.textContent = `${vendasHojeCount} venda${vendasHojeCount !== 1 ? 's' : ''}`;
-        }
-        
-        // Total de produtos em estoque
-        let totalProdutos = 0;
-        let produtosBaixoEstoque = 0;
-        let valorTotalEstoque = 0;
-        
-        produtos.forEach(produto => {
-            if (produto.quantidade > 0) {
-                totalProdutos++;
-                valorTotalEstoque += (produto.preco || 0) * produto.quantidade;
-                
-                if (produto.quantidade <= produto.estoque_minimo) {
-                    produtosBaixoEstoque++;
-                }
-            }
-        });
-        
-        // Atualizar elementos
-        const totalProdutosElement = document.getElementById('totalProdutos');
-        const produtosBaixoElement = document.getElementById('produtosBaixo');
-        const valorEstoqueElement = document.getElementById('valorEstoque');
-        
-        if (totalProdutosElement) totalProdutosElement.textContent = totalProdutos;
-        if (produtosBaixoElement) produtosBaixoElement.textContent = `${produtosBaixoEstoque} com baixo estoque`;
-        if (valorEstoqueElement) valorEstoqueElement.textContent = `R$ ${formatarMoeda(valorTotalEstoque)}`;
-        
-        // Meta do mês (exemplo fixo)
-        const metaMensal = configLoja?.meta_mensal || 50000;
-        const percentual = Math.min(Math.round((totalVendas / metaMensal) * 100), 100);
-        const restante = Math.max(metaMensal - totalVendas, 0);
-        
-        const metaPercentualElement = document.getElementById('metaPercentual');
-        const metaRestanteElement = document.getElementById('metaRestante');
-        
-        if (metaPercentualElement) metaPercentualElement.textContent = `${percentual}%`;
-        if (metaRestanteElement) metaRestanteElement.textContent = `R$ ${formatarMoeda(restante)}`;
-        
-    } catch (error) {
-        console.error("❌ Erro ao carregar estatísticas:", error);
-    }
+function calcularMargem(custo, venda) {
+    if (!custo || custo <= 0) return 'N/A';
+    const margem = ((venda - custo) / custo) * 100;
+    return margem.toFixed(1);
 }
 
 // ============================================
-// 8. CARREGAR ATIVIDADES RECENTES
-// ============================================
-async function carregarAtividadesRecentes() {
-    try {
-        if (!db) return;
-        
-        const activityList = document.getElementById('activityList');
-        if (!activityList) return;
-        
-        // Usar coleção da loja configurada
-        const colecaoVendas = configLoja?.colecao_vendas || 'vendas_pdv';
-        
-        // Buscar últimas 5 vendas
-        const querySnapshot = await db.collection(colecaoVendas)
-            .orderBy('data_venda', 'desc')
-            .limit(5)
-            .get();
-        
-        if (querySnapshot.empty) {
-            activityList.innerHTML = `
-                <div class="empty-activity">
-                    <i class="fas fa-history"></i>
-                    <p>Nenhuma atividade recente</p>
-                    <small>Realize vendas para ver atividades</small>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        
-        querySnapshot.forEach(doc => {
-            const data = doc.data();
-            const dataVenda = data.data_venda?.toDate() || new Date();
-            const horaFormatada = dataVenda.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            html += `
-                <div class="activity-item">
-                    <div class="activity-icon">
-                        <i class="fas fa-shopping-cart"></i>
-                    </div>
-                    <div class="activity-content">
-                        <div class="activity-title">
-                            <strong>Venda #${data.numero_venda || doc.id.slice(-6)}</strong>
-                            <span class="activity-time">${horaFormatada}</span>
-                        </div>
-                        <div class="activity-details">
-                            <span>${data.vendedor || 'Vendedor'}</span>
-                            <span class="activity-amount">R$ ${formatarMoeda(data.total)}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        activityList.innerHTML = html;
-        
-    } catch (error) {
-        console.error("❌ Erro ao carregar atividades:", error);
-        const activityList = document.getElementById('activityList');
-        if (activityList) {
-            activityList.innerHTML = `
-                <div class="empty-activity">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Erro ao carregar atividades</p>
-                </div>
-            `;
-        }
-    }
-}
-
-// ============================================
-// 9. FUNÇÕES UTILITÁRIAS
+// 10. FUNÇÕES UTILITÁRIAS
 // ============================================
 function formatarMoeda(valor) {
-    return parseFloat(valor || 0).toFixed(2).replace('.', ',');
+    const numero = parseFloat(valor) || 0;
+    return numero.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
 }
 
 function atualizarDataHora() {
@@ -575,7 +658,8 @@ function atualizarDataHora() {
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        second: '2-digit'
     });
     
     elemento.textContent = dataFormatada;
@@ -585,45 +669,33 @@ function atualizarStatusConexao(conectado) {
     const statusElement = document.getElementById('connectionStatus');
     if (!statusElement) return;
     
-    const statusText = statusElement.querySelector('#statusText') || statusElement;
+    const statusText = statusElement.querySelector('#statusText');
     const icon = statusElement.querySelector('i');
     
     if (conectado) {
-        if (statusText.textContent) statusText.textContent = 'Conectado ao Firebase';
+        if (statusText) statusText.textContent = 'Conectado';
         if (icon) {
-            icon.className = 'fas fa-circle';
             icon.style.color = '#27ae60';
         }
+        statusElement.style.color = '#27ae60';
     } else {
-        if (statusText.textContent) statusText.textContent = 'Desconectado';
+        if (statusText) statusText.textContent = 'Desconectado';
         if (icon) {
-            icon.className = 'fas fa-circle';
             icon.style.color = '#e74c3c';
         }
+        statusElement.style.color = '#e74c3c';
     }
 }
 
-function atualizarNomeLoja() {
-    if (!configLoja) return;
-    
-    // Atualizar título da página
-    const pageTitle = document.querySelector('title');
-    if (pageTitle && configLoja.nome) {
-        pageTitle.textContent = `PDV - ${configLoja.nome}`;
-    }
-    
-    // Atualizar nome na interface se houver elemento
-    const lojaNameElement = document.getElementById('lojaName');
-    if (lojaNameElement && configLoja.nome) {
-        lojaNameElement.textContent = configLoja.nome;
-    }
-}
-
-function mostrarLoading(mensagem) {
+function mostrarLoading(titulo = 'Carregando...', detalhe = '') {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
         const h3 = loading.querySelector('h3');
-        if (h3) h3.textContent = mensagem || 'Carregando...';
+        const p = loading.querySelector('#loadingDetail');
+        
+        if (h3) h3.textContent = titulo;
+        if (p && detalhe) p.textContent = detalhe;
+        
         loading.style.display = 'flex';
     }
 }
@@ -635,22 +707,19 @@ function esconderLoading() {
     }
 }
 
-function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
+function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
     const alert = document.getElementById('messageAlert');
     if (!alert) {
-        console.log(`[${tipo}] ${texto}`);
+        console.log(`[${tipo.toUpperCase()}] ${texto}`);
         return;
     }
-    
-    const icon = alert.querySelector('.message-icon');
-    const text = alert.querySelector('.message-text');
-    const closeBtn = alert.querySelector('.message-close');
     
     // Configurar alerta
     alert.className = `message-alert ${tipo}`;
     alert.style.display = 'block';
     
     // Ícone
+    const icon = alert.querySelector('.message-icon');
     const icons = {
         success: 'fas fa-check-circle',
         warning: 'fas fa-exclamation-triangle',
@@ -659,9 +728,13 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     };
     
     if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
+    
+    // Texto
+    const text = alert.querySelector('.message-text');
     if (text) text.textContent = texto;
     
     // Botão fechar
+    const closeBtn = alert.querySelector('.message-close');
     if (closeBtn) {
         closeBtn.onclick = function() {
             alert.style.display = 'none';
@@ -676,17 +749,183 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }, tempo);
 }
 
-function mostrarErro(texto) {
-    mostrarMensagem(texto, 'error', 5000);
-}
-
-// ============================================
-// 10. ADICIONAR ESTILOS DINÂMICOS
-// ============================================
+// Adicionar estilos CSS dinâmicos
 (function adicionarEstilos() {
     const estilo = document.createElement('style');
     estilo.textContent = `
-        /* Estilos para o modal de consulta rápida */
+        /* Estilos específicos para a versão dinâmica */
+        
+        .user-perfil {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .user-perfil.admin {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+        
+        .user-perfil.user {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .user-welcome {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+            color: #555;
+        }
+        
+        .user-welcome i {
+            font-size: 1.5rem;
+            color: #3498db;
+        }
+        
+        .action-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .stat-progress {
+            height: 4px;
+            background: #ecf0f1;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+        
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }
+        
+        .stat-detail {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            margin-top: 0.5rem;
+        }
+        
+        .activity-filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .filter-btn:hover {
+            border-color: #3498db;
+            color: #3498db;
+        }
+        
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .search-clear {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+        
+        .search-clear:hover {
+            color: #e74c3c;
+        }
+        
+        .search-filters {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .product-stock.out {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .activity-status.concluida {
+            color: #27ae60;
+        }
+        
+        .activity-status.pendente {
+            color: #f39c12;
+        }
+        
+        .activity-status.cancelada {
+            color: #e74c3c;
+        }
+        
+        .activity-vendedor {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: #555;
+        }
+        
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        
+        #footerVersao {
+            font-size: 0.9rem;
+            color: #95a5a6;
+        }
+        
+        .header-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        
+        /* Estilos para o modal de consulta */
         .modal {
             display: none;
             position: fixed;
@@ -704,7 +943,7 @@ function mostrarErro(texto) {
             background: white;
             border-radius: 12px;
             width: 90%;
-            max-width: 600px;
+            max-width: 800px;
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -752,7 +991,7 @@ function mostrarErro(texto) {
         
         .search-box {
             position: relative;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
         
         .search-box i {
@@ -765,7 +1004,7 @@ function mostrarErro(texto) {
         
         .search-box input {
             width: 100%;
-            padding: 1rem 1rem 1rem 3rem;
+            padding: 1rem 3rem 1rem 3rem;
             border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 1rem;
@@ -786,284 +1025,51 @@ function mostrarErro(texto) {
             border: 1px solid #eee;
         }
         
-        .empty-results {
+        /* Estilos para loading em atividades */
+        .loading-activity {
             text-align: center;
-            padding: 3rem 1rem;
-            color: #6c757d;
+            padding: 2rem;
         }
         
-        .empty-results i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            color: #bdc3c7;
-        }
-        
-        .results-list {
-            padding: 0.5rem;
-        }
-        
-        .product-result {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            border: 1px solid #e9ecef;
-            transition: all 0.2s;
-        }
-        
-        .product-result:hover {
-            border-color: #3498db;
-            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
-        }
-        
-        .product-result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        
-        .product-code {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.9rem;
-            background: #f8f9fa;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-        }
-        
-        .product-stock {
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        
-        .product-stock.low {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-        
-        .product-stock:not(.low) {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .product-name {
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            color: #2c3e50;
-        }
-        
-        .product-category {
-            display: inline-block;
-            background: #e9ecef;
-            color: #495057;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            margin-bottom: 0.75rem;
-        }
-        
-        .product-details {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 0.75rem;
-        }
-        
-        .product-price {
-            font-size: 1.1rem;
-            color: #27ae60;
-            font-weight: 600;
-        }
-        
-        .product-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-        
-        .btn-action {
-            padding: 0.5rem 0.75rem;
-            border: none;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-        }
-        
-        .btn-info {
-            background: #3498db;
-            color: white;
-        }
-        
-        .btn-info:hover {
-            background: #2980b9;
-        }
-        
-        .btn-sell {
-            background: #27ae60;
-            color: white;
-        }
-        
-        .btn-sell:hover {
-            background: #219653;
-        }
-        
-        /* Estilos para atividades */
-        .empty-activity {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: #6c757d;
-        }
-        
-        .empty-activity i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            color: #bdc3c7;
-        }
-        
-        .activity-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
-            border-left: 4px solid #3498db;
-            transition: all 0.2s;
-        }
-        
-        .activity-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-        
-        .activity-icon {
+        .loading-activity .spinner {
             width: 40px;
             height: 40px;
-            background: #3498db;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-        
-        .activity-content {
-            flex: 1;
-        }
-        
-        .activity-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.25rem;
-        }
-        
-        .activity-time {
-            font-size: 0.85rem;
-            color: #6c757d;
-        }
-        
-        .activity-details {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .activity-amount {
-            font-weight: 600;
-            color: #27ae60;
-        }
-        
-        /* Loading overlay */
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .loading-content {
-            text-align: center;
-            color: white;
-        }
-        
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255,255,255,0.3);
-            border-top-color: white;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 1rem;
         }
         
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
         
-        /* Message alert */
-        .message-alert {
-            display: none;
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            max-width: 400px;
-            z-index: 3000;
-        }
-        
-        .message-content {
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .message-alert.success .message-icon {
-            color: #27ae60;
-        }
-        
-        .message-alert.error .message-icon {
-            color: #e74c3c;
-        }
-        
-        .message-alert.warning .message-icon {
-            color: #f39c12;
-        }
-        
-        .message-alert.info .message-icon {
-            color: #3498db;
-        }
-        
-        .message-text {
-            flex: 1;
-        }
-        
-        .message-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #666;
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .header-right {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .header-info {
+                margin-top: 0.5rem;
+            }
+            
+            .user-welcome {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.25rem;
+            }
+            
+            .footer-info {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
         }
     `;
     document.head.appendChild(estilo);
 })();
 
-console.log("✅ Sistema home completamente carregado!");
+console.log("✅ Sistema home dinâmico completamente carregado!");
