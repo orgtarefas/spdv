@@ -17,6 +17,9 @@ let currentCountElement, lastUpdateElement, userNameElement, btnLogout;
 let modalProduto, formProduto, produtoIdInput, modalTitle;
 let codigoInput, nomeInput, categoriaInput, unidadeSelect, precoCustoInput;
 let precoInput, quantidadeInput, estoqueMinimoInput, descricaoTextarea, fornecedorInput;
+// Elementos DOM adicionais
+let pesoPorUnidadeInput, unidadePesoSelect, totalPesoInput, totalPesoUnidadeSpan;
+
 
 // ============================================
 // 1. INICIALIZAÇÃO
@@ -1026,3 +1029,4 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
