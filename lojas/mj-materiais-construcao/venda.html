@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDV Vendas - MJ Materiais de Construção</title>
+    <title>PDV Vendas - Sistema Multi-Lojas</title>
     <link rel="stylesheet" href="venda.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- FIREBASE CORRETO - CDN COMPATÍVEL -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
@@ -23,12 +19,12 @@
                 </a>
                 <div class="page-title">
                     <h1><i class="fas fa-cash-register"></i> PDV - Ponto de Venda</h1>
-                    <p class="page-subtitle">MJ Materiais de Construção</p>
+                    <p class="page-subtitle" id="nomeLoja">Carregando...</p>
                 </div>
             </div>
             <div class="header-right">
                 <div class="user-info">
-                    <span id="userName">Usuário</span>
+                    <span id="userName">Carregando...</span>
                     <button id="btnLogout" class="btn-logout">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
@@ -59,9 +55,13 @@
                         
                         <div class="products-grid" id="productsGrid">
                             <!-- Produtos serão carregados aqui -->
+                            <div class="empty-state" id="loadingProducts">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Carregando produtos...</p>
+                            </div>
                         </div>
                         
-                        <div class="empty-state" id="emptyProducts">
+                        <div class="empty-state" id="emptyProducts" style="display: none;">
                             <i class="fas fa-box-open"></i>
                             <p>Nenhum produto disponível</p>
                             <small>Cadastre produtos no estoque</small>
@@ -97,7 +97,7 @@
                             <div class="summary-row">
                                 <span>Desconto:</span>
                                 <div class="discount-input">
-                                    <input type="number" id="desconto" value="0" min="0" step="0.01">
+                                    <input type="number" id="desconto" value="0" min="0" max="100" step="0.01">
                                     <span>%</span>
                                 </div>
                             </div>
@@ -165,7 +165,7 @@
         <!-- Footer -->
         <footer class="main-footer">
             <div class="footer-content">
-                <p><i class="fas fa-store"></i> MJ Materiais de Construção - PDV</p>
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema PDV</span> - PDV</p>
                 <p id="currentDateTime">--:--:--</p>
             </div>
         </footer>
@@ -176,6 +176,7 @@
         <div class="loading-content">
             <div class="loading-spinner"></div>
             <h3>Carregando...</h3>
+            <p id="loadingDetail"></p>
         </div>
     </div>
 
@@ -188,8 +189,8 @@
         </div>
     </div>
 
-    <!-- Script principal (NÃO É MÓDULO) -->
-    <script src="venda.js"></script>
+    <!-- Scripts MÓDULOS (MESMO PADRÃO DO ESTOQUE) -->
+    <script type="module" src="firebase_config.js"></script>
+    <script type="module" src="venda.js"></script>
 </body>
 </html>
-
