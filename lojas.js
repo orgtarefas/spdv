@@ -1,5 +1,12 @@
 // lojas.js - Configuração dinâmica das coleções de cada loja
 const LOJAS_CONFIG = {
+
+    // Loja 0: Template de Demonstração
+    'template-exibicao': {
+        banco_estoque: 'estoque_template_exibicao'',
+        banco_vendas: 'vendas_template_exibicao'
+    }
+    
     // Loja 1: MJ Materiais de Construção
     'mj-materiais-construcao': {
         banco_estoque: 'estoque_mj_construcoes',
@@ -12,11 +19,6 @@ const LOJAS_CONFIG = {
         banco_vendas: 'vendas_acai_ponto_11'
     },
     
-    // Loja 3: Padaria Pão Quente
-    'padaria-pao-quente': {
-        banco_estoque: 'estoque_padaria_pao_quente',
-        banco_vendas: 'vendas_padaria_pao_quente'
-    }
     
     // TEMPLATE PARA ADICIONAR NOVA LOJA:
     // 1. Crie uma nova pasta dentro da pasta "lojas" com o mesmo ID da loja
@@ -44,3 +46,4 @@ function getLojaConfig(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig };
 
 console.log('✅ lojas.js carregado:', Object.keys(LOJAS_CONFIG).length, 'lojas configuradas');
+
