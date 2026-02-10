@@ -1,7 +1,5 @@
-// imagem_api.js - Serviço de upload usando ImgBB API
+// imagem_api.js - Serviço de upload usando ImgBB API com suporte a álbuns
 // Importa a chave dinamicamente da loja atual
-
-// NOTA: Não definimos IMGBB_API_KEY aqui, ela virá do lojaServices
 
 export const imagemServices = {
     
@@ -19,17 +17,29 @@ export const imagemServices = {
         try {
             console.log('📤 Iniciando upload para ImgBB...');
             
-            // 1. Obter chave da loja atual
+            // 1. Obter chave e album da loja atual
             let imgbbApiKey = null;
+            let imgbbAlbumId = null;
+            let lojaId = '';
             
             if (lojaServices && lojaServices.imgbbKey) {
-                // Usar chave do lojaServices se fornecido
+                // Usar chave e album do lojaServices se fornecido
                 imgbbApiKey = lojaServices.imgbbKey;
-                console.log(`🏪 Usando chave da loja: ${lojaServices.lojaId}`);
+                imgbbAlbumId = lojaServices.imgbbAlbumId;
+                lojaId = lojaServices.lojaId;
+                console.log(`🏪 Usando chave da loja: ${lojaId}`);
+                if (imgbbAlbumId) {
+                    console.log(`📁 Album ID configurado: ${imgbbAlbumId}`);
+                }
             } else if (window.lojaServices && window.lojaServices.imgbbKey) {
                 // Usar chave global (fallback)
                 imgbbApiKey = window.lojaServices.imgbbKey;
-                console.log(`🏪 Usando chave global da loja: ${window.lojaServices.lojaId}`);
+                imgbbAlbumId = window.lojaServices.imgbbAlbumId;
+                lojaId = window.lojaServices.lojaId;
+                console.log(`🏪 Usando chave global da loja: ${lojaId}`);
+                if (imgbbAlbumId) {
+                    console.log(`📁 Album ID configurado: ${imgbbAlbumId}`);
+                }
             } else {
                 throw new Error('Chave do ImgBB não disponível. Loja não configurada.');
             }
@@ -56,13 +66,21 @@ export const imagemServices = {
             
             console.log(`📊 Tamanho Base64: ${Math.round(base64SemPrefixo.length / 1024)}KB`);
             
-            // 4. Criar FormData
+            // 4. Criar FormData com album se disponível
             const formData = new FormData();
             formData.append('key', imgbbApiKey);
             formData.append('image', base64SemPrefixo);
             
             if (nome) {
                 formData.append('name', `${nome}_${Date.now()}`);
+            }
+            
+            // ADICIONAR ÁLBUM SE CONFIGURADO
+            if (imgbbAlbumId) {
+                formData.append('album', imgbbAlbumId);
+                console.log(`🎯 Enviando para album: ${imgbbAlbumId}`);
+            } else {
+                console.log('ℹ️ Sem album configurado - imagem será enviada para galeria padrão');
             }
             
             // 5. Fazer upload
@@ -83,7 +101,18 @@ export const imagemServices = {
                 throw new Error(data.error?.message || 'Erro desconhecido do ImgBB');
             }
             
-            // 6. Retornar URLs organizadas
+            // 6. Verificar se foi para o álbum correto
+            const albumRecebido = data.data?.album;
+            if (imgbbAlbumId && albumRecebido) {
+                const albumId = typeof albumRecebido === 'string' ? albumRecebido : albumRecebido.id;
+                if (albumId === imgbbAlbumId) {
+                    console.log(`🎉 Imagem enviada para o album correto: ${albumId}`);
+                } else {
+                    console.warn(`⚠️ Imagem enviada para album diferente: ${albumId}`);
+                }
+            }
+            
+            // 7. Retornar URLs organizadas
             return {
                 success: true,
                 id: data.data.id,
@@ -97,7 +126,9 @@ export const imagemServices = {
                 height: data.data.height,
                 extensao: data.data.image?.extension || file.name.split('.').pop(),
                 timestamp: data.data.time || Date.now(),
-                loja_id: lojaServices?.lojaId || window.lojaServices?.lojaId,
+                album_id: albumRecebido,
+                album_configurado: imgbbAlbumId,
+                loja_id: lojaId,
                 using_key: imgbbApiKey.substring(0, 8) + '...'
             };
             
@@ -159,18 +190,21 @@ export const imagemServices = {
         }
     },
     
-    // Testar conexão da loja atual
+    // Testar conexão da loja atual incluindo álbum
     async testarConexaoLoja(lojaServices = null) {
         try {
-            // Obter chave
+            // Obter chave e album
             let imgbbApiKey = null;
+            let imgbbAlbumId = null;
             let lojaId = '';
             
             if (lojaServices && lojaServices.imgbbKey) {
                 imgbbApiKey = lojaServices.imgbbKey;
+                imgbbAlbumId = lojaServices.imgbbAlbumId;
                 lojaId = lojaServices.lojaId;
             } else if (window.lojaServices && window.lojaServices.imgbbKey) {
                 imgbbApiKey = window.lojaServices.imgbbKey;
+                imgbbAlbumId = window.lojaServices.imgbbAlbumId;
                 lojaId = window.lojaServices.lojaId;
             } else {
                 return {
@@ -187,6 +221,9 @@ export const imagemServices = {
             }
             
             console.log(`🔍 Testando ImgBB para loja: ${lojaId}`);
+            if (imgbbAlbumId) {
+                console.log(`📁 Album ID configurado: ${imgbbAlbumId}`);
+            }
             
             // Imagem de teste mínima (1x1 pixel transparente)
             const imagemTeste = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
@@ -196,6 +233,12 @@ export const imagemServices = {
             formData.append('image', imagemTeste);
             formData.append('name', 'test_connection');
             
+            // Adicionar album se existir
+            if (imgbbAlbumId) {
+                formData.append('album', imgbbAlbumId);
+                console.log(`🎯 Enviando teste para album: ${imgbbAlbumId}`);
+            }
+            
             const response = await fetch('https://api.imgbb.com/1/upload', {
                 method: 'POST',
                 body: formData
@@ -203,17 +246,97 @@ export const imagemServices = {
             
             const data = await response.json();
             
+            // Verificar album
+            let albumVerificado = false;
+            let albumRecebido = null;
+            
+            if (data.success && data.data && imgbbAlbumId) {
+                albumRecebido = data.data.album;
+                if (albumRecebido) {
+                    const albumId = typeof albumRecebido === 'string' ? albumRecebido : albumRecebido.id;
+                    albumVerificado = (albumId === imgbbAlbumId);
+                    console.log(`Album recebido: ${albumId}, Esperado: ${imgbbAlbumId}, Igual: ${albumVerificado}`);
+                }
+            }
+            
             return {
                 success: data.success === true,
-                message: data.success ? 'API ImgBB está funcionando!' : data.error?.message,
+                message: data.success ? 
+                    (imgbbAlbumId ? `API ImgBB está funcionando! ${albumVerificado ? 'Album correto!' : 'Album incorreto!'}` : 'API ImgBB está funcionando!') : 
+                    data.error?.message,
                 data: data,
                 loja_id: lojaId,
-                loja_key: imgbbApiKey.substring(0, 8) + '...'
+                loja_key: imgbbApiKey.substring(0, 8) + '...',
+                album_id: imgbbAlbumId || null,
+                album_verificado: albumVerificado,
+                album_recebido: albumRecebido
             };
             
         } catch (error) {
+            console.error('❌ Erro ao testar conexão:', error);
             return {
                 success: false,
+                error: error.message
+            };
+        }
+    },
+    
+    // Testar especificamente se o álbum está funcionando
+    async testarAlbumLoja(lojaServices = null) {
+        try {
+            const resultado = await this.testarConexaoLoja(lojaServices);
+            
+            if (resultado.success) {
+                const mensagem = resultado.album_id ? 
+                    `Album configurado: ${resultado.album_id}\n` +
+                    `Album verificado: ${resultado.album_verificado ? '✅ Sim' : '❌ Não'}` :
+                    'Nenhum album configurado';
+                
+                return {
+                    success: true,
+                    ...resultado,
+                    message: mensagem
+                };
+            } else {
+                return resultado;
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro no teste do album:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+    
+    // Verificar configuração do álbum da loja
+    verificarConfigAlbum(lojaServices = null) {
+        try {
+            const services = lojaServices || window.lojaServices;
+            
+            if (!services) {
+                return {
+                    temChave: false,
+                    temAlbum: false,
+                    lojaId: null
+                };
+            }
+            
+            return {
+                temChave: !!services.imgbbKey,
+                temAlbum: !!services.imgbbAlbumId,
+                lojaId: services.lojaId,
+                chave: services.imgbbKey ? `${services.imgbbKey.substring(0, 8)}...` : null,
+                albumId: services.imgbbAlbumId || null
+            };
+            
+        } catch (error) {
+            console.error('❌ Erro ao verificar configuração:', error);
+            return {
+                temChave: false,
+                temAlbum: false,
+                lojaId: null,
                 error: error.message
             };
         }
@@ -440,6 +563,9 @@ export const imagemServices = {
                 height: imagemData.height,
                 size: imagemData.tamanho,
                 uploaded_at: new Date().toISOString(),
+                album_id: imagemData.album_id,
+                album_configurado: imagemData.album_configurado,
+                loja_id: imagemData.loja_id,
                 tipo: tipo
             };
             
@@ -473,10 +599,10 @@ export const imagemServices = {
                 lojaServices = window.lojaServices;
             }
             
-            // 1. Upload da imagem
+            // 1. Upload da imagem com album
             const uploadResult = await this.uploadImagem(
                 file, 
-                `produto_${produtoId}_${tipo}`, 
+                `produto_${produtoId}_${tipo}_${lojaServices.lojaId}`, 
                 lojaServices
             );
             
@@ -521,10 +647,47 @@ export const imagemServices = {
                 error: error.message
             };
         }
+    },
+    
+    // Obter estatísticas do álbum (se disponível)
+    async obterEstatisticasAlbum(lojaServices = null) {
+        try {
+            const config = this.verificarConfigAlbum(lojaServices);
+            
+            if (!config.temChave) {
+                return {
+                    success: false,
+                    error: 'Loja não tem chave ImgBB configurada'
+                };
+            }
+            
+            if (!config.temAlbum) {
+                return {
+                    success: false,
+                    error: 'Loja não tem album configurado'
+                };
+            }
+            
+            // A API do ImgBB não tem um endpoint direto para estatísticas do álbum
+            // Podemos apenas retornar informações básicas
+            return {
+                success: true,
+                loja_id: config.lojaId,
+                album_id: config.albumId,
+                status: 'Album configurado',
+                mensagem: `Album ID: ${config.albumId}\nPara ver imagens, acesse: https://imgbb.com/album/${config.albumId}`
+            };
+            
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
 };
 
 // Para uso global
 window.imagemServices = imagemServices;
 
-console.log("✅ Serviço de imagens carregado (com suporte a múltiplas lojas)");
+console.log("✅ Serviço de imagens carregado (com suporte a álbuns por loja)");
