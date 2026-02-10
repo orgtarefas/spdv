@@ -5,7 +5,7 @@ const LOJAS_CONFIG = {
     'template-exibicao': {
         banco_estoque: 'estoque_template_exibicao',
         banco_vendas: 'vendas_template_exibicao'
-    }
+    },
     
     // Loja 1: MJ Materiais de Construção
     'mj-materiais-construcao': {
@@ -17,8 +17,7 @@ const LOJAS_CONFIG = {
     'acai-ponto-11': {
         banco_estoque: 'estoque_acai_ponto_11',
         banco_vendas: 'vendas_acai_ponto_11'
-    },
-    
+    }
     
     // TEMPLATE PARA ADICIONAR NOVA LOJA:
     // 1. Crie uma nova pasta dentro da pasta "lojas" com o mesmo ID da loja
@@ -46,5 +45,3 @@ function getLojaConfig(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig };
 
 console.log('✅ lojas.js carregado:', Object.keys(LOJAS_CONFIG).length, 'lojas configuradas');
-
-
