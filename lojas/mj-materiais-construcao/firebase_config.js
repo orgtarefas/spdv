@@ -39,7 +39,7 @@ class LojaManager {
         this.usuario = null;
         this.config = null;
         this.dadosLoja = null;
-        this.imgbbKey = null; // ← ADICIONE ESTA LINHA
+        this.imgbbKey = null;
         this.inicializar();
     }
     
@@ -56,9 +56,9 @@ class LojaManager {
                 this.lojaId = dados.banco_login;
                 this.usuario = dados;
                 this.config = getLojaConfig(this.lojaId);
-                this.imgbbKey = this.config?.imgbb_api_key; // ← ADICIONE ESTA LINHA
+                this.imgbbKey = this.config?.imgbb_api_key;
                 console.log(`✅ Loja identificada: ${this.lojaId}`);
-                console.log(`🔑 Chave ImgBB configurada: ${this.imgbbKey ? 'SIM' : 'NÃO'}`);
+                console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
                 return;
             }
             
@@ -69,9 +69,9 @@ class LojaManager {
                 this.lojaId = dados.banco_login;
                 this.usuario = dados;
                 this.config = getLojaConfig(this.lojaId);
-                this.imgbbKey = this.config?.imgbb_api_key; // ← ADICIONE ESTA LINHA
+                this.imgbbKey = this.config?.imgbb_api_key;
                 console.log(`⚠️ Loja identificada do backup: ${this.lojaId}`);
-                console.log(`🔑 Chave ImgBB configurada: ${this.imgbbKey ? 'SIM' : 'NÃO'}`);
+                console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
                 return;
             }
             
@@ -81,7 +81,7 @@ class LojaManager {
             if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
                 this.lojaId = pathParts[lojaIndex + 1];
                 this.config = getLojaConfig(this.lojaId);
-                this.imgbbKey = this.config?.imgbb_api_key; // ← ADICIONE ESTA LINHA
+                this.imgbbKey = this.config?.imgbb_api_key;
                 
                 // Dados mock para desenvolvimento
                 this.usuario = {
@@ -92,7 +92,7 @@ class LojaManager {
                 };
                 
                 console.log(`📍 Loja detectada da URL: ${this.lojaId}`);
-                console.log(`🔑 Chave ImgBB configurada: ${this.imgbbKey ? 'SIM' : 'NÃO'}`);
+                console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
                 return;
             }
             
@@ -171,7 +171,7 @@ class LojaManager {
                     cnpj: '',
                     tipo: 'padrao',
                     meta_mensal: 10000,
-                    imgbb_key: this.imgbbKey // ← INCLUIR A CHAVE AQUI TAMBÉM
+                    imgbb_key: this.imgbbKey
                 };
                 
                 return { 
@@ -194,7 +194,7 @@ class LojaManager {
                 cnpj: '',
                 tipo: 'padrao',
                 meta_mensal: 10000,
-                imgbb_key: this.imgbbKey // ← INCLUIR A CHAVE AQUI TAMBÉM
+                imgbb_key: this.imgbbKey
             };
             
             return { 
@@ -754,7 +754,7 @@ const lojaServices = {
     formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
     logout: () => lojaManager.logout(),
     
-    // ========== GETTERS COMPLETOS - COM imgbbKey ==========
+    // ========== GETTERS COMPLETOS ==========
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
     get nomeUsuario() { return lojaManager.nomeUsuario; },
@@ -762,65 +762,8 @@ const lojaServices = {
     get isAdmin() { return lojaManager.isAdmin; },
     get isLogged() { return lojaManager.isLogged; },
     get dadosLoja() { return lojaManager.dadosLoja; },
-    
-    // ========== CHAVE IMGBB - ESSA É A PARTE CRÍTICA ==========
-    get imgbbKey() { 
-        // Primeiro tenta pegar do lojaManager
-        if (lojaManager.imgbbKey) {
-            return lojaManager.imgbbKey;
-        }
-        
-        // Se não tiver, tenta pegar da configuração da loja
-        if (lojaManager.config?.imgbb_api_key) {
-            lojaManager.imgbbKey = lojaManager.config.imgbb_api_key;
-            return lojaManager.imgbbKey;
-        }
-        
-        // Se não tiver, tenta pegar do dadosLoja
-        if (lojaManager.dadosLoja?.imgbb_key) {
-            lojaManager.imgbbKey = lojaManager.dadosLoja.imgbb_key;
-            return lojaManager.imgbbKey;
-        }
-        
-        console.warn('⚠️ imgbbKey não encontrada em nenhuma fonte');
-        return null;
-    },
-    
-    // ========== MÉTODO PARA CONFIGURAR A CHAVE ==========
-    configurarImgBBKey: (chave) => {
-        lojaManager.imgbbKey = chave;
-        if (!lojaManager.dadosLoja) lojaManager.dadosLoja = {};
-        lojaManager.dadosLoja.imgbb_key = chave;
-        console.log(`✅ Chave ImgBB configurada: ${chave?.substring(0, 8)}...`);
-    }
+    get imgbbKey() { return lojaManager.imgbbKey; }
 };
-
-// Função auxiliar para configurar automaticamente
-async function configurarChaveImgBBAutomaticamente() {
-    try {
-        console.log('🔑 Configurando chave ImgBB automaticamente...');
-        
-        if (lojaManager.lojaId && !lojaManager.imgbbKey) {
-            // Importar função getImgBBKey
-            const { getImgBBKey } = await import('../../lojas.js');
-            const chave = getImgBBKey(lojaManager.lojaId);
-            
-            if (chave) {
-                lojaManager.imgbbKey = chave;
-                console.log(`✅ Chave ImgBB configurada automaticamente: ${chave.substring(0, 8)}...`);
-            } else {
-                console.warn('⚠️ Não foi possível obter chave ImgBB automaticamente');
-            }
-        } else if (lojaManager.imgbbKey) {
-            console.log(`✅ Chave ImgBB já configurada: ${lojaManager.imgbbKey.substring(0, 8)}...`);
-        }
-    } catch (error) {
-        console.error('❌ Erro ao configurar chave ImgBB:', error);
-    }
-}
-
-// Executar configuração automática após um breve delay
-setTimeout(configurarChaveImgBBAutomaticamente, 500);
 
 // Exportar tudo
 export { 
@@ -848,10 +791,10 @@ export {
 window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
-// Exportar serviços de imagem
+// Importar e exportar serviços de imagem
 import { imagemServices } from './imagem_api.js';
 export { imagemServices };
 window.imagemServices = imagemServices;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
-console.log(`🔑 Status ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CONFIGURADA'}`);
+console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA (' + lojaManager.imgbbKey.substring(0, 8) + '...)' : 'NÃO CONFIGURADA'}`);
