@@ -1,4 +1,4 @@
-// firebase_config.js - CONFIGURAÇÃO DINÂMICA PARA QUALQUER LOJA
+// firebase_config.js - CONFIGURAÇÃO DINÂMICA PARA QUALQUER LOJA COM SUPORTE A ÁLBUM IMGBB
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { 
     getFirestore, collection, doc, getDoc, getDocs, 
@@ -42,6 +42,7 @@ class LojaManager {
         this.config = null;
         this.dadosLoja = null;
         this.imgbbKey = null;
+        this.imgbbAlbumId = null; // NOVO: Adicionar album ID
         this.inicializar();
     }
     
@@ -59,8 +60,10 @@ class LojaManager {
                 this.usuario = dados;
                 this.config = getLojaConfig(this.lojaId);
                 this.imgbbKey = this.config?.imgbb_api_key;
+                this.imgbbAlbumId = this.config?.imgbb_album_id; // NOVO: Carregar album ID
                 console.log(`✅ Loja identificada: ${this.lojaId}`);
                 console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
+                console.log(`📁 Album ImgBB: ${this.imgbbAlbumId ? this.imgbbAlbumId : 'Não configurado'}`);
                 return;
             }
             
@@ -72,8 +75,10 @@ class LojaManager {
                 this.usuario = dados;
                 this.config = getLojaConfig(this.lojaId);
                 this.imgbbKey = this.config?.imgbb_api_key;
+                this.imgbbAlbumId = this.config?.imgbb_album_id; // NOVO: Carregar album ID
                 console.log(`⚠️ Loja identificada do backup: ${this.lojaId}`);
                 console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
+                console.log(`📁 Album ImgBB: ${this.imgbbAlbumId ? this.imgbbAlbumId : 'Não configurado'}`);
                 return;
             }
             
@@ -84,6 +89,7 @@ class LojaManager {
                 this.lojaId = pathParts[lojaIndex + 1];
                 this.config = getLojaConfig(this.lojaId);
                 this.imgbbKey = this.config?.imgbb_api_key;
+                this.imgbbAlbumId = this.config?.imgbb_album_id; // NOVO: Carregar album ID
                 
                 // Dados mock para desenvolvimento
                 this.usuario = {
@@ -95,6 +101,7 @@ class LojaManager {
                 
                 console.log(`📍 Loja detectada da URL: ${this.lojaId}`);
                 console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
+                console.log(`📁 Album ImgBB: ${this.imgbbAlbumId ? this.imgbbAlbumId : 'Não configurado'}`);
                 return;
             }
             
@@ -128,6 +135,11 @@ class LojaManager {
     
     get perfil() {
         return this.usuario?.perfil || 'usuario';
+    }
+    
+    // NOVO: Getter para album ID
+    get hasAlbum() {
+        return !!this.imgbbAlbumId;
     }
     
     // ========== SERVIÇOS DA LOJA ==========
@@ -173,7 +185,8 @@ class LojaManager {
                     cnpj: '',
                     tipo: 'padrao',
                     meta_mensal: 10000,
-                    imgbb_key: this.imgbbKey
+                    imgbb_key: this.imgbbKey,
+                    imgbb_album_id: this.imgbbAlbumId // NOVO: Incluir album ID
                 };
                 
                 return { 
@@ -196,7 +209,8 @@ class LojaManager {
                 cnpj: '',
                 tipo: 'padrao',
                 meta_mensal: 10000,
-                imgbb_key: this.imgbbKey
+                imgbb_key: this.imgbbKey,
+                imgbb_album_id: this.imgbbAlbumId // NOVO: Incluir album ID
             };
             
             return { 
@@ -324,6 +338,16 @@ class LojaManager {
                 throw new Error('Produto não pertence a esta loja');
             }
             
+            // Se produto tem imagem no ImgBB, tentar deletar
+            if (produtoData.imagens && produtoData.imagens.delete_url) {
+                try {
+                    await imagemServices.deletarImagem(produtoData.imagens.delete_url);
+                    console.log('🗑️ Imagem deletada do ImgBB');
+                } catch (error) {
+                    console.warn('⚠️ Erro ao deletar imagem do ImgBB:', error);
+                }
+            }
+            
             // EXCLUIR O PRODUTO - SEM VERIFICAÇÃO DE ESTOQUE
             await deleteDoc(produtoRef);
             
@@ -375,6 +399,7 @@ class LojaManager {
                 id: novoProdutoRef.id,
                 codigo: dadosProduto.codigo || `P${Date.now().toString().slice(-6)}`,
                 loja_id: this.lojaId,
+                loja_nome: this.dadosLoja?.nome || this.formatarNomeLoja(this.lojaId),
                 data_cadastro: serverTimestamp(),
                 data_atualizacao: serverTimestamp(),
                 ativo: true,
@@ -383,6 +408,15 @@ class LojaManager {
                 quantidade: parseInt(dadosProduto.quantidade) || 0,
                 estoque_minimo: parseInt(dadosProduto.estoque_minimo) || 5
             };
+            
+            // NOVO: Adicionar informação do album se houver imagem
+            if (dadosProduto.imagens && this.imgbbAlbumId) {
+                produtoData.imagens = {
+                    ...dadosProduto.imagens,
+                    album_id: this.imgbbAlbumId,
+                    loja_id: this.lojaId
+                };
+            }
             
             await setDoc(novoProdutoRef, produtoData);
             
@@ -441,6 +475,16 @@ class LojaManager {
             
             if (dadosParaAtualizar.peso_por_unidade !== undefined) {
                 dadosParaAtualizar.peso_por_unidade = parseFloat(dadosParaAtualizar.peso_por_unidade) || 0;
+            }
+            
+            // NOVO: Adicionar informação do album se houver nova imagem
+            if (dadosParaAtualizar.imagens && this.imgbbAlbumId) {
+                dadosParaAtualizar.imagens = {
+                    ...dadosParaAtualizar.imagens,
+                    album_id: this.imgbbAlbumId,
+                    loja_id: this.lojaId,
+                    updated_at: serverTimestamp()
+                };
             }
             
             await updateDoc(produtoRef, dadosParaAtualizar);
@@ -710,6 +754,40 @@ class LojaManager {
         }
     }
     
+    // Testar configuração do ImgBB (incluindo álbum)
+    async testarConfigImgBB() {
+        try {
+            console.log('🔍 Testando configuração do ImgBB...');
+            
+            if (!this.imgbbKey) {
+                return {
+                    success: false,
+                    error: 'Chave ImgBB não configurada para esta loja'
+                };
+            }
+            
+            const resultado = await imagemServices.testarAlbumLoja(this);
+            
+            return resultado;
+            
+        } catch (error) {
+            console.error('❌ Erro ao testar ImgBB:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+    
+    // Obter link do álbum
+    getAlbumLink() {
+        if (!this.imgbbAlbumId) {
+            return null;
+        }
+        
+        return `https://imgbb.com/album/${this.imgbbAlbumId}`;
+    }
+    
     // Logout
     logout() {
         sessionStorage.removeItem('pdv_sessao_temporaria');
@@ -752,6 +830,10 @@ const lojaServices = {
     // Estatísticas
     buscarEstatisticas: () => lojaManager.buscarEstatisticas(),
     
+    // ImgBB e Álbum
+    testarConfigImgBB: () => lojaManager.testarConfigImgBB(),
+    getAlbumLink: () => lojaManager.getAlbumLink(),
+    
     // Utilitários
     formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
     logout: () => lojaManager.logout(),
@@ -764,14 +846,16 @@ const lojaServices = {
     get isAdmin() { return lojaManager.isAdmin; },
     get isLogged() { return lojaManager.isLogged; },
     get dadosLoja() { return lojaManager.dadosLoja; },
-    get imgbbKey() { return lojaManager.imgbbKey; }
+    get imgbbKey() { return lojaManager.imgbbKey; },
+    get imgbbAlbumId() { return lojaManager.imgbbAlbumId; }, // NOVO: Getter para album ID
+    get hasAlbum() { return lojaManager.hasAlbum; } // NOVO: Getter para verificar se tem álbum
 };
 
 // ========== FUNÇÃO UTILITÁRIA PARA OBTER IMAGENS ==========
-// Função para obter URL da imagem do produto
+// Função para obter URL da imagem do produto com fallback base64
 function obterURLImagem(produto, tamanho = 'thumb') {
     if (!produto || !produto.imagens) {
-        return '/images/sem-foto.png'; // Imagem padrão
+        return gerarImagemPlaceholderBase64(); // Usar base64 como fallback
     }
     
     const imagens = produto.imagens;
@@ -779,20 +863,35 @@ function obterURLImagem(produto, tamanho = 'thumb') {
     // Escolher tamanho baseado no parâmetro
     switch(tamanho) {
         case 'thumb':
-            return imagens.thumbnail || imagens.principal || '/images/sem-foto.png';
+            return imagens.thumbnail || imagens.principal || gerarImagemPlaceholderBase64();
         case 'medium':
-            return imagens.medium || imagens.principal || '/images/sem-foto.png';
+            return imagens.medium || imagens.principal || gerarImagemPlaceholderBase64();
         case 'large':
         case 'principal':
-            return imagens.principal || '/images/sem-foto.png';
+            return imagens.principal || gerarImagemPlaceholderBase64();
         default:
-            return imagens.principal || '/images/sem-foto.png';
+            return imagens.principal || gerarImagemPlaceholderBase64();
     }
 }
 
+// Função para gerar imagem placeholder em base64
+function gerarImagemPlaceholderBase64() {
+    return 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" fill="#f8f9fa"/>
+            <circle cx="50" cy="40" r="28" fill="none" stroke="#dee2e6" stroke-width="3"/>
+            <line x1="30" y1="25" x2="70" y2="55" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/>
+            <line x1="70" y1="25" x2="30" y2="55" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/>
+            <text x="50" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#495057" font-weight="bold">
+                SEM FOTO
+            </text>
+        </svg>
+    `);
+}
 
 // Adicionar ao lojaServices para fácil acesso
 lojaServices.obterURLImagem = obterURLImagem;
+lojaServices.gerarImagemPlaceholderBase64 = gerarImagemPlaceholderBase64;
 
 // ========== FUNÇÃO PARA FORMATAR MOEDA ==========
 // (Já existe no LojaManager, mas vamos expor também)
@@ -823,6 +922,7 @@ export {
     runTransaction,
     limit,
     obterURLImagem,
+    gerarImagemPlaceholderBase64,
     formatarMoeda,
     imagemServices
 };
@@ -832,9 +932,15 @@ export {
 window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 window.obterURLImagem = obterURLImagem;
+window.gerarImagemPlaceholderBase64 = gerarImagemPlaceholderBase64;
 window.formatarMoeda = formatarMoeda;
 window.imagemServices = imagemServices;
 
+// Log inicial das configurações
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
 console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA (' + lojaManager.imgbbKey.substring(0, 8) + '...)' : 'NÃO CONFIGURADA'}`);
+console.log(`📁 Album ImgBB: ${lojaManager.imgbbAlbumId ? 'CONFIGURADO (' + lojaManager.imgbbAlbumId + ')' : 'NÃO CONFIGURADO'}`);
 
+if (lojaManager.imgbbAlbumId) {
+    console.log(`🔗 Link do álbum: https://imgbb.com/album/${lojaManager.imgbbAlbumId}`);
+}
