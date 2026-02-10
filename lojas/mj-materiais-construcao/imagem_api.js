@@ -173,6 +173,80 @@ export const imagemServices = {
             };
         }
     },
+
+    // Função para verificar permissões do álbum
+    async function verificarPermissoesAlbum(lojaServices = null) {
+        try {
+            const config = this.verificarConfigAlbum(lojaServices);
+            
+            if (!config.temChave || !config.temAlbum) {
+                return {
+                    success: false,
+                    error: 'Chave ou album não configurados'
+                };
+            }
+            
+            console.log(`🔍 Verificando permissões para album ${config.albumId}...`);
+            
+            // Teste 1: Verificar se consegue enviar para o álbum
+            const imagemTeste = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 1x1 pixel
+            
+            const formData = new FormData();
+            formData.append('key', config.chave);
+            formData.append('image', imagemTeste);
+            formData.append('name', 'test_permissao_album');
+            formData.append('album', config.albumId);
+            
+            const response = await fetch('https://api.imgbb.com/1/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                const albumRecebido = data.data?.album;
+                let albumIdRecebido = null;
+                
+                if (albumRecebido) {
+                    albumIdRecebido = typeof albumRecebido === 'string' 
+                        ? albumRecebido 
+                        : albumRecebido.id || albumRecebido.title;
+                }
+                
+                const temPermissao = albumIdRecebido && 
+                    (albumIdRecebido === config.albumId || 
+                     albumIdRecebido.includes(config.albumId));
+                
+                return {
+                    success: true,
+                    temPermissao: temPermissao,
+                    albumConfigurado: config.albumId,
+                    albumRecebido: albumIdRecebido,
+                    mensagem: temPermissao 
+                        ? '✅ Permissão do álbum confirmada!' 
+                        : '❌ Problema com permissão do álbum',
+                    dados: data.data
+                };
+            } else {
+                return {
+                    success: false,
+                    error: data.error?.message || 'Erro ao testar permissões',
+                    dados: data
+                };
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro ao verificar permissões:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+    
+    // Adicionar ao objeto imagemServices
+    imagemServices.verificarPermissoesAlbum = verificarPermissoesAlbum;
     
     // Upload múltiplo com chave da loja atual
     async uploadMultiplasImagens(files, lojaServices = null, prefixo = 'produto', maxSimultaneo = 3) {
@@ -723,4 +797,5 @@ export const imagemServices = {
 window.imagemServices = imagemServices;
 
 console.log("✅ Serviço de imagens carregado (com suporte a álbuns por loja)");
+
 
