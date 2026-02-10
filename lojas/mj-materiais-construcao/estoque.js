@@ -69,6 +69,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Esconder loading
         esconderLoading();
+
+        // Verificar configuração do ImgBB
+        verificarConfigImgBBCarregamento();
         
         console.log("✅ Sistema de estoque pronto para uso");
         
@@ -206,6 +209,99 @@ function removerImagem() {
         imageStatus.textContent = '';
         imageStatus.className = '';
     }
+}
+
+// função para verificar configuração ao carregar
+async function verificarConfigImgBBCarregamento() {
+    if (lojaServices.imgbbKey && lojaServices.imgbbAlbumId) {
+        console.log('🔍 Verificando configuração do ImgBB...');
+        
+        try {
+            // Teste rápido
+            const resultado = await imagemServices.testarConexaoLoja(lojaServices);
+            
+            if (resultado.success) {
+                if (resultado.album_verificado) {
+                    console.log('✅ ImgBB configurado corretamente com álbum!');
+                } else if (resultado.album_id) {
+                    console.warn('⚠️ ImgBB configurado mas álbum pode não estar funcionando');
+                    console.warn(`Album configurado: ${resultado.album_id}`);
+                    
+                    // Sugerir teste
+                    setTimeout(() => {
+                        const testar = confirm(
+                            'O álbum do ImgBB pode não estar funcionando corretamente.\n' +
+                            'Deseja testar as permissões agora?'
+                        );
+                        if (testar) {
+                            testarPermissoesAlbum();
+                        }
+                    }, 3000);
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Erro ao verificar ImgBB:', error);
+        }
+    }
+}
+
+// função para testar permissões do álbum
+async function testarPermissoesAlbum() {
+    try {
+        mostrarLoading('Verificando permissões do álbum...', 'Aguarde...');
+        
+        const resultado = await imagemServices.verificarPermissoesAlbum(lojaServices);
+        
+        if (resultado.success) {
+            let mensagem = 'Resultado do teste:\n\n';
+            
+            mensagem += `Album configurado: ${resultado.albumConfigurado}\n`;
+            mensagem += `Album recebido: ${resultado.albumRecebido || 'Nenhum'}\n`;
+            mensagem += `Permissão: ${resultado.temPermissao ? '✅ OK' : '❌ PROBLEMA'}\n`;
+            
+            if (resultado.temPermissao) {
+                mensagem += '\n✅ Seu álbum está funcionando corretamente!\n';
+                mensagem += 'As imagens serão salvas no álbum configurado.';
+            } else {
+                mensagem += '\n⚠️ Problema detectado:\n';
+                mensagem += '1. Verifique se o Album ID está correto\n';
+                mensagem += '2. Confirme que a chave API tem acesso ao álbum\n';
+                mensagem += '3. No ImgBB, verifique as permissões do álbum\n';
+                mensagem += `\n🔗 Acesse: https://imgbb.com/album/${lojaServices.imgbbAlbumId}`;
+            }
+            
+            alert(mensagem);
+            
+            // Log detalhado
+            console.log('📊 Resultado do teste de permissões:', resultado);
+            
+        } else {
+            mostrarMensagem(`Erro: ${resultado.error}`, 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro no teste:', error);
+        mostrarMensagem('Erro ao testar permissões', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// Adicionar botão para testar permissões
+function adicionarBotaoTestePermissoes() {
+    const btnTestarPermissoes = document.createElement('button');
+    btnTestarPermissoes.id = 'btnTestarPermissoes';
+    btnTestarPermissoes.className = 'btn-action';
+    btnTestarPermissoes.innerHTML = '<i class="fas fa-shield-alt"></i> Testar Permissões';
+    btnTestarPermissoes.title = 'Testar permissões do álbum ImgBB';
+    btnTestarPermissoes.style.marginLeft = '10px';
+    
+    const headerRight = document.querySelector('.header-right');
+    if (headerRight) {
+        headerRight.appendChild(btnTestarPermissoes);
+    }
+    
+    btnTestarPermissoes.addEventListener('click', testarPermissoesAlbum);
 }
 
 async function fazerUploadImagem() {
@@ -1438,6 +1534,9 @@ function configurarEventos() {
     if (btnRemove) {
         btnRemove.addEventListener('click', removerImagem);
     }
+
+    // Adicionar botão de teste de permissões
+    adicionarBotaoTestePermissoes();
     
     console.log("✅ Eventos configurados com sucesso");
 }
@@ -2020,6 +2119,7 @@ window.removerImagem = removerImagem;
 window.calcularPesoTotal = calcularPesoTotal;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
