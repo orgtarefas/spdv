@@ -7,6 +7,8 @@ import {
     limit
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+import { imagemServices } from './imagem_api.js';
+
 // Importar configurações das lojas (arquivo na raiz)
 import { getLojaConfig } from '../../lojas.js';
 
@@ -765,6 +767,41 @@ const lojaServices = {
     get imgbbKey() { return lojaManager.imgbbKey; }
 };
 
+// ========== FUNÇÃO UTILITÁRIA PARA OBTER IMAGENS ==========
+// Função para obter URL da imagem do produto
+function obterURLImagem(produto, tamanho = 'thumb') {
+    if (!produto || !produto.imagens) {
+        return '/images/sem-foto.png'; // Imagem padrão
+    }
+    
+    const imagens = produto.imagens;
+    
+    // Escolher tamanho baseado no parâmetro
+    switch(tamanho) {
+        case 'thumb':
+            return imagens.thumbnail || imagens.principal || '/images/sem-foto.png';
+        case 'medium':
+            return imagens.medium || imagens.principal || '/images/sem-foto.png';
+        case 'large':
+        case 'principal':
+            return imagens.principal || '/images/sem-foto.png';
+        default:
+            return imagens.principal || '/images/sem-foto.png';
+    }
+}
+
+
+// Adicionar ao lojaServices para fácil acesso
+lojaServices.obterURLImagem = obterURLImagem;
+
+// ========== FUNÇÃO PARA FORMATAR MOEDA ==========
+// (Já existe no LojaManager, mas vamos expor também)
+function formatarMoeda(valor) {
+    return lojaManager.formatarMoeda(valor);
+}
+
+lojaServices.formatarMoeda = formatarMoeda;
+
 // Exportar tudo
 export { 
     db, 
@@ -784,17 +821,20 @@ export {
     serverTimestamp,
     increment,
     runTransaction,
-    limit
+    limit,
+    obterURLImagem,
+    formatarMoeda,
+    imagemServices
 };
+
 
 // Para uso global
 window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
-
-// Importar e exportar serviços de imagem
-import { imagemServices } from './imagem_api.js';
-export { imagemServices };
+window.obterURLImagem = obterURLImagem;
+window.formatarMoeda = formatarMoeda;
 window.imagemServices = imagemServices;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
 console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA (' + lojaManager.imgbbKey.substring(0, 8) + '...)' : 'NÃO CONFIGURADA'}`);
+
