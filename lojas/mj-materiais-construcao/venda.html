@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDV Vendas - Sistema Multi-Lojas</title>
+    <title>SPDV Vendas - Sistema Multi-Lojas</title>
     <link rel="stylesheet" href="venda.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -18,7 +18,7 @@
                     Voltar
                 </a>
                 <div class="page-title">
-                    <h1><i class="fas fa-cash-register"></i> PDV - Ponto de Venda</h1>
+                    <h1><i class="fas fa-cash-register"></i> SPDV - Ponto de Venda</h1>
                     <p class="page-subtitle" id="nomeLoja">Carregando...</p>
                 </div>
             </div>
@@ -34,15 +34,18 @@
 
         <!-- Main Content -->
         <main class="content">
-            <div class="pdv-container">
+            <div class="SPDV-container">
                 <!-- Left Panel - Produtos -->
-                <div class="pdv-left">
+                <div class="SPDV-left">
                     <div class="search-section">
                         <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="searchProduct" placeholder="Buscar produto por código ou nome..." autofocus>
-                            <button id="btnScan" class="btn-scan" title="Escanear código de barras">
+                            <div class="input-wrapper">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchProduct" placeholder="Buscar produto por código ou nome..." autofocus>
+                            </div>
+                            <button id="btnScan" class="btn-scan" title="Leitor de código de barras não detectado. Clique para configurar.">
                                 <i class="fas fa-barcode"></i>
+                                Escanear
                             </button>
                         </div>
                     </div>
@@ -70,7 +73,7 @@
                 </div>
 
                 <!-- Right Panel - Carrinho -->
-                <div class="pdv-right">
+                <div class="SPDV-right">
                     <div class="cart-section">
                         <div class="section-header">
                             <h3><i class="fas fa-shopping-cart"></i> Carrinho de Vendas</h3>
@@ -145,10 +148,16 @@
                                 </div>
                             </div>
                             
+                            <!-- BOTÕES DE AÇÃO - COM IMPRESSÃO -->
                             <div class="payment-actions">
-                                <button id="btnFinalizarVenda" class="btn-finalizar">
+                                <button id="btnImprimirNota" class="btn-print" title="Configure a impressora primeiro" disabled>
+                                    <i class="fas fa-print"></i>
+                                    Imprimir
+                                </button>
+                                
+                                <button id="btnFinalizarVenda" class="btn-finalizar" disabled>
                                     <i class="fas fa-check-circle"></i>
-                                    Finalizar Venda
+                                    Finalizar
                                 </button>
                                 
                                 <button id="btnCancelarVenda" class="btn-cancelar">
@@ -165,7 +174,7 @@
         <!-- Footer -->
         <footer class="main-footer">
             <div class="footer-content">
-                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema PDV</span> - PDV</p>
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema SPDV</span> - SPDV</p>
                 <p id="currentDateTime">--:--:--</p>
             </div>
         </footer>
@@ -189,7 +198,7 @@
         </div>
     </div>
 
-    <!-- Scripts MÓDULOS (MESMO PADRÃO DO ESTOQUE) -->
+    <!-- Scripts MÓDULOS -->
     <script type="module" src="firebase_config.js"></script>
     <script type="module" src="venda.js"></script>
 </body>
