@@ -19,7 +19,7 @@ const LOJAS_CONFIG = {
     'acai-ponto-11': {
         banco_estoque: 'estoque_acai_ponto_11',
         banco_vendas: 'vendas_acai_ponto_11',
-        imgbb_api_key: '71bbc8880626560978424e17e0dcfdd1'
+        imgbb_api_key: '44efee2efa10458a73a2dc535098c9e4'
     }
     
     // TEMPLATE PARA ADICIONAR NOVA LOJA:
@@ -56,3 +56,4 @@ function getImgBBKey(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig, getImgBBKey };
 
 console.log('✅ lojas.js carregado:', Object.keys(LOJAS_CONFIG).length, 'lojas configuradas');
+
