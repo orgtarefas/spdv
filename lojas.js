@@ -5,21 +5,24 @@ const LOJAS_CONFIG = {
     'template-exibicao': {
         banco_estoque: 'estoque_template_exibicao',
         banco_vendas: 'vendas_template_exibicao',
-        imgbb_api_key: 'f2973e71970b37c834a7f8eb5d5eeec4'
+        imgbb_api_key: 'f2973e71970b37c834a7f8eb5d5eeec4',
+        imgbb_album_id: 'j9s8yG'
     },
     
     // Loja 1: MJ Materiais de Construção
     'mj-materiais-construcao': {
         banco_estoque: 'estoque_mj_construcoes',
         banco_vendas: 'vendas_mj_construcoes',
-        imgbb_api_key: '8600da39f5f43e08ade42fb77f880d9d'
+        imgbb_api_key: '8600da39f5f43e08ade42fb77f880d9d',
+        imgbb_album_id: '52B6tM'
     },
     
     // Loja 2: Açaí Ponto 11
     'acai-ponto-11': {
         banco_estoque: 'estoque_acai_ponto_11',
         banco_vendas: 'vendas_acai_ponto_11',
-        imgbb_api_key: '44efee2efa10458a73a2dc535098c9e4'
+        imgbb_api_key: '44efee2efa10458a73a2dc535098c9e4',
+        imgbb_album_id: 'Q8r1W5'
     }
     
     // TEMPLATE PARA ADICIONAR NOVA LOJA:
@@ -56,5 +59,6 @@ function getImgBBKey(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig, getImgBBKey };
 
 console.log('✅ lojas.js carregado:', Object.keys(LOJAS_CONFIG).length, 'lojas configuradas');
+
 
 
