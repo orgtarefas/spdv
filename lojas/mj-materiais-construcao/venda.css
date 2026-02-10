@@ -113,6 +113,51 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
+/* Estilos para controlar o tamanho da imagem */
+.product-image {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px auto;
+    position: relative;
+}
+
+.product-image img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+/* Se quiser que a imagem preencha o container mantendo proporção */
+.product-image img.has-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* ou 'contain' para ver imagem completa */
+}
+
+/* Para imagens muito grandes que precisam ser cortadas */
+.product-image img.large-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Para placeholder quando não tem imagem */
+.product-image img.no-image {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+    opacity: 0.5;
+}
+
 /* Main Content */
 .content {
     flex: 1;
@@ -1232,4 +1277,5 @@ body {
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     }
 }
+
 
