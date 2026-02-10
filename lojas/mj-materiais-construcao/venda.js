@@ -3,6 +3,32 @@ console.log("🛒 Sistema PDV - Página de Vendas");
 
 import { lojaServices } from './firebase_config.js';
 
+// ========== FUNÇÃO UTILITÁRIA PARA OBTER IMAGENS ==========
+// Função para obter URL da imagem do produto
+function obterURLImagem(produto, tamanho = 'thumb') {
+    if (!produto || !produto.imagens) {
+        return '/images/sem-foto.png'; // Imagem padrão
+    }
+    
+    const imagens = produto.imagens;
+    
+    // Escolher tamanho baseado no parâmetro
+    switch(tamanho) {
+        case 'thumb':
+            return imagens.thumbnail || imagens.principal || '/images/sem-foto.png';
+        case 'medium':
+            return imagens.medium || imagens.principal || '/images/sem-foto.png';
+        case 'large':
+        case 'principal':
+            return imagens.principal || '/images/sem-foto.png';
+        default:
+            return imagens.principal || '/images/sem-foto.png';
+    }
+}
+
+// Adicionar ao window para acesso global
+window.obterURLImagem = obterURLImagem;
+
 // Variáveis globais
 let vendaManager = {
     produtos: [],
@@ -14,6 +40,7 @@ let vendaManager = {
     isLeitorConectado: false,
     configImpressora: null
 };
+
 
 // ============================================
 // 1. INICIALIZAÇÃO
@@ -1460,3 +1487,4 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 console.log("✅ Sistema de vendas PDV completamente carregado!");
+
