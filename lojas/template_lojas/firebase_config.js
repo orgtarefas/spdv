@@ -39,6 +39,7 @@ class LojaManager {
         this.usuario = null;
         this.config = null;
         this.dadosLoja = null;
+        this.imgbbKey = null;
         this.inicializar();
     }
     
@@ -55,7 +56,9 @@ class LojaManager {
                 this.lojaId = dados.banco_login;
                 this.usuario = dados;
                 this.config = getLojaConfig(this.lojaId);
+                this.imgbbKey = this.config?.imgbb_api_key;
                 console.log(`✅ Loja identificada: ${this.lojaId}`);
+                console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
                 return;
             }
             
@@ -66,7 +69,9 @@ class LojaManager {
                 this.lojaId = dados.banco_login;
                 this.usuario = dados;
                 this.config = getLojaConfig(this.lojaId);
+                this.imgbbKey = this.config?.imgbb_api_key;
                 console.log(`⚠️ Loja identificada do backup: ${this.lojaId}`);
+                console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
                 return;
             }
             
@@ -76,7 +81,7 @@ class LojaManager {
             if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
                 this.lojaId = pathParts[lojaIndex + 1];
                 this.config = getLojaConfig(this.lojaId);
-                console.log(`📍 Loja detectada da URL: ${this.lojaId}`);
+                this.imgbbKey = this.config?.imgbb_api_key;
                 
                 // Dados mock para desenvolvimento
                 this.usuario = {
@@ -85,6 +90,9 @@ class LojaManager {
                     perfil: 'admin',
                     id: 'dev_001'
                 };
+                
+                console.log(`📍 Loja detectada da URL: ${this.lojaId}`);
+                console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
                 return;
             }
             
@@ -162,7 +170,8 @@ class LojaManager {
                     email: '',
                     cnpj: '',
                     tipo: 'padrao',
-                    meta_mensal: 10000
+                    meta_mensal: 10000,
+                    imgbb_key: this.imgbbKey
                 };
                 
                 return { 
@@ -184,7 +193,8 @@ class LojaManager {
                 email: '',
                 cnpj: '',
                 tipo: 'padrao',
-                meta_mensal: 10000
+                meta_mensal: 10000,
+                imgbb_key: this.imgbbKey
             };
             
             return { 
@@ -744,14 +754,15 @@ const lojaServices = {
     formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
     logout: () => lojaManager.logout(),
     
-    // Getters
+    // ========== GETTERS COMPLETOS ==========
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
     get nomeUsuario() { return lojaManager.nomeUsuario; },
     get perfil() { return lojaManager.perfil; },
     get isAdmin() { return lojaManager.isAdmin; },
     get isLogged() { return lojaManager.isLogged; },
-    get dadosLoja() { return lojaManager.dadosLoja; }
+    get dadosLoja() { return lojaManager.dadosLoja; },
+    get imgbbKey() { return lojaManager.imgbbKey; }
 };
 
 // Exportar tudo
@@ -780,8 +791,10 @@ export {
 window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
-// Exportar serviços de imagem
-export { imagemServices } from './imagem_api.js';
+// Importar e exportar serviços de imagem
+import { imagemServices } from './imagem_api.js';
+export { imagemServices };
 window.imagemServices = imagemServices;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
+console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA (' + lojaManager.imgbbKey.substring(0, 8) + '...)' : 'NÃO CONFIGURADA'}`);
