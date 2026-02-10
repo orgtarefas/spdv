@@ -3,7 +3,6 @@ console.log("🛒 Sistema PDV - Página de Vendas");
 
 import { lojaServices } from './firebase_config.js';
 
-// Função para obter URL da imagem do produto
 function obterURLImagem(produto, tamanho = 'thumb') {
     if (!produto || !produto.imagens) {
         return obterImagemPlaceholderBase64(); // Usar base64 como fallback
@@ -949,9 +948,9 @@ function exibirProdutos(produtos) {
         const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
         const precoFormatado = formatarMoeda(produto.preco);
         
-        // Obter URL da imagem
+        // Obter URL da imagem - AGORA SEMPRE RETORNA ALGO (base64 se não houver imagem)
         const imagemURL = obterURLImagem(produto, 'thumb');
-        const temImagem = imagemURL && !imagemURL.includes('sem-foto.png');
+        const temImagem = imagemURL && !imagemURL.includes('data:image/svg+xml'); // Verifica se é base64
         
         html += `
             <div class="product-card ${!temEstoque ? 'disabled' : ''}" 
@@ -962,8 +961,7 @@ function exibirProdutos(produtos) {
                 <div class="product-image">
                     <img src="${imagemURL}" 
                          alt="${produto.nome}"
-                         class="${temImagem ? 'has-image' : 'no-image'}"
-                         onerror="this.src='/images/sem-foto.png'">
+                         class="${temImagem ? 'has-image' : 'no-image'}">
                     ${!temImagem ? '<div class="image-placeholder"><i class="fas fa-image"></i></div>' : ''}
                 </div>
                 
@@ -1519,6 +1517,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 console.log("✅ Sistema de vendas PDV completamente carregado!");
+
 
 
 
