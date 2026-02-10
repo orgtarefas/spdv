@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Importar configurações das lojas (arquivo na raiz)
-import { getLojaConfig, getImgBBKey } from '../../lojas.js';
+import { getLojaConfig } from '../../lojas.js';
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -39,7 +39,6 @@ class LojaManager {
         this.usuario = null;
         this.config = null;
         this.dadosLoja = null;
-        this.imgbbApiKey = null;
         this.inicializar();
     }
     
@@ -77,11 +76,6 @@ class LojaManager {
             if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
                 this.lojaId = pathParts[lojaIndex + 1];
                 this.config = getLojaConfig(this.lojaId);
-                if (this.lojaId) {
-                    // Obter chave ImgBB da configuração da loja
-                    this.imgbbApiKey = this.config?.imgbb_api_key || null;
-                    console.log(`🔑 Chave ImgBB: ${this.imgbbApiKey ? 'Configurada' : 'Não configurada'}`);
-                }
                 console.log(`📍 Loja detectada da URL: ${this.lojaId}`);
                 
                 // Dados mock para desenvolvimento
@@ -108,10 +102,6 @@ class LojaManager {
     
     get bancoVendas() {
         return this.config?.banco_vendas || `vendas_${this.lojaId?.replace(/-/g, '_')}`;
-    }
-
-    get imgbbKey() {
-        return this.imgbbApiKey;
     }
     
     get isLogged() {
@@ -762,7 +752,6 @@ const lojaServices = {
     get isAdmin() { return lojaManager.isAdmin; },
     get isLogged() { return lojaManager.isLogged; },
     get dadosLoja() { return lojaManager.dadosLoja; }
-    get imgbbKey() { return lojaManager.imgbbKey; }
 };
 
 // Exportar tudo
@@ -796,7 +785,3 @@ export { imagemServices } from './imagem_api.js';
 window.imagemServices = imagemServices;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
-
-
-
-
