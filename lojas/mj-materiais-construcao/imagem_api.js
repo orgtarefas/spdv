@@ -103,13 +103,45 @@ export const imagemServices = {
             
             // 6. Verificar se foi para o álbum correto
             const albumRecebido = data.data?.album;
-            if (imgbbAlbumId && albumRecebido) {
-                const albumId = typeof albumRecebido === 'string' ? albumRecebido : albumRecebido.id;
-                if (albumId === imgbbAlbumId) {
-                    console.log(`🎉 Imagem enviada para o album correto: ${albumId}`);
+            
+            // Log detalhado para debug
+            console.log('📊 Dados recebidos do ImgBB:', {
+                success: data.success,
+                data_id: data.data?.id,
+                album_recebido: albumRecebido,
+                album_recebido_tipo: typeof albumRecebido
+            });
+            
+            if (imgbbAlbumId) {
+                console.log(`🎯 Album configurado: ${imgbbAlbumId}`);
+                
+                if (albumRecebido) {
+                    // O ImgBB pode retornar o album como string ou objeto
+                    const albumId = typeof albumRecebido === 'string' 
+                        ? albumRecebido 
+                        : albumRecebido.id || albumRecebido.title || null;
+                    
+                    if (albumId) {
+                        console.log(`📁 Album recebido da API: ${albumId}`);
+                        
+                        // Verificar se o album recebido é o mesmo que configuramos
+                        if (albumId === imgbbAlbumId) {
+                            console.log('✅ Imagem enviada para o álbum correto!');
+                        } else {
+                            console.warn(`⚠️ Imagem enviada para álbum diferente! Configurado: ${imgbbAlbumId}, Recebido: ${albumId}`);
+                            
+                            // Tentar verificar se é um sub-álbum ou tem formato diferente
+                            console.warn('Pode ser que o ID esteja em formato diferente');
+                        }
+                    } else {
+                        console.warn('⚠️ Album recebido mas não conseguiu extrair o ID');
+                    }
                 } else {
-                    console.warn(`⚠️ Imagem enviada para album diferente: ${albumId}`);
+                    console.warn('❌ Album configurado mas API não retornou album na resposta');
+                    console.warn('Pode ser que a chave API não tenha permissão para esse álbum');
                 }
+            } else {
+                console.log('ℹ️ Sem album configurado - imagem na galeria padrão');
             }
             
             // 7. Retornar URLs organizadas
@@ -691,3 +723,4 @@ export const imagemServices = {
 window.imagemServices = imagemServices;
 
 console.log("✅ Serviço de imagens carregado (com suporte a álbuns por loja)");
+
