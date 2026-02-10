@@ -10,6 +10,27 @@ import {
 // Importar configurações das lojas (arquivo na raiz)
 import { getLojaConfig } from '../../lojas.js';
 
+// Configuração da API de Imagens
+if (lojaServices && !lojaServices.imgbbKey) {
+    console.log('⚠️ lojaServices não tem imgbbKey, adicionando...');
+    
+    // Pegar chave diretamente do LOJAS_CONFIG
+    import('./lojas.js').then(module => {
+        const chave = module.getImgBBKey(lojaServices.lojaId);
+        if (chave) {
+            lojaServices.imgbbKey = chave;
+            
+            // Garantir que dadosLoja também tenha
+            if (!lojaServices.dadosLoja) lojaServices.dadosLoja = {};
+            lojaServices.dadosLoja.imgbb_key = chave;
+            
+            console.log('✅ Chave adicionada:', chave.substring(0, 8) + '...');
+        } else {
+            console.warn('⚠️ Não foi possível obter chave do ImgBB');
+        }
+    });
+}
+
 // Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
@@ -785,3 +806,4 @@ export { imagemServices } from './imagem_api.js';
 window.imagemServices = imagemServices;
 
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
+
