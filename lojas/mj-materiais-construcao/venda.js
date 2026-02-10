@@ -29,11 +29,11 @@ function obterURLImagem(produto, tamanho = 'thumb') {
 function obterImagemPlaceholderBase64() {
     return 'data:image/svg+xml;base64,' + btoa(`
         <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100%" height="100%" fill="#f0f0f0"/>
-            <rect x="100" y="80" width="100" height="80" fill="#ccc"/>
-            <circle cx="150" cy="120" r="30" fill="#999"/>
-            <text x="150" y="200" text-anchor="middle" fill="#666" font-family="Arial" font-size="16">
-                Sem Foto
+            <rect width="100" height="100" fill="#f5f5f5"/>
+            <path d="M30,35 L70,35 L75,45 L25,45 Z" fill="#e0e0e0"/>
+            <circle cx="50" cy="40" r="12" fill="#bdbdbd"/>
+            <text x="50" y="70" text-anchor="middle" font-family="Arial" font-size="7" fill="#757575">
+                Sem Imagem
             </text>
         </svg>
     `);
@@ -1536,6 +1536,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 console.log("✅ Sistema de vendas PDV completamente carregado!");
+
 
 
 
