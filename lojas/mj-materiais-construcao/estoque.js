@@ -18,7 +18,6 @@ let currentCountElement, lastUpdateElement, userNameElement, btnLogout;
 let modalProduto, formProduto, produtoIdInput, modalTitle;
 let codigoInput, nomeInput, categoriaInput, unidadeSelect, precoCustoInput;
 let precoInput, quantidadeInput, estoqueMinimoInput, descricaoTextarea, fornecedorInput;
-// Elementos DOM adicionais
 let pesoPorUnidadeInput, unidadePesoSelect, totalPesoInput, totalPesoUnidadeSpan;
 
 // VARIÁVEIS PARA IMAGENS
@@ -34,11 +33,9 @@ let uploadProgress, progressFill, progressPercent, imageStatus;
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página estoque carregada");
     
-    // Mostrar loading inicial
     mostrarLoading('Inicializando estoque...', 'Carregando configurações...');
     
     try {
-        // Verificar se a loja está carregada
         if (!lojaServices || !lojaServices.lojaId) {
             console.warn('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja. Redirecionando...', 'error');
@@ -51,26 +48,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log(`✅ Loja identificada: ${lojaServices.lojaId}`);
         console.log(`👤 Usuário: ${lojaServices.nomeUsuario}`);
         
-        // Inicializar elementos DOM
         inicializarElementosDOM();
-        
-        // Atualizar interface com dados da loja
         atualizarInterfaceLoja();
-        
-        // Configurar eventos
         configurarEventos();
-        
-        // Carregar dados iniciais
         await carregarDadosIniciais();
-        
-        // Atualizar data/hora
         atualizarUltimaAtualizacao();
         setInterval(atualizarUltimaAtualizacao, 60000);
-        
-        // Esconder loading
         esconderLoading();
-
-        // Verificar configuração do ImgBB
         verificarConfigImgBBCarregamento();
         
         console.log("✅ Sistema de estoque pronto para uso");
@@ -89,34 +73,28 @@ document.addEventListener('DOMContentLoaded', async function() {
 function inicializarUploadImagem() {
     if (!uploadArea || !fileInput) return;
     
-    // Clique na área de upload
     uploadArea.addEventListener('click', () => {
         fileInput.click();
     });
     
-    // Seleção de arquivo
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
             processarImagemSelecionada(e.target.files[0]);
         }
     });
     
-    // Arrastar e soltar
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.classList.add('dragover');
-        mostrarDragPreview(e);
     });
     
     uploadArea.addEventListener('dragleave', () => {
         uploadArea.classList.remove('dragover');
-        document.getElementById('dragPreview').style.display = 'none';
     });
     
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadArea.classList.remove('dragover');
-        document.getElementById('dragPreview').style.display = 'none';
         
         if (e.dataTransfer.files.length > 0) {
             processarImagemSelecionada(e.dataTransfer.files[0]);
@@ -125,21 +103,18 @@ function inicializarUploadImagem() {
 }
 
 function processarImagemSelecionada(file) {
-    // Validar
     if (!file.type.startsWith('image/')) {
         mostrarMensagem('Selecione um arquivo de imagem válido', 'error');
         return;
     }
     
-    if (file.size > 32 * 1024 * 1024) {
-        mostrarMensagem('Imagem muito grande. Máximo 32MB', 'error');
+    if (file.size > 5 * 1024 * 1024) {
+        mostrarMensagem('Imagem muito grande. Máximo 5MB', 'error');
         return;
     }
     
-    // Salvar imagem
     imagemAtual = file;
     
-    // Criar preview
     const reader = new FileReader();
     reader.onload = (e) => {
         imagemPreviewURL = e.target.result;
@@ -147,7 +122,6 @@ function processarImagemSelecionada(file) {
     };
     reader.readAsDataURL(file);
     
-    // Atualizar status
     if (imageStatus) {
         imageStatus.textContent = 'Pronto para enviar';
         imageStatus.className = 'status-pending';
@@ -160,35 +134,6 @@ function mostrarPreviewImagem() {
     if (previewImage) previewImage.src = imagemPreviewURL;
     if (imagePreview) imagePreview.style.display = 'block';
     if (uploadArea) uploadArea.style.display = 'none';
-}
-
-function mostrarDragPreview(e) {
-    const dragPreview = document.getElementById('dragPreview');
-    const dragImage = document.getElementById('dragImage');
-    
-    if (dragPreview) {
-        // Verificar se há imagem sendo arrastada
-        if (e.dataTransfer.items) {
-            for (const item of e.dataTransfer.items) {
-                if (item.kind === 'file' && item.type.startsWith('image/')) {
-                    dragPreview.style.display = 'flex';
-                    
-                    // Tentar mostrar prévia se possível
-                    const file = item.getAsFile();
-                    if (file && file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            if (dragImage) {
-                                dragImage.src = event.target.result;
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                    break;
-                }
-            }
-        }
-    }
 }
 
 function trocarImagem() {
@@ -211,97 +156,25 @@ function removerImagem() {
     }
 }
 
-// função para verificar configuração ao carregar
 async function verificarConfigImgBBCarregamento() {
-    if (lojaServices.imgbbKey && lojaServices.imgbbAlbumId) {
+    if (lojaServices.imgbbKey) {
         console.log('🔍 Verificando configuração do ImgBB...');
         
         try {
-            // Teste rápido
-            const resultado = await imagemServices.testarConexaoLoja(lojaServices);
+            const resultado = await imagemServices.testarConexao(lojaServices);
             
             if (resultado.success) {
-                if (resultado.album_verificado) {
-                    console.log('✅ ImgBB configurado corretamente com álbum!');
-                } else if (resultado.album_id) {
-                    console.warn('⚠️ ImgBB configurado mas álbum pode não estar funcionando');
-                    console.warn(`Album configurado: ${resultado.album_id}`);
-                    
-                    // Sugerir teste
-                    setTimeout(() => {
-                        const testar = confirm(
-                            'O álbum do ImgBB pode não estar funcionando corretamente.\n' +
-                            'Deseja testar as permissões agora?'
-                        );
-                        if (testar) {
-                            testarPermissoesAlbum();
-                        }
-                    }, 3000);
-                }
+                console.log('✅ ImgBB configurado corretamente!');
+                console.log('📝 Modo: Conta independente por loja (sem álbum)');
+            } else {
+                console.warn('⚠️ ImgBB pode não estar funcionando:', resultado.error);
             }
         } catch (error) {
             console.warn('⚠️ Erro ao verificar ImgBB:', error);
         }
+    } else {
+        console.warn('⚠️ Loja não tem chave ImgBB configurada');
     }
-}
-
-// função para testar permissões do álbum
-async function testarPermissoesAlbum() {
-    try {
-        mostrarLoading('Verificando permissões do álbum...', 'Aguarde...');
-        
-        const resultado = await imagemServices.verificarPermissoesAlbum(lojaServices);
-        
-        if (resultado.success) {
-            let mensagem = 'Resultado do teste:\n\n';
-            
-            mensagem += `Album configurado: ${resultado.albumConfigurado}\n`;
-            mensagem += `Album recebido: ${resultado.albumRecebido || 'Nenhum'}\n`;
-            mensagem += `Permissão: ${resultado.temPermissao ? '✅ OK' : '❌ PROBLEMA'}\n`;
-            
-            if (resultado.temPermissao) {
-                mensagem += '\n✅ Seu álbum está funcionando corretamente!\n';
-                mensagem += 'As imagens serão salvas no álbum configurado.';
-            } else {
-                mensagem += '\n⚠️ Problema detectado:\n';
-                mensagem += '1. Verifique se o Album ID está correto\n';
-                mensagem += '2. Confirme que a chave API tem acesso ao álbum\n';
-                mensagem += '3. No ImgBB, verifique as permissões do álbum\n';
-                mensagem += `\n🔗 Acesse: https://imgbb.com/album/${lojaServices.imgbbAlbumId}`;
-            }
-            
-            alert(mensagem);
-            
-            // Log detalhado
-            console.log('📊 Resultado do teste de permissões:', resultado);
-            
-        } else {
-            mostrarMensagem(`Erro: ${resultado.error}`, 'error');
-        }
-        
-    } catch (error) {
-        console.error('❌ Erro no teste:', error);
-        mostrarMensagem('Erro ao testar permissões', 'error');
-    } finally {
-        esconderLoading();
-    }
-}
-
-// Adicionar botão para testar permissões
-function adicionarBotaoTestePermissoes() {
-    const btnTestarPermissoes = document.createElement('button');
-    btnTestarPermissoes.id = 'btnTestarPermissoes';
-    btnTestarPermissoes.className = 'btn-action';
-    btnTestarPermissoes.innerHTML = '<i class="fas fa-shield-alt"></i> Testar Permissões';
-    btnTestarPermissoes.title = 'Testar permissões do álbum ImgBB';
-    btnTestarPermissoes.style.marginLeft = '10px';
-    
-    const headerRight = document.querySelector('.header-right');
-    if (headerRight) {
-        headerRight.appendChild(btnTestarPermissoes);
-    }
-    
-    btnTestarPermissoes.addEventListener('click', testarPermissoesAlbum);
 }
 
 async function fazerUploadImagem() {
@@ -312,14 +185,8 @@ async function fazerUploadImagem() {
     try {
         mostrarProgressoUpload(0, 'Preparando...');
         
-        // Verificar se a loja tem álbum configurado
-        const temAlbum = lojaServices.imgbbAlbumId ? true : false;
-        console.log(`📁 Álbum configurado: ${temAlbum ? 'Sim' : 'Não'}`);
-        if (temAlbum) {
-            console.log(`🎯 Album ID: ${lojaServices.imgbbAlbumId}`);
-        }
+        console.log('📤 Iniciando upload de imagem...');
         
-        // Fazer upload usando o serviço de imagens COM ALBUM
         const resultado = await imagemServices.uploadImagem(
             imagemAtual,
             `produto_${Date.now()}_${lojaServices.lojaId}`,
@@ -330,30 +197,11 @@ async function fazerUploadImagem() {
             imagemUploadResult = resultado;
             mostrarProgressoUpload(100, 'Upload completo!');
             
-            // Mostrar informações do álbum
-            if (resultado.album_id) {
-                console.log(`📁 Imagem salva no álbum: ${resultado.album_id}`);
-                
-                // Verificar se foi para o álbum correto
-                if (resultado.album_configurado && resultado.album_id === resultado.album_configurado) {
-                    console.log('🎉 Imagem enviada para o álbum correto!');
-                    if (imageStatus) {
-                        imageStatus.textContent = `Imagem enviada (Álbum: ${resultado.album_id})`;
-                        imageStatus.className = 'status-success';
-                    }
-                } else {
-                    console.warn('⚠️ Imagem não foi para o álbum configurado');
-                    if (imageStatus) {
-                        imageStatus.textContent = 'Imagem enviada (sem álbum)';
-                        imageStatus.className = 'status-warning';
-                    }
-                }
-            } else {
-                console.log('ℹ️ Imagem salva sem álbum');
-                if (imageStatus) {
-                    imageStatus.textContent = 'Imagem enviada (sem álbum)';
-                    imageStatus.className = 'status-success';
-                }
+            console.log('✅ Upload bem-sucedido:', resultado.url.substring(0, 50) + '...');
+            
+            if (imageStatus) {
+                imageStatus.textContent = 'Imagem enviada com sucesso!';
+                imageStatus.className = 'status-success';
             }
             
             return resultado;
@@ -392,7 +240,6 @@ function mostrarImagemExistente(imagens) {
         imageStatus.className = 'status-success';
     }
     
-    // Salvar dados da imagem
     imagemUploadResult = {
         url: imagens.principal,
         thumb: imagens.thumbnail,
@@ -408,7 +255,6 @@ function mostrarImagemExistente(imagens) {
 function inicializarElementosDOM() {
     console.log("🔍 Buscando elementos DOM...");
     
-    // Elementos principais
     searchInput = document.getElementById('searchInput');
     btnNovoProduto = document.getElementById('btnNovoProduto');
     btnRelatorioEstoque = document.getElementById('btnRelatorioEstoque');
@@ -424,13 +270,11 @@ function inicializarElementosDOM() {
     userNameElement = document.getElementById('userName');
     btnLogout = document.getElementById('btnLogout');
     
-    // Modal
     modalProduto = document.getElementById('modalProduto');
     formProduto = document.getElementById('formProduto');
     produtoIdInput = document.getElementById('produtoId');
     modalTitle = document.getElementById('modalTitle');
     
-    // Campos do formulário
     codigoInput = document.getElementById('codigo');
     nomeInput = document.getElementById('nome');
     categoriaInput = document.getElementById('categoria');
@@ -441,39 +285,20 @@ function inicializarElementosDOM() {
     estoqueMinimoInput = document.getElementById('estoque_minimo');
     descricaoTextarea = document.getElementById('descricao');
     fornecedorInput = document.getElementById('fornecedor');
-
-    // Novos campos de peso
     pesoPorUnidadeInput = document.getElementById('peso_por_unidade');
     unidadePesoSelect = document.getElementById('unidade_peso');
     totalPesoInput = document.getElementById('total_peso');
     totalPesoUnidadeSpan = document.getElementById('total_peso_unidade');    
 
-    // Elementos da seção de imagem
     uploadArea = document.getElementById('uploadArea');
     fileInput = document.getElementById('imagemProduto');
     previewImage = document.getElementById('previewImage');
     imagePreview = document.getElementById('imagePreview');
     
-    // Elementos de progresso
     uploadProgress = document.getElementById('uploadProgress');
     progressFill = document.getElementById('progressFill');
     progressPercent = document.getElementById('progressPercent');
     imageStatus = document.getElementById('imageStatus');
-    
-    // Drag preview - CRIAÇÃO DINÂMICA
-    if (!document.getElementById('dragPreview')) {
-        const dragPreview = document.createElement('div');
-        dragPreview.id = 'dragPreview';
-        dragPreview.className = 'drag-preview';
-        dragPreview.style.display = 'none';
-        dragPreview.innerHTML = `
-            <img id="dragImage" src="" alt="Prévia">
-            <p>Solte para fazer upload</p>
-        `;
-        if (uploadArea) {
-            uploadArea.appendChild(dragPreview);
-        }
-    }
     
     console.log("✅ Elementos DOM inicializados");
 }
@@ -503,25 +328,20 @@ function calcularPesoTotal() {
 // ============================================
 function atualizarInterfaceLoja() {
     try {
-        // Atualizar nome do usuário
         if (userNameElement) {
             userNameElement.textContent = lojaServices.nomeUsuario;
         }
         
-        // Atualizar título da página com nome da loja
         const resultadoLoja = lojaServices.dadosLoja;
         const nomeLoja = resultadoLoja?.nome || lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         
-        // Atualizar título da página
         document.title = `${nomeLoja} - Estoque`;
         
-        // Atualizar subtítulo se existir
         const pageSubtitle = document.querySelector('.page-subtitle');
         if (pageSubtitle) {
             pageSubtitle.textContent = nomeLoja;
         }
         
-        // Atualizar rodapé
         const footerText = document.querySelector('.main-footer p:first-child');
         if (footerText) {
             footerText.innerHTML = `<i class="fas fa-store"></i> ${nomeLoja} - Estoque`;
@@ -537,13 +357,8 @@ function atualizarInterfaceLoja() {
 // ============================================
 async function carregarDadosIniciais() {
     try {
-        // 1. Carregar categorias
         await carregarCategorias();
-        
-        // 2. Carregar produtos
         await carregarProdutos();
-        
-        // 3. Atualizar estatísticas
         atualizarEstatisticas();
         
     } catch (error) {
@@ -617,7 +432,6 @@ async function carregarCategorias() {
         if (resultado.success) {
             categorias = resultado.data;
             
-            // Atualizar datalist de categorias
             const categoriasList = document.getElementById('categoriasList');
             if (categoriasList) {
                 categoriasList.innerHTML = '';
@@ -668,16 +482,14 @@ function renderizarProdutos() {
         const statusText = !produto.ativo ? 'Inativo' : 
                           produto.quantidade <= produto.estoque_minimo ? 'Baixo' : 'Ativo';
         
-        // Calcular informações de peso se existirem
         const pesoPorUnidade = produto.peso_por_unidade || 0;
-        const unidadeMedida = produto.unidade_medida || 'und';
+        const unidadeMedida = produto.unidade_peso || 'und';
         const quantidade = produto.quantidade || 0;
         
         let pesoInfoHtml = '';
         if (pesoPorUnidade > 0 && unidadeMedida !== 'und') {
             const totalMedida = pesoPorUnidade * quantidade;
             
-            // Formatador de unidades para exibição amigável
             const formatarUnidade = (unidade) => {
                 const unidades = {
                     'kg': 'kg',
@@ -694,7 +506,6 @@ function renderizarProdutos() {
                 return unidades[unidade] || unidade;
             };
             
-            // Determinar casas decimais para formatação
             const casasDecimais = ['kg', 'l', 'm'].includes(unidadeMedida) ? 2 : 
                                   ['g', 'ml', 'cm'].includes(unidadeMedida) ? 0 : 
                                   ['ton', 'm2', 'm3'].includes(unidadeMedida) ? 3 : 2;
@@ -769,7 +580,6 @@ function renderizarProdutos() {
                             <i class="fas fa-plus-circle"></i>
                             <span class="acao-tooltip">Entrada</span>
                         </button>
-                        <!-- BOTÃO DE EXCLUIR - CORRIGIDO: SEMPRE MOSTRAR -->
                         <button class="btn-acao btn-excluir" title="Excluir produto permanentemente" data-id="${produto.id}">
                             <i class="fas fa-trash-alt"></i>
                             <span class="acao-tooltip">
@@ -788,7 +598,6 @@ function renderizarProdutos() {
         currentCountElement.textContent = produtosFiltrados.length;
     }
     
-    // Adicionar eventos aos botões
     adicionarEventosBotoes();
 }
 
@@ -796,7 +605,6 @@ function renderizarProdutos() {
 // 8. ADICIONAR EVENTOS AOS BOTÕES
 // ============================================
 function adicionarEventosBotoes() {
-    // Botão editar
     document.querySelectorAll('.btn-editar').forEach(btn => {
         btn.addEventListener('click', function() {
             const produtoId = this.getAttribute('data-id');
@@ -804,7 +612,6 @@ function adicionarEventosBotoes() {
         });
     });
     
-    // Botão ativar/desativar
     document.querySelectorAll('.btn-ativar, .btn-desativar').forEach(btn => {
         btn.addEventListener('click', function() {
             const produtoId = this.getAttribute('data-id');
@@ -815,7 +622,6 @@ function adicionarEventosBotoes() {
         });
     });
     
-    // Botão entrada de estoque
     document.querySelectorAll('.btn-entrada').forEach(btn => {
         btn.addEventListener('click', function() {
             const produtoId = this.getAttribute('data-id');
@@ -826,8 +632,6 @@ function adicionarEventosBotoes() {
         });
     });
     
-    // BOTÃO EXCLUIR
-    // BOTÃO EXCLUIR - SEMPRE HABILITADO
     document.querySelectorAll('.btn-excluir').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -841,7 +645,6 @@ function adicionarEventosBotoes() {
                 return;
             }
             
-            // Pergunta de confirmação
             const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE!\n\n` +
                                   `Deseja EXCLUIR o produto:\n` +
                                   `"${produto.nome}"\n` +
@@ -853,7 +656,6 @@ function adicionarEventosBotoes() {
                 return;
             }
             
-            // Se tem estoque, confirmação extra
             if (produto.quantidade > 0) {
                 const estoqueConfirm = confirm(
                     `ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
@@ -881,7 +683,6 @@ function filtrarProdutos() {
     const statusSelecionado = filterStatus.value;
     
     produtosFiltrados = produtos.filter(produto => {
-        // Filtro por busca
         if (termoBusca) {
             const buscaNome = (produto.nome || '').toLowerCase().includes(termoBusca);
             const buscaCodigo = (produto.codigo || '').toLowerCase().includes(termoBusca);
@@ -893,7 +694,6 @@ function filtrarProdutos() {
             }
         }
         
-        // Filtro por status
         if (statusSelecionado === 'ativo' && !produto.ativo) {
             return false;
         }
@@ -939,7 +739,6 @@ function atualizarEstatisticas() {
         return sum + valor;
     }, 0);
     
-    // Atualizar elementos
     totalProdutosElement.textContent = totalProdutos.toLocaleString('pt-BR');
     totalEstoqueElement.textContent = totalEstoque.toLocaleString('pt-BR');
     baixoEstoqueElement.textContent = baixoEstoque.toLocaleString('pt-BR');
@@ -959,13 +758,11 @@ function abrirModalNovoProduto() {
     modalTitle.textContent = 'Novo Produto';
     formProduto.reset();
     
-    // Gerar código automático
     if (codigoInput) {
         const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
         codigoInput.value = `${prefixo}-${Date.now().toString().slice(-6)}`;
     }
     
-    // Limpar datalist e adicionar categorias existentes
     if (categoriaInput) {
         const datalist = document.getElementById('categoriasList');
         if (datalist) {
@@ -979,7 +776,6 @@ function abrirModalNovoProduto() {
         categoriaInput.value = '';
     }
     
-    // Configurar valores padrão
     if (quantidadeInput) quantidadeInput.value = '0';
     if (estoqueMinimoInput) estoqueMinimoInput.value = '5';
     if (precoCustoInput) precoCustoInput.value = '0.00';
@@ -987,7 +783,6 @@ function abrirModalNovoProduto() {
     
     removerImagem();
     
-    // Abrir modal
     if (modalProduto) {
         modalProduto.style.display = 'flex';
     }
@@ -1008,13 +803,11 @@ async function abrirModalEditar(produtoId) {
             produtoIdInput.value = produto.id;
             modalTitle.textContent = 'Editar Produto';
             
-            // Preencher formulário
             if (codigoInput) codigoInput.value = produto.codigo || '';
             if (nomeInput) nomeInput.value = produto.nome || '';
             if (categoriaInput) categoriaInput.value = produto.categoria || '';
             if (unidadeSelect) unidadeSelect.value = produto.unidade || 'UN';
             
-            // Novos campos de peso
             if (pesoPorUnidadeInput) pesoPorUnidadeInput.value = produto.peso_por_unidade || 0;
             if (unidadePesoSelect) unidadePesoSelect.value = produto.unidade_peso || 'kg';
             
@@ -1025,17 +818,14 @@ async function abrirModalEditar(produtoId) {
             if (descricaoTextarea) descricaoTextarea.value = produto.descricao || '';
             if (fornecedorInput) fornecedorInput.value = produto.fornecedor || '';
             
-            // Calcular peso total
             calcularPesoTotal();
 
-            // Carregar imagem se existir
             if (produto.imagens && produto.imagens.principal) {
                 mostrarImagemExistente(produto.imagens);
             } else {
                 removerImagem();
             }
             
-            // Abrir modal
             if (modalProduto) {
                 modalProduto.style.display = 'flex';
             }
@@ -1061,8 +851,6 @@ async function salvarProduto(e) {
     try {
         mostrarLoading('Salvando produto...', 'Aguarde...');
         
-        // 1. VALIDAÇÕES BÁSICAS
-        // Validar campos obrigatórios
         if (!nomeInput || !nomeInput.value.trim()) {
             throw new Error('Nome do produto é obrigatório');
         }
@@ -1071,28 +859,22 @@ async function salvarProduto(e) {
             throw new Error('Preço de venda deve ser maior que zero');
         }
         
-        // Validar quantidade
         const quantidade = parseInt(quantidadeInput ? quantidadeInput.value : 0);
         if (isNaN(quantidade) || quantidade < 0) {
             throw new Error('Quantidade deve ser um número positivo ou zero');
         }
         
-        // Validar estoque mínimo
         const estoqueMinimo = parseInt(estoqueMinimoInput ? estoqueMinimoInput.value : 5);
         if (isNaN(estoqueMinimo) || estoqueMinimo < 0) {
             throw new Error('Estoque mínimo deve ser um número positivo ou zero');
         }
         
-        // 2. UPLOAD DE IMAGEM (se houver nova imagem)
         let dadosImagem = null;
         
-        // Verificar se há uma NOVA imagem para upload
-        // imagemAtual é um objeto File quando é uma imagem nova
         if (imagemAtual instanceof File) {
             console.log('📤 Nova imagem detectada, fazendo upload...');
             mostrarLoading('Enviando imagem...', 'Aguarde um momento...');
             
-            // Fazer upload da nova imagem
             const uploadResult = await fazerUploadImagem();
             
             if (uploadResult && uploadResult.success && uploadResult.url) {
@@ -1108,8 +890,6 @@ async function salvarProduto(e) {
                 };
                 console.log('✅ Upload de imagem bem-sucedido:', uploadResult.url.substring(0, 50) + '...');
             } else {
-                console.warn('⚠️ Upload de imagem falhou ou não retornou URL, usando fallback');
-                // Se o upload falhar, use o fallback local
                 dadosImagem = {
                     imagens: {
                         principal: '/images/sem-foto.png',
@@ -1123,7 +903,6 @@ async function salvarProduto(e) {
             }
             mostrarLoading('Salvando produto...', 'Finalizando...');
         } 
-        // Se já tinha uma imagem carregada anteriormente (de um produto sendo editado)
         else if (imagemUploadResult && imagemUploadResult.url) {
             console.log('📷 Usando imagem existente:', imagemUploadResult.url.substring(0, 50) + '...');
             dadosImagem = {
@@ -1137,7 +916,6 @@ async function salvarProduto(e) {
                 }
             };
         }
-        // Se NÃO tem imagem nem nova nem existente
         else {
             console.log('🖼️ Sem imagem, usando placeholder padrão');
             dadosImagem = {
@@ -1152,58 +930,39 @@ async function salvarProduto(e) {
             };
         }
         
-        // 3. PREPARAR DADOS DO PRODUTO
         const dadosProduto = {
-            // Informações básicas
             nome: nomeInput.value.trim(),
             categoria: categoriaInput ? categoriaInput.value.trim() : 'Sem Categoria',
             unidade: unidadeSelect ? unidadeSelect.value : 'UN',
-            
-            // Campos de peso
             peso_por_unidade: pesoPorUnidadeInput ? parseFloat(pesoPorUnidadeInput.value) || 0 : 0,
             unidade_peso: unidadePesoSelect ? unidadePesoSelect.value : 'kg',
-            
-            // Campos financeiros
             preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value.replace(',', '.')) || 0 : 0,
             preco: precoInput ? parseFloat(precoInput.value.replace(',', '.')) || 0 : 0,
-            
-            // Campos de estoque
             quantidade: quantidade,
             estoque_minimo: estoqueMinimo,
-            
-            // Informações adicionais
             descricao: descricaoTextarea ? descricaoTextarea.value.trim() : '',
             fornecedor: fornecedorInput ? fornecedorInput.value.trim() : '',
-            
-            // Status e metadata
             ativo: true,
             data_cadastro: new Date().toISOString(),
             data_atualizacao: new Date().toISOString(),
-            
-            // Loja
             loja_id: lojaServices.lojaId,
             loja_nome: lojaServices.dadosLoja?.nome || lojaServices.lojaId
         };
         
-        // 4. ADICIONAR CÓDIGO (se existir)
         if (codigoInput && codigoInput.value.trim()) {
             dadosProduto.codigo = codigoInput.value.trim();
         } else {
-            // Gerar código automático se não tiver
             const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
             dadosProduto.codigo = `${prefixo}-${Date.now().toString().slice(-8)}`;
         }
         
-        // 5. ADICIONAR DADOS DA IMAGEM
         Object.assign(dadosProduto, dadosImagem);
         
-        // 6. CALCULAR PESO TOTAL
         if (dadosProduto.peso_por_unidade > 0 && dadosProduto.quantidade > 0) {
             dadosProduto.peso_total = dadosProduto.peso_por_unidade * dadosProduto.quantidade;
             dadosProduto.unidade_peso_total = dadosProduto.unidade_peso;
         }
         
-        // 7. VALIDAR DADOS FINAIS
         if (dadosProduto.preco <= 0) {
             throw new Error('O preço de venda deve ser maior que R$ 0,00');
         }
@@ -1212,43 +971,35 @@ async function salvarProduto(e) {
             throw new Error('A quantidade não pode ser negativa');
         }
         
-        // 8. SALVAR OU ATUALIZAR NO FIREBASE
         const produtoId = produtoIdInput.value;
         let resultadoFirebase = null;
         
         if (produtoId) {
             console.log(`✏️ Atualizando produto ${produtoId}...`);
-            // Atualizar produto existente
             resultadoFirebase = await lojaServices.atualizarProduto(produtoId, dadosProduto);
             mostrarMensagem('✅ Produto atualizado com sucesso!', 'success');
         } else {
             console.log('🆕 Cadastrando novo produto...');
-            // Criar novo produto
             resultadoFirebase = await lojaServices.cadastrarProduto(dadosProduto);
             mostrarMensagem('✅ Produto cadastrado com sucesso!', 'success');
         }
         
-        // 9. VERIFICAR RESULTADO DO FIREBASE
         if (!resultadoFirebase || !resultadoFirebase.success) {
             throw new Error(resultadoFirebase?.error || 'Erro ao salvar no banco de dados');
         }
         
         console.log('📊 Dados salvos no Firebase com sucesso');
         
-        // 10. LIMPAR VARIÁVEIS E ESTADOS
         imagemAtual = null;
         imagemPreviewURL = null;
         imagemUploadResult = null;
         
-        // 11. FECHAR MODAL
         if (modalProduto) {
             modalProduto.style.display = 'none';
         }
         
-        // 12. LIMPAR FORMULÁRIO COMPLETAMENTE
         if (formProduto) {
             formProduto.reset();
-            // Resetar campos específicos
             if (quantidadeInput) quantidadeInput.value = '0';
             if (estoqueMinimoInput) estoqueMinimoInput.value = '5';
             if (precoCustoInput) precoCustoInput.value = '0.00';
@@ -1258,14 +1009,10 @@ async function salvarProduto(e) {
             calcularPesoTotal();
         }
         
-        // 13. REMOVER PREVIEW DE IMAGEM
         removerImagem();
-        
-        // 14. RECARREGAR DADOS DA TELA
         await carregarProdutos();
         atualizarEstatisticas();
         
-        // 15. GERAR CÓDIGO PARA PRÓXIMO PRODUTO (se for novo cadastro)
         if (!produtoId) {
             setTimeout(() => {
                 const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
@@ -1278,7 +1025,6 @@ async function salvarProduto(e) {
     } catch (error) {
         console.error('❌ Erro ao salvar produto:', error);
         
-        // Mensagens de erro mais amigáveis
         let mensagemErro = error.message;
         
         if (error.message.includes('permission')) {
@@ -1290,9 +1036,6 @@ async function salvarProduto(e) {
         }
         
         mostrarMensagem(mensagemErro, 'error');
-        
-        // Não fechar o modal se houver erro
-        // O usuário pode corrigir os dados
         
     } finally {
         esconderLoading();
@@ -1324,7 +1067,6 @@ async function alterarStatusProduto(produto) {
         
         mostrarMensagem(`Produto ${produto.ativo ? 'desativado' : 'ativado'} com sucesso!`, 'success');
         
-        // Recarregar produtos
         await carregarProdutos();
         
     } catch (error) {
@@ -1336,7 +1078,7 @@ async function alterarStatusProduto(produto) {
 }
 
 // ============================================
-// 15. ENTRADA DE ESTOQUE (FUNÇÃO SIMPLIFICADA)
+// 15. ENTRADA DE ESTOQUE
 // ============================================
 async function abrirModalEntradaEstoque(produto) {
     if (!produto) return;
@@ -1378,7 +1120,6 @@ async function abrirModalEntradaEstoque(produto) {
             } else {
                 mostrarMensagem(`${quantidadeAbs} unidade(s) removida(s) do estoque!`, 'warning');
                 
-                // Se estoque chegou a zero, sugerir exclusão
                 if ((produto.quantidade - quantidadeAbs) === 0) {
                     setTimeout(() => {
                         mostrarMensagem('Estoque zerado. Você pode agora excluir o produto se desejar.', 'info');
@@ -1386,7 +1127,6 @@ async function abrirModalEntradaEstoque(produto) {
                 }
             }
             
-            // Recarregar produtos
             await carregarProdutos();
             
         } else {
@@ -1402,7 +1142,7 @@ async function abrirModalEntradaEstoque(produto) {
 }
 
 // ============================================
-// 16. EXCLUIR PRODUTO PERMANENTEMENTE
+// 16. EXCLUIR PRODUTO
 // ============================================
 async function excluirProduto(produto) {
     if (!produto) return;
@@ -1415,7 +1155,6 @@ async function excluirProduto(produto) {
         if (resultado.success) {
             mostrarMensagem('Produto excluído permanentemente!', 'success');
             
-            // Recarregar produtos
             await carregarProdutos();
             
         } else {
@@ -1436,12 +1175,10 @@ async function excluirProduto(produto) {
 function configurarEventos() {
     console.log("⚙️ Configurando eventos...");
     
-    // Botão novo produto
     if (btnNovoProduto) {
         btnNovoProduto.addEventListener('click', abrirModalNovoProduto);
     }
     
-    // Botão atualizar
     if (btnRefresh) {
         btnRefresh.addEventListener('click', async function() {
             await carregarProdutos();
@@ -1449,24 +1186,20 @@ function configurarEventos() {
         });
     }
     
-    // Busca
     if (searchInput) {
         searchInput.addEventListener('input', filtrarProdutos);
     }
     
-    // Filtro
     if (filterStatus) {
         filterStatus.addEventListener('change', filtrarProdutos);
     }
     
-    // Botão relatório
     if (btnRelatorioEstoque) {
         btnRelatorioEstoque.addEventListener('click', function() {
             mostrarMensagem('Relatório em desenvolvimento', 'info');
         });
     }
     
-    // Modal - fechar
     const modalClose = modalProduto?.querySelector('.modal-close');
     const btnCancel = document.querySelector('.btn-cancel');
     
@@ -1482,7 +1215,6 @@ function configurarEventos() {
         });
     }
     
-    // Modal - fechar ao clicar fora
     if (modalProduto) {
         modalProduto.addEventListener('click', function(e) {
             if (e.target === this) {
@@ -1491,12 +1223,10 @@ function configurarEventos() {
         });
     }
     
-    // Formulário de produto
     if (formProduto) {
         formProduto.addEventListener('submit', salvarProduto);
     }
     
-    // Logout
     if (btnLogout) {
         btnLogout.addEventListener('click', function() {
             if (confirm("Deseja sair do sistema?")) {
@@ -1505,7 +1235,6 @@ function configurarEventos() {
         });
     }
 
-    // Eventos para calcular peso
     if (quantidadeInput) {
         quantidadeInput.addEventListener('input', calcularPesoTotal);
     }
@@ -1520,10 +1249,8 @@ function configurarEventos() {
         });
     }
     
-    // Eventos de imagem
     inicializarUploadImagem();
     
-    // Botões do preview de imagem
     const btnChange = document.querySelector('.btn-change');
     const btnRemove = document.querySelector('.btn-remove');
     
@@ -1534,9 +1261,6 @@ function configurarEventos() {
     if (btnRemove) {
         btnRemove.addEventListener('click', removerImagem);
     }
-
-    // Adicionar botão de teste de permissões
-    adicionarBotaoTestePermissoes();
     
     console.log("✅ Eventos configurados com sucesso");
 }
@@ -1587,11 +1311,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         return;
     }
     
-    // Configurar alerta
     alert.className = `message-alert ${tipo}`;
     alert.style.display = 'block';
     
-    // Ícone
     const icon = alert.querySelector('.message-icon');
     const icons = {
         success: 'fas fa-check-circle',
@@ -1602,11 +1324,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
     
     if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
     
-    // Texto
     const text = alert.querySelector('.message-text');
     if (text) text.textContent = texto;
     
-    // Botão fechar
     const closeBtn = alert.querySelector('.message-close');
     if (closeBtn) {
         closeBtn.onclick = function() {
@@ -1614,7 +1334,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         };
     }
     
-    // Auto-ocultar
     setTimeout(function() {
         if (alert.style.display === 'block') {
             alert.style.display = 'none';
@@ -1628,8 +1347,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 (function adicionarEstilos() {
     const estiloBadge = document.createElement('style');
     estiloBadge.textContent = `
-        /* Estilos específicos para a página de estoque */
-        
         .status-badge {
             padding: 4px 10px;
             border-radius: 20px;
@@ -1690,7 +1407,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             transform: scale(1.1);
         }
         
-               
         .btn-editar { color: #3498db; }
         .btn-desativar { color: #e74c3c; }
         .btn-ativar { color: #27ae60; }
@@ -1703,8 +1419,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             gap: 5px;
         }
 
-
-                /* ESTILOS PARA IMAGENS (ADICIONE ESTE BLOCO) */
         .form-section {
             margin: 20px 0;
             padding: 20px;
@@ -1769,33 +1483,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         .upload-content small {
             color: #95a5a6;
             font-size: 0.85rem;
-        }
-        
-        .drag-preview {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(52, 152, 219, 0.9);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-        
-        .drag-preview img {
-            max-width: 80px;
-            max-height: 80px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            border: 2px solid white;
-        }
-        
-        .drag-preview p {
-            font-weight: 600;
-            margin: 0;
         }
         
         .image-preview {
@@ -1937,7 +1624,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             margin-right: 5px;
         }
         
-        /* Estilos para o formulário no modal */
         .form-row {
             display: flex;
             gap: 1rem;
@@ -2003,7 +1689,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             align-items: center;
         }
         
-        /* Estilos para a tabela */
         .estoque-table {
             width: 100%;
             border-collapse: collapse;
@@ -2033,56 +1718,11 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             background-color: #f8f9fa;
         }
 
-        /* Estilos para botão excluir
-        .btn-excluir {
-            color: #e74c3c;
-        }
-        
-        .btn-excluir:hover:not(:disabled) {
-            background-color: #e74c3c;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
-        }
-        
-        .btn-excluir:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            color: #95a5a6;
-            background-color: transparent;
-        }
-        
-        .btn-excluir:disabled:hover {
-            background-color: transparent;
-            color: #95a5a6;
-            transform: none;
-            box-shadow: none;
-        }
-        
-        /* Garantir que o ícone aparece */
         .btn-excluir i {
             font-size: 1rem;
             display: inline-block;
         }
         
-        /* Tooltip para botão excluir */
-        .btn-excluir .acao-tooltip {
-            background-color: #e74c3c;
-        }
-        
-        .btn-excluir:disabled .acao-tooltip {
-            background-color: #7f8c8d;
-        }
-        
-        .btn-excluir .acao-tooltip::after {
-            border-color: #e74c3c transparent transparent transparent;
-        }
-        
-        .btn-excluir:disabled .acao-tooltip::after {
-            border-color: #7f8c8d transparent transparent transparent;
-        }
-        
-        /* Responsividade */
         @media (max-width: 768px) {
             .form-row {
                 flex-direction: column;
@@ -2110,25 +1750,8 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 // ============================================
 // 20. EXPORTAÇÃO PARA ESCOPO GLOBAL
 // ============================================
-
-// Exportar funções de imagem para uso no HTML
 window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
-
-// Exportar outras funções úteis
 window.calcularPesoTotal = calcularPesoTotal;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
-
-
-
-
-
-
-
-
-
-
-
-
-
