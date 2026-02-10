@@ -203,13 +203,14 @@
                         </div>
                     </div>
                     
-                    <!-- NOVA SEÇÃO: Peso/Medida por Unidade -->
+                    <!-- SEÇÃO: Peso/Medida por Unidade - IDs CORRIGIDOS -->
                     <div class="form-row">
                         <div class="form-group">
                             <label for="peso_por_unidade">Peso/Medida por Unidade</label>
                             <div class="input-with-unit">
                                 <input type="number" id="peso_por_unidade" step="0.001" min="0" placeholder="0.000">
-                                <select id="unidade_medida" class="unit-select">
+                                <!-- MUDADO de "unidade_medida" para "unidade_peso" -->
+                                <select id="unidade_peso" class="unit-select">
                                     <option value="kg">Quilos (kg)</option>
                                     <option value="g">Gramas (g)</option>
                                     <option value="ton">Toneladas (t)</option>
@@ -225,10 +226,12 @@
                             <small class="form-hint">Ex: 50kg por saco, 1L por unidade, 0.5m por peça</small>
                         </div>
                         <div class="form-group">
-                            <label for="total_medida">Total em Estoque</label>
+                            <label for="total_peso">Total em Estoque</label>
                             <div class="input-readonly">
-                                <input type="text" id="total_medida" readonly placeholder="0.00">
-                                <span id="total_unidade">unidades</span>
+                                <!-- MUDADO de "total_medida" para "total_peso" -->
+                                <input type="text" id="total_peso" readonly placeholder="0.00">
+                                <!-- MUDADO de "total_unidade" para "total_peso_unidade" -->
+                                <span id="total_peso_unidade">unidades</span>
                             </div>
                             <small class="form-hint">Quantidade × Peso por unidade</small>
                         </div>
@@ -268,8 +271,8 @@
                         <label for="descricao">Descrição</label>
                         <textarea id="descricao" rows="3"></textarea>
                     </div>
-
-                    <!-- SEÇÃO: Imagem do Produto -->
+    
+                    <!-- SEÇÃO: Imagem do Produto - BOTÕES CORRIGIDOS -->
                     <div class="form-section">
                         <h4><i class="fas fa-images"></i> Imagem do Produto</h4>
                         
@@ -297,10 +300,11 @@
                                 <div class="preview-container">
                                     <img id="previewImage" src="" alt="Imagem do produto">
                                     <div class="preview-overlay">
-                                        <button type="button" class="btn-change" onclick="estoqueManager.trocarImagem()">
+                                        <!-- CORRIGIDO: Removido estoqueManager. -->
+                                        <button type="button" class="btn-change" onclick="trocarImagem()">
                                             <i class="fas fa-sync-alt"></i> Trocar
                                         </button>
-                                        <button type="button" class="btn-remove" onclick="estoqueManager.removerImagem()">
+                                        <button type="button" class="btn-remove" onclick="removerImagem()">
                                             <i class="fas fa-trash"></i> Remover
                                         </button>
                                     </div>
@@ -330,15 +334,9 @@
                             <p><i class="fas fa-lightbulb"></i> Dica: Uma boa imagem aumenta as vendas!</p>
                         </div>
                     </div>
-                    <!-- ========== FIM DA NOVA SEÇÃO ========== -->
+                    <!-- ========== FIM DA SEÇÃO DE IMAGEM ========== -->
                     
-                    <div class="form-group">
-                        <label for="fornecedor">Fornecedor</label>
-                        <input type="text" id="fornecedor">
-                    </div>
-
-                    
-                    
+                    <!-- APENAS UM CAMPO FORNECEDOR - REMOVIDO O DUPLICADO -->
                     <div class="form-group">
                         <label for="fornecedor">Fornecedor</label>
                         <input type="text" id="fornecedor">
@@ -378,4 +376,3 @@
     <script type="module" src="estoque.js"></script>
 </body>
 </html>
-
