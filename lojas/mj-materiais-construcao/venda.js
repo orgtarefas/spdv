@@ -934,18 +934,35 @@ function exibirProdutos(produtos) {
         const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
         const precoFormatado = formatarMoeda(produto.preco);
         
+        // Obter URL da imagem
+        const imagemURL = obterURLImagem(produto, 'thumb');
+        const temImagem = imagemURL && !imagemURL.includes('sem-foto.png');
+        
         html += `
             <div class="product-card ${!temEstoque ? 'disabled' : ''}" 
                  onclick="window.vendaManager.selecionarProdutoParaVenda('${produto.id}')" 
                  title="${produto.nome} - Estoque: ${produto.quantidade} ${produto.unidade || 'UN'}">
+                
+                <!-- IMAGEM DO PRODUTO -->
+                <div class="product-image">
+                    <img src="${imagemURL}" 
+                         alt="${produto.nome}"
+                         class="${temImagem ? 'has-image' : 'no-image'}"
+                         onerror="this.src='/images/sem-foto.png'">
+                    ${!temImagem ? '<div class="image-placeholder"><i class="fas fa-image"></i></div>' : ''}
+                </div>
+                
                 <div class="product-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
                     <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
                         ${produto.quantidade} ${produto.unidade || 'UN'}
                     </span>
                 </div>
+                
                 <div class="product-name">${produto.nome}</div>
+                
                 ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
+                
                 <div class="product-footer">
                     <span class="product-price">${precoFormatado}</span>
                     <button class="btn-add-product" 
@@ -1487,4 +1504,5 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 console.log("✅ Sistema de vendas PDV completamente carregado!");
+
 
