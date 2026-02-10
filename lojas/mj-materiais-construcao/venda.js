@@ -7,7 +7,7 @@ import { lojaServices } from './firebase_config.js';
 // Função para obter URL da imagem do produto
 function obterURLImagem(produto, tamanho = 'thumb') {
     if (!produto || !produto.imagens) {
-        return '/images/sem-foto.png'; // Imagem padrão
+        return obterImagemPlaceholderBase64(); // Usar base64 como fallback
     }
     
     const imagens = produto.imagens;
@@ -15,15 +15,47 @@ function obterURLImagem(produto, tamanho = 'thumb') {
     // Escolher tamanho baseado no parâmetro
     switch(tamanho) {
         case 'thumb':
-            return imagens.thumbnail || imagens.principal || '/images/sem-foto.png';
+            return imagens.thumbnail || imagens.principal || obterImagemPlaceholderBase64();
         case 'medium':
-            return imagens.medium || imagens.principal || '/images/sem-foto.png';
+            return imagens.medium || imagens.principal || obterImagemPlaceholderBase64();
         case 'large':
         case 'principal':
-            return imagens.principal || '/images/sem-foto.png';
+            return imagens.principal || obterImagemPlaceholderBase64();
         default:
-            return imagens.principal || '/images/sem-foto.png';
+            return imagens.principal || obterImagemPlaceholderBase64();
     }
+}
+
+// Função para obter imagem placeholder em base64
+function obterImagemPlaceholderBase64() {
+    return 'data:image/svg+xml;base64,' + btoa(`
+        <svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100%" height="100%" fill="#f0f0f0"/>
+            <rect x="100" y="80" width="100" height="80" fill="#ccc"/>
+            <circle cx="150" cy="120" r="30" fill="#999"/>
+            <text x="150" y="200" text-anchor="middle" fill="#666" font-family="Arial" font-size="16">
+                Sem Foto
+            </text>
+        </svg>
+    `);
+}
+
+// Ou uma versão mais simples com PNG em base64
+function obterImagemPlaceholderBase64Simple() {
+    // Um quadrado cinza simples em base64
+    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA' +
+           'AXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJVSURBVHgB7d3B' +
+           'bcJAFIXhB6hAA0oAHRhQAgmUYBEqEIrQAAzQABWYw4gRE0hiRyzPe8P/6UiWNSyP9PzsuG2apsJ/nusN' +
+           'K4QcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJI' +
+           'IeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEMK' +
+           'IYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFII' +
+           'OaQQckgh5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELI' +
+           'IYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIO' +
+           'KYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEPK2IJqVa3qeV7ze/j7sZjP' +
+           'zqG0sWl+b3Bf16f7+hnc4/V9z/s9x23Hf5fxHYvF7DQWi9l5cI/X9+1f/+M0OJ/G1trj9X17dywYQg4p' +
+           'hBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh' +
+           '5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwoh' +
+           'hxRCDimEHFIIOaQQckgh5JBCyCGFkEPKGy6S0Q8nLmPiAAAAAElFTkSuQmCC';
 }
 
 // Adicionar ao window para acesso global
@@ -1504,5 +1536,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 console.log("✅ Sistema de vendas PDV completamente carregado!");
+
 
 
