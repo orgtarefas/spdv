@@ -216,24 +216,49 @@ async function fazerUploadImagem() {
     try {
         mostrarProgressoUpload(0, 'Preparando...');
         
-        // Fazer upload usando o serviço de imagens CORRIGIDO
+        // Verificar se a loja tem álbum configurado
+        const temAlbum = lojaServices.imgbbAlbumId ? true : false;
+        console.log(`📁 Álbum configurado: ${temAlbum ? 'Sim' : 'Não'}`);
+        if (temAlbum) {
+            console.log(`🎯 Album ID: ${lojaServices.imgbbAlbumId}`);
+        }
+        
+        // Fazer upload usando o serviço de imagens COM ALBUM
         const resultado = await imagemServices.uploadImagem(
             imagemAtual,
-            `produto_${Date.now()}`,
-            lojaServices  // Passar lojaServices para obter a chave correta
+            `produto_${Date.now()}_${lojaServices.lojaId}`,
+            lojaServices
         );
         
         if (resultado.success) {
             imagemUploadResult = resultado;
             mostrarProgressoUpload(100, 'Upload completo!');
             
-            setTimeout(() => {
-                if (uploadProgress) uploadProgress.style.display = 'none';
+            // Mostrar informações do álbum
+            if (resultado.album_id) {
+                console.log(`📁 Imagem salva no álbum: ${resultado.album_id}`);
+                
+                // Verificar se foi para o álbum correto
+                if (resultado.album_configurado && resultado.album_id === resultado.album_configurado) {
+                    console.log('🎉 Imagem enviada para o álbum correto!');
+                    if (imageStatus) {
+                        imageStatus.textContent = `Imagem enviada (Álbum: ${resultado.album_id})`;
+                        imageStatus.className = 'status-success';
+                    }
+                } else {
+                    console.warn('⚠️ Imagem não foi para o álbum configurado');
+                    if (imageStatus) {
+                        imageStatus.textContent = 'Imagem enviada (sem álbum)';
+                        imageStatus.className = 'status-warning';
+                    }
+                }
+            } else {
+                console.log('ℹ️ Imagem salva sem álbum');
                 if (imageStatus) {
-                    imageStatus.textContent = 'Imagem enviada';
+                    imageStatus.textContent = 'Imagem enviada (sem álbum)';
                     imageStatus.className = 'status-success';
                 }
-            }, 1000);
+            }
             
             return resultado;
         } else {
@@ -1984,6 +2009,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
