@@ -791,7 +791,12 @@ export {
 window.lojaServices = lojaServices;
 window.lojaManager = lojaManager;
 
+// Exportar serviços de imagem
+export { imagemServices } from './imagem_api.js';
+window.imagemServices = imagemServices;
+
 console.log(`🏪 Sistema configurado para loja: ${lojaManager.lojaId || 'Não identificada'}`);
+
 
 
 
