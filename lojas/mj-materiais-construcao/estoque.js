@@ -2008,7 +2008,19 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
     document.head.appendChild(estiloBadge);
 })();
 
+// ============================================
+// 20. EXPORTAÇÃO PARA ESCOPO GLOBAL
+// ============================================
+
+// Exportar funções de imagem para uso no HTML
+window.trocarImagem = trocarImagem;
+window.removerImagem = removerImagem;
+
+// Exportar outras funções úteis
+window.calcularPesoTotal = calcularPesoTotal;
+
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
