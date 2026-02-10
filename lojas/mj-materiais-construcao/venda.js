@@ -29,32 +29,15 @@ function obterURLImagem(produto, tamanho = 'thumb') {
 function obterImagemPlaceholderBase64() {
     return 'data:image/svg+xml;base64,' + btoa(`
         <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" fill="#f5f5f5"/>
-            <path d="M30,35 L70,35 L75,45 L25,45 Z" fill="#e0e0e0"/>
-            <circle cx="50" cy="40" r="12" fill="#bdbdbd"/>
-            <text x="50" y="70" text-anchor="middle" font-family="Arial" font-size="7" fill="#757575">
-                Sem Imagem
+            <rect width="100" height="100" fill="#f8f9fa"/>
+            <circle cx="50" cy="40" r="28" fill="none" stroke="#dee2e6" stroke-width="3"/>
+            <line x1="30" y1="25" x2="70" y2="55" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/>
+            <line x1="70" y1="25" x2="30" y2="55" stroke="#6c757d" stroke-width="4" stroke-linecap="round"/>
+            <text x="50" y="78" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#495057" font-weight="bold">
+                SEM FOTO
             </text>
         </svg>
     `);
-}
-
-// Ou uma versão mais simples com PNG em base64
-function obterImagemPlaceholderBase64Simple() {
-    // Um quadrado cinza simples em base64
-    return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA' +
-           'AXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAJVSURBVHgB7d3B' +
-           'bcJAFIXhB6hAA0oAHRhQAgmUYBEqEIrQAAzQABWYw4gRE0hiRyzPe8P/6UiWNSyP9PzsuG2apsJ/nusN' +
-           'K4QcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJI' +
-           'IeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEMK' +
-           'IYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFII' +
-           'OaQQckgh5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELI' +
-           'IYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIO' +
-           'KYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh5JBCyCGFkEPK2IJqVa3qeV7ze/j7sZjP' +
-           'zqG0sWl+b3Bf16f7+hnc4/V9z/s9x23Hf5fxHYvF7DQWi9l5cI/X9+1f/+M0OJ/G1trj9X17dywYQg4p' +
-           'hBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwohhxRCDimEHFIIOaQQckgh' +
-           '5JBCyCGFkEMKIYcUQg4phBxSCDmkEHJIIeSQQsghhZBDCiGHFEIOKYQcUgg5pBBySCHkkELIIYWQQwoh' +
-           'hxRCDimEHFIIOaQQckgh5JBCyCGFkEPKGy6S0Q8nLmPiAAAAAElFTkSuQmCC';
 }
 
 // Adicionar ao window para acesso global
@@ -1536,6 +1519,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 console.log("✅ Sistema de vendas PDV completamente carregado!");
+
 
 
 
