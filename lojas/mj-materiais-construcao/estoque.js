@@ -2,6 +2,7 @@
 console.log("📦 Sistema de Estoque Multiloja - Iniciando...");
 
 import { lojaServices, db } from './firebase_config.js';
+import { imagemServices } from './imagem_api.js';
 
 // ============================================
 // VARIÁVEIS GLOBAIS
@@ -168,6 +169,18 @@ function mostrarDragPreview(e) {
             for (const item of e.dataTransfer.items) {
                 if (item.kind === 'file' && item.type.startsWith('image/')) {
                     dragPreview.style.display = 'flex';
+                    
+                    // Tentar mostrar prévia se possível
+                    const file = item.getAsFile();
+                    if (file && file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            if (dragImage) {
+                                dragImage.src = event.target.result;
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    }
                     break;
                 }
             }
@@ -203,11 +216,11 @@ async function fazerUploadImagem() {
     try {
         mostrarProgressoUpload(0, 'Preparando...');
         
-        // Fazer upload usando o serviço de imagens
+        // Fazer upload usando o serviço de imagens CORRIGIDO
         const resultado = await imagemServices.uploadImagem(
             imagemAtual,
             `produto_${Date.now()}`,
-            lojaServices
+            lojaServices  // Passar lojaServices para obter a chave correta
         );
         
         if (resultado.success) {
@@ -224,7 +237,7 @@ async function fazerUploadImagem() {
             
             return resultado;
         } else {
-            throw new Error(resultado.error);
+            throw new Error(resultado.error || 'Erro no upload');
         }
         
     } catch (error) {
@@ -245,7 +258,7 @@ function mostrarProgressoUpload(percentual, texto) {
 }
 
 function mostrarImagemExistente(imagens) {
-    if (!imagens || !imagens.principal) {
+    if (!imagens || !imagens.principal || imagens.principal === '/images/sem-foto.png') {
         removerImagem();
         return;
     }
@@ -262,7 +275,9 @@ function mostrarImagemExistente(imagens) {
     imagemUploadResult = {
         url: imagens.principal,
         thumb: imagens.thumbnail,
-        id: imagens.provider_id
+        medium: imagens.medium || imagens.principal,
+        id: imagens.provider_id,
+        uploaded_at: imagens.uploaded_at
     };
 }
 
@@ -317,10 +332,27 @@ function inicializarElementosDOM() {
     fileInput = document.getElementById('imagemProduto');
     previewImage = document.getElementById('previewImage');
     imagePreview = document.getElementById('imagePreview');
+    
+    // Elementos de progresso
     uploadProgress = document.getElementById('uploadProgress');
     progressFill = document.getElementById('progressFill');
     progressPercent = document.getElementById('progressPercent');
     imageStatus = document.getElementById('imageStatus');
+    
+    // Drag preview - CRIAÇÃO DINÂMICA
+    if (!document.getElementById('dragPreview')) {
+        const dragPreview = document.createElement('div');
+        dragPreview.id = 'dragPreview';
+        dragPreview.className = 'drag-preview';
+        dragPreview.style.display = 'none';
+        dragPreview.innerHTML = `
+            <img id="dragImage" src="" alt="Prévia">
+            <p>Solte para fazer upload</p>
+        `;
+        if (uploadArea) {
+            uploadArea.appendChild(dragPreview);
+        }
+    }
     
     console.log("✅ Elementos DOM inicializados");
 }
@@ -908,6 +940,7 @@ async function salvarProduto(e) {
     try {
         mostrarLoading('Salvando produto...', 'Aguarde...');
         
+        // 1. VALIDAÇÕES BÁSICAS
         // Validar campos obrigatórios
         if (!nomeInput || !nomeInput.value.trim()) {
             throw new Error('Nome do produto é obrigatório');
@@ -917,22 +950,52 @@ async function salvarProduto(e) {
             throw new Error('Preço de venda deve ser maior que zero');
         }
         
-        // 1. Fazer upload da imagem (se houver)
+        // Validar quantidade
+        const quantidade = parseInt(quantidadeInput ? quantidadeInput.value : 0);
+        if (isNaN(quantidade) || quantidade < 0) {
+            throw new Error('Quantidade deve ser um número positivo ou zero');
+        }
+        
+        // Validar estoque mínimo
+        const estoqueMinimo = parseInt(estoqueMinimoInput ? estoqueMinimoInput.value : 5);
+        if (isNaN(estoqueMinimo) || estoqueMinimo < 0) {
+            throw new Error('Estoque mínimo deve ser um número positivo ou zero');
+        }
+        
+        // 2. UPLOAD DE IMAGEM (se houver nova imagem)
         let dadosImagem = null;
         
-        // Verificar se há uma nova imagem para upload (imagemAtual é o preview da nova imagem)
-        if (imagemAtual && imagemAtual !== '/images/sem-foto.png') {
+        // Verificar se há uma NOVA imagem para upload
+        // imagemAtual é um objeto File quando é uma imagem nova
+        if (imagemAtual instanceof File) {
+            console.log('📤 Nova imagem detectada, fazendo upload...');
             mostrarLoading('Enviando imagem...', 'Aguarde um momento...');
+            
+            // Fazer upload da nova imagem
             const uploadResult = await fazerUploadImagem();
             
-            if (uploadResult && uploadResult.url) {
+            if (uploadResult && uploadResult.success && uploadResult.url) {
                 dadosImagem = {
                     imagens: {
                         principal: uploadResult.url,
                         thumbnail: uploadResult.thumb || uploadResult.url,
                         medium: uploadResult.medium || uploadResult.url,
                         provider: 'imgbb',
-                        provider_id: uploadResult.id,
+                        provider_id: uploadResult.id || `imgbb_${Date.now()}`,
+                        uploaded_at: new Date().toISOString()
+                    }
+                };
+                console.log('✅ Upload de imagem bem-sucedido:', uploadResult.url.substring(0, 50) + '...');
+            } else {
+                console.warn('⚠️ Upload de imagem falhou ou não retornou URL, usando fallback');
+                // Se o upload falhar, use o fallback local
+                dadosImagem = {
+                    imagens: {
+                        principal: '/images/sem-foto.png',
+                        thumbnail: '/images/sem-foto.png',
+                        medium: '/images/sem-foto.png',
+                        provider: 'local',
+                        provider_id: `local_${Date.now()}`,
                         uploaded_at: new Date().toISOString()
                     }
                 };
@@ -941,22 +1004,38 @@ async function salvarProduto(e) {
         } 
         // Se já tinha uma imagem carregada anteriormente (de um produto sendo editado)
         else if (imagemUploadResult && imagemUploadResult.url) {
+            console.log('📷 Usando imagem existente:', imagemUploadResult.url.substring(0, 50) + '...');
             dadosImagem = {
                 imagens: {
                     principal: imagemUploadResult.url,
                     thumbnail: imagemUploadResult.thumb || imagemUploadResult.url,
                     medium: imagemUploadResult.medium || imagemUploadResult.url,
-                    provider: 'imgbb',
-                    provider_id: imagemUploadResult.id,
+                    provider: imagemUploadResult.provider || 'imgbb',
+                    provider_id: imagemUploadResult.id || `imgbb_${Date.now()}`,
                     uploaded_at: imagemUploadResult.uploaded_at || new Date().toISOString()
                 }
             };
         }
+        // Se NÃO tem imagem nem nova nem existente
+        else {
+            console.log('🖼️ Sem imagem, usando placeholder padrão');
+            dadosImagem = {
+                imagens: {
+                    principal: '/images/sem-foto.png',
+                    thumbnail: '/images/sem-foto.png',
+                    medium: '/images/sem-foto.png',
+                    provider: 'local',
+                    provider_id: `local_${Date.now()}`,
+                    uploaded_at: new Date().toISOString()
+                }
+            };
+        }
         
-        // 2. Preparar dados do produto
+        // 3. PREPARAR DADOS DO PRODUTO
         const dadosProduto = {
+            // Informações básicas
             nome: nomeInput.value.trim(),
-            categoria: categoriaInput ? categoriaInput.value.trim() : '',
+            categoria: categoriaInput ? categoriaInput.value.trim() : 'Sem Categoria',
             unidade: unidadeSelect ? unidadeSelect.value : 'UN',
             
             // Campos de peso
@@ -964,70 +1043,136 @@ async function salvarProduto(e) {
             unidade_peso: unidadePesoSelect ? unidadePesoSelect.value : 'kg',
             
             // Campos financeiros
-            preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value) || 0 : 0,
-            preco: precoInput ? parseFloat(precoInput.value) || 0 : 0,
+            preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value.replace(',', '.')) || 0 : 0,
+            preco: precoInput ? parseFloat(precoInput.value.replace(',', '.')) || 0 : 0,
             
             // Campos de estoque
-            quantidade: quantidadeInput ? parseInt(quantidadeInput.value) || 0 : 0,
-            estoque_minimo: estoqueMinimoInput ? parseInt(estoqueMinimoInput.value) || 5 : 5,
+            quantidade: quantidade,
+            estoque_minimo: estoqueMinimo,
             
             // Informações adicionais
             descricao: descricaoTextarea ? descricaoTextarea.value.trim() : '',
             fornecedor: fornecedorInput ? fornecedorInput.value.trim() : '',
-            ativo: true
+            
+            // Status e metadata
+            ativo: true,
+            data_cadastro: new Date().toISOString(),
+            data_atualizacao: new Date().toISOString(),
+            
+            // Loja
+            loja_id: lojaServices.lojaId,
+            loja_nome: lojaServices.dadosLoja?.nome || lojaServices.lojaId
         };
         
-        // 3. Adicionar dados da imagem se existirem
-        if (dadosImagem) {
-            Object.assign(dadosProduto, dadosImagem);
-        } else {
-            // Se não houver imagem, definir como sem imagem
-            dadosProduto.imagens = {
-                principal: '/images/sem-foto.png',
-                thumbnail: '/images/sem-foto.png',
-                medium: '/images/sem-foto.png',
-                provider: 'local'
-            };
-        }
-        
-        // 4. Se tiver código, adicionar
+        // 4. ADICIONAR CÓDIGO (se existir)
         if (codigoInput && codigoInput.value.trim()) {
             dadosProduto.codigo = codigoInput.value.trim();
-        }
-        
-        const produtoId = produtoIdInput.value;
-        
-        // 5. Salvar ou atualizar produto
-        if (produtoId) {
-            // Atualizar produto existente
-            await lojaServices.atualizarProduto(produtoId, dadosProduto);
-            mostrarMensagem('Produto atualizado com sucesso!', 'success');
         } else {
-            // Criar novo produto
-            await lojaServices.cadastrarProduto(dadosProduto);
-            mostrarMensagem('Produto cadastrado com sucesso!', 'success');
+            // Gerar código automático se não tiver
+            const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
+            dadosProduto.codigo = `${prefixo}-${Date.now().toString().slice(-8)}`;
         }
         
-        // 6. Limpar variáveis de imagem
+        // 5. ADICIONAR DADOS DA IMAGEM
+        Object.assign(dadosProduto, dadosImagem);
+        
+        // 6. CALCULAR PESO TOTAL
+        if (dadosProduto.peso_por_unidade > 0 && dadosProduto.quantidade > 0) {
+            dadosProduto.peso_total = dadosProduto.peso_por_unidade * dadosProduto.quantidade;
+            dadosProduto.unidade_peso_total = dadosProduto.unidade_peso;
+        }
+        
+        // 7. VALIDAR DADOS FINAIS
+        if (dadosProduto.preco <= 0) {
+            throw new Error('O preço de venda deve ser maior que R$ 0,00');
+        }
+        
+        if (dadosProduto.quantidade < 0) {
+            throw new Error('A quantidade não pode ser negativa');
+        }
+        
+        // 8. SALVAR OU ATUALIZAR NO FIREBASE
+        const produtoId = produtoIdInput.value;
+        let resultadoFirebase = null;
+        
+        if (produtoId) {
+            console.log(`✏️ Atualizando produto ${produtoId}...`);
+            // Atualizar produto existente
+            resultadoFirebase = await lojaServices.atualizarProduto(produtoId, dadosProduto);
+            mostrarMensagem('✅ Produto atualizado com sucesso!', 'success');
+        } else {
+            console.log('🆕 Cadastrando novo produto...');
+            // Criar novo produto
+            resultadoFirebase = await lojaServices.cadastrarProduto(dadosProduto);
+            mostrarMensagem('✅ Produto cadastrado com sucesso!', 'success');
+        }
+        
+        // 9. VERIFICAR RESULTADO DO FIREBASE
+        if (!resultadoFirebase || !resultadoFirebase.success) {
+            throw new Error(resultadoFirebase?.error || 'Erro ao salvar no banco de dados');
+        }
+        
+        console.log('📊 Dados salvos no Firebase com sucesso');
+        
+        // 10. LIMPAR VARIÁVEIS E ESTADOS
         imagemAtual = null;
+        imagemPreviewURL = null;
         imagemUploadResult = null;
         
-        // 7. Fechar modal
+        // 11. FECHAR MODAL
         if (modalProduto) {
             modalProduto.style.display = 'none';
         }
         
-        // 8. Limpar formulário
+        // 12. LIMPAR FORMULÁRIO COMPLETAMENTE
         if (formProduto) {
             formProduto.reset();
+            // Resetar campos específicos
+            if (quantidadeInput) quantidadeInput.value = '0';
+            if (estoqueMinimoInput) estoqueMinimoInput.value = '5';
+            if (precoCustoInput) precoCustoInput.value = '0.00';
+            if (precoInput) precoInput.value = '0.00';
+            if (pesoPorUnidadeInput) pesoPorUnidadeInput.value = '0';
+            if (unidadePesoSelect) unidadePesoSelect.value = 'kg';
+            calcularPesoTotal();
         }
         
-        // 9. Recarregar dados
-        await carregarDadosIniciais();
+        // 13. REMOVER PREVIEW DE IMAGEM
+        removerImagem();
+        
+        // 14. RECARREGAR DADOS DA TELA
+        await carregarProdutos();
+        atualizarEstatisticas();
+        
+        // 15. GERAR CÓDIGO PARA PRÓXIMO PRODUTO (se for novo cadastro)
+        if (!produtoId) {
+            setTimeout(() => {
+                const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
+                if (codigoInput) {
+                    codigoInput.value = `${prefixo}-${Date.now().toString().slice(-8)}`;
+                }
+            }, 100);
+        }
         
     } catch (error) {
         console.error('❌ Erro ao salvar produto:', error);
-        mostrarMensagem(error.message || 'Erro ao salvar produto', 'error');
+        
+        // Mensagens de erro mais amigáveis
+        let mensagemErro = error.message;
+        
+        if (error.message.includes('permission')) {
+            mensagemErro = 'Você não tem permissão para salvar produtos. Verifique seu acesso.';
+        } else if (error.message.includes('network')) {
+            mensagemErro = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (error.message.includes('Firebase')) {
+            mensagemErro = 'Erro no servidor. Tente novamente em alguns instantes.';
+        }
+        
+        mostrarMensagem(mensagemErro, 'error');
+        
+        // Não fechar o modal se houver erro
+        // O usuário pode corrigir os dados
+        
     } finally {
         esconderLoading();
     }
@@ -1839,6 +1984,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
