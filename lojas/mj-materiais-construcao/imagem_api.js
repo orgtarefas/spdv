@@ -174,6 +174,8 @@ export const imagemServices = {
         }
     },
 
+
+    
     // Função para verificar permissões do álbum
     async function verificarPermissoesAlbum(lojaServices = null) {
         try {
@@ -188,13 +190,14 @@ export const imagemServices = {
             
             console.log(`🔍 Verificando permissões para album ${config.albumId}...`);
             
-            // Teste 1: Verificar se consegue enviar para o álbum
-            const imagemTeste = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // 1x1 pixel
+            // Teste: Verificar se consegue enviar para o álbum
+            // Imagem de teste mínima (1x1 pixel transparente)
+            const imagemTeste = 'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             
             const formData = new FormData();
             formData.append('key', config.chave);
             formData.append('image', imagemTeste);
-            formData.append('name', 'test_permissao_album');
+            formData.append('name', 'test_permissao_album_' + Date.now());
             formData.append('album', config.albumId);
             
             const response = await fetch('https://api.imgbb.com/1/upload', {
@@ -247,7 +250,7 @@ export const imagemServices = {
     
     // Adicionar ao objeto imagemServices
     imagemServices.verificarPermissoesAlbum = verificarPermissoesAlbum;
-    
+        
     // Upload múltiplo com chave da loja atual
     async uploadMultiplasImagens(files, lojaServices = null, prefixo = 'produto', maxSimultaneo = 3) {
         try {
@@ -797,5 +800,6 @@ export const imagemServices = {
 window.imagemServices = imagemServices;
 
 console.log("✅ Serviço de imagens carregado (com suporte a álbuns por loja)");
+
 
 
