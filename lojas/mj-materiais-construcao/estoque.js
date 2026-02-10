@@ -20,6 +20,12 @@ let precoInput, quantidadeInput, estoqueMinimoInput, descricaoTextarea, forneced
 // Elementos DOM adicionais
 let pesoPorUnidadeInput, unidadePesoSelect, totalPesoInput, totalPesoUnidadeSpan;
 
+// VARIÁVEIS PARA IMAGENS
+let imagemAtual = null;
+let imagemPreviewURL = null;
+let imagemUploadResult = null;
+let uploadArea, fileInput, previewImage, imagePreview;
+let uploadProgress, progressFill, progressPercent, imageStatus;
 
 // ============================================
 // 1. INICIALIZAÇÃO
@@ -73,6 +79,194 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // ============================================
+// GERENCIAMENTO DE IMAGENS
+// ============================================
+
+function inicializarUploadImagem() {
+    if (!uploadArea || !fileInput) return;
+    
+    // Clique na área de upload
+    uploadArea.addEventListener('click', () => {
+        fileInput.click();
+    });
+    
+    // Seleção de arquivo
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            processarImagemSelecionada(e.target.files[0]);
+        }
+    });
+    
+    // Arrastar e soltar
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+        mostrarDragPreview(e);
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+        document.getElementById('dragPreview').style.display = 'none';
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        document.getElementById('dragPreview').style.display = 'none';
+        
+        if (e.dataTransfer.files.length > 0) {
+            processarImagemSelecionada(e.dataTransfer.files[0]);
+        }
+    });
+}
+
+function processarImagemSelecionada(file) {
+    // Validar
+    if (!file.type.startsWith('image/')) {
+        mostrarMensagem('Selecione um arquivo de imagem válido', 'error');
+        return;
+    }
+    
+    if (file.size > 32 * 1024 * 1024) {
+        mostrarMensagem('Imagem muito grande. Máximo 32MB', 'error');
+        return;
+    }
+    
+    // Salvar imagem
+    imagemAtual = file;
+    
+    // Criar preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        imagemPreviewURL = e.target.result;
+        mostrarPreviewImagem();
+    };
+    reader.readAsDataURL(file);
+    
+    // Atualizar status
+    if (imageStatus) {
+        imageStatus.textContent = 'Pronto para enviar';
+        imageStatus.className = 'status-pending';
+    }
+}
+
+function mostrarPreviewImagem() {
+    if (!imagemPreviewURL) return;
+    
+    if (previewImage) previewImage.src = imagemPreviewURL;
+    if (imagePreview) imagePreview.style.display = 'block';
+    if (uploadArea) uploadArea.style.display = 'none';
+}
+
+function mostrarDragPreview(e) {
+    const dragPreview = document.getElementById('dragPreview');
+    const dragImage = document.getElementById('dragImage');
+    
+    if (dragPreview) {
+        // Verificar se há imagem sendo arrastada
+        if (e.dataTransfer.items) {
+            for (const item of e.dataTransfer.items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    dragPreview.style.display = 'flex';
+                    break;
+                }
+            }
+        }
+    }
+}
+
+function trocarImagem() {
+    if (fileInput) fileInput.click();
+}
+
+function removerImagem() {
+    imagemAtual = null;
+    imagemPreviewURL = null;
+    imagemUploadResult = null;
+    
+    if (imagePreview) imagePreview.style.display = 'none';
+    if (uploadArea) uploadArea.style.display = 'block';
+    if (fileInput) fileInput.value = '';
+    if (previewImage) previewImage.src = '';
+    if (uploadProgress) uploadProgress.style.display = 'none';
+    if (imageStatus) {
+        imageStatus.textContent = '';
+        imageStatus.className = '';
+    }
+}
+
+async function fazerUploadImagem() {
+    if (!imagemAtual) {
+        return null;
+    }
+    
+    try {
+        mostrarProgressoUpload(0, 'Preparando...');
+        
+        // Fazer upload usando o serviço de imagens
+        const resultado = await imagemServices.uploadImagem(
+            imagemAtual,
+            `produto_${Date.now()}`,
+            lojaServices
+        );
+        
+        if (resultado.success) {
+            imagemUploadResult = resultado;
+            mostrarProgressoUpload(100, 'Upload completo!');
+            
+            setTimeout(() => {
+                if (uploadProgress) uploadProgress.style.display = 'none';
+                if (imageStatus) {
+                    imageStatus.textContent = 'Imagem enviada';
+                    imageStatus.className = 'status-success';
+                }
+            }, 1000);
+            
+            return resultado;
+        } else {
+            throw new Error(resultado.error);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro no upload:', error);
+        mostrarMensagem(`Erro ao enviar imagem: ${error.message}`, 'error');
+        if (imageStatus) {
+            imageStatus.textContent = 'Erro no upload';
+            imageStatus.className = 'status-error';
+        }
+        return null;
+    }
+}
+
+function mostrarProgressoUpload(percentual, texto) {
+    if (uploadProgress) uploadProgress.style.display = 'block';
+    if (progressFill) progressFill.style.width = `${percentual}%`;
+    if (progressPercent) progressPercent.textContent = texto;
+}
+
+function mostrarImagemExistente(imagens) {
+    if (!imagens || !imagens.principal) {
+        removerImagem();
+        return;
+    }
+    
+    if (previewImage) previewImage.src = imagens.thumbnail || imagens.principal;
+    if (imagePreview) imagePreview.style.display = 'block';
+    if (uploadArea) uploadArea.style.display = 'none';
+    if (imageStatus) {
+        imageStatus.textContent = 'Imagem carregada';
+        imageStatus.className = 'status-success';
+    }
+    
+    // Salvar dados da imagem
+    imagemUploadResult = {
+        url: imagens.principal,
+        thumb: imagens.thumbnail,
+        id: imagens.provider_id
+    };
+}
+
+// ============================================
 // 2. INICIALIZAR ELEMENTOS DOM
 // ============================================
 function inicializarElementosDOM() {
@@ -117,6 +311,16 @@ function inicializarElementosDOM() {
     unidadePesoSelect = document.getElementById('unidade_peso');
     totalPesoInput = document.getElementById('total_peso');
     totalPesoUnidadeSpan = document.getElementById('total_peso_unidade');    
+
+    // Elementos da seção de imagem
+    uploadArea = document.getElementById('uploadArea');
+    fileInput = document.getElementById('imagemProduto');
+    previewImage = document.getElementById('previewImage');
+    imagePreview = document.getElementById('imagePreview');
+    uploadProgress = document.getElementById('uploadProgress');
+    progressFill = document.getElementById('progressFill');
+    progressPercent = document.getElementById('progressPercent');
+    imageStatus = document.getElementById('imageStatus');
     
     console.log("✅ Elementos DOM inicializados");
 }
@@ -628,6 +832,8 @@ function abrirModalNovoProduto() {
     if (precoCustoInput) precoCustoInput.value = '0.00';
     if (precoInput) precoInput.value = '0.00';
     
+    removerImagem();
+    
     // Abrir modal
     if (modalProduto) {
         modalProduto.style.display = 'flex';
@@ -668,6 +874,13 @@ async function abrirModalEditar(produtoId) {
             
             // Calcular peso total
             calcularPesoTotal();
+
+            // Carregar imagem se existir
+            if (produto.imagens && produto.imagens.principal) {
+                mostrarImagemExistente(produto.imagens);
+            } else {
+                removerImagem();
+            }
             
             // Abrir modal
             if (modalProduto) {
@@ -704,32 +917,87 @@ async function salvarProduto(e) {
             throw new Error('Preço de venda deve ser maior que zero');
         }
         
-        // Preparar dados
+        // 1. Fazer upload da imagem (se houver)
+        let dadosImagem = null;
+        
+        // Verificar se há uma nova imagem para upload (imagemAtual é o preview da nova imagem)
+        if (imagemAtual && imagemAtual !== '/images/sem-foto.png') {
+            mostrarLoading('Enviando imagem...', 'Aguarde um momento...');
+            const uploadResult = await fazerUploadImagem();
+            
+            if (uploadResult && uploadResult.url) {
+                dadosImagem = {
+                    imagens: {
+                        principal: uploadResult.url,
+                        thumbnail: uploadResult.thumb || uploadResult.url,
+                        medium: uploadResult.medium || uploadResult.url,
+                        provider: 'imgbb',
+                        provider_id: uploadResult.id,
+                        uploaded_at: new Date().toISOString()
+                    }
+                };
+            }
+            mostrarLoading('Salvando produto...', 'Finalizando...');
+        } 
+        // Se já tinha uma imagem carregada anteriormente (de um produto sendo editado)
+        else if (imagemUploadResult && imagemUploadResult.url) {
+            dadosImagem = {
+                imagens: {
+                    principal: imagemUploadResult.url,
+                    thumbnail: imagemUploadResult.thumb || imagemUploadResult.url,
+                    medium: imagemUploadResult.medium || imagemUploadResult.url,
+                    provider: 'imgbb',
+                    provider_id: imagemUploadResult.id,
+                    uploaded_at: imagemUploadResult.uploaded_at || new Date().toISOString()
+                }
+            };
+        }
+        
+        // 2. Preparar dados do produto
         const dadosProduto = {
             nome: nomeInput.value.trim(),
             categoria: categoriaInput ? categoriaInput.value.trim() : '',
             unidade: unidadeSelect ? unidadeSelect.value : 'UN',
             
-            // Novos campos de peso
+            // Campos de peso
             peso_por_unidade: pesoPorUnidadeInput ? parseFloat(pesoPorUnidadeInput.value) || 0 : 0,
             unidade_peso: unidadePesoSelect ? unidadePesoSelect.value : 'kg',
             
+            // Campos financeiros
             preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value) || 0 : 0,
             preco: precoInput ? parseFloat(precoInput.value) || 0 : 0,
+            
+            // Campos de estoque
             quantidade: quantidadeInput ? parseInt(quantidadeInput.value) || 0 : 0,
             estoque_minimo: estoqueMinimoInput ? parseInt(estoqueMinimoInput.value) || 5 : 5,
+            
+            // Informações adicionais
             descricao: descricaoTextarea ? descricaoTextarea.value.trim() : '',
             fornecedor: fornecedorInput ? fornecedorInput.value.trim() : '',
             ativo: true
         };
         
-        // Se tiver código, adicionar
+        // 3. Adicionar dados da imagem se existirem
+        if (dadosImagem) {
+            Object.assign(dadosProduto, dadosImagem);
+        } else {
+            // Se não houver imagem, definir como sem imagem
+            dadosProduto.imagens = {
+                principal: '/images/sem-foto.png',
+                thumbnail: '/images/sem-foto.png',
+                medium: '/images/sem-foto.png',
+                provider: 'local'
+            };
+        }
+        
+        // 4. Se tiver código, adicionar
         if (codigoInput && codigoInput.value.trim()) {
             dadosProduto.codigo = codigoInput.value.trim();
         }
         
         const produtoId = produtoIdInput.value;
         
+        // 5. Salvar ou atualizar produto
         if (produtoId) {
             // Atualizar produto existente
             await lojaServices.atualizarProduto(produtoId, dadosProduto);
@@ -740,12 +1008,21 @@ async function salvarProduto(e) {
             mostrarMensagem('Produto cadastrado com sucesso!', 'success');
         }
         
-        // Fechar modal
+        // 6. Limpar variáveis de imagem
+        imagemAtual = null;
+        imagemUploadResult = null;
+        
+        // 7. Fechar modal
         if (modalProduto) {
             modalProduto.style.display = 'none';
         }
         
-        // Recarregar dados
+        // 8. Limpar formulário
+        if (formProduto) {
+            formProduto.reset();
+        }
+        
+        // 9. Recarregar dados
         await carregarDadosIniciais();
         
     } catch (error) {
@@ -977,6 +1254,21 @@ function configurarEventos() {
         });
     }
     
+    // Eventos de imagem
+    inicializarUploadImagem();
+    
+    // Botões do preview de imagem
+    const btnChange = document.querySelector('.btn-change');
+    const btnRemove = document.querySelector('.btn-remove');
+    
+    if (btnChange) {
+        btnChange.addEventListener('click', trocarImagem);
+    }
+    
+    if (btnRemove) {
+        btnRemove.addEventListener('click', removerImagem);
+    }
+    
     console.log("✅ Eventos configurados com sucesso");
 }
 
@@ -1140,6 +1432,240 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             display: flex;
             justify-content: center;
             gap: 5px;
+        }
+
+
+                /* ESTILOS PARA IMAGENS (ADICIONE ESTE BLOCO) */
+        .form-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .form-section h4 {
+            margin-top: 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .image-upload-container {
+            margin-top: 15px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area:hover {
+            border-color: #3498db;
+            background: #f8f9fa;
+        }
+        
+        .upload-area.dragover {
+            border-color: #27ae60;
+            background: #f0fff4;
+        }
+        
+        .upload-content i {
+            font-size: 2.5rem;
+            color: #7f8c8d;
+            margin-bottom: 10px;
+        }
+        
+        .upload-content h5 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+            font-size: 1.1rem;
+        }
+        
+        .upload-content p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .upload-content small {
+            color: #95a5a6;
+            font-size: 0.85rem;
+        }
+        
+        .drag-preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(52, 152, 219, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .drag-preview img {
+            max-width: 80px;
+            max-height: 80px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 2px solid white;
+        }
+        
+        .drag-preview p {
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .image-preview {
+            margin-top: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .preview-container {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        
+        .preview-container img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .preview-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            justify-content: center;
+        }
+        
+        .preview-overlay button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        
+        .btn-change {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-change:hover {
+            background: #2980b9;
+        }
+        
+        .btn-remove {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-remove:hover {
+            background: #c0392b;
+        }
+        
+        .image-info {
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .info-row .label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .status-pending {
+            color: #f39c12;
+            font-weight: 600;
+        }
+        
+        .status-success {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        
+        .status-error {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        
+        .upload-progress {
+            margin-top: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .image-tips {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #fff9e6;
+            border-radius: 6px;
+            border-left: 4px solid #f39c12;
+            font-size: 0.9rem;
+            color: #7d6608;
+        }
+        
+        .image-tips i {
+            color: #f39c12;
+            margin-right: 5px;
         }
         
         /* Estilos para o formulário no modal */
@@ -1313,6 +1839,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
