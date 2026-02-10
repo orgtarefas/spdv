@@ -3,7 +3,7 @@ const LOJAS_CONFIG = {
 
     // Loja 0: Template de Demonstração
     'template-exibicao': {
-        banco_estoque: 'estoque_template_exibicao'',
+        banco_estoque: 'estoque_template_exibicao',
         banco_vendas: 'vendas_template_exibicao'
     }
     
@@ -46,4 +46,5 @@ function getLojaConfig(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig };
 
 console.log('✅ lojas.js carregado:', Object.keys(LOJAS_CONFIG).length, 'lojas configuradas');
+
 
