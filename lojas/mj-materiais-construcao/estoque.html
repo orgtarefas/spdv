@@ -197,14 +197,14 @@
                             <small class="form-hint">Como o produto é vendido (pacote, caixa, unidade)</small>
                         </div>
                     </div>
-                    
                     <!-- SEÇÃO: Unidade com valor (ex: 175 g) -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="valor_unidade">Unidade com Valor (ex: 175 g)</label>
+                            <label for="valor_unidade">Valor por Unidade (ex: 175 g)</label>
                             <div class="input-with-unit">
-                                <input type="number" id="valor_unidade" step="0.001" min="0" placeholder="0.000">
+                                <input type="number" id="valor_unidade" step="any" min="0" placeholder="Ex: 175">
                                 <select id="tipo_unidade" class="unit-select">
+                                    <option value="unid" selected="">Unidades (unid)</option>
                                     <option value="kg">Quilogramas (kg)</option>
                                     <option value="g">Gramas (g)</option>
                                     <option value="ton">Toneladas (t)</option>
@@ -214,7 +214,6 @@
                                     <option value="cm">Centímetros (cm)</option>
                                     <option value="m2">Metros² (m²)</option>
                                     <option value="m3">Metros³ (m³)</option>
-                                    <option value="unid" selected>Unidades (unid)</option>
                                 </select>
                             </div>
                             <small class="form-hint">Ex: 175 g, 1.5 L, 2.5 m, 1 unid (por pacote/caixa)</small>
@@ -365,5 +364,6 @@
     <script type="module" src="estoque.js"></script>
 </body>
 </html>
+
 
 
