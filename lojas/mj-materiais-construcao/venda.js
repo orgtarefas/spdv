@@ -129,7 +129,7 @@ function renderizarResultadosBusca(produtos) {
                     <div class="product-result-header">
                         <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
                         <span class="product-stock ${estoqueBaixo ? 'low' : 'normal'}">
-                            ${produto.quantidade} ${produto.unidade_venda || produto.unidade || 'UN'}
+                            ${formatarQuantidadeComUnidade(produto)}
                         </span>
                     </div>
                     
@@ -525,7 +525,7 @@ function exibirProdutos(produtos) {
                 <div class="product-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
                     <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
-                        ${produto.quantidade} ${produto.unidade_venda || produto.unidade || 'UN'}
+                        ${formatarQuantidadeComUnidade(produto)}
                     </span>
                 </div>
                 
@@ -719,6 +719,9 @@ function atualizarCarrinho() {
                     <div class="cart-item-details">
                         <span>Código: ${item.codigo || 'N/A'}</span>
                         <span>Preço: ${formatarMoeda(item.preco_unitario)}</span>
+                        <span class="produto-unidade">
+                            ${item.quantidade} ${item.unidade} - ${item.valor_unidade || 1}${item.tipo_unidade || ''}
+                        </span>
                     </div>
                 </div>
                 <div class="cart-item-controls">
@@ -1007,6 +1010,57 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 
 console.log("✅ Sistema de vendas PDV com imagens carregado!");
 
+// ============================================
+// FORMATAR QUANTIDADE COM VALOR DA UNIDADE
+// ============================================
+function formatarQuantidadeComUnidade(produto) {
+    if (!produto) return '0 UN';
+    
+    const quantidade = produto.quantidade || 0;
+    const unidadeVenda = produto.unidade_venda || produto.unidade || 'UN';
+    
+    // Verificar se tem valor por unidade (peso, medida, etc)
+    const valorUnidade = produto.valor_unidade || produto.peso_por_unidade || 1;
+    const tipoUnidade = produto.tipo_unidade || produto.unidade_peso || '';
+    
+    // Se o valor da unidade for 1, não precisa exibir (é unidade padrão)
+    if (valorUnidade === 1 || !tipoUnidade) {
+        return `${quantidade} ${unidadeVenda}`;
+    }
+    
+    // Formatar o valor (remover .0 se for inteiro)
+    const valorFormatado = valorUnidade % 1 === 0 
+        ? valorUnidade 
+        : valorUnidade.toFixed(1).replace(/\.0$/, '');
+    
+    // Abreviações comuns
+    const abreviacoes = {
+        'unidade': 'unid',
+        'unid': 'unid',
+        'quilograma': 'kg',
+        'kg': 'kg',
+        'grama': 'g',
+        'g': 'g',
+        'tonelada': 't',
+        'ton': 't',
+        'litro': 'L',
+        'l': 'L',
+        'mililitro': 'mL',
+        'ml': 'mL',
+        'metro': 'm',
+        'm': 'm',
+        'centimetro': 'cm',
+        'cm': 'cm',
+        'metro_quadrado': 'm²',
+        'm2': 'm²',
+        'metro_cubico': 'm³',
+        'm3': 'm³'
+    };
+    
+    const unidadeAbreviada = abreviacoes[tipoUnidade.toLowerCase()] || tipoUnidade;
+    
+    return `${quantidade} ${unidadeVenda} - ${valorFormatado}${unidadeAbreviada}`;
+}
 
 // ============================================
 // CLASSE: ServicosAvancadosPDV
@@ -1890,4 +1944,5 @@ const servicosAvancados = new ServicosAvancadosPDV(vendaManager);
 window.servicosAvancados = servicosAvancados;
 
 console.log("✅ Serviços avançados do PDV carregados!");
+
 
