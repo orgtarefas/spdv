@@ -1749,13 +1749,18 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             overflow: hidden;
             border: 1px solid #dee2e6;
             margin-top: 8px;
-            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
         }
         
         .dropdown-content.show {
-            display: block !important;
-            animation: fadeInUp 0.2s ease;
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
         }
+                
         
         .dropdown-header {
             padding: 15px;
@@ -2510,4 +2515,5 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
