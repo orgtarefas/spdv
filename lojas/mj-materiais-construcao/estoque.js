@@ -544,7 +544,8 @@ function renderizarProdutos() {
                     <div class="produto-imagem-grande-container">
                         <img src="${imagemThumb}" 
                              alt="${produto.nome || 'Produto'}"
-                             class="produto-imagem-grande">
+                             class="produto-imagem-grande"
+                             onerror="this.src='${IMAGEM_PADRAO_BASE64}'">
                     </div>
                 </td>
                 
@@ -606,7 +607,7 @@ function renderizarProdutos() {
                 <!-- COLUNA: Ações com dropdown -->
                 <td class="acoes-cell">
                     <div class="acoes-dropdown">
-                        <button class="btn-acao-menu" title="Ações">
+                        <button class="btn-acao-menu" title="Ações" data-id="${produto.id}">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                         <div class="dropdown-content">
@@ -640,6 +641,11 @@ function renderizarProdutos() {
     }
     
     adicionarEventosBotoes();
+    
+    // Configurar eventos do dropdown após renderizar
+    setTimeout(() => {
+        configurarDropdownAcoes();
+    }, 100);
 }
 
 // ============================================
@@ -647,40 +653,45 @@ function renderizarProdutos() {
 // ============================================
 function adicionarEventosBotoes() {
     // Botões do dropdown
-    document.querySelectorAll('.btn-editar').forEach(btn => {
+    document.querySelectorAll('.dropdown-item.btn-editar').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const produtoId = this.getAttribute('data-id');
+            fecharTodosDropdowns();
             abrirModalEditar(produtoId);
         });
     });
     
-    document.querySelectorAll('.btn-ativar, .btn-desativar').forEach(btn => {
+    document.querySelectorAll('.dropdown-item.btn-ativar, .dropdown-item.btn-desativar').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
             if (produto) {
+                fecharTodosDropdowns();
                 alterarStatusProduto(produto);
             }
         });
     });
     
-    document.querySelectorAll('.btn-entrada').forEach(btn => {
+    document.querySelectorAll('.dropdown-item.btn-entrada').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
             if (produto) {
+                fecharTodosDropdowns();
                 abrirModalEntradaEstoque(produto);
             }
         });
     });
     
-    document.querySelectorAll('.btn-excluir').forEach(btn => {
+    document.querySelectorAll('.dropdown-item.btn-excluir').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             e.preventDefault();
+            
+            fecharTodosDropdowns();
             
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
@@ -716,19 +727,12 @@ function adicionarEventosBotoes() {
             excluirProduto(produto);
         });
     });
-    
-    // Fechar dropdown quando clicar fora
-    document.addEventListener('click', function() {
-        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
-            dropdown.style.display = 'none';
-        });
-    });
-    
-    // Prevenir fechamento quando clicar dentro do dropdown
-    document.querySelectorAll('.acoes-dropdown').forEach(dropdown => {
-        dropdown.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
+}
+
+// Função utilitária para fechar dropdowns
+function fecharTodosDropdowns() {
+    document.querySelectorAll('.dropdown-content').forEach(dd => {
+        dd.style.display = 'none';
     });
 }
 
@@ -1337,6 +1341,8 @@ function configurarEventos() {
     if (btnRemove) {
         btnRemove.addEventListener('click', removerImagem);
     }
+
+    configurarDropdownAcoes();
     
     console.log("✅ Eventos configurados com sucesso");
 }
@@ -1349,6 +1355,48 @@ function formatarMoeda(valor) {
     return numero.toLocaleString('pt-BR', {
         style: 'currency',
         currency: 'BRL'
+    });
+}
+
+// Função nova para configurar o dropdown
+function configurarDropdownAcoes() {
+    // Abrir/fechar dropdown ao clicar no botão de menu
+    document.addEventListener('click', function(e) {
+        const btnMenu = e.target.closest('.btn-acao-menu');
+        const dropdown = e.target.closest('.dropdown-content');
+        
+        // Fechar todos os dropdowns abertos
+        document.querySelectorAll('.dropdown-content').forEach(dd => {
+            if (dd !== dropdown && !dd.parentElement.contains(e.target)) {
+                dd.style.display = 'none';
+            }
+        });
+        
+        // Abrir dropdown do botão clicado
+        if (btnMenu) {
+            e.stopPropagation();
+            const dropdownContent = btnMenu.nextElementSibling;
+            if (dropdownContent && dropdownContent.classList.contains('dropdown-content')) {
+                const isVisible = dropdownContent.style.display === 'block';
+                dropdownContent.style.display = isVisible ? 'none' : 'block';
+            }
+        }
+    });
+    
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.acoes-dropdown')) {
+            document.querySelectorAll('.dropdown-content').forEach(dd => {
+                dd.style.display = 'none';
+            });
+        }
+    });
+    
+    // Prevenir fechamento quando clicar dentro do dropdown
+    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
     });
 }
 
@@ -1513,7 +1561,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             display: block;
         }
         
-        /* Estilos para dropdown de ações */
+        /* Estilos para dropdown de ações COM CLIQUE E HOVER */
         .acoes-cell {
             width: 70px;
             text-align: center;
@@ -1548,6 +1596,13 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
         }
         
+        .btn-acao-menu.active {
+            background-color: #3498db;
+            border-color: #3498db;
+            color: white;
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+        }
+        
         .dropdown-content {
             display: none;
             position: absolute;
@@ -1563,7 +1618,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             margin-top: 8px;
         }
         
-        .acoes-dropdown:hover .dropdown-content {
+        /* Funciona com hover E quando tem classe active (para clique) */
+        .acoes-dropdown:hover .dropdown-content,
+        .acoes-dropdown.active .dropdown-content {
             display: block;
             animation: fadeInUp 0.2s ease;
         }
@@ -1975,6 +2032,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         .nome-cell {
             min-width: 200px;
             max-width: 250px;
+            white-space: normal;
         }
         
         .produto-info {
@@ -2136,6 +2194,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             
             .dropdown-content {
                 min-width: 160px;
+                right: -10px;
             }
             
             .dropdown-item {
@@ -2150,11 +2209,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         }
     `;
     document.head.appendChild(estiloBadge);
-    
-    // Adicionar também a constante IMAGEM_PADRAO_BASE64
-    if (!window.IMAGEM_PADRAO_BASE64) {
-        window.IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNMzUgMzVMMzUgMzVMNjUgNjVNNjUgMzVMMzUgNjUiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODIiIGZvbnQtZmFtaWxseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NWE1OTYiIGZvbnQtd2VpZ2h0PSI1MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNFTUZPVE88L3RleHQ+Cjwvc3ZnPg==";
-    }
 })();
 
 // ============================================
@@ -2164,4 +2218,5 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
