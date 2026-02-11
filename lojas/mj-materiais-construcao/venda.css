@@ -422,6 +422,191 @@ body {
     opacity: 0.3;
 }
 
+
+/* ESTILOS PARA IMAGENS NO MODAL DE BUSCA */
+.search-results .results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 5px;
+}
+
+.search-results .product-result {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    border: 1px solid var(--light-color);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    background: white;
+    position: relative;
+}
+
+.search-results .product-result:hover {
+    border-color: var(--secondary-color);
+    box-shadow: var(--box-shadow-hover);
+    transform: translateY(-2px);
+}
+
+/* CONTAINER DA IMAGEM - FIXO E CONSISTENTE */
+.search-results .product-image-container {
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--light-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* IMAGEM DENTRO DO CONTAINER */
+.search-results .product-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.search-results .product-result:hover .product-image-container img {
+    transform: scale(1.05);
+}
+
+/* IMAGEM QUANDO NÃO TEM FOTO (PLACEHOLDER) */
+.search-results .product-image-container img.no-image {
+    width: 60%;
+    height: 60%;
+    object-fit: contain;
+    opacity: 0.5;
+}
+
+/* CONTEÚDO DO PRODUTO */
+.search-results .product-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.search-results .product-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.search-results .product-code {
+    background: var(--light-color);
+    color: var(--gray-color);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.search-results .product-stock {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 20px;
+}
+
+.search-results .product-stock.normal {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.search-results .product-stock.low {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.search-results .product-name {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 4px;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-results .product-category {
+    font-size: 0.8rem;
+    color: var(--gray-color);
+    margin-bottom: 6px;
+}
+
+.search-results .product-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.search-results .product-price {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.search-results .product-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.search-results .btn-action {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.search-results .btn-info {
+    background: var(--info-color);
+    color: white;
+}
+
+.search-results .btn-info:hover {
+    background: #1c6ea4;
+}
+
+.search-results .btn-sell {
+    background: var(--success-color);
+    color: white;
+}
+
+.search-results .btn-sell:hover {
+    background: #219653;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .search-results .product-result {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .search-results .product-image-container {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 10px;
+    }
+    
+    .search-results .product-details {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
 /* Right Panel - Carrinho */
 .pdv-right {
     display: flex;
@@ -1277,5 +1462,6 @@ body {
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     }
 }
+
 
 
