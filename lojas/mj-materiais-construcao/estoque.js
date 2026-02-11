@@ -16,9 +16,11 @@ let searchInput, btnNovoProduto, btnRelatorioEstoque, btnRefresh, filterStatus;
 let estoqueTableBody, totalProdutosElement, totalEstoqueElement, baixoEstoqueElement, valorTotalElement;
 let currentCountElement, lastUpdateElement, userNameElement, btnLogout;
 let modalProduto, formProduto, produtoIdInput, modalTitle;
-let codigoInput, nomeInput, categoriaInput, unidadeSelect, precoCustoInput;
+let codigoInput, nomeInput, categoriaInput, unidadeVendaSelect, precoCustoInput;
 let precoInput, quantidadeInput, estoqueMinimoInput, descricaoTextarea, fornecedorInput;
-let pesoPorUnidadeInput, unidadePesoSelect, totalPesoInput, totalPesoUnidadeSpan;
+
+// NOVOS ELEMENTOS PARA UNIDADE COM VALOR
+let valorUnidadeInput, tipoUnidadeSelect, totalEstoqueUnidadeInput, totalEstoqueTipoSpan;
 
 // VARIÁVEIS PARA IMAGENS
 let imagemAtual = null;
@@ -67,9 +69,117 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // ============================================
-// GERENCIAMENTO DE IMAGENS
+// 2. INICIALIZAR ELEMENTOS DOM
 // ============================================
+function inicializarElementosDOM() {
+    console.log("🔍 Buscando elementos DOM...");
+    
+    searchInput = document.getElementById('searchInput');
+    btnNovoProduto = document.getElementById('btnNovoProduto');
+    btnRelatorioEstoque = document.getElementById('btnRelatorioEstoque');
+    btnRefresh = document.getElementById('btnRefresh');
+    filterStatus = document.getElementById('filterStatus');
+    estoqueTableBody = document.getElementById('estoqueTableBody');
+    totalProdutosElement = document.getElementById('totalProdutos');
+    totalEstoqueElement = document.getElementById('totalEstoque');
+    baixoEstoqueElement = document.getElementById('baixoEstoque');
+    valorTotalElement = document.getElementById('valorTotal');
+    currentCountElement = document.getElementById('currentCount');
+    lastUpdateElement = document.getElementById('lastUpdate');
+    userNameElement = document.getElementById('userName');
+    btnLogout = document.getElementById('btnLogout');
+    
+    modalProduto = document.getElementById('modalProduto');
+    formProduto = document.getElementById('formProduto');
+    produtoIdInput = document.getElementById('produtoId');
+    modalTitle = document.getElementById('modalTitle');
+    
+    codigoInput = document.getElementById('codigo');
+    nomeInput = document.getElementById('nome');
+    categoriaInput = document.getElementById('categoria');
+    unidadeVendaSelect = document.getElementById('unidade_venda');
+    precoCustoInput = document.getElementById('preco_custo');
+    precoInput = document.getElementById('preco');
+    quantidadeInput = document.getElementById('quantidade');
+    estoqueMinimoInput = document.getElementById('estoque_minimo');
+    descricaoTextarea = document.getElementById('descricao');
+    fornecedorInput = document.getElementById('fornecedor');
+    
+    // NOVOS ELEMENTOS PARA UNIDADE COM VALOR
+    valorUnidadeInput = document.getElementById('valor_unidade');
+    tipoUnidadeSelect = document.getElementById('tipo_unidade');
+    totalEstoqueUnidadeInput = document.getElementById('total_estoque_unidade');
+    totalEstoqueTipoSpan = document.getElementById('total_estoque_tipo');
+    
+    // Elementos de imagem
+    uploadArea = document.getElementById('uploadArea');
+    fileInput = document.getElementById('imagemProduto');
+    previewImage = document.getElementById('previewImage');
+    imagePreview = document.getElementById('imagePreview');
+    
+    uploadProgress = document.getElementById('uploadProgress');
+    progressFill = document.getElementById('progressFill');
+    progressPercent = document.getElementById('progressPercent');
+    imageStatus = document.getElementById('imageStatus');
+    
+    console.log("✅ Elementos DOM inicializados");
+}
 
+// ============================================
+// 3. FUNÇÕES PARA UNIDADE COM VALOR
+// ============================================
+function calcularTotalUnidade() {
+    if (!valorUnidadeInput || !quantidadeInput || !totalEstoqueUnidadeInput || !totalEstoqueTipoSpan) {
+        return;
+    }
+    
+    const valorUnidade = parseFloat(valorUnidadeInput.value) || 0;
+    const quantidade = parseInt(quantidadeInput.value) || 0;
+    const tipoUnidade = tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid';
+    
+    const totalUnidade = valorUnidade * quantidade;
+    
+    if (totalEstoqueUnidadeInput) {
+        totalEstoqueUnidadeInput.value = totalUnidade.toFixed(2);
+    }
+    
+    if (totalEstoqueTipoSpan) {
+        totalEstoqueTipoSpan.textContent = tipoUnidade;
+    }
+}
+
+function formatarUnidadeExibicao(valor, tipo) {
+    const formatarTipo = (tipo) => {
+        const unidades = {
+            'kg': 'kg',
+            'g': 'g',
+            'ton': 't',
+            'l': 'L',
+            'ml': 'mL',
+            'm': 'm',
+            'cm': 'cm',
+            'm2': 'm²',
+            'm3': 'm³',
+            'unid': 'unid'
+        };
+        return unidades[tipo] || tipo;
+    };
+    
+    const tipoFormatado = formatarTipo(tipo);
+    
+    if (valor > 0 && tipo !== 'unid') {
+        const casasDecimais = ['kg', 'l', 'm', 'm2', 'm3', 'ton'].includes(tipo) ? 2 : 0;
+        return `${valor.toFixed(casasDecimais)} ${tipoFormatado}`;
+    } else if (valor > 0 && tipo === 'unid') {
+        return `${valor.toFixed(0)} ${tipoFormatado}`;
+    } else {
+        return '1 unid';
+    }
+}
+
+// ============================================
+// 4. GERENCIAMENTO DE IMAGENS
+// ============================================
 function inicializarUploadImagem() {
     if (!uploadArea || !fileInput) return;
     
@@ -250,81 +360,7 @@ function mostrarImagemExistente(imagens) {
 }
 
 // ============================================
-// 2. INICIALIZAR ELEMENTOS DOM
-// ============================================
-function inicializarElementosDOM() {
-    console.log("🔍 Buscando elementos DOM...");
-    
-    searchInput = document.getElementById('searchInput');
-    btnNovoProduto = document.getElementById('btnNovoProduto');
-    btnRelatorioEstoque = document.getElementById('btnRelatorioEstoque');
-    btnRefresh = document.getElementById('btnRefresh');
-    filterStatus = document.getElementById('filterStatus');
-    estoqueTableBody = document.getElementById('estoqueTableBody');
-    totalProdutosElement = document.getElementById('totalProdutos');
-    totalEstoqueElement = document.getElementById('totalEstoque');
-    baixoEstoqueElement = document.getElementById('baixoEstoque');
-    valorTotalElement = document.getElementById('valorTotal');
-    currentCountElement = document.getElementById('currentCount');
-    lastUpdateElement = document.getElementById('lastUpdate');
-    userNameElement = document.getElementById('userName');
-    btnLogout = document.getElementById('btnLogout');
-    
-    modalProduto = document.getElementById('modalProduto');
-    formProduto = document.getElementById('formProduto');
-    produtoIdInput = document.getElementById('produtoId');
-    modalTitle = document.getElementById('modalTitle');
-    
-    codigoInput = document.getElementById('codigo');
-    nomeInput = document.getElementById('nome');
-    categoriaInput = document.getElementById('categoria');
-    unidadeSelect = document.getElementById('unidade');
-    precoCustoInput = document.getElementById('preco_custo');
-    precoInput = document.getElementById('preco');
-    quantidadeInput = document.getElementById('quantidade');
-    estoqueMinimoInput = document.getElementById('estoque_minimo');
-    descricaoTextarea = document.getElementById('descricao');
-    fornecedorInput = document.getElementById('fornecedor');
-    pesoPorUnidadeInput = document.getElementById('peso_por_unidade');
-    unidadePesoSelect = document.getElementById('unidade_peso');
-    totalPesoInput = document.getElementById('total_peso');
-    totalPesoUnidadeSpan = document.getElementById('total_peso_unidade');    
-
-    uploadArea = document.getElementById('uploadArea');
-    fileInput = document.getElementById('imagemProduto');
-    previewImage = document.getElementById('previewImage');
-    imagePreview = document.getElementById('imagePreview');
-    
-    uploadProgress = document.getElementById('uploadProgress');
-    progressFill = document.getElementById('progressFill');
-    progressPercent = document.getElementById('progressPercent');
-    imageStatus = document.getElementById('imageStatus');
-    
-    console.log("✅ Elementos DOM inicializados");
-}
-
-function calcularPesoTotal() {
-    if (!pesoPorUnidadeInput || !quantidadeInput || !totalPesoInput || !totalPesoUnidadeSpan) {
-        return;
-    }
-    
-    const pesoPorUnidade = parseFloat(pesoPorUnidadeInput.value) || 0;
-    const quantidade = parseInt(quantidadeInput.value) || 0;
-    const unidadePeso = unidadePesoSelect ? unidadePesoSelect.value : 'kg';
-    
-    const pesoTotal = pesoPorUnidade * quantidade;
-    
-    if (totalPesoInput) {
-        totalPesoInput.value = pesoTotal.toFixed(2);
-    }
-    
-    if (totalPesoUnidadeSpan) {
-        totalPesoUnidadeSpan.textContent = unidadePeso;
-    }
-}
-
-// ============================================
-// 3. ATUALIZAR INTERFACE DA LOJA
+// 5. ATUALIZAR INTERFACE DA LOJA
 // ============================================
 function atualizarInterfaceLoja() {
     try {
@@ -353,7 +389,7 @@ function atualizarInterfaceLoja() {
 }
 
 // ============================================
-// 4. CARREGAR DADOS INICIAIS
+// 6. CARREGAR DADOS INICIAIS
 // ============================================
 async function carregarDadosIniciais() {
     try {
@@ -368,7 +404,7 @@ async function carregarDadosIniciais() {
 }
 
 // ============================================
-// 5. CARREGAR PRODUTOS
+// 7. CARREGAR PRODUTOS
 // ============================================
 async function carregarProdutos() {
     try {
@@ -393,7 +429,7 @@ async function carregarProdutos() {
             if (estoqueTableBody) {
                 estoqueTableBody.innerHTML = `
                     <tr>
-                        <td colspan="9" class="empty-state">
+                        <td colspan="11" class="empty-state">
                             <i class="fas fa-exclamation-triangle"></i>
                             <p>Erro ao carregar estoque</p>
                             <small>${resultado.error || 'Tente novamente mais tarde'}</small>
@@ -411,7 +447,7 @@ async function carregarProdutos() {
         if (estoqueTableBody) {
             estoqueTableBody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="empty-state">
+                    <td colspan="11" class="empty-state">
                         <i class="fas fa-exclamation-triangle"></i>
                         <p>Erro ao carregar estoque</p>
                         <small>${error.message}</small>
@@ -423,7 +459,7 @@ async function carregarProdutos() {
 }
 
 // ============================================
-// 6. CARREGAR CATEGORIAS
+// 8. CARREGAR CATEGORIAS
 // ============================================
 async function carregarCategorias() {
     try {
@@ -451,7 +487,7 @@ async function carregarCategorias() {
 }
 
 // ============================================
-// 7. RENDERIZAR PRODUTOS NA TABELA
+// 9. RENDERIZAR PRODUTOS NA TABELA
 // ============================================
 function renderizarProdutos() {
     if (!estoqueTableBody) return;
@@ -459,7 +495,7 @@ function renderizarProdutos() {
     if (produtosFiltrados.length === 0) {
         estoqueTableBody.innerHTML = `
             <tr>
-                <td colspan="9" class="empty-state">
+                <td colspan="11" class="empty-state">
                     <i class="fas fa-box-open"></i>
                     <p>Nenhum produto encontrado</p>
                     <small>${produtos.length === 0 ? 'Cadastre o primeiro produto' : 'Tente outro filtro'}</small>
@@ -482,55 +518,36 @@ function renderizarProdutos() {
         const statusText = !produto.ativo ? 'Inativo' : 
                           produto.quantidade <= produto.estoque_minimo ? 'Baixo' : 'Ativo';
         
-        const pesoPorUnidade = produto.peso_por_unidade || 0;
-        const unidadeMedida = produto.unidade_peso || 'und';
+        // Dados da unidade (mantendo compatibilidade com dados antigos)
+        const valorUnidade = produto.peso_por_unidade || produto.valor_unidade || 0;
+        const tipoUnidade = produto.unidade_peso || produto.tipo_unidade || 'unid';
         const quantidade = produto.quantidade || 0;
         
-        let pesoInfoHtml = '';
-        if (pesoPorUnidade > 0 && unidadeMedida !== 'und') {
-            const totalMedida = pesoPorUnidade * quantidade;
-            
-            const formatarUnidade = (unidade) => {
-                const unidades = {
-                    'kg': 'kg',
-                    'g': 'g',
-                    'ton': 't',
-                    'l': 'L',
-                    'ml': 'mL',
-                    'm': 'm',
-                    'cm': 'cm',
-                    'm2': 'm²',
-                    'm3': 'm³',
-                    'und': 'und'
-                };
-                return unidades[unidade] || unidade;
-            };
-            
-            const casasDecimais = ['kg', 'l', 'm'].includes(unidadeMedida) ? 2 : 
-                                  ['g', 'ml', 'cm'].includes(unidadeMedida) ? 0 : 
-                                  ['ton', 'm2', 'm3'].includes(unidadeMedida) ? 3 : 2;
-            
-            const unidadeFormatada = formatarUnidade(unidadeMedida);
-            const pesoFormatado = pesoPorUnidade.toFixed(casasDecimais);
-            const totalFormatado = totalMedida.toFixed(casasDecimais);
-            
-            pesoInfoHtml = `
-                <br>
-                <div class="peso-info">
-                    <small class="text-info">
-                        <i class="fas fa-weight-hanging"></i> 
-                        ${pesoFormatado} ${unidadeFormatada}/unid
-                        <span class="peso-total">
-                            (Total: ${totalFormatado} ${unidadeFormatada})
-                        </span>
-                    </small>
-                </div>
-            `;
-        }
+        // URL da imagem
+        const imagemUrl = produto.imagens?.principal || '/images/sem-foto.png';
+        const imagemThumb = produto.imagens?.thumbnail || produto.imagens?.principal || '/images/sem-foto.png';
+        
+        // Formatar a unidade para exibição
+        const unidadeDisplay = formatarUnidadeExibicao(valorUnidade, tipoUnidade);
+        
+        // Calcular total
+        const totalUnidade = valorUnidade * quantidade;
+        const totalDisplay = totalUnidade > 0 ? formatarUnidadeExibicao(totalUnidade, tipoUnidade) : '';
         
         html += `
             <tr data-id="${produto.id}">
+                <!-- COLUNA: Imagem -->
+                <td class="imagem-cell">
+                    <div class="produto-imagem-container">
+                        <img src="${imagemThumb}" 
+                             alt="${produto.nome || 'Produto'}"
+                             class="produto-imagem"
+                             onerror="this.src='/images/sem-foto.png'">
+                    </div>
+                </td>
+                
                 <td class="codigo-cell">${produto.codigo || 'N/A'}</td>
+                
                 <td class="nome-cell">
                     <div class="produto-info">
                         <strong class="produto-nome">${produto.nome || 'Produto sem nome'}</strong>
@@ -539,23 +556,42 @@ function renderizarProdutos() {
                                 <small class="text-muted">${produto.descricao.substring(0, 60)}${produto.descricao.length > 60 ? '...' : ''}</small>
                             </div>
                         ` : ''}
-                        ${pesoInfoHtml}
                     </div>
                 </td>
+                
                 <td class="categoria-cell">
                     <span class="categoria-badge">${produto.categoria || 'Sem categoria'}</span>
                 </td>
+                
+                <!-- COLUNA: Unidade com valor (ex: 175 g) -->
+                <td class="unidade-cell">
+                    <div class="unidade-info">
+                        <span class="unidade-valor">${unidadeDisplay}</span>
+                        ${totalUnidade > 0 && tipoUnidade !== 'unid' ? `
+                            <div class="unidade-total">
+                                <small class="text-muted">
+                                    <i class="fas fa-calculator"></i>
+                                    Total: ${totalDisplay}
+                                </small>
+                            </div>
+                        ` : ''}
+                    </div>
+                </td>
+                
                 <td class="estoque-cell">
                     <div class="estoque-info">
                         <strong class="estoque-quantidade">${quantidade.toLocaleString('pt-BR')}</strong>
-                        <span class="estoque-unidade">${produto.unidade || 'UN'}</span>
+                        <span class="estoque-unidade">${produto.unidade_venda || produto.unidade || 'UN'}</span>
                     </div>
                 </td>
+                
                 <td class="minimo-cell">${produto.estoque_minimo || 5}</td>
                 <td class="custo-cell">${formatarMoeda(produto.preco_custo || 0)}</td>
+                
                 <td class="venda-cell">
                     <strong class="preco-venda">${formatarMoeda(produto.preco || 0)}</strong>
                 </td>
+                
                 <td class="status-cell">
                     <span class="status-badge ${statusClass}">
                         <i class="status-icon ${statusClass === 'status-ativo' ? 'fas fa-check-circle' : 
@@ -564,6 +600,7 @@ function renderizarProdutos() {
                         ${statusText}
                     </span>
                 </td>
+                
                 <td class="acoes-cell">
                     <div class="acoes-container">
                         <button class="btn-acao btn-editar" title="Editar produto" data-id="${produto.id}">
@@ -602,7 +639,7 @@ function renderizarProdutos() {
 }
 
 // ============================================
-// 8. ADICIONAR EVENTOS AOS BOTÕES
+// 10. ADICIONAR EVENTOS AOS BOTÕES
 // ============================================
 function adicionarEventosBotoes() {
     document.querySelectorAll('.btn-editar').forEach(btn => {
@@ -674,7 +711,7 @@ function adicionarEventosBotoes() {
 }
 
 // ============================================
-// 9. FILTRAR PRODUTOS
+// 11. FILTRAR PRODUTOS
 // ============================================
 function filtrarProdutos() {
     if (!searchInput || !filterStatus) return;
@@ -713,7 +750,7 @@ function filtrarProdutos() {
 }
 
 // ============================================
-// 10. ATUALIZAR ESTATÍSTICAS
+// 12. ATUALIZAR ESTATÍSTICAS
 // ============================================
 function atualizarEstatisticas() {
     if (!totalProdutosElement || !totalEstoqueElement || 
@@ -746,7 +783,7 @@ function atualizarEstatisticas() {
 }
 
 // ============================================
-// 11. MODAL - NOVO PRODUTO
+// 13. MODAL - NOVO PRODUTO
 // ============================================
 function abrirModalNovoProduto() {
     if (!produtoIdInput || !modalTitle || !formProduto) {
@@ -776,10 +813,16 @@ function abrirModalNovoProduto() {
         categoriaInput.value = '';
     }
     
+    // Configurar valores padrão
     if (quantidadeInput) quantidadeInput.value = '0';
     if (estoqueMinimoInput) estoqueMinimoInput.value = '5';
     if (precoCustoInput) precoCustoInput.value = '0.00';
     if (precoInput) precoInput.value = '0.00';
+    if (valorUnidadeInput) valorUnidadeInput.value = '1';
+    if (tipoUnidadeSelect) tipoUnidadeSelect.value = 'unid';
+    
+    // Calcular total inicial
+    calcularTotalUnidade();
     
     removerImagem();
     
@@ -789,7 +832,7 @@ function abrirModalNovoProduto() {
 }
 
 // ============================================
-// 12. MODAL - EDITAR PRODUTO
+// 14. MODAL - EDITAR PRODUTO
 // ============================================
 async function abrirModalEditar(produtoId) {
     try {
@@ -806,10 +849,11 @@ async function abrirModalEditar(produtoId) {
             if (codigoInput) codigoInput.value = produto.codigo || '';
             if (nomeInput) nomeInput.value = produto.nome || '';
             if (categoriaInput) categoriaInput.value = produto.categoria || '';
-            if (unidadeSelect) unidadeSelect.value = produto.unidade || 'UN';
+            if (unidadeVendaSelect) unidadeVendaSelect.value = produto.unidade_venda || produto.unidade || 'UN';
             
-            if (pesoPorUnidadeInput) pesoPorUnidadeInput.value = produto.peso_por_unidade || 0;
-            if (unidadePesoSelect) unidadePesoSelect.value = produto.unidade_peso || 'kg';
+            // Carregar valores da unidade (compatibilidade com dados antigos)
+            if (valorUnidadeInput) valorUnidadeInput.value = produto.peso_por_unidade || produto.valor_unidade || 0;
+            if (tipoUnidadeSelect) tipoUnidadeSelect.value = produto.unidade_peso || produto.tipo_unidade || 'unid';
             
             if (precoCustoInput) precoCustoInput.value = produto.preco_custo || 0;
             if (precoInput) precoInput.value = produto.preco || 0;
@@ -818,8 +862,10 @@ async function abrirModalEditar(produtoId) {
             if (descricaoTextarea) descricaoTextarea.value = produto.descricao || '';
             if (fornecedorInput) fornecedorInput.value = produto.fornecedor || '';
             
-            calcularPesoTotal();
+            // Calcular total
+            calcularTotalUnidade();
 
+            // Carregar imagem se existir
             if (produto.imagens && produto.imagens.principal) {
                 mostrarImagemExistente(produto.imagens);
             } else {
@@ -843,7 +889,7 @@ async function abrirModalEditar(produtoId) {
 }
 
 // ============================================
-// 13. SALVAR PRODUTO
+// 15. SALVAR PRODUTO
 // ============================================
 async function salvarProduto(e) {
     e.preventDefault();
@@ -933,9 +979,13 @@ async function salvarProduto(e) {
         const dadosProduto = {
             nome: nomeInput.value.trim(),
             categoria: categoriaInput ? categoriaInput.value.trim() : 'Sem Categoria',
-            unidade: unidadeSelect ? unidadeSelect.value : 'UN',
-            peso_por_unidade: pesoPorUnidadeInput ? parseFloat(pesoPorUnidadeInput.value) || 0 : 0,
-            unidade_peso: unidadePesoSelect ? unidadePesoSelect.value : 'kg',
+            unidade_venda: unidadeVendaSelect ? unidadeVendaSelect.value : 'UN',
+            // Novos campos para unidade com valor
+            valor_unidade: valorUnidadeInput ? parseFloat(valorUnidadeInput.value) || 0 : 0,
+            tipo_unidade: tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid',
+            // Campos antigos para compatibilidade
+            peso_por_unidade: valorUnidadeInput ? parseFloat(valorUnidadeInput.value) || 0 : 0,
+            unidade_peso: tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid',
             preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value.replace(',', '.')) || 0 : 0,
             preco: precoInput ? parseFloat(precoInput.value.replace(',', '.')) || 0 : 0,
             quantidade: quantidade,
@@ -956,12 +1006,13 @@ async function salvarProduto(e) {
             dadosProduto.codigo = `${prefixo}-${Date.now().toString().slice(-8)}`;
         }
         
-        Object.assign(dadosProduto, dadosImagem);
-        
-        if (dadosProduto.peso_por_unidade > 0 && dadosProduto.quantidade > 0) {
-            dadosProduto.peso_total = dadosProduto.peso_por_unidade * dadosProduto.quantidade;
-            dadosProduto.unidade_peso_total = dadosProduto.unidade_peso;
+        // Calcular total da unidade para exibição
+        if (dadosProduto.valor_unidade > 0 && dadosProduto.quantidade > 0) {
+            dadosProduto.total_unidade = dadosProduto.valor_unidade * dadosProduto.quantidade;
+            dadosProduto.tipo_unidade_total = dadosProduto.tipo_unidade;
         }
+        
+        Object.assign(dadosProduto, dadosImagem);
         
         if (dadosProduto.preco <= 0) {
             throw new Error('O preço de venda deve ser maior que R$ 0,00');
@@ -1004,9 +1055,9 @@ async function salvarProduto(e) {
             if (estoqueMinimoInput) estoqueMinimoInput.value = '5';
             if (precoCustoInput) precoCustoInput.value = '0.00';
             if (precoInput) precoInput.value = '0.00';
-            if (pesoPorUnidadeInput) pesoPorUnidadeInput.value = '0';
-            if (unidadePesoSelect) unidadePesoSelect.value = 'kg';
-            calcularPesoTotal();
+            if (valorUnidadeInput) valorUnidadeInput.value = '1';
+            if (tipoUnidadeSelect) tipoUnidadeSelect.value = 'unid';
+            calcularTotalUnidade();
         }
         
         removerImagem();
@@ -1043,7 +1094,7 @@ async function salvarProduto(e) {
 }
 
 // ============================================
-// 14. ALTERAR STATUS DO PRODUTO
+// 16. ALTERAR STATUS DO PRODUTO
 // ============================================
 async function alterarStatusProduto(produto) {
     if (!produto) return;
@@ -1078,14 +1129,15 @@ async function alterarStatusProduto(produto) {
 }
 
 // ============================================
-// 15. ENTRADA DE ESTOQUE
+// 17. ENTRADA DE ESTOQUE
 // ============================================
 async function abrirModalEntradaEstoque(produto) {
     if (!produto) return;
     
     const promptText = `Entrada de estoque para: ${produto.nome}\n\n` +
-        `Estoque atual: ${produto.quantidade || 0} ${produto.unidade || 'UN'}\n` +
-        `${produto.peso_por_unidade > 0 ? `Peso/unidade: ${produto.peso_por_unidade} ${produto.unidade_peso || 'kg'}\n` : ''}\n` +
+        `Estoque atual: ${produto.quantidade || 0} ${produto.unidade_venda || produto.unidade || 'UN'}\n` +
+        `${(produto.valor_unidade || produto.peso_por_unidade) > 0 ? 
+            `Unidade: ${formatarUnidadeExibicao(produto.valor_unidade || produto.peso_por_unidade, produto.tipo_unidade || produto.unidade_peso || 'unid')}\n` : ''}` +
         `Digite:\n` +
         `• Número positivo para ADICIONAR estoque\n` +
         `• Número negativo para REMOVER estoque\n` +
@@ -1142,7 +1194,7 @@ async function abrirModalEntradaEstoque(produto) {
 }
 
 // ============================================
-// 16. EXCLUIR PRODUTO
+// 18. EXCLUIR PRODUTO
 // ============================================
 async function excluirProduto(produto) {
     if (!produto) return;
@@ -1170,7 +1222,7 @@ async function excluirProduto(produto) {
 }
 
 // ============================================
-// 17. CONFIGURAR EVENTOS
+// 19. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
     console.log("⚙️ Configurando eventos...");
@@ -1235,17 +1287,19 @@ function configurarEventos() {
         });
     }
 
+    // Eventos para cálculo automático da unidade
     if (quantidadeInput) {
-        quantidadeInput.addEventListener('input', calcularPesoTotal);
+        quantidadeInput.addEventListener('input', calcularTotalUnidade);
     }
-    if (pesoPorUnidadeInput) {
-        pesoPorUnidadeInput.addEventListener('input', calcularPesoTotal);
+    if (valorUnidadeInput) {
+        valorUnidadeInput.addEventListener('input', calcularTotalUnidade);
     }
-    if (unidadePesoSelect) {
-        unidadePesoSelect.addEventListener('change', function() {
-            if (totalPesoUnidadeSpan) {
-                totalPesoUnidadeSpan.textContent = this.value;
+    if (tipoUnidadeSelect) {
+        tipoUnidadeSelect.addEventListener('change', function() {
+            if (totalEstoqueTipoSpan) {
+                totalEstoqueTipoSpan.textContent = this.value;
             }
+            calcularTotalUnidade();
         });
     }
     
@@ -1266,7 +1320,7 @@ function configurarEventos() {
 }
 
 // ============================================
-// 18. FUNÇÕES UTILITÁRIAS
+// 20. FUNÇÕES UTILITÁRIAS
 // ============================================
 function formatarMoeda(valor) {
     const numero = parseFloat(valor) || 0;
@@ -1342,7 +1396,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 // ============================================
-// 19. ESTILOS DINÂMICOS
+// 21. ESTILOS DINÂMICOS
 // ============================================
 (function adicionarEstilos() {
     const estiloBadge = document.createElement('style');
@@ -1417,6 +1471,56 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             display: flex;
             justify-content: center;
             gap: 5px;
+        }
+
+        /* Estilos para a coluna de imagem */
+        .imagem-cell {
+            width: 60px;
+            padding: 8px;
+        }
+        
+        .produto-imagem-container {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+        }
+        
+        .produto-imagem {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Estilos para a coluna de unidade */
+        .unidade-cell {
+            min-width: 100px;
+        }
+        
+        .unidade-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .unidade-valor {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95rem;
+        }
+        
+        .unidade-total small {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+        
+        .unidade-total i {
+            margin-right: 4px;
         }
 
         .form-section {
@@ -1660,6 +1764,30 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
         }
         
+        .input-with-unit {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .input-with-unit input {
+            flex: 1;
+        }
+        
+        .unit-select {
+            width: 120px;
+        }
+        
+        .input-readonly {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .input-readonly input {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
+        
         .input-with-icon {
             position: relative;
         }
@@ -1742,16 +1870,24 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             .estoque-table td {
                 padding: 0.5rem;
             }
+            
+            .imagem-cell {
+                display: none;
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
     `;
     document.head.appendChild(estiloBadge);
 })();
 
 // ============================================
-// 20. EXPORTAÇÃO PARA ESCOPO GLOBAL
+// 22. EXPORTAÇÃO PARA ESCOPO GLOBAL
 // ============================================
 window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
-window.calcularPesoTotal = calcularPesoTotal;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
