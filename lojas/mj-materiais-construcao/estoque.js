@@ -692,7 +692,7 @@ function renderizarProdutos() {
 }
 
 // ============================================
-// 10 - FUNÇÃO DE CONFIGURAÇÃO DOS DROPDOWNS (COMPLETA)
+// 10 - FUNÇÃO DE CONFIGURAÇÃO DOS DROPDOWNS
 // ============================================
 function configurarDropdowns() {
     console.log('⚙️ Configurando dropdowns...');
@@ -720,35 +720,75 @@ function configurarDropdowns() {
             document.querySelectorAll('.dropdown-content').forEach(dd => {
                 dd.style.display = 'none';
                 dd.classList.remove('show');
+                dd.style.position = '';
+                dd.style.top = '';
+                dd.style.left = '';
+                dd.style.transform = '';
+                dd.style.zIndex = '';
             });
             
             // Se não estava visível, mostrar
             if (!isVisible) {
+                // Obter posição do botão
+                const buttonRect = this.getBoundingClientRect();
+                
+                // Definir estilo fixo para garantir visibilidade
+                dropdown.style.position = 'fixed';
+                dropdown.style.zIndex = '9999';
                 dropdown.style.display = 'block';
                 dropdown.classList.add('show');
+                
+                // Posicionar o dropdown
+                const dropdownWidth = 320;
+                const dropdownHeight = 450; // Altura aproximada do dropdown
+                
+                // Calcular posição ideal
+                let topPosition = buttonRect.bottom + window.scrollY;
+                let leftPosition = buttonRect.left + window.scrollX;
+                
+                // Verificar se cabe na tela
+                if (leftPosition + dropdownWidth > window.innerWidth) {
+                    leftPosition = window.innerWidth - dropdownWidth - 10;
+                }
+                
+                if (topPosition + dropdownHeight > window.innerHeight + window.scrollY) {
+                    topPosition = buttonRect.top + window.scrollY - dropdownHeight;
+                }
+                
+                // Aplicar posição
+                dropdown.style.top = `${topPosition}px`;
+                dropdown.style.left = `${leftPosition}px`;
+                dropdown.style.transform = 'none';
+                
+                console.log('📍 Dropdown posicionado em:', { top: topPosition, left: leftPosition });
             }
         });
     });
     
-    // 2. FECHAR DROPDOWN AO CLICAR FORA (SEM DELAY - CORREÇÃO CRÍTICA)
+    // 2. FECHAR DROPDOWN AO CLICAR FORA
     document.addEventListener('click', function(e) {
         // Verificar se o clique foi fora do dropdown e do botão
         const isDropdown = e.target.closest('.dropdown-content');
         const isMenuButton = e.target.closest('.btn-acao-menu');
         
         if (!isDropdown && !isMenuButton) {
-            // FECHAR IMEDIATAMENTE - SEM DELAY
+            // FECHAR TODOS OS DROPDOWNS
             document.querySelectorAll('.dropdown-content').forEach(dd => {
                 dd.style.display = 'none';
                 dd.classList.remove('show');
+                dd.style.position = '';
+                dd.style.top = '';
+                dd.style.left = '';
+                dd.style.transform = '';
+                dd.style.zIndex = '';
             });
         }
     });
     
-    // 3. BOTÕES DE QUANTIDADE (+/-) - ADICIONAR preventDefault
+    // 3. BOTÕES DE QUANTIDADE (+/-)
     document.querySelectorAll('.btn-quantidade').forEach(btn => {
         btn.addEventListener('click', function(e) {
-            e.preventDefault(); // Adicionar esta linha
+            e.preventDefault();
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
@@ -763,7 +803,7 @@ function configurarDropdowns() {
             if (tipo === 'aumentar') {
                 valor++;
             } else {
-                valor = Math.max(1, valor - 1); // Não permite menos que 1
+                valor = Math.max(1, valor - 1);
             }
             
             // Se for saída, não pode passar do estoque atual
@@ -778,21 +818,19 @@ function configurarDropdowns() {
         });
     });
     
-    // 4. VALIDAÇÃO DO INPUT DE QUANTIDADE - ADICIONAR preventDefault
+    // 4. VALIDAÇÃO DO INPUT DE QUANTIDADE
     document.querySelectorAll('.quantidade-input').forEach(input => {
         input.addEventListener('input', function(e) {
-            e.stopPropagation(); // Adicionar esta linha
+            e.stopPropagation();
             
             let valor = parseInt(this.value) || 1;
             
-            // Não permitir valores negativos ou zero
             if (valor < 1) {
                 valor = 1;
                 this.value = valor;
                 return;
             }
             
-            // Não permitir valores muito altos
             if (valor > 9999) {
                 valor = 9999;
                 this.value = valor;
@@ -813,10 +851,10 @@ function configurarDropdowns() {
         });
     });
     
-    // 5. BOTÃO "APLICAR ENTRADA" - ADICIONAR preventDefault
+    // 5. BOTÃO "APLICAR ENTRADA"
     document.querySelectorAll('.btn-aplicar-entrada').forEach(btn => {
         btn.addEventListener('click', async function(e) {
-            e.preventDefault(); // Adicionar esta linha
+            e.preventDefault();
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
@@ -836,10 +874,10 @@ function configurarDropdowns() {
         });
     });
     
-    // 6. BOTÃO "APLICAR SAÍDA" - ADICIONAR preventDefault
+    // 6. BOTÃO "APLICAR SAÍDA"
     document.querySelectorAll('.btn-aplicar-saida').forEach(btn => {
         btn.addEventListener('click', async function(e) {
-            e.preventDefault(); // Adicionar esta linha
+            e.preventDefault();
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
@@ -859,10 +897,10 @@ function configurarDropdowns() {
         });
     });
     
-    // 7. BOTÃO "EDITAR" - ADICIONAR preventDefault
+    // 7. BOTÃO "EDITAR"
     document.querySelectorAll('.btn-editar').forEach(btn => {
         btn.addEventListener('click', function(e) {
-            e.preventDefault(); // Adicionar esta linha
+            e.preventDefault();
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
@@ -874,15 +912,15 @@ function configurarDropdowns() {
                 dropdown.classList.remove('show');
             }
             
-            // ABRIR MODAL IMEDIATAMENTE - SEM DELAY
+            // ABRIR MODAL
             abrirModalEditar(produtoId);
         });
     });
     
-    // 8. BOTÃO "EXCLUIR" - ADICIONAR preventDefault
+    // 8. BOTÃO "EXCLUIR"
     document.querySelectorAll('.btn-excluir').forEach(btn => {
         btn.addEventListener('click', async function(e) {
-            e.preventDefault(); // Adicionar esta linha
+            e.preventDefault();
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
@@ -894,7 +932,7 @@ function configurarDropdowns() {
                 dropdown.classList.remove('show');
             }
             
-            // EXCLUIR IMEDIATAMENTE - SEM DELAY
+            // EXCLUIR
             await excluirProdutoComConfirmacao(produtoId);
         });
     });
@@ -907,6 +945,84 @@ function configurarDropdowns() {
     });
     
     console.log('✅ Dropdowns configurados');
+}
+
+// ============================================
+// FUNÇÕES AUXILIARES QUE ESTÃO FALTANDO
+// ============================================
+
+async function processarEntradaEstoque(produtoId, quantidade) {
+    try {
+        mostrarLoading('Processando entrada...', 'Aguarde...');
+        
+        const produto = produtos.find(p => p.id === produtoId);
+        if (!produto) {
+            throw new Error('Produto não encontrado');
+        }
+        
+        const resultado = await lojaServices.atualizarEstoque(
+            produtoId, 
+            quantidade, 
+            'entrada'
+        );
+        
+        if (resultado.success) {
+            mostrarMensagem(`${quantidade} unidade(s) adicionada(s) ao estoque!`, 'success');
+            await carregarProdutos();
+        } else {
+            mostrarMensagem(resultado.error || 'Erro ao registrar entrada', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar entrada:', error);
+        mostrarMensagem('Erro ao processar entrada de estoque', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+async function processarSaidaEstoque(produtoId, quantidade) {
+    try {
+        mostrarLoading('Processando saída...', 'Aguarde...');
+        
+        const produto = produtos.find(p => p.id === produtoId);
+        if (!produto) {
+            throw new Error('Produto não encontrado');
+        }
+        
+        if (produto.quantidade < quantidade) {
+            mostrarMensagem(`Estoque insuficiente! Disponível: ${produto.quantidade}`, 'error');
+            return;
+        }
+        
+        const resultado = await lojaServices.atualizarEstoque(
+            produtoId, 
+            quantidade, 
+            'saida'
+        );
+        
+        if (resultado.success) {
+            mostrarMensagem(`${quantidade} unidade(s) removida(s) do estoque!`, 'warning');
+            await carregarProdutos();
+        } else {
+            mostrarMensagem(resultado.error || 'Erro ao registrar saída', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar saída:', error);
+        mostrarMensagem('Erro ao processar saída de estoque', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+async function excluirProdutoComConfirmacao(produtoId) {
+    const produto = produtos.find(p => p.id === produtoId);
+    if (!produto) return;
+    
+    if (confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?\n\nEsta ação é permanente e não pode ser desfeita!`)) {
+        await excluirProduto(produto);
+    }
 }
 
 // ============================================
@@ -1603,6 +1719,7 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
