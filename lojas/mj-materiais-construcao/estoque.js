@@ -536,24 +536,12 @@ function renderizarProdutos() {
         const tipoUnidade = produto.tipo_unidade || produto.unidade_peso || 'unid';
         const quantidade = produto.quantidade || 0;
         const unidadeVenda = produto.unidade_venda || 'UN';
-
-        // Formatar a unidade para exibição - AGORA CORRETO
-        const unidadeDisplay = formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, unidadeVenda);
-        
-        // Na tabela:
-        html += `
-            <td class="unidade-cell">
-                <div class="unidade-info">
-                    <span class="unidade-valor">${unidadeDisplay}</span>
-                </div>
-            </td>
-        `;
         
         // URL da imagem
         const imagemUrl = produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         const imagemThumb = produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         
-        // Formatar a unidade para exibição - NOVO FORMATO
+        // 🔥 CORREÇÃO: DECLARAR A VARIÁVEL UMA ÚNICA VEZ AQUI!
         const unidadeDisplay = formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, unidadeVenda);
         
         html += `
@@ -590,7 +578,7 @@ function renderizarProdutos() {
                     <span class="categoria-badge">${produto.categoria || 'Sem categoria'}</span>
                 </td>
                 
-                <!-- COLUNA 5: Unidade - AGORA COM QUANTIDADE + UNIDADE -->
+                <!-- COLUNA 5: Unidade - AGORA CORRETO -->
                 <td class="unidade-cell">
                     <div class="unidade-info">
                         <span class="unidade-valor">${unidadeDisplay}</span>
@@ -1963,6 +1951,7 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
