@@ -34,24 +34,24 @@
                 </div>
             </div>
         </header>
-
-        <!-- Main Content -->
-        <main class="content">
-            <!-- Welcome Section -->
-            <div class="welcome-section">
-                <div class="welcome-content">
-                    <h2>Bem-vindo ao <span class="loja-name" id="lojaNomeBemVindo">Sistema PDV</span></h2>
-                    <p id="currentDateTime">Carregando data e hora...</p>
-                    <div class="user-welcome">
-                        <i class="fas fa-user-circle"></i>
-                        <span id="userWelcome">Usuário</span>
-                        <span class="user-perfil" id="userPerfil"></span>
-                    </div>
-                </div>
-                <div class="welcome-icon">
-                    <i class="fas fa-chart-line"></i>
+        
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-content">
+                <h2>Bem-vindo ao <span class="loja-name" id="lojaNomeBemVindo">Sistema PDV</span></h2>
+                <p id="currentDateTime">Carregando data e hora...</p>
+                <div class="user-welcome">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userWelcome">Usuário</span>
+                    <span class="user-perfil" id="userPerfil"></span>
                 </div>
             </div>
+            <div class="welcome-icon" id="welcomeLogoContainer">
+                <!-- A imagem será inserida via JavaScript -->
+                <img id="lojaLogo" src="" alt="Logo da Loja" style="display: none; max-width: 120px; max-height: 120px; object-fit: contain;">
+                <i id="defaultWelcomeIcon" class="fas fa-chart-line"></i>
+            </div>
+        </div>
 
             <!-- Quick Actions -->
             <div class="quick-actions">
@@ -243,3 +243,4 @@
     <script type="module" src="home.js"></script>
 </body>
 </html>
+
