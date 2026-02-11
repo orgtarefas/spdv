@@ -476,6 +476,32 @@ body {
     animation: slideInRight 0.3s ease;
 }
 
+/* Estilo para o container da logo */
+.welcome-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 120px;
+    height: 120px;
+}
+
+.welcome-icon img {
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.welcome-icon img:hover {
+    transform: scale(1.05);
+}
+
+#defaultWelcomeIcon {
+    font-size: 5rem;
+    opacity: 0.2;
+    color: white;
+}
+
 @keyframes slideInRight {
     from {
         opacity: 0;
@@ -851,4 +877,5 @@ body {
 .user-perfil {
     /* Adicionado no JS */
 }
+
 
