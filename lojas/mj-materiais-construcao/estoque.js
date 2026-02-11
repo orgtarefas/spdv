@@ -498,6 +498,9 @@ async function carregarCategorias() {
 // ============================================
 // 9. RENDERIZAR PRODUTOS NA TABELA
 // ============================================
+// ============================================
+// 9. RENDERIZAR PRODUTOS NA TABELA
+// ============================================
 function renderizarProdutos() {
     if (!estoqueTableBody) return;
     
@@ -613,28 +616,50 @@ function renderizarProdutos() {
                     </button>
                 </td>
                 
-                <!-- COLUNA 10: Ações COM BOTÕES DIRETOS -->
+                <!-- COLUNA 10: Ações COM CONTADOR E BOTÕES -->
                 <td class="acoes-cell">
                     <div class="acoes-botoes" data-id="${produto.id}">
-                        <!-- ENTRADA DE ESTOQUE (+) -->
-                        <button class="btn-acao btn-entrada" title="Entrada de Estoque" data-id="${produto.id}">
-                            <i class="fas fa-plus-circle"></i>
-                        </button>
+                        <!-- CONTADOR DE ESTOQUE -->
+                        <div class="estoque-contador">
+                            <div class="contador-header">
+                                <small>Estoque</small>
+                            </div>
+                            <div class="contador-controls">
+                                <button class="btn-contador btn-diminuir" data-id="${produto.id}" title="Diminuir">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="contador-input" 
+                                       data-id="${produto.id}" 
+                                       value="${quantidade}" 
+                                       min="0" 
+                                       max="99999" 
+                                       data-original="${quantidade}"
+                                       title="Quantidade em estoque">
+                                <button class="btn-contador btn-aumentar" data-id="${produto.id}" title="Aumentar">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            <button class="btn-salvar-estoque" 
+                                    data-id="${produto.id}" 
+                                    title="Salvar alteração do estoque"
+                                    style="display: none;">
+                                <i class="fas fa-check"></i>
+                                Salvar
+                            </button>
+                        </div>
                         
-                        <!-- SAÍDA DE ESTOQUE (-) -->
-                        <button class="btn-acao btn-saida" title="Saída de Estoque" data-id="${produto.id}">
-                            <i class="fas fa-minus-circle"></i>
-                        </button>
-                        
-                        <!-- EDITAR (CAIXINHA) -->
-                        <button class="btn-acao btn-editar" title="Editar Produto" data-id="${produto.id}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        
-                        <!-- EXCLUIR (X VERMELHO) -->
-                        <button class="btn-acao btn-excluir" title="Excluir Produto" data-id="${produto.id}">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <!-- BOTÕES DE AÇÃO -->
+                        <div class="acoes-rapidas">
+                            <!-- EDITAR (CAIXINHA) -->
+                            <button class="btn-acao btn-editar" title="Editar Produto" data-id="${produto.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            
+                            <!-- EXCLUIR (X VERMELHO) -->
+                            <button class="btn-acao btn-excluir" title="Excluir Produto" data-id="${produto.id}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 </td>
             </tr>
@@ -654,83 +679,210 @@ function renderizarProdutos() {
     // Configurar eventos dos botões de status
     configurarStatusToggle();
     
+    // Configurar eventos do contador de estoque
+    configurarContadorEstoque();
+    
     console.log(`✅ ${produtosFiltrados.length} produtos renderizados`);
 }
 
 // ============================================
-// 10. CONFIGURAR BOTÕES DE AÇÃO
+// 10. CONFIGURAR CONTADOR DE ESTOQUE
+// ============================================
+function configurarContadorEstoque() {
+    console.log('⚙️ Configurando contador de estoque...');
+    
+    // 1. BOTÕES DE AUMENTAR E DIMINUIR
+    document.querySelectorAll('.btn-contador').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const isAumentar = this.classList.contains('btn-aumentar');
+            const input = document.querySelector(`.contador-input[data-id="${produtoId}"]`);
+            
+            if (!input) return;
+            
+            let valor = parseInt(input.value) || 0;
+            
+            if (isAumentar) {
+                valor++;
+            } else {
+                valor = Math.max(0, valor - 1);
+            }
+            
+            input.value = valor;
+            
+            // Verificar se houve alteração
+            const original = parseInt(input.getAttribute('data-original')) || 0;
+            const btnSalvar = document.querySelector(`.btn-salvar-estoque[data-id="${produtoId}"]`);
+            
+            if (btnSalvar) {
+                if (valor !== original) {
+                    btnSalvar.style.display = 'block';
+                    input.classList.add('modified');
+                } else {
+                    btnSalvar.style.display = 'none';
+                    input.classList.remove('modified');
+                }
+            }
+        });
+    });
+    
+    // 2. INPUT DE QUANTIDADE
+    document.querySelectorAll('.contador-input').forEach(input => {
+        input.addEventListener('input', function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            let valor = parseInt(this.value) || 0;
+            
+            // Garantir valores válidos
+            if (valor < 0) {
+                valor = 0;
+                this.value = valor;
+            }
+            
+            if (valor > 99999) {
+                valor = 99999;
+                this.value = valor;
+            }
+            
+            // Verificar se houve alteração
+            const original = parseInt(this.getAttribute('data-original')) || 0;
+            const btnSalvar = document.querySelector(`.btn-salvar-estoque[data-id="${produtoId}"]`);
+            
+            if (btnSalvar) {
+                if (valor !== original) {
+                    btnSalvar.style.display = 'block';
+                    this.classList.add('modified');
+                } else {
+                    btnSalvar.style.display = 'none';
+                    this.classList.remove('modified');
+                }
+            }
+        });
+        
+        // Validar ao perder o foco
+        input.addEventListener('blur', function() {
+            let valor = parseInt(this.value) || 0;
+            
+            if (valor < 0) {
+                valor = 0;
+                this.value = valor;
+            }
+            
+            // Atualizar visualmente se for 0
+            if (valor === 0) {
+                this.classList.add('zero-stock');
+            } else {
+                this.classList.remove('zero-stock');
+            }
+        });
+    });
+    
+    // 3. BOTÃO SALVAR ALTERAÇÃO
+    document.querySelectorAll('.btn-salvar-estoque').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const input = document.querySelector(`.contador-input[data-id="${produtoId}"]`);
+            const produto = produtos.find(p => p.id === produtoId);
+            
+            if (!input || !produto) return;
+            
+            const novaQuantidade = parseInt(input.value) || 0;
+            const quantidadeOriginal = parseInt(input.getAttribute('data-original')) || 0;
+            
+            // Verificar se realmente mudou
+            if (novaQuantidade === quantidadeOriginal) {
+                this.style.display = 'none';
+                input.classList.remove('modified');
+                return;
+            }
+            
+            // Calcular diferença para registrar como entrada ou saída
+            const diferenca = novaQuantidade - quantidadeOriginal;
+            
+            if (diferenca === 0) {
+                mostrarMensagem('Quantidade não alterada', 'info');
+                return;
+            }
+            
+            try {
+                mostrarLoading('Atualizando estoque...', 'Aguarde...');
+                
+                // Determinar tipo (entrada ou saída)
+                const tipo = diferenca > 0 ? 'entrada' : 'saida';
+                const quantidadeAbs = Math.abs(diferenca);
+                
+                // Atualizar estoque
+                const resultado = await lojaServices.atualizarEstoque(
+                    produtoId, 
+                    quantidadeAbs, 
+                    tipo
+                );
+                
+                if (resultado.success) {
+                    // Atualizar valor original
+                    input.setAttribute('data-original', novaQuantidade);
+                    
+                    // Esconder botão salvar
+                    this.style.display = 'none';
+                    input.classList.remove('modified');
+                    
+                    // Atualizar lista local
+                    const produtoIndex = produtos.findIndex(p => p.id === produtoId);
+                    if (produtoIndex !== -1) {
+                        produtos[produtoIndex].quantidade = novaQuantidade;
+                    }
+                    
+                    // Atualizar estatísticas
+                    atualizarEstatisticas();
+                    
+                    // Mostrar mensagem
+                    if (tipo === 'entrada') {
+                        mostrarMensagem(`+${quantidadeAbs} unidade(s) adicionada(s) ao estoque!`, 'success');
+                    } else {
+                        mostrarMensagem(`-${quantidadeAbs} unidade(s) removida(s) do estoque!`, 'warning');
+                    }
+                    
+                } else {
+                    // Reverter valor no input
+                    input.value = quantidadeOriginal;
+                    this.style.display = 'none';
+                    input.classList.remove('modified');
+                    
+                    mostrarMensagem(resultado.error || 'Erro ao atualizar estoque', 'error');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro ao atualizar estoque:', error);
+                
+                // Reverter valor no input
+                input.value = quantidadeOriginal;
+                this.style.display = 'none';
+                input.classList.remove('modified');
+                
+                mostrarMensagem('Erro ao atualizar estoque', 'error');
+            } finally {
+                esconderLoading();
+            }
+        });
+    });
+    
+    console.log('✅ Contador de estoque configurado');
+}
+
+// ============================================
+// 11. CONFIGURAR BOTÕES DE AÇÃO
 // ============================================
 function configurarBotoesAcao() {
     console.log('⚙️ Configurando botões de ação...');
     
-    // 1. BOTÃO "ENTRADA" (+)
-    document.querySelectorAll('.btn-entrada').forEach(btn => {
-        btn.addEventListener('click', async function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
-            
-            if (!produto) return;
-            
-            // Modal simples para entrada
-            const quantidade = prompt(
-                `Entrada de estoque para: ${produto.nome}\n\n` +
-                `Estoque atual: ${produto.quantidade} ${produto.unidade_venda || 'UN'}\n` +
-                `Digite a quantidade para ADICIONAR:`,
-                "1"
-            );
-            
-            if (quantidade === null || quantidade === '') return;
-            
-            const qtd = parseInt(quantidade);
-            if (isNaN(qtd) || qtd <= 0) {
-                mostrarMensagem('Quantidade inválida! Digite um número maior que zero.', 'error');
-                return;
-            }
-            
-            await processarEntradaEstoque(produtoId, qtd);
-        });
-    });
-    
-    // 2. BOTÃO "SAÍDA" (-)
-    document.querySelectorAll('.btn-saida').forEach(btn => {
-        btn.addEventListener('click', async function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
-            
-            if (!produto) return;
-            
-            // Modal simples para saída
-            const quantidade = prompt(
-                `Saída de estoque para: ${produto.nome}\n\n` +
-                `Estoque atual: ${produto.quantidade} ${produto.unidade_venda || 'UN'}\n` +
-                `Digite a quantidade para REMOVER (máx: ${produto.quantidade}):`,
-                "1"
-            );
-            
-            if (quantidade === null || quantidade === '') return;
-            
-            const qtd = parseInt(quantidade);
-            if (isNaN(qtd) || qtd <= 0) {
-                mostrarMensagem('Quantidade inválida! Digite um número maior que zero.', 'error');
-                return;
-            }
-            
-            if (qtd > produto.quantidade) {
-                mostrarMensagem(`Estoque insuficiente! Disponível: ${produto.quantidade}`, 'error');
-                return;
-            }
-            
-            await processarSaidaEstoque(produtoId, qtd);
-        });
-    });
-    
-    // 3. BOTÃO "EDITAR" (CAIXINHA)
+    // 1. BOTÃO "EDITAR" (CAIXINHA)
     document.querySelectorAll('.btn-editar').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
@@ -741,7 +893,7 @@ function configurarBotoesAcao() {
         });
     });
     
-    // 4. BOTÃO "EXCLUIR" (X VERMELHO)
+    // 2. BOTÃO "EXCLUIR" (X VERMELHO)
     document.querySelectorAll('.btn-excluir').forEach(btn => {
         btn.addEventListener('click', async function(e) {
             e.preventDefault();
@@ -762,7 +914,7 @@ function configurarBotoesAcao() {
 }
 
 // ============================================
-// 11. CONFIGURAR TOGGLE DE STATUS
+// 12. CONFIGURAR TOGGLE DE STATUS
 // ============================================
 function configurarStatusToggle() {
     console.log('⚙️ Configurando botões de status...');
@@ -797,7 +949,7 @@ function configurarStatusToggle() {
 }
 
 // ============================================
-// 12. MOSTRAR MODAL DE SELEÇÃO DE STATUS
+// 13. MOSTRAR MODAL DE SELEÇÃO DE STATUS
 // ============================================
 async function mostrarModalSelecaoStatus(produto, currentStatus) {
     return new Promise((resolve) => {
@@ -892,7 +1044,7 @@ async function mostrarModalSelecaoStatus(produto, currentStatus) {
 }
 
 // ============================================
-// 13. ALTERAR STATUS DO PRODUTO
+// 14. ALTERAR STATUS DO PRODUTO
 // ============================================
 async function alterarStatusProduto(produto, novoStatus) {
     if (!produto) return;
@@ -941,7 +1093,7 @@ async function alterarStatusProduto(produto, novoStatus) {
 }
 
 // ============================================
-// 14. PROCESSAR ENTRADA DE ESTOQUE
+// 15. PROCESSAR ENTRADA DE ESTOQUE
 // ============================================
 async function processarEntradaEstoque(produtoId, quantidade) {
     try {
@@ -974,7 +1126,7 @@ async function processarEntradaEstoque(produtoId, quantidade) {
 }
 
 // ============================================
-// 15. PROCESSAR SAÍDA DE ESTOQUE
+// 16. PROCESSAR SAÍDA DE ESTOQUE
 // ============================================
 async function processarSaidaEstoque(produtoId, quantidade) {
     try {
@@ -1012,7 +1164,7 @@ async function processarSaidaEstoque(produtoId, quantidade) {
 }
 
 // ============================================
-// 16. FILTRAR PRODUTOS
+// 17. FILTRAR PRODUTOS
 // ============================================
 function filtrarProdutos() {
     if (!searchInput || !filterStatus) return;
@@ -1051,7 +1203,7 @@ function filtrarProdutos() {
 }
 
 // ============================================
-// 17. ATUALIZAR ESTATÍSTICAS
+// 18. ATUALIZAR ESTATÍSTICAS
 // ============================================
 function atualizarEstatisticas() {
     if (!totalProdutosElement || !totalEstoqueElement || 
@@ -1084,7 +1236,7 @@ function atualizarEstatisticas() {
 }
 
 // ============================================
-// 18. MODAL - NOVO PRODUTO
+// 19. MODAL - NOVO PRODUTO
 // ============================================
 function abrirModalNovoProduto() {
     if (!produtoIdInput || !modalTitle || !formProduto) {
@@ -1133,7 +1285,7 @@ function abrirModalNovoProduto() {
 }
 
 // ============================================
-// 19. MODAL - EDITAR PRODUTO
+// 20. MODAL - EDITAR PRODUTO
 // ============================================
 async function abrirModalEditar(produtoId) {
     try {
@@ -1190,7 +1342,7 @@ async function abrirModalEditar(produtoId) {
 }
 
 // ============================================
-// 20. SALVAR PRODUTO
+// 21. SALVAR PRODUTO
 // ============================================
 async function salvarProduto(e) {
     e.preventDefault();
@@ -1397,7 +1549,7 @@ async function salvarProduto(e) {
 }
 
 // ============================================
-// 21. EXCLUIR PRODUTO
+// 22. EXCLUIR PRODUTO
 // ============================================
 async function excluirProduto(produto) {
     if (!produto) return;
@@ -1454,7 +1606,7 @@ async function excluirProduto(produto) {
 }
 
 // ============================================
-// 22. CONFIGURAR EVENTOS
+// 23. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
     console.log("⚙️ Configurando eventos...");
@@ -1552,7 +1704,7 @@ function configurarEventos() {
 }
 
 // ============================================
-// 23. FUNÇÕES UTILITÁRIAS
+// 24. FUNÇÕES UTILITÁRIAS
 // ============================================
 function formatarMoeda(valor) {
     const numero = parseFloat(valor) || 0;
@@ -1628,9 +1780,10 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 // ============================================
-// 24. EXPORTAÇÃO PARA ESCOPO GLOBAL
+// 25. EXPORTAÇÃO PARA ESCOPO GLOBAL
 // ============================================
 window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
