@@ -9,6 +9,13 @@ let estatisticas = null;
 let atividades = [];
 
 // ============================================
+// CONSTANTES GLOBAIS
+// ============================================
+
+// IMAGEM GERADA EM BASE64 QUANDO NÃO HOUVER IMAGENS
+const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNNDAgMzVMNjAgNTVNNTAgNDVMNzAgMjVNNjAgMzVMMzAgNjVNNzAgMzVMNTAgNTVNMzAgMzVMMzUgMzBNNzAgNTVMNjUgNjBNMzUgNjVMMzAgNjBNNjUgMzVMNzAgMzAiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzZjNzU3ZCIgZm9udC13ZWlnaHQ9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VNIEZPVE88L3RleHQ+Cjwvc3ZnPg==";
+
+// ============================================
 // 1. INICIALIZAÇÃO
 // ============================================
 
@@ -358,24 +365,48 @@ async function carregarProdutos() {
         if (resultado.success) {
             produtos = resultado.data;
             
-            // Atualizar badge de produtos
+            // CORRIGIR IMAGENS COM BASE64
+            corrigirImagensProdutos();
+            
+            // Atualizar badge
             const totalProdutosBadge = document.getElementById('totalProdutosBadge');
             if (totalProdutosBadge) {
                 totalProdutosBadge.textContent = produtos.length;
                 totalProdutosBadge.style.display = produtos.length > 0 ? 'flex' : 'none';
             }
             
-            console.log(`✅ ${produtos.length} produtos carregados para consulta`);
+            console.log(`✅ ${produtos.length} produtos carregados - Imagens padrão em BASE64`);
             
-        } else {
-            console.error('❌ Erro ao carregar produtos:', resultado.error);
-            produtos = [];
+            const modal = document.getElementById('quickSearchModal');
+            if (modal && modal.style.display === 'flex') {
+                exibirTodosProdutos();
+            }
         }
-        
     } catch (error) {
-        console.error("❌ Erro ao carregar produtos:", error);
+        console.error("❌ Erro:", error);
         produtos = [];
     }
+}
+
+// ============================================
+// EXIBIR TODOS OS PRODUTOS - COM IMAGENS
+// ============================================
+function exibirTodosProdutos() {
+    const searchResults = document.getElementById('searchResults');
+    if (!searchResults) return;
+    
+    if (!produtos || produtos.length === 0) {
+        searchResults.innerHTML = `
+            <div class="empty-results">
+                <i class="fas fa-box-open"></i>
+                <p>Nenhum produto encontrado</p>
+                <small>Não há produtos cadastrados no estoque</small>
+            </div>
+        `;
+        return;
+    }
+    
+    exibirResultadosBusca(produtos);
 }
 
 // ============================================
@@ -581,6 +612,9 @@ function filtrarAtividades(filtro) {
 // ============================================
 // 8. CONSULTA RÁPIDA - MODAL
 // ============================================
+// ============================================
+// ABRIR MODAL CONSULTA - COM TODOS OS PRODUTOS
+// ============================================
 function abrirModalConsulta() {
     const modal = document.getElementById('quickSearchModal');
     const searchInput = document.getElementById('searchProductInput');
@@ -590,25 +624,35 @@ function abrirModalConsulta() {
         searchInput.value = '';
         searchInput.focus();
         
-        // Limpar resultados anteriores
-        buscarProdutoConsultaRapida('');
+        // Resetar filtro para "Todos"
+        const filterBtns = modal.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === 'all') {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Exibir todos os produtos imediatamente
+        exibirTodosProdutos();
+        
+        console.log('📱 Modal aberto - exibindo todos os produtos');
     }
 }
 
+
+// ============================================
+// BUSCAR PRODUTO CONSULTA RÁPIDA - COM IMAGENS
+// ============================================
 function buscarProdutoConsultaRapida(termo) {
     const searchResults = document.getElementById('searchResults');
     if (!searchResults) return;
     
     const termoLimpo = termo.toLowerCase().trim();
     
+    // Se não digitou nada, mostra todos os produtos
     if (!termoLimpo) {
-        searchResults.innerHTML = `
-            <div class="empty-results">
-                <i class="fas fa-search"></i>
-                <p>Digite para buscar um produto</p>
-                <small>Busque por código, nome ou categoria</small>
-            </div>
-        `;
+        exibirResultadosBusca(produtos);
         return;
     }
     
@@ -616,24 +660,37 @@ function buscarProdutoConsultaRapida(termo) {
     const filtroAtivo = document.querySelector('.search-filters .filter-btn.active');
     const tipoFiltro = filtroAtivo ? filtroAtivo.dataset.filter : 'all';
     
-    // Filtrar produtos
+    // Filtrar produtos baseado no termo de busca
     let resultados = produtos.filter(produto => {
-        return (
-            (produto.codigo && produto.codigo.toLowerCase().includes(termoLimpo)) ||
-            (produto.nome && produto.nome.toLowerCase().includes(termoLimpo)) ||
-            (produto.categoria && produto.categoria.toLowerCase().includes(termoLimpo)) ||
-            (produto.descricao && produto.descricao.toLowerCase().includes(termoLimpo))
-        );
+        const codigo = (produto.codigo || '').toLowerCase();
+        const nome = (produto.nome || '').toLowerCase();
+        const categoria = (produto.categoria || '').toLowerCase();
+        const descricao = (produto.descricao || '').toLowerCase();
+        
+        return codigo.includes(termoLimpo) || 
+               nome.includes(termoLimpo) || 
+               categoria.includes(termoLimpo) || 
+               descricao.includes(termoLimpo);
     });
     
-    // Aplicar filtro adicional
+    // Aplicar filtro de estoque
     if (tipoFiltro === 'estoque') {
         resultados = resultados.filter(p => p.quantidade > 0);
     } else if (tipoFiltro === 'baixo') {
-        resultados = resultados.filter(p => p.quantidade <= (p.estoque_minimo || 5));
+        resultados = resultados.filter(p => p.quantidade <= (p.estoque_minimo || 5) && p.quantidade > 0);
     }
     
-    if (resultados.length === 0) {
+    exibirResultadosBusca(resultados);
+}
+
+// ============================================
+// EXIBIR RESULTADOS DA BUSCA - COM BASE64
+// ============================================
+function exibirResultadosBusca(resultados) {
+    const searchResults = document.getElementById('searchResults');
+    if (!searchResults) return;
+    
+    if (!resultados || resultados.length === 0) {
         searchResults.innerHTML = `
             <div class="empty-results">
                 <i class="fas fa-search"></i>
@@ -644,29 +701,48 @@ function buscarProdutoConsultaRapida(termo) {
         return;
     }
     
-    // Exibir resultados
     let html = '<div class="results-list">';
     
     resultados.forEach(produto => {
         const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
-        const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = produto.quantidade > 0;
+        const precoFormatado = formatarMoeda(produto.preco);
+        
+        // Usar a imagem do produto ou a BASE64 padrão
+        const imagemProduto = produto.imagem || IMAGEM_PADRAO_BASE64;
+        
+        // Status do estoque
+        let stockClass = 'normal';
+        let stockText = `${produto.quantidade || 0} ${produto.unidade || 'UN'}`;
+        if (!temEstoque) {
+            stockClass = 'out';
+            stockText = 'ESGOTADO';
+        } else if (estoqueBaixo) {
+            stockClass = 'low';
+            stockText = `${produto.quantidade} ${produto.unidade || 'UN'} ⚠️`;
+        }
         
         html += `
             <div class="product-result">
+                <div class="product-image-container">
+                    <img src="${imagemProduto}" 
+                         alt="${produto.nome || 'Produto'}" 
+                         class="product-image"
+                         loading="lazy"
+                         onerror="this.src='${IMAGEM_PADRAO_BASE64}'">
+                </div>
                 <div class="product-result-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
-                    <span class="product-stock ${estoqueBaixo ? 'low' : (temEstoque ? 'normal' : 'out')}">
-                        ${produto.quantidade || 0} ${produto.unidade || 'UN'}
-                        ${estoqueBaixo ? ' ⚠️' : ''}
-                        ${!temEstoque ? ' (ESGOTADO)' : ''}
+                    <span class="product-stock ${stockClass}">
+                        ${stockText}
                     </span>
                 </div>
                 <div class="product-name">${produto.nome || 'Produto sem nome'}</div>
-                ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
+                ${produto.categoria ? `<div class="product-category"><i class="fas fa-tag"></i> ${produto.categoria}</div>` : ''}
                 <div class="product-details">
                     <div class="product-price">
-                        <strong>Preço:</strong> ${precoFormatado}
+                        <strong>Preço:</strong>
+                        <span>${precoFormatado}</span>
                     </div>
                     <div class="product-actions">
                         <button class="btn-action btn-info" onclick="verDetalhesProduto('${produto.id}')">
@@ -676,7 +752,11 @@ function buscarProdutoConsultaRapida(termo) {
                         <button class="btn-action btn-sell" onclick="irParaVendaComProduto('${produto.id}')">
                             <i class="fas fa-cart-plus"></i> Vender
                         </button>
-                        ` : ''}
+                        ` : `
+                        <button class="btn-action btn-info" disabled style="opacity: 0.5; cursor: not-allowed;">
+                            <i class="fas fa-times-circle"></i> Indisponível
+                        </button>
+                        `}
                     </div>
                 </div>
             </div>
@@ -685,6 +765,23 @@ function buscarProdutoConsultaRapida(termo) {
     
     html += '</div>';
     searchResults.innerHTML = html;
+}
+
+// ============================================
+// CORRIGIR IMAGENS DOS PRODUTOS - USA BASE64
+// ============================================
+function corrigirImagensProdutos() {
+    if (!produtos || produtos.length === 0) return;
+    
+    produtos = produtos.map(produto => {
+        // Se não tem imagem OU imagem é string vazia OU é null/undefined
+        if (!produto.imagem || produto.imagem === '' || produto.imagem === null || produto.imagem === undefined) {
+            produto.imagem = IMAGEM_PADRAO_BASE64;
+        }
+        return produto;
+    });
+    
+    console.log('🖼️ Imagens dos produtos corrigidas com BASE64');
 }
 
 // Funções globais para os botões do modal
@@ -1194,6 +1291,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
