@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPDV Vendas - Sistema Multi-Lojas</title>
+    <link rel="stylesheet" href="venda.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <a href="home.html" class="btn-back" id="btnVoltar">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+                <div class="page-title">
+                    <h1><i class="fas fa-cash-register"></i> SPDV - Ponto de Venda</h1>
+                    <p class="page-subtitle" id="nomeLoja">Carregando...</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="userName">Carregando...</span>
+                    <button id="btnLogout" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="SPDV-container">
+                <!-- Left Panel - Produtos -->
+                <div class="SPDV-left">
+                    <div class="search-section">
+                        <div class="search-box">
+                            <div class="input-wrapper">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchProduct" placeholder="Buscar produto por código ou nome..." autofocus>
+                            </div>
+                            <button id="btnScan" class="btn-scan" title="Leitor de código de barras não detectado. Clique para configurar.">
+                                <i class="fas fa-barcode"></i>
+                                Escanear
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="products-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-box"></i> Produtos Disponíveis</h3>
+                            <span class="product-count" id="productCount">0 produtos</span>
+                        </div>
+                        
+                        <div class="products-grid" id="productsGrid">
+                            <!-- Produtos serão carregados aqui -->
+                            <div class="empty-state" id="loadingProducts">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Carregando produtos...</p>
+                            </div>
+                        </div>
+                        
+                        <div class="empty-state" id="emptyProducts" style="display: none;">
+                            <i class="fas fa-box-open"></i>
+                            <p>Nenhum produto disponível</p>
+                            <small>Cadastre produtos no estoque</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel - Carrinho -->
+                <div class="SPDV-right">
+                    <div class="cart-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-shopping-cart"></i> Carrinho de Vendas</h3>
+                            <button id="btnClearCart" class="btn-clear">
+                                <i class="fas fa-trash"></i>
+                                Limpar
+                            </button>
+                        </div>
+                        
+                        <div class="cart-items" id="cartItems">
+                            <!-- Itens do carrinho serão exibidos aqui -->
+                            <div class="empty-cart">
+                                <i class="fas fa-shopping-cart"></i>
+                                <p>Carrinho vazio</p>
+                                <small>Adicione produtos para iniciar a venda</small>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-summary">
+                            <div class="summary-row">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">R$ 0,00</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Desconto:</span>
+                                <div class="discount-input">
+                                    <input type="number" id="desconto" value="0" min="0" max="100" step="0.01">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                            <div class="summary-row total">
+                                <span>TOTAL:</span>
+                                <span id="total">R$ 0,00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="payment-section">
+                            <div class="payment-methods">
+                                <h4>Forma de Pagamento</h4>
+                                <div class="methods-grid">
+                                    <label class="method-option">
+                                        <input type="radio" name="payment" value="dinheiro" checked>
+                                        <span class="method-icon">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </span>
+                                        <span class="method-name">Dinheiro</span>
+                                    </label>
+                                    
+                                    <label class="method-option">
+                                        <input type="radio" name="payment" value="cartao_debito">
+                                        <span class="method-icon">
+                                            <i class="fas fa-credit-card"></i>
+                                        </span>
+                                        <span class="method-name">Cartão Débito</span>
+                                    </label>
+                                    
+                                    <label class="method-option">
+                                        <input type="radio" name="payment" value="cartao_credito">
+                                        <span class="method-icon">
+                                            <i class="fas fa-credit-card"></i>
+                                        </span>
+                                        <span class="method-name">Cartão Crédito</span>
+                                    </label>
+                                    
+                                    <label class="method-option">
+                                        <input type="radio" name="payment" value="pix">
+                                        <span class="method-icon">
+                                            <i class="fas fa-qrcode"></i>
+                                        </span>
+                                        <span class="method-name">PIX</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- BOTÕES DE AÇÃO - COM IMPRESSÃO -->
+                            <div class="payment-actions">
+                                <button id="btnImprimirNota" class="btn-print" title="Configure a impressora primeiro" disabled>
+                                    <i class="fas fa-print"></i>
+                                    Imprimir
+                                </button>
+                                
+                                <button id="btnFinalizarVenda" class="btn-finalizar" disabled>
+                                    <i class="fas fa-check-circle"></i>
+                                    Finalizar
+                                </button>
+                                
+                                <button id="btnCancelarVenda" class="btn-cancelar">
+                                    <i class="fas fa-times-circle"></i>
+                                    Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema SPDV</span> - SPDV</p>
+                <p id="currentDateTime">--:--:--</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MODAL DE BUSCA DE PRODUTOS COM IMAGENS      -->
+    <!-- ============================================ -->
+    <div id="searchModal" class="modal" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-search"></i> Buscar Produtos</h3>
+                <button class="modal-close" id="closeSearchModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchProductInput" placeholder="Código, nome ou categoria do produto" autofocus>
+                    <button class="search-clear" id="searchClear">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="search-filters">
+                    <button class="filter-btn active" data-filter="all">Todos</button>
+                    <button class="filter-btn" data-filter="estoque">Em estoque</button>
+                    <button class="filter-btn" data-filter="baixo">Baixo estoque</button>
+                </div>
+                
+                <div class="search-results" id="searchResults">
+                    <div class="empty-state" style="padding: 40px 20px;">
+                        <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
+                        <p style="margin-top: 15px; color: var(--gray-color);">
+                            Digite para buscar produtos
+                        </p>
+                        <small style="color: var(--gray-light);">
+                            Busque por código, nome ou categoria
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="btnCloseSearch" class="btn-cancel">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Carregando...</h3>
+            <p id="loadingDetail"></p>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <div class="message-text"></div>
+            <button class="message-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Scripts MÓDULOS -->
+    <script type="module" src="firebase_config.js"></script>
+    <script type="module" src="venda.js"></script>
+</body>
+</html>
