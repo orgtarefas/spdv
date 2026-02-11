@@ -716,72 +716,66 @@ function renderizarProdutos() {
 function configurarDropdowns() {
     console.log('⚙️ Configurando dropdowns...');
     
-    // 1. CONFIGURAR CLIQUE NOS BOTÕES DE MENU
+    // 1. CONFIGURAR CLIQUE NOS BOTÕES DE MENU (TRÊS PONTOS)
     document.querySelectorAll('.btn-acao-menu').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             
-            const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
+            console.log('🎯 Botão clicado');
             
-            if (!produto) {
-                console.error('❌ Produto não encontrado:', produtoId);
-                return;
-            }
-            
-            // Fechar outros dropdowns
-            document.querySelectorAll('.dropdown-content').forEach(dd => {
-                dd.style.display = 'none';
-            });
-            
-            // Encontrar dropdown desta linha
-            const row = this.closest('tr');
-            const dropdown = row.querySelector('.dropdown-content');
+            // Encontrar o dropdown DESTE botão
+            const dropdown = this.closest('.acoes-dropdown')?.querySelector('.dropdown-content');
             
             if (!dropdown) {
-                console.error('❌ Dropdown não encontrado na linha');
+                console.error('❌ Dropdown não encontrado');
                 return;
             }
             
-            // Atualizar informações no dropdown
-            const quantidadeInput = dropdown.querySelector('.quantidade-input');
-            if (quantidadeInput) {
-                quantidadeInput.value = '1';
-                quantidadeInput.setAttribute('data-id', produtoId);
-                quantidadeInput.max = produto.quantidade;
-            }
+            // Verificar se já está visível
+            const isVisible = dropdown.style.display === 'block';
             
-            // Atualizar botões de quantidade
-            dropdown.querySelectorAll('.btn-quantidade').forEach(btnQtd => {
-                btnQtd.setAttribute('data-id', produtoId);
+            // Fechar TODOS os dropdowns primeiro
+            document.querySelectorAll('.dropdown-content').forEach(dd => {
+                dd.style.display = 'none';
+                dd.classList.remove('show');
             });
             
-            // Atualizar botão excluir
-            const btnExcluir = dropdown.querySelector('.btn-excluir');
-            if (btnExcluir) {
-                btnExcluir.setAttribute('data-id', produtoId);
+            // Se não estava visível, mostrar
+            if (!isVisible) {
+                dropdown.style.display = 'block';
+                dropdown.classList.add('show');
+                
+                // Remover qualquer posicionamento inline que possa estar causando problemas
+                dropdown.style.position = 'absolute';
+                dropdown.style.top = '100%';
+                dropdown.style.right = '0';
+                dropdown.style.left = 'auto';
+                dropdown.style.bottom = 'auto';
+                dropdown.style.transform = 'none';
+                dropdown.style.zIndex = '1000';
             }
-            
-            // Atualizar botão editar
-            const btnEditar = dropdown.querySelector('.btn-editar');
-            if (btnEditar) {
-                btnEditar.setAttribute('data-id', produtoId);
-            }
-            
-            // Mostrar dropdown
-            dropdown.style.display = 'block';
-            
-            // Posicionar próximo ao botão
-            const rect = this.getBoundingClientRect();
-            dropdown.style.position = 'fixed';
-            dropdown.style.top = (rect.bottom + 5) + 'px';
-            dropdown.style.right = (window.innerWidth - rect.right + 10) + 'px';
-            dropdown.style.zIndex = '1000';
         });
     });
     
-    // 2. BOTÕES DE QUANTIDADE (+/-)
+    // 2. FECHAR DROPDOWN AO CLICAR FORA (COM DELAY PARA EVITAR CONFLITO)
+    document.addEventListener('click', function(e) {
+        // Verificar se o clique foi fora do dropdown e do botão
+        const isDropdown = e.target.closest('.dropdown-content');
+        const isMenuButton = e.target.closest('.btn-acao-menu');
+        
+        if (!isDropdown && !isMenuButton) {
+            // Pequeno delay para evitar fechar imediatamente
+            setTimeout(() => {
+                document.querySelectorAll('.dropdown-content').forEach(dd => {
+                    dd.style.display = 'none';
+                    dd.classList.remove('show');
+                });
+            }, 100);
+        }
+    });
+    
+    // 3. BOTÕES DE QUANTIDADE (+/-)
     document.querySelectorAll('.btn-quantidade').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -801,9 +795,11 @@ function configurarDropdowns() {
                 valor = Math.max(1, valor - 1); // Não permite menos que 1
             }
             
-            // Se for remoção, não pode passar do estoque atual
+            // Se for saída, não pode passar do estoque atual
             const produto = produtos.find(p => p.id === produtoId);
-            if (produto && this.closest('.dropdown-item-remover')) {
+            const isSaida = dropdown.querySelector('.dropdown-item-remover')?.contains(this);
+            
+            if (produto && isSaida) {
                 valor = Math.min(valor, produto.quantidade);
             }
             
@@ -811,7 +807,7 @@ function configurarDropdowns() {
         });
     });
     
-    // 3. VALIDAÇÃO DO INPUT DE QUANTIDADE
+    // 4. VALIDAÇÃO DO INPUT DE QUANTIDADE
     document.querySelectorAll('.quantidade-input').forEach(input => {
         input.addEventListener('input', function() {
             let valor = parseInt(this.value) || 1;
@@ -820,30 +816,31 @@ function configurarDropdowns() {
             if (valor < 1) {
                 valor = 1;
                 this.value = valor;
+                return;
             }
             
             // Não permitir valores muito altos
             if (valor > 9999) {
                 valor = 9999;
                 this.value = valor;
+                return;
             }
             
-            // Se for remoção, não pode passar do estoque atual
+            // Se for saída, não pode passar do estoque atual
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
-            const dropdownItem = this.closest('.dropdown-item');
+            const dropdownItem = this.closest('.dropdown-item-remover');
             
-            if (produto && dropdownItem && dropdownItem.classList.contains('dropdown-item-remover')) {
+            if (produto && dropdownItem) {
                 if (valor > produto.quantidade) {
                     valor = produto.quantidade;
                     this.value = valor;
-                    mostrarMensagem(`Máximo: ${produto.quantidade} unidades`, 'info');
                 }
             }
         });
     });
     
-    // 4. BOTÃO APLICAR (ENTRADA DE ESTOQUE)
+    // 5. BOTÃO "APLICAR ENTRADA"
     document.querySelectorAll('.btn-aplicar-entrada').forEach(btn => {
         btn.addEventListener('click', async function(e) {
             e.stopPropagation();
@@ -855,46 +852,17 @@ function configurarDropdowns() {
             if (!input) return;
             
             const quantidade = parseInt(input.value) || 1;
-            const produto = produtos.find(p => p.id === produtoId);
             
-            if (!produto) {
-                mostrarMensagem('Produto não encontrado', 'error');
-                return;
-            }
-            
-            if (quantidade < 1) {
-                mostrarMensagem('Quantidade mínima: 1 unidade', 'error');
-                return;
-            }
-            
-            // Fechar dropdown
+            // Fechar dropdown ANTES de processar
             dropdown.style.display = 'none';
+            dropdown.classList.remove('show');
             
-            try {
-                mostrarLoading('Registrando entrada...', 'Atualizando estoque...');
-                
-                const resultado = await lojaServices.atualizarEstoque(
-                    produtoId, 
-                    quantidade, 
-                    'entrada'
-                );
-                
-                if (resultado.success) {
-                    mostrarMensagem(`${quantidade} unidade(s) adicionada(s) ao estoque!`, 'success');
-                    await carregarProdutos();
-                } else {
-                    mostrarMensagem(resultado.error || 'Erro ao adicionar estoque', 'error');
-                }
-            } catch (error) {
-                console.error('❌ Erro ao adicionar estoque:', error);
-                mostrarMensagem('Erro ao adicionar estoque', 'error');
-            } finally {
-                esconderLoading();
-            }
+            // Processar entrada
+            await processarEntradaEstoque(produtoId, quantidade);
         });
     });
     
-    // 5. BOTÃO APLICAR (SAÍDA DE ESTOQUE)
+    // 6. BOTÃO "APLICAR SAÍDA"
     document.querySelectorAll('.btn-aplicar-saida').forEach(btn => {
         btn.addEventListener('click', async function(e) {
             e.stopPropagation();
@@ -906,176 +874,205 @@ function configurarDropdowns() {
             if (!input) return;
             
             const quantidade = parseInt(input.value) || 1;
-            const produto = produtos.find(p => p.id === produtoId);
             
-            if (!produto) {
-                mostrarMensagem('Produto não encontrado', 'error');
-                return;
-            }
-            
-            if (quantidade < 1) {
-                mostrarMensagem('Quantidade mínima: 1 unidade', 'error');
-                return;
-            }
-            
-            if (quantidade > produto.quantidade) {
-                mostrarMensagem(`Não há estoque suficiente. Disponível: ${produto.quantidade}`, 'error');
-                return;
-            }
-            
-            // Fechar dropdown
+            // Fechar dropdown ANTES de processar
             dropdown.style.display = 'none';
+            dropdown.classList.remove('show');
             
-            try {
-                mostrarLoading('Registrando saída...', 'Atualizando estoque...');
-                
-                const resultado = await lojaServices.atualizarEstoque(
-                    produtoId, 
-                    quantidade, 
-                    'saida'
-                );
-                
-                if (resultado.success) {
-                    mostrarMensagem(`${quantidade} unidade(s) removida(s) do estoque!`, 'warning');
-                    await carregarProdutos();
-                    
-                    // Verificar se estoque ficou zerado
-                    const novoEstoque = produto.quantidade - quantidade;
-                    if (novoEstoque === 0) {
-                        setTimeout(() => {
-                            mostrarMensagem('Estoque zerado', 'info');
-                        }, 1500);
-                    }
-                } else {
-                    mostrarMensagem(resultado.error || 'Erro ao remover estoque', 'error');
-                }
-            } catch (error) {
-                console.error('❌ Erro ao remover estoque:', error);
-                mostrarMensagem('Erro ao remover estoque', 'error');
-            } finally {
-                esconderLoading();
-            }
+            // Processar saída
+            await processarSaidaEstoque(produtoId, quantidade);
         });
     });
     
-    // 6. BOTÃO EDITAR
-    document.querySelectorAll('.btn-editar').forEach(item => {
-        item.addEventListener('click', function(e) {
+    // 7. BOTÃO "EDITAR"
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', function(e) {
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
-            
-            // Fechar o dropdown
             const dropdown = this.closest('.dropdown-content');
-            if (dropdown) {
-                dropdown.style.display = 'none';
-            }
-            
-            abrirModalEditar(produtoId);
-        });
-    });
-    
-    // 7. BOTÃO EXCLUIR (COM CONFIRMAÇÃO E EXCLUSÃO DA IMAGEM)
-    document.querySelectorAll('.btn-excluir').forEach(item => {
-        item.addEventListener('click', async function(e) {
-            e.stopPropagation();
-            
-            const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
-            
-            if (!produto) {
-                mostrarMensagem('Produto não encontrado', 'error');
-                return;
-            }
             
             // Fechar dropdown
-            const dropdown = this.closest('.dropdown-content');
             if (dropdown) {
                 dropdown.style.display = 'none';
+                dropdown.classList.remove('show');
             }
             
-            // CONFIRMAÇÃO DE EXCLUSÃO
-            const confirmMessage = 
-                `🚨 ATENÇÃO: EXCLUSÃO PERMANENTE!\n\n` +
-                `Produto: ${produto.nome || 'Sem nome'}\n` +
-                `Código: ${produto.codigo || 'Sem código'}\n` +
-                `Estoque atual: ${produto.quantidade} unidades\n\n` +
-                `Esta ação irá:\n` +
-                `✓ Excluir o produto do banco de dados\n` +
-                `✓ Excluir a imagem do ImgBB (se houver)\n` +
-                `✓ Perder todo o histórico\n\n` +
-                `Tem certeza que deseja excluir DEFINITIVAMENTE?`;
-            
-            if (!confirm(confirmMessage)) {
-                return;
-            }
-            
-            if (produto.quantidade > 0) {
-                const estoqueConfirm = confirm(
-                    `⚠️ ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
-                    `Ao excluir, todo o estoque será perdido permanentemente.\n` +
-                    `Deseja continuar mesmo assim?`
-                );
-                
-                if (!estoqueConfirm) {
-                    return;
-                }
-            }
-            
-            try {
-                mostrarLoading('Excluindo produto...', 'Esta ação é irreversível...');
-                
-                // Primeiro, excluir a imagem do ImgBB se existir
-                if (produto.imagens?.provider === 'imgbb' && produto.imagens?.provider_id) {
-                    console.log('🗑️ Tentando excluir imagem do ImgBB:', produto.imagens.provider_id);
-                    
-                    try {
-                        const resultadoExclusaoImg = await imagemServices.excluirImagem(
-                            produto.imagens.provider_id,
-                            lojaServices
-                        );
-                        
-                        if (resultadoExclusaoImg.success) {
-                            console.log('✅ Imagem excluída do ImgBB com sucesso');
-                        } else {
-                            console.warn('⚠️ Não foi possível excluir imagem do ImgBB:', resultadoExclusaoImg.error);
-                        }
-                    } catch (imgError) {
-                        console.warn('⚠️ Erro ao excluir imagem:', imgError);
-                        // Continua mesmo se não conseguir excluir a imagem
-                    }
-                }
-                
-                // Excluir produto do Firebase
-                const resultado = await lojaServices.excluirProduto(produtoId);
-                
-                if (resultado.success) {
-                    mostrarMensagem('✅ Produto excluído permanentemente!', 'success');
-                    await carregarProdutos();
-                } else {
-                    throw new Error(resultado.error || 'Erro ao excluir produto');
-                }
-                
-            } catch (error) {
-                console.error('❌ Erro ao excluir produto:', error);
-                mostrarMensagem('Erro ao excluir produto', 'error');
-            } finally {
-                esconderLoading();
-            }
+            setTimeout(() => {
+                abrirModalEditar(produtoId);
+            }, 50);
         });
     });
     
-    // 8. FECHAR DROPDOWNS AO CLICAR FORA
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.acoes-dropdown') && 
-            !e.target.closest('.dropdown-content')) {
-            document.querySelectorAll('.dropdown-content').forEach(dd => {
-                dd.style.display = 'none';
-            });
-        }
+    // 8. BOTÃO "EXCLUIR"
+    document.querySelectorAll('.btn-excluir').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const dropdown = this.closest('.dropdown-content');
+            
+            // Fechar dropdown
+            if (dropdown) {
+                dropdown.style.display = 'none';
+                dropdown.classList.remove('show');
+            }
+            
+            setTimeout(async () => {
+                await excluirProdutoComConfirmacao(produtoId);
+            }, 50);
+        });
     });
     
-    console.log('✅ Dropdowns configurados com sucesso');
+    // 9. PREVENIR FECHAMENTO AO CLICAR DENTRO DO DROPDOWN
+    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+    
+    console.log('✅ Dropdowns configurados');
+}
+
+// 10. FUNÇÃO AUXILIAR PARA PROCESSAR ENTRADA
+async function processarEntradaEstoque(produtoId, quantidade) {
+    try {
+        mostrarLoading('Registrando entrada...', 'Atualizando estoque...');
+        
+        const resultado = await lojaServices.atualizarEstoque(
+            produtoId, 
+            quantidade, 
+            'entrada'
+        );
+        
+        if (resultado.success) {
+            mostrarMensagem(`${quantidade} unidade(s) adicionada(s) ao estoque!`, 'success');
+            await carregarProdutos();
+        } else {
+            mostrarMensagem(resultado.error || 'Erro ao adicionar estoque', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao adicionar estoque:', error);
+        mostrarMensagem('Erro ao adicionar estoque', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// 11. FUNÇÃO AUXILIAR PARA PROCESSAR SAÍDA
+async function processarSaidaEstoque(produtoId, quantidade) {
+    const produto = produtos.find(p => p.id === produtoId);
+    
+    if (!produto) {
+        mostrarMensagem('Produto não encontrado', 'error');
+        return;
+    }
+    
+    if (quantidade > produto.quantidade) {
+        mostrarMensagem(`Não há estoque suficiente. Disponível: ${produto.quantidade}`, 'error');
+        return;
+    }
+    
+    try {
+        mostrarLoading('Registrando saída...', 'Atualizando estoque...');
+        
+        const resultado = await lojaServices.atualizarEstoque(
+            produtoId, 
+            quantidade, 
+            'saida'
+        );
+        
+        if (resultado.success) {
+            mostrarMensagem(`${quantidade} unidade(s) removida(s) do estoque!`, 'warning');
+            await carregarProdutos();
+            
+            // Verificar se estoque ficou zerado
+            const novoEstoque = produto.quantidade - quantidade;
+            if (novoEstoque === 0) {
+                setTimeout(() => {
+                    mostrarMensagem('Estoque zerado', 'info');
+                }, 1500);
+            }
+        } else {
+            mostrarMensagem(resultado.error || 'Erro ao remover estoque', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro ao remover estoque:', error);
+        mostrarMensagem('Erro ao remover estoque', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// 12. FUNÇÃO AUXILIAR PARA EXCLUIR COM CONFIRMAÇÃO
+async function excluirProdutoComConfirmacao(produtoId) {
+    const produto = produtos.find(p => p.id === produtoId);
+    
+    if (!produto) {
+        mostrarMensagem('Produto não encontrado', 'error');
+        return;
+    }
+    
+    // CONFIRMAÇÃO DE EXCLUSÃO
+    const confirmMessage = 
+        `🚨 ATENÇÃO: EXCLUSÃO PERMANENTE!\n\n` +
+        `Produto: ${produto.nome || 'Sem nome'}\n` +
+        `Código: ${produto.codigo || 'Sem código'}\n` +
+        `Estoque atual: ${produto.quantidade} unidades\n\n` +
+        `Esta ação irá:\n` +
+        `✓ Excluir o produto do banco de dados\n` +
+        `✓ Excluir a imagem do ImgBB (se houver)\n` +
+        `✓ Perder todo o histórico\n\n` +
+        `Tem certeza que deseja excluir DEFINITIVAMENTE?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    if (produto.quantidade > 0) {
+        const estoqueConfirm = confirm(
+            `⚠️ ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
+            `Ao excluir, todo o estoque será perdido permanentemente.\n` +
+            `Deseja continuar mesmo assim?`
+        );
+        
+        if (!estoqueConfirm) {
+            return;
+        }
+    }
+    
+    try {
+        mostrarLoading('Excluindo produto...', 'Esta ação é irreversível...');
+        
+        // Excluir imagem do ImgBB se existir
+        if (produto.imagens?.provider === 'imgbb' && produto.imagens?.provider_id) {
+            try {
+                await imagemServices.excluirImagem(
+                    produto.imagens.provider_id,
+                    lojaServices
+                );
+                console.log('✅ Imagem excluída do ImgBB');
+            } catch (imgError) {
+                console.warn('⚠️ Não foi possível excluir imagem:', imgError);
+            }
+        }
+        
+        // Excluir produto do Firebase
+        const resultado = await lojaServices.excluirProduto(produtoId);
+        
+        if (resultado.success) {
+            mostrarMensagem('✅ Produto excluído permanentemente!', 'success');
+            await carregarProdutos();
+        } else {
+            throw new Error(resultado.error || 'Erro ao excluir produto');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir produto:', error);
+        mostrarMensagem('Erro ao excluir produto', 'error');
+    } finally {
+        esconderLoading();
+    }
 }
 
 // ============================================
@@ -1872,7 +1869,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             position: relative;
             display: inline-block;
         }
-        
+                
         .btn-acao-menu {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -1895,13 +1892,13 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             color: white;
         }
         
-        /* DROPDOWN SIMPLIFICADO */
         .dropdown-content {
             position: absolute;
             right: 0;
             top: 100%;
             background-color: white;
-            min-width: 280px;
+            width: 320px;
+            max-width: 95vw;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             border-radius: 10px;
             z-index: 1000;
@@ -1912,8 +1909,10 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             padding: 15px;
         }
         
+        /* Classe para mostrar o dropdown */
         .dropdown-content.show {
             display: block !important;
+            animation: fadeInUp 0.2s ease;
         }
         
         /* GRUPO DE QUANTIDADE */
@@ -2106,9 +2105,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         }
 
 
-
-
-
+        /* Animação suave */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -2685,6 +2682,7 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
