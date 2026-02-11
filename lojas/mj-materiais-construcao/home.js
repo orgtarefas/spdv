@@ -259,11 +259,12 @@ function configurarEventos() {
         btnConsultaRapida.addEventListener('click', abrirModalConsulta);
     }
     
-    // Botão relatório
+    // BOTÃO RELATÓRIO - CORRIGIDO: não redireciona, mostra mensagem
     const btnRelatorio = document.getElementById('btnRelatorio');
     if (btnRelatorio) {
-        btnRelatorio.addEventListener('click', function() {
-            mostrarMensagem("Relatórios em desenvolvimento", "info");
+        btnRelatorio.addEventListener('click', function(event) {
+            event.preventDefault(); // IMPEDE O REDIRECIONAMENTO
+            mostrarMensagem('📊 Relatório em desenvolvimento! Em breve você poderá visualizar todos os relatórios do sistema.', 'info', 5000);
         });
     }
     
@@ -1193,6 +1194,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
