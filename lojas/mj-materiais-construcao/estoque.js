@@ -607,9 +607,6 @@ function renderizarProdutos() {
                 <td class="unidade-cell">
                     <div class="unidade-info">
                         <span class="unidade-valor">${unidadeDisplay}</span>
-                        <div class="unidade-tipo">
-                            <small class="text-muted">${unidadeVenda}</small>
-                        </div>
                     </div>
                 </td>
                 
@@ -1979,6 +1976,7 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
