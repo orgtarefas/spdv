@@ -588,6 +588,40 @@ body {
     background: #219653;
 }
 
+/* Estilo para a unidade no carrinho */
+.produto-unidade {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #f8f9fa;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: var(--gray-color);
+    border: 1px solid var(--light-color);
+}
+
+.produto-unidade i {
+    color: var(--secondary-color);
+    font-size: 0.7rem;
+}
+
+.cart-item-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.cart-item-details span {
+    background: #f8f9fa;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: var(--gray-color);
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
     .search-results .product-result {
@@ -1462,6 +1496,7 @@ body {
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     }
 }
+
 
 
 
