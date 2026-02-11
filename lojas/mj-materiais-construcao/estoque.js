@@ -604,26 +604,28 @@ function renderizarProdutos() {
                     </span>
                 </td>
                 
-                <!-- COLUNA: Ações com dropdown -->
+                <!-- COLUNA: Ações com dropdown (VERSÃO SIMPLIFICADA E FUNCIONAL) -->
                 <td class="acoes-cell">
                     <div class="acoes-dropdown">
                         <button class="btn-acao-menu" title="Ações" data-id="${produto.id}">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
-                        <div class="dropdown-content">
-                            <button class="dropdown-item btn-editar" data-id="${produto.id}">
+                        <div class="dropdown-content" style="display: none;">
+                            <button class="dropdown-item btn-editar" data-action="editar" data-id="${produto.id}">
                                 <i class="fas fa-edit"></i>
                                 <span>Editar</span>
                             </button>
-                            <button class="dropdown-item ${produto.ativo ? 'btn-desativar' : 'btn-ativar'}" data-id="${produto.id}">
+                            <button class="dropdown-item ${produto.ativo ? 'btn-desativar' : 'btn-ativar'}" 
+                                    data-action="${produto.ativo ? 'desativar' : 'ativar'}" 
+                                    data-id="${produto.id}">
                                 <i class="fas ${produto.ativo ? 'fa-ban' : 'fa-check'}"></i>
                                 <span>${produto.ativo ? 'Desativar' : 'Ativar'}</span>
                             </button>
-                            <button class="dropdown-item btn-entrada" data-id="${produto.id}">
+                            <button class="dropdown-item btn-entrada" data-action="entrada" data-id="${produto.id}">
                                 <i class="fas fa-plus-circle"></i>
                                 <span>Entrada</span>
                             </button>
-                            <button class="dropdown-item btn-excluir" data-id="${produto.id}">
+                            <button class="dropdown-item btn-excluir" data-action="excluir" data-id="${produto.id}">
                                 <i class="fas fa-trash-alt"></i>
                                 <span>Excluir</span>
                             </button>
@@ -640,100 +642,107 @@ function renderizarProdutos() {
         currentCountElement.textContent = produtosFiltrados.length;
     }
     
-    adicionarEventosBotoes();
-    
-    // Configurar eventos do dropdown após renderizar
-    setTimeout(() => {
-        configurarDropdownAcoes();
-    }, 100);
+    // Configurar eventos dos dropdowns
+    configurarDropdowns();
 }
 
 // ============================================
-// 10. ADICIONAR EVENTOS AOS BOTÕES
+// FUNÇÃO DE CONFIGURAÇÃO DOS DROPDOWNS (SIMPLIFICADA E FUNCIONAL)
 // ============================================
-function adicionarEventosBotoes() {
-    // Botões do dropdown
-    document.querySelectorAll('.dropdown-item.btn-editar').forEach(btn => {
+function configurarDropdowns() {
+    // Configurar clique nos botões de menu
+    document.querySelectorAll('.btn-acao-menu').forEach(btn => {
         btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const produtoId = this.getAttribute('data-id');
-            fecharTodosDropdowns();
-            abrirModalEditar(produtoId);
-        });
-    });
-    
-    document.querySelectorAll('.dropdown-item.btn-ativar, .dropdown-item.btn-desativar').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
-            if (produto) {
-                fecharTodosDropdowns();
-                alterarStatusProduto(produto);
-            }
-        });
-    });
-    
-    document.querySelectorAll('.dropdown-item.btn-entrada').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
-            if (produto) {
-                fecharTodosDropdowns();
-                abrirModalEntradaEstoque(produto);
-            }
-        });
-    });
-    
-    document.querySelectorAll('.dropdown-item.btn-excluir').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
             e.preventDefault();
+            e.stopPropagation();
             
-            fecharTodosDropdowns();
+            // Fechar todos os dropdowns abertos
+            document.querySelectorAll('.dropdown-content').forEach(dd => {
+                if (dd !== this.nextElementSibling) {
+                    dd.style.display = 'none';
+                }
+            });
+            
+            // Alternar o dropdown atual
+            const dropdown = this.nextElementSibling;
+            if (dropdown && dropdown.classList.contains('dropdown-content')) {
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            }
+        });
+    });
+    
+    // Configurar clique nos itens do dropdown
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
+            const action = this.getAttribute('data-action');
             const produto = produtos.find(p => p.id === produtoId);
             
-            if (!produto) {
-                mostrarMensagem('Produto não encontrado', 'error');
-                return;
+            // Fechar o dropdown
+            const dropdown = this.closest('.dropdown-content');
+            if (dropdown) {
+                dropdown.style.display = 'none';
             }
             
-            const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE!\n\n` +
-                                  `Deseja EXCLUIR o produto:\n` +
-                                  `"${produto.nome}"\n` +
-                                  `Código: ${produto.codigo || 'sem código'}\n` +
-                                  `Estoque atual: ${produto.quantidade}\n\n` +
-                                  `Esta ação não poderá ser desfeita!`;
-            
-            if (!confirm(confirmMessage)) {
-                return;
+            // Executar ação correspondente
+            switch(action) {
+                case 'editar':
+                    abrirModalEditar(produtoId);
+                    break;
+                case 'desativar':
+                case 'ativar':
+                    if (produto) alterarStatusProduto(produto);
+                    break;
+                case 'entrada':
+                    if (produto) abrirModalEntradaEstoque(produto);
+                    break;
+                case 'excluir':
+                    if (produto) excluirProdutoComConfirmacao(produto);
+                    break;
             }
-            
-            if (produto.quantidade > 0) {
-                const estoqueConfirm = confirm(
-                    `ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
-                    `Você realmente deseja excluir mesmo com estoque?\n` +
-                    `Todo o estoque será perdido permanentemente.`
-                );
-                
-                if (!estoqueConfirm) {
-                    return;
-                }
-            }
-            
-            excluirProduto(produto);
         });
+    });
+    
+    // Fechar dropdowns ao clicar fora
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.acoes-dropdown')) {
+            document.querySelectorAll('.dropdown-content').forEach(dd => {
+                dd.style.display = 'none';
+            });
+        }
     });
 }
 
-// Função utilitária para fechar dropdowns
-function fecharTodosDropdowns() {
-    document.querySelectorAll('.dropdown-content').forEach(dd => {
-        dd.style.display = 'none';
-    });
+// Função auxiliar para excluir produto
+function excluirProdutoComConfirmacao(produto) {
+    if (!produto) return;
+    
+    const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE!\n\n` +
+                          `Deseja EXCLUIR o produto:\n` +
+                          `"${produto.nome}"\n` +
+                          `Código: ${produto.codigo || 'sem código'}\n` +
+                          `Estoque atual: ${produto.quantidade}\n\n` +
+                          `Esta ação não poderá ser desfeita!`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    if (produto.quantidade > 0) {
+        const estoqueConfirm = confirm(
+            `ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
+            `Você realmente deseja excluir mesmo com estoque?\n` +
+            `Todo o estoque será perdido permanentemente.`
+        );
+        
+        if (!estoqueConfirm) {
+            return;
+        }
+    }
+    
+    excluirProduto(produto);
 }
 
 // ============================================
@@ -1341,8 +1350,6 @@ function configurarEventos() {
     if (btnRemove) {
         btnRemove.addEventListener('click', removerImagem);
     }
-
-    configurarDropdownAcoes();
     
     console.log("✅ Eventos configurados com sucesso");
 }
@@ -1355,48 +1362,6 @@ function formatarMoeda(valor) {
     return numero.toLocaleString('pt-BR', {
         style: 'currency',
         currency: 'BRL'
-    });
-}
-
-// Função nova para configurar o dropdown
-function configurarDropdownAcoes() {
-    // Abrir/fechar dropdown ao clicar no botão de menu
-    document.addEventListener('click', function(e) {
-        const btnMenu = e.target.closest('.btn-acao-menu');
-        const dropdown = e.target.closest('.dropdown-content');
-        
-        // Fechar todos os dropdowns abertos
-        document.querySelectorAll('.dropdown-content').forEach(dd => {
-            if (dd !== dropdown && !dd.parentElement.contains(e.target)) {
-                dd.style.display = 'none';
-            }
-        });
-        
-        // Abrir dropdown do botão clicado
-        if (btnMenu) {
-            e.stopPropagation();
-            const dropdownContent = btnMenu.nextElementSibling;
-            if (dropdownContent && dropdownContent.classList.contains('dropdown-content')) {
-                const isVisible = dropdownContent.style.display === 'block';
-                dropdownContent.style.display = isVisible ? 'none' : 'block';
-            }
-        }
-    });
-    
-    // Fechar dropdown ao clicar fora
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.acoes-dropdown')) {
-            document.querySelectorAll('.dropdown-content').forEach(dd => {
-                dd.style.display = 'none';
-            });
-        }
-    });
-    
-    // Prevenir fechamento quando clicar dentro do dropdown
-    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
-        dropdown.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
     });
 }
 
@@ -1561,7 +1526,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             display: block;
         }
         
-        /* Estilos para dropdown de ações COM CLIQUE E HOVER */
+        /* ESTILOS GARANTIDOS PARA DROPDOWN CLICÁVEL */
         .acoes-cell {
             width: 70px;
             text-align: center;
@@ -1577,9 +1542,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
             border-radius: 6px;
-            padding: 8px 14px;
+            padding: 8px 12px;
             cursor: pointer;
-            font-size: 1.2rem;
+            font-size: 16px;
             color: #495057;
             transition: all 0.2s;
             display: flex;
@@ -1593,50 +1558,52 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             background-color: #3498db;
             border-color: #3498db;
             color: white;
-            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
         }
         
         .btn-acao-menu.active {
             background-color: #3498db;
             border-color: #3498db;
             color: white;
-            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
         }
         
         .dropdown-content {
-            display: none;
             position: absolute;
             right: 0;
             top: 100%;
             background-color: white;
-            min-width: 200px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-            border-radius: 10px;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
             z-index: 1000;
             overflow: hidden;
             border: 1px solid #dee2e6;
-            margin-top: 8px;
+            margin-top: 5px;
+            display: none;
         }
         
-        /* Funciona com hover E quando tem classe active (para clique) */
-        .acoes-dropdown:hover .dropdown-content,
-        .acoes-dropdown.active .dropdown-content {
+        .dropdown-content.show {
+            display: block !important;
+            animation: fadeInUp 0.2s ease;
+        }
+        
+        /* Também funciona com hover para compatibilidade */
+        .acoes-dropdown:hover .dropdown-content {
             display: block;
             animation: fadeInUp 0.2s ease;
         }
         
         .dropdown-item {
             width: 100%;
-            padding: 12px 16px;
+            padding: 10px 15px;
             text-align: left;
             border: none;
             background: none;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 14px;
             color: #495057;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             transition: all 0.2s;
             border-bottom: 1px solid #f8f9fa;
         }
@@ -1675,7 +1642,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         }
         
         .dropdown-item i {
-            width: 18px;
+            width: 16px;
             text-align: center;
             font-size: 1rem;
         }
@@ -2218,5 +2185,3 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
-
-
