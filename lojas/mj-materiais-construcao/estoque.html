@@ -197,14 +197,21 @@
                             <small class="form-hint">Como o produto é vendido (pacote, caixa, unidade)</small>
                         </div>
                     </div>
-                    <!-- SEÇÃO: Unidade com valor (ex: 175 g) -->
+                    <!-- SEÇÃO: Unidade com valor -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="valor_unidade">Valor por Unidade (ex: 175 g)</label>
+                            <label for="valor_unidade">Valor por Unidade</label>
                             <div class="input-with-unit">
-                                <input type="number" id="valor_unidade" step="any" min="0" placeholder="Ex: 175">
+                                <input 
+                                  type="text"
+                                  id="valor_unidade"
+                                  maxlength="7"
+                                  inputmode="decimal"
+                                  pattern="^\d{1,6}(,\d{1,2})?$"
+                                  placeholder="0,0"
+                                  required>
                                 <select id="tipo_unidade" class="unit-select">
-                                    <option value="unid" selected="">Unidades (unid)</option>
+                                    <option value="unid" selected>Unidades (unid)</option>
                                     <option value="kg">Quilogramas (kg)</option>
                                     <option value="g">Gramas (g)</option>
                                     <option value="ton">Toneladas (t)</option>
@@ -216,7 +223,7 @@
                                     <option value="m3">Metros³ (m³)</option>
                                 </select>
                             </div>
-                            <small class="form-hint">Ex: 175 g, 1.5 L, 2.5 m, 1 unid (por pacote/caixa)</small>
+                            <small class="form-hint">Ex: 175 g, 1,5 L, 2,5 m, 1 unid (por pacote/caixa)</small>
                         </div>
                         <div class="form-group">
                             <label for="total_estoque_unidade">Total em Estoque (Calculado)</label>
@@ -364,6 +371,7 @@
     <script type="module" src="estoque.js"></script>
 </body>
 </html>
+
 
 
 
