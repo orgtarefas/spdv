@@ -695,44 +695,82 @@ function adicionarAoCarrinho(produto, quantidade) {
 }
 
 // ============================================
-// CORREÇÃO DEFINITIVA - CARRINHO
+// ATUALIZAR CARRINHO
 // ============================================
 function atualizarCarrinho() {
     const cartItems = document.getElementById('cartItems');
     if (!cartItems) return;
     
     if (vendaManager.carrinho.length === 0) {
-        cartItems.innerHTML = `<div class="empty-cart">...</div>`;
+        cartItems.innerHTML = `
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <p>Carrinho vazio</p>
+                <small>Adicione produtos para iniciar a venda</small>
+            </div>
+        `;
         return;
     }
     
     let html = '';
     
     vendaManager.carrinho.forEach((item, index) => {
-        // 🔥 BUSCAR O PRODUTO ORIGINAL PARA PEGAR O VALOR FIXO
+        // Buscar o produto original para pegar o valor fixo da unidade
         const produtoOriginal = vendaManager.produtos.find(p => p.id === item.id);
         
-        // PEGAR O VALOR DA UNIDADE (175g, 500ml, 1kg, etc)
-        const valorUnidade = produtoOriginal?.valor_unidade || produtoOriginal?.peso_por_unidade || 175;
-        const tipoUnidade = produtoOriginal?.tipo_unidade || produtoOriginal?.unidade_peso || 'g';
+        // Pegar o valor da unidade (175g, 500ml, 1kg, etc)
+        const valorUnidade = produtoOriginal?.valor_unidade || produtoOriginal?.peso_por_unidade || 1;
+        const tipoUnidade = produtoOriginal?.tipo_unidade || produtoOriginal?.unidade_peso || '';
+        const unidadeVenda = item.unidade || 'UN';
         
-        // Formatar bonitinho
-        const valorFormatado = valorUnidade % 1 === 0 ? valorUnidade : valorUnidade.toFixed(1).replace(/\.0$/, '');
+        // Formatar o valor da unidade
+        const valorFormatado = valorUnidade % 1 === 0 
+            ? valorUnidade 
+            : valorUnidade.toFixed(1).replace(/\.0$/, '');
+        
+        // Abreviações
+        const abreviacoes = {
+            'unidade': 'unid', 'unid': 'unid',
+            'quilograma': 'kg', 'kg': 'kg',
+            'grama': 'g', 'g': 'g',
+            'litro': 'L', 'l': 'L',
+            'mililitro': 'mL', 'ml': 'mL',
+            'metro': 'm', 'm': 'm',
+            'centimetro': 'cm', 'cm': 'cm',
+            'metro_quadrado': 'm²', 'm2': 'm²',
+            'metro_cubico': 'm³', 'm3': 'm³'
+        };
+        
+        const unidadeAbreviada = abreviacoes[tipoUnidade.toLowerCase()] || tipoUnidade;
         
         html += `
             <div class="cart-item">
                 <div class="cart-item-info">
                     <div class="cart-item-name">${item.nome}</div>
                     <div class="cart-item-details">
-                        <span>Código: ${item.codigo || 'N/A'}</span>
-                        <span>Preço: ${formatarMoeda(item.preco_unitario)}</span>
+                        <span><i class="fas fa-barcode"></i> ${item.codigo || 'N/A'}</span>
+                        <span><i class="fas fa-tag"></i> Preço Individual: ${formatarMoeda(item.preco_unitario)}</span>
                         <span class="produto-unidade">
                             <i class="fas fa-weight-hanging"></i> 
-                            ${item.quantidade} ${item.unidade} - ${valorFormatado}${tipoUnidade}
+                            ${item.quantidade} ${unidadeVenda} - ${valorFormatado}${unidadeAbreviada}
+                        </span>
+                        <span class="produto-subtotal">
+                            <i class="fas fa-calculator"></i> Sub Total: ${formatarMoeda(item.subtotal)}
                         </span>
                     </div>
                 </div>
-                <!-- resto do código... -->
+                <div class="cart-item-controls">
+                    <div class="cart-item-qty">
+                        <button class="qty-btn" onclick="alterarQuantidadeCarrinho(${index}, -1)">-</button>
+                        <input type="number" class="qty-input" value="${item.quantidade}" 
+                               min="1" max="999" onchange="atualizarQuantidadeCarrinho(${index}, this.value)">
+                        <button class="qty-btn" onclick="alterarQuantidadeCarrinho(${index}, 1)">+</button>
+                    </div>
+                    <div class="cart-item-price">${formatarMoeda(item.subtotal)}</div>
+                    <button class="btn-remove-item" onclick="removerDoCarrinho(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         `;
     });
@@ -1941,6 +1979,7 @@ const servicosAvancados = new ServicosAvancadosPDV(vendaManager);
 window.servicosAvancados = servicosAvancados;
 
 console.log("✅ Serviços avançados do PDV carregados!");
+
 
 
 
