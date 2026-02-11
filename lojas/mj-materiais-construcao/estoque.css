@@ -473,9 +473,9 @@ body {
     position: relative;
 }
 
+/* GARANTIR QUE O DROPDOWN FIQUE ACIMA DE TUDO */
 .acoes-dropdown {
-    position: relative;
-    display: inline-block;
+    position: static; /* MUDEI DE relative PARA static */
 }
 
 .btn-acao-menu {
@@ -505,28 +505,40 @@ body {
 
 /* DROPDOWN CONTENT - ESTILO COMPLETO */
 .dropdown-content {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background-color: white;
-    min-width: 320px;
-    max-width: 95vw;
-    box-shadow: 0 5px 25px rgba(0,0,0,0.2);
-    border-radius: 10px;
-    z-index: 10000 !important;
-    overflow: hidden;
-    border: 1px solid #ddd;
-    margin-top: 5px;
-    display: none;
-    padding: 15px;
+    position: fixed !important; /* MUDEI DE absolute PARA fixed */
+    z-index: 99999 !important; /* Z-INDEX MUITO ALTO */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2) !important;
+    border: 1px solid #3498db !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    
+    /* POSICIONAMENTO DINÂMICO - SERÁ AJUSTADO VIA JS */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 320px !important;
+    
+    /* GARANTIR VISIBILIDADE */
     visibility: visible !important;
     opacity: 1 !important;
     pointer-events: auto !important;
 }
 
+/* QUANDO VISÍVEL */
 .dropdown-content.show {
     display: block !important;
-    animation: slideInUp 0.3s ease-out;
+    animation: fadeInScale 0.3s ease-out !important;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }
 
 @keyframes slideInUp {
@@ -538,6 +550,60 @@ body {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
+}
+
+
+/* GARANTIR QUE A TABELA NÃO ESCONDA */
+.estoque-table-container {
+    position: relative;
+    z-index: 1;
+}
+
+/* REMOVER OVERFLOW QUE ESTÁ CORTANDO */
+.estoque-table-container {
+    overflow-x: auto;
+    overflow-y: visible !important; /* PERMITIR QUE SAIA FORA */
+}
+
+/* ==================== AJUSTES PARA TABLET/DESKTOP ==================== */
+@media (min-width: 769px) {
+    /* POSICIONAMENTO RELATIVO AO BOTÃO EM TELAS MAIORES */
+    .dropdown-content {
+        position: absolute !important;
+        top: 100% !important;
+        left: auto !important;
+        right: 0 !important;
+        transform: none !important;
+        margin-top: 5px !important;
+        width: 320px !important;
+    }
+    
+    @keyframes slideInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .dropdown-content.show {
+        animation: slideInDown 0.3s ease-out !important;
+    }
+}
+
+/* ==================== GARANTIR QUE O BOTÃO SEJA CLICÁVEL ==================== */
+.btn-acao-menu {
+    position: relative;
+    z-index: 100;
+}
+
+/* PREVENIR QUE O DROPDOWN SEJA CORTADO */
+.estoque-table tbody tr {
+    position: relative;
+    z-index: 1;
 }
 
 /* GRUPO DE QUANTIDADE */
@@ -1486,3 +1552,4 @@ body {
         padding: 10px !important;
     }
 }
+
