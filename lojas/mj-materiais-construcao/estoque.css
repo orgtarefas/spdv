@@ -101,57 +101,7 @@ body {
     color: white !important;
 }
 
-/* ==================== INPUT DE UNIDADE COM VALOR ==================== */
-.input-with-unit {
-    display: flex;
-    width: 100%;
-}
-
-.input-with-unit input {
-    flex: 1;
-    border-radius: 6px 0 0 6px;
-    border-right: none;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 1rem;
-    padding: 0.75rem;
-}
-
-.input-with-unit input:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
-    position: relative;
-    z-index: 1;
-}
-
-.unit-select {
-    width: 120px;
-    border-left: none;
-    border-radius: 0 6px 6px 0;
-    background-color: #f8f9fa;
-    border-color: #ddd;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    font-size: 0.9rem;
-    padding: 0.75rem;
-}
-
-.input-readonly input {
-    background-color: #f8f9fa;
-    color: #666;
-    cursor: not-allowed;
-    font-weight: 600;
-}
-
-.input-readonly span {
-    color: #666;
-    font-weight: 500;
-    background: #e9ecef;
-    padding: 0 8px;
-    border-radius: 4px;
-    margin-left: 5px;
-}
-
-/* ==================== INPUT DE UNIDADE COM VALOR - CORRIGIDO ==================== */
+/* ==================== INPUT DE UNIDADE COM VALOR ================== */
 .input-with-unit {
     display: flex;
     width: 100%;
@@ -159,20 +109,21 @@ body {
 }
 
 .input-with-unit input#valor_unidade {
-    flex: 3; /* Aumenta o peso do input */
-    min-width: 120px; /* Largura mínima para o input */
+    width: 90px;  /* Largura ideal para 7 caracteres (9999,99) */
+    min-width: 90px;
+    max-width: 90px;
     border-radius: 6px 0 0 6px;
     border-right: none;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 1rem;
-    padding: 0.75rem;
-    width: auto; /* Permite flexibilidade */
+    padding: 0.75rem 0.5rem;
+    text-align: right; /* Alinha números à direita */
+    letter-spacing: 0.5px; /* Pequeno espaçamento entre caracteres */
 }
 
 .unit-select {
-    flex: 1; /* Dá menos peso para o select */
-    min-width: 100px; /* Mínimo para o select */
-    max-width: 140px; /* Máximo para não estourar */
+    flex: 1; /* Ocupa o espaço restante */
+    min-width: 100px;
     border-left: none;
     border-radius: 0 6px 6px 0;
     background-color: #f8f9fa;
@@ -182,42 +133,41 @@ body {
     padding: 0.75rem;
 }
 
-/* Versão mais compacta para telas menores */
+/* Ajuste para fonte monoespaçada (opcional - mais preciso para contagem de caracteres) */
+.input-with-unit input#valor_unidade {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 1rem;
+    letter-spacing: 1px;
+}
+
+/* Responsivo */
 @media (max-width: 768px) {
-    .input-with-unit {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    
     .input-with-unit input#valor_unidade {
-        flex: 1 1 120px;
-        min-width: 100px;
-    }
-    
-    .unit-select {
-        flex: 0 1 100px;
-        min-width: 90px;
+        width: 85px;
+        min-width: 85px;
+        max-width: 85px;
+        font-size: 0.95rem;
+        padding: 0.7rem 0.4rem;
     }
 }
 
-/* Para telas muito pequenas, empilhar os elementos */
 @media (max-width: 480px) {
     .input-with-unit {
-        flex-direction: column;
-        gap: 5px;
+        flex-wrap: nowrap; /* Mantém na mesma linha */
     }
     
     .input-with-unit input#valor_unidade {
-        border-radius: 6px;
-        border-right: 1px solid #ddd;
-        width: 100%;
+        width: 80px;
+        min-width: 80px;
+        max-width: 80px;
+        font-size: 0.9rem;
+        padding: 0.65rem 0.35rem;
     }
     
     .unit-select {
-        border-radius: 6px;
-        border-left: 1px solid #ddd;
-        width: 100%;
-        max-width: 100%;
+        min-width: 90px;
+        font-size: 0.85rem;
+        padding: 0.65rem 0.35rem;
     }
 }
 
@@ -1999,6 +1949,7 @@ body {
         gap: 6px;
     }
 }
+
 
 
 
