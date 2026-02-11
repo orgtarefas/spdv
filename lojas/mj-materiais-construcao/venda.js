@@ -3,25 +3,149 @@ console.log("🛒 Sistema PDV - Página de Vendas");
 
 import { lojaServices } from './firebase_config.js';
 
+// Versão melhorada da função obterURLImagem
 function obterURLImagem(produto, tamanho = 'thumb') {
-    if (!produto || !produto.imagens) {
-        return obterImagemPlaceholderBase64(); // Usar base64 como fallback
+    if (!produto) return obterImagemPlaceholderBase64();
+    
+    // Verificar se tem imagens definidas
+    if (!produto.imagens) {
+        return obterImagemPlaceholderBase64();
     }
     
     const imagens = produto.imagens;
     
-    // Escolher tamanho baseado no parâmetro
-    switch(tamanho) {
-        case 'thumb':
-            return imagens.thumbnail || imagens.principal || obterImagemPlaceholderBase64();
-        case 'medium':
-            return imagens.medium || imagens.principal || obterImagemPlaceholderBase64();
-        case 'large':
-        case 'principal':
-            return imagens.principal || obterImagemPlaceholderBase64();
-        default:
-            return imagens.principal || obterImagemPlaceholderBase64();
+    // Se não tem URL principal, retorna placeholder
+    if (!imagens.principal) {
+        return obterImagemPlaceholderBase64();
     }
+    
+    // Verificar se a imagem é um arquivo (File) - para produtos recém-carregados
+    if (imagens.principal instanceof File) {
+        try {
+            // Tentar criar URL temporária
+            return URL.createObjectURL(imagens.principal);
+        } catch (e) {
+            console.warn('Erro ao criar URL para File:', e);
+            return obterImagemPlaceholderBase64();
+        }
+    }
+    
+    // Verificar se a URL é válida
+    const url = imagens.principal;
+    
+    // Se for URL vazia ou string vazia
+    if (!url || url === '') {
+        return obterImagemPlaceholderBase64();
+    }
+    
+    // Se for URL de imagem padrão antiga
+    if (url.includes('sem-foto.png') || url.includes('no-image')) {
+        return obterImagemPlaceholderBase64();
+    }
+    
+    // Escolher tamanho baseado no parâmetro
+    try {
+        switch(tamanho) {
+            case 'thumb':
+                return imagens.thumbnail && imagens.thumbnail !== '' 
+                    ? imagens.thumbnail 
+                    : (imagens.principal || obterImagemPlaceholderBase64());
+            case 'medium':
+                return imagens.medium && imagens.medium !== '' 
+                    ? imagens.medium 
+                    : (imagens.principal || obterImagemPlaceholderBase64());
+            case 'large':
+            case 'principal':
+                return imagens.principal || obterImagemPlaceholderBase64();
+            default:
+                return imagens.principal || obterImagemPlaceholderBase64();
+        }
+    } catch (error) {
+        console.error('Erro ao processar URL da imagem:', error);
+        return obterImagemPlaceholderBase64();
+    }
+}
+
+// Função para renderizar resultados da busca com imagens
+function renderizarResultadosBusca(produtos) {
+    const searchResults = document.getElementById('searchResults');
+    if (!searchResults) return;
+    
+    if (!produtos || produtos.length === 0) {
+        searchResults.innerHTML = `
+            <div class="empty-state" style="padding: 30px;">
+                <i class="fas fa-search"></i>
+                <p>Nenhum produto encontrado</p>
+                <small>Tente outro termo de busca</small>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="results-list">';
+    
+    produtos.forEach(produto => {
+        const imagemURL = obterURLImagem(produto, 'thumb');
+        const temEstoque = produto.quantidade > 0;
+        const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
+        const precoFormatado = formatarMoeda(produto.preco);
+        
+        // Verificar se é placeholder
+        const isPlaceholder = imagemURL.includes('data:image/svg+xml');
+        
+        html += `
+            <div class="product-result" data-id="${produto.id}">
+                <!-- CONTAINER DA IMAGEM -->
+                <div class="product-image-container">
+                    <img src="${imagemURL}" 
+                         alt="${produto.nome}"
+                         class="${isPlaceholder ? 'no-image' : ''}"
+                         loading="lazy"
+                         onerror="this.src='${obterImagemPlaceholderBase64()}'; this.classList.add('no-image');">
+                </div>
+                
+                <!-- CONTEÚDO DO PRODUTO -->
+                <div class="product-content">
+                    <div class="product-result-header">
+                        <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
+                        <span class="product-stock ${estoqueBaixo ? 'low' : 'normal'}">
+                            ${produto.quantidade} ${produto.unidade_venda || produto.unidade || 'UN'}
+                        </span>
+                    </div>
+                    
+                    <div class="product-name" title="${produto.nome}">
+                        ${produto.nome}
+                    </div>
+                    
+                    <div class="product-category">
+                        ${produto.categoria || 'Sem categoria'}
+                    </div>
+                    
+                    <div class="product-details">
+                        <div class="product-price">
+                            <strong>Preço:</strong> ${precoFormatado}
+                        </div>
+                        
+                        <div class="product-actions">
+                            <button class="btn-action btn-info" 
+                                    onclick="window.vendaManager?.selecionarProdutoParaVenda('${produto.id}')">
+                                <i class="fas fa-info-circle"></i> Detalhes
+                            </button>
+                            
+                            <button class="btn-action btn-sell" 
+                                    onclick="window.vendaManager?.selecionarProdutoParaVenda('${produto.id}')"
+                                    ${!temEstoque ? 'disabled' : ''}>
+                                <i class="fas fa-cart-plus"></i> Vender
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    searchResults.innerHTML = html;
 }
 
 // Função para obter imagem placeholder em base64
@@ -994,8 +1118,10 @@ function exibirProdutos(produtos) {
 }
 
 function buscarProdutos(termo) {
-    if (!termo.trim()) {
-        exibirProdutos(vendaManager.produtos);
+    if (!termo || !termo.trim()) {
+        // Se não tiver termo de busca, esconder resultados
+        const searchResults = document.getElementById('searchResults');
+        if (searchResults) searchResults.innerHTML = '';
         return;
     }
     
@@ -1006,6 +1132,10 @@ function buscarProdutos(termo) {
         (produto.categoria && produto.categoria.toLowerCase().includes(termoLower))
     );
     
+    // Usar a nova função de renderização
+    renderizarResultadosBusca(produtosFiltrados);
+    
+    // Opcional: também atualizar a grid de produtos
     exibirProdutos(produtosFiltrados);
     atualizarContadorProdutos(produtosFiltrados.length);
 }
@@ -1517,6 +1647,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 }
 
 console.log("✅ Sistema de vendas PDV completamente carregado!");
+
 
 
 
