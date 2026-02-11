@@ -142,6 +142,9 @@ async function atualizarInterfaceLoja() {
             userPerfil.textContent = perfil.includes('admin') ? '👑 Administrador' : '👤 Vendedor';
             userPerfil.className = `user-perfil ${perfil.includes('admin') ? 'admin' : 'user'}`;
         }
+
+        // 6. CARREGAR LOGO DA LOJA (adicione esta linha)
+        await carregarLogoLoja();
         
     } catch (error) {
         console.error('❌ Erro ao atualizar interface da loja:', error);
@@ -159,6 +162,74 @@ async function atualizarInterfaceLoja() {
                 elemento.textContent = lojaServices.lojaId || 'Loja';
             }
         });
+    }
+}
+
+// ============================================
+// 2.1. CARREGAR LOGO DA LOJA
+// ============================================
+async function carregarLogoLoja() {
+    try {
+        const lojaId = lojaServices.lojaId;
+        if (!lojaId) return;
+        
+        // Caminho da logo baseado na loja selecionada
+        const caminhoLogo = `imagens/${lojaId}/logo.png`;
+        
+        console.log(`🖼️ Tentando carregar logo: ${caminhoLogo}`);
+        
+        // Criar um elemento de imagem para testar se existe
+        const img = new Image();
+        img.onload = function() {
+            // Logo encontrada - substituir ícone pela imagem
+            const welcomeIcon = document.querySelector('.welcome-icon');
+            const logoImg = document.getElementById('lojaLogo');
+            const defaultIcon = document.getElementById('defaultWelcomeIcon');
+            
+            if (logoImg) {
+                logoImg.src = caminhoLogo;
+                logoImg.style.display = 'block';
+                logoImg.style.maxWidth = '120px';
+                logoImg.style.maxHeight = '120px';
+                logoImg.style.objectFit = 'contain';
+            }
+            
+            if (defaultIcon) {
+                defaultIcon.style.display = 'none';
+            }
+            
+            if (welcomeIcon) {
+                welcomeIcon.style.padding = '10px';
+                welcomeIcon.style.display = 'flex';
+                welcomeIcon.style.alignItems = 'center';
+                welcomeIcon.style.justifyContent = 'center';
+            }
+            
+            console.log(`✅ Logo carregada com sucesso: ${caminhoLogo}`);
+        };
+        
+        img.onerror = function() {
+            // Logo não encontrada - manter ícone padrão
+            console.log(`ℹ️ Logo não encontrada em: ${caminhoLogo}, usando ícone padrão`);
+            
+            const logoImg = document.getElementById('lojaLogo');
+            const defaultIcon = document.getElementById('defaultWelcomeIcon');
+            
+            if (logoImg) logoImg.style.display = 'none';
+            if (defaultIcon) defaultIcon.style.display = 'block';
+        };
+        
+        img.src = caminhoLogo;
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar logo:', error);
+        
+        // Em caso de erro, manter ícone padrão
+        const logoImg = document.getElementById('lojaLogo');
+        const defaultIcon = document.getElementById('defaultWelcomeIcon');
+        
+        if (logoImg) logoImg.style.display = 'none';
+        if (defaultIcon) defaultIcon.style.display = 'block';
     }
 }
 
@@ -1139,3 +1210,4 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
