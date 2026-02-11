@@ -151,8 +151,15 @@ function calcularTotalUnidade() {
     }
 }
 
-function formatarUnidadeExibicao(valor, tipo) {
-    const formatarTipo = (tipo) => {
+function formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, unidadeVenda) {
+    if (!quantidade || quantidade === 0) {
+        return '0 ' + unidadeVenda;
+    }
+    
+    const valorTotal = valorUnidade * quantidade;
+    
+    // Formatador de tipo de unidade
+    const formatarTipoUnidade = (tipo) => {
         const unidades = {
             'kg': 'kg',
             'g': 'g',
@@ -163,21 +170,48 @@ function formatarUnidadeExibicao(valor, tipo) {
             'cm': 'cm',
             'm2': 'm²',
             'm3': 'm³',
-            'unid': 'unid'
+            'unid': 'unid',
+            'und': 'unid'
         };
         return unidades[tipo] || tipo;
     };
     
-    const tipoFormatado = formatarTipo(tipo);
+    const tipoFormatado = formatarTipoUnidade(tipoUnidade);
+    const unidadeVendaFormatada = unidadeVenda.toUpperCase();
     
-    if (valor > 0 && tipo !== 'unid') {
-        const casasDecimais = ['kg', 'l', 'm', 'm2', 'm3', 'ton'].includes(tipo) ? 2 : 0;
-        return `${valor.toFixed(casasDecimais)} ${tipoFormatado}`;
-    } else if (valor > 0 && tipo === 'unid') {
-        return `${valor.toFixed(0)} ${tipoFormatado}`;
-    } else {
-        return '1 unid';
+    // Se for unidade padrão (sem peso/medida especial)
+    if (tipoUnidade === 'unid' || tipoUnidade === 'und' || !tipoUnidade) {
+        return `${quantidade} ${unidadeVendaFormatada}`;
     }
+    
+    // Se tiver valor por unidade (ex: 175g por unidade)
+    if (valorUnidade > 1) {
+        // Exibir: "12 Unid / 2.1kg" (se for 175g cada)
+        if (['g', 'kg', 'ml', 'l'].includes(tipoUnidade)) {
+            // Converter para unidade apropriada
+            let valorExibicao;
+            let tipoExibicao;
+            
+            if (tipoUnidade === 'g' && valorTotal >= 1000) {
+                valorExibicao = (valorTotal / 1000).toFixed(1);
+                tipoExibicao = 'kg';
+            } else if (tipoUnidade === 'ml' && valorTotal >= 1000) {
+                valorExibicao = (valorTotal / 1000).toFixed(1);
+                tipoExibicao = 'L';
+            } else {
+                valorExibicao = valorTotal;
+                tipoExibicao = tipoFormatado;
+            }
+            
+            return `${quantidade} ${unidadeVendaFormatada} / ${valorExibicao}${tipoExibicao}`;
+        }
+        
+        // Para outras unidades
+        return `${quantidade} ${unidadeVendaFormatada} / ${valorTotal}${tipoFormatado}`;
+    }
+    
+    // Caso simples
+    return `${quantidade} ${unidadeVendaFormatada}`;
 }
 
 // ============================================
@@ -498,9 +532,6 @@ async function carregarCategorias() {
 // ============================================
 // 9. RENDERIZAR PRODUTOS NA TABELA
 // ============================================
-// ============================================
-// 9. RENDERIZAR PRODUTOS NA TABELA
-// ============================================
 function renderizarProdutos() {
     if (!estoqueTableBody) return;
     
@@ -534,17 +565,18 @@ function renderizarProdutos() {
         const statusText = !produto.ativo ? 'Inativo' : 
                           produto.quantidade <= produto.estoque_minimo ? 'Baixo' : 'Ativo';
         
-        // Dados da unidade
-        const valorUnidade = produto.peso_por_unidade || produto.valor_unidade || 0;
-        const tipoUnidade = produto.unidade_peso || produto.tipo_unidade || 'unid';
+        // Dados da unidade - CORRIGIDO
+        const valorUnidade = produto.valor_unidade || produto.peso_por_unidade || 1;
+        const tipoUnidade = produto.tipo_unidade || produto.unidade_peso || 'unid';
         const quantidade = produto.quantidade || 0;
+        const unidadeVenda = produto.unidade_venda || 'UN';
         
         // URL da imagem
         const imagemUrl = produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         const imagemThumb = produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         
-        // Formatar a unidade para exibição
-        const unidadeDisplay = formatarUnidadeExibicao(valorUnidade, tipoUnidade);
+        // Formatar a unidade para exibição - NOVO FORMATO
+        const unidadeDisplay = formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, unidadeVenda);
         
         html += `
             <tr data-id="${produto.id}">
@@ -580,15 +612,13 @@ function renderizarProdutos() {
                     <span class="categoria-badge">${produto.categoria || 'Sem categoria'}</span>
                 </td>
                 
-                <!-- COLUNA 5: Unidade -->
+                <!-- COLUNA 5: Unidade - AGORA COM QUANTIDADE + UNIDADE -->
                 <td class="unidade-cell">
                     <div class="unidade-info">
                         <span class="unidade-valor">${unidadeDisplay}</span>
-                        ${produto.unidade_venda ? `
-                            <div class="unidade-tipo">
-                                <small class="text-muted">${produto.unidade_venda}</small>
-                            </div>
-                        ` : ''}
+                        <div class="unidade-tipo">
+                            <small class="text-muted">${unidadeVenda}</small>
+                        </div>
                     </div>
                 </td>
                 
@@ -621,9 +651,6 @@ function renderizarProdutos() {
                     <div class="acoes-botoes" data-id="${produto.id}">
                         <!-- CONTADOR DE ESTOQUE -->
                         <div class="estoque-contador">
-                            <div class="contador-header">
-                                <small>Estoque</small>
-                            </div>
                             <div class="contador-controls">
                                 <button class="btn-contador btn-diminuir" data-id="${produto.id}" title="Diminuir">
                                     <i class="fas fa-minus"></i>
@@ -1932,5 +1959,6 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
