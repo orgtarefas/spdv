@@ -951,39 +951,133 @@ function configurarStatusToggle() {
 // ============================================
 // 13. MOSTRAR MODAL DE SELEÇÃO DE STATUS
 // ============================================
+// ============================================
+// 13. MOSTRAR MODAL DE SELEÇÃO DE STATUS
+// ============================================
 async function mostrarModalSelecaoStatus(produto, currentStatus) {
     return new Promise((resolve) => {
         // Criar modal
         const modalHTML = `
-            <div class="modal-status-overlay">
-                <div class="modal-status">
-                    <div class="modal-status-header">
-                        <h3><i class="fas fa-exchange-alt"></i> Alterar Status</h3>
-                        <button class="modal-status-close">&times;</button>
+            <div class="modal-status-overlay" style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                opacity: 0;
+                transition: opacity 0.3s;
+            ">
+                <div class="modal-status" style="
+                    background: white;
+                    border-radius: 8px;
+                    width: 90%;
+                    max-width: 400px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                    overflow: hidden;
+                    transform: scale(0.9);
+                    transition: transform 0.3s;
+                ">
+                    <div class="modal-status-header" style="
+                        background: linear-gradient(135deg, #2c3e50, #3498db);
+                        color: white;
+                        padding: 1rem 1.5rem;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-exchange-alt"></i>
+                            Alterar Status
+                        </h3>
+                        <button class="modal-status-close" style="
+                            background: none;
+                            border: none;
+                            color: white;
+                            font-size: 1.5rem;
+                            cursor: pointer;
+                            padding: 0;
+                            line-height: 1;
+                        ">&times;</button>
                     </div>
-                    <div class="modal-status-body">
-                        <p>Produto: <strong>${produto.nome}</strong></p>
-                        <p>Código: <strong>${produto.codigo || 'N/A'}</strong></p>
-                        <p>Status atual: <span class="status-badge ${currentStatus === 'ativo' ? 'status-ativo' : 'status-inativo'}">
-                            ${currentStatus === 'ativo' ? 'Ativo' : 'Inativo'}
-                        </span></p>
+                    <div class="modal-status-body" style="padding: 1.5rem;">
+                        <div style="margin-bottom: 1rem;">
+                            <p style="margin: 0 0 5px 0;"><strong>Produto:</strong> ${produto.nome}</p>
+                            <p style="margin: 0 0 5px 0;"><strong>Código:</strong> ${produto.codigo || 'N/A'}</p>
+                            <p style="margin: 0 0 15px 0;">
+                                <strong>Status atual:</strong> 
+                                <span style="
+                                    display: inline-block;
+                                    padding: 4px 10px;
+                                    border-radius: 20px;
+                                    font-size: 0.85rem;
+                                    font-weight: 600;
+                                    background: ${currentStatus === 'ativo' ? '#d4edda' : '#f8d7da'};
+                                    color: ${currentStatus === 'ativo' ? '#155724' : '#721c24'};
+                                ">
+                                    ${currentStatus === 'ativo' ? 'Ativo' : 'Inativo'}
+                                </span>
+                            </p>
+                        </div>
                         
-                        <div class="status-options">
-                            <button class="btn-status-option btn-status-ativo" data-status="ativo">
-                                <i class="fas fa-check-circle"></i>
-                                <span>Ativo</span>
-                                <small>Produto disponível para venda</small>
+                        <div class="status-options" style="display: flex; flex-direction: column; gap: 10px;">
+                            <button class="btn-status-option btn-status-ativo" data-status="ativo" style="
+                                padding: 12px 16px;
+                                border: 1px solid #dee2e6;
+                                border-radius: 6px;
+                                background: white;
+                                cursor: pointer;
+                                text-align: left;
+                                transition: all 0.2s;
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                            ">
+                                <i class="fas fa-check-circle" style="color: #28a745; font-size: 1.2rem;"></i>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: #2c3e50;">Ativo</div>
+                                    <small style="color: #6c757d; font-size: 0.85rem;">Produto disponível para venda</small>
+                                </div>
                             </button>
                             
-                            <button class="btn-status-option btn-status-inativo" data-status="inativo">
-                                <i class="fas fa-times-circle"></i>
-                                <span>Inativo</span>
-                                <small>Produto indisponível para venda</small>
+                            <button class="btn-status-option btn-status-inativo" data-status="inativo" style="
+                                padding: 12px 16px;
+                                border: 1px solid #dee2e6;
+                                border-radius: 6px;
+                                background: white;
+                                cursor: pointer;
+                                text-align: left;
+                                transition: all 0.2s;
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                            ">
+                                <i class="fas fa-times-circle" style="color: #dc3545; font-size: 1.2rem;"></i>
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: #2c3e50;">Inativo</div>
+                                    <small style="color: #6c757d; font-size: 0.85rem;">Produto indisponível para venda</small>
+                                </div>
                             </button>
                         </div>
                     </div>
-                    <div class="modal-status-footer">
-                        <button class="btn-cancelar-status">Cancelar</button>
+                    <div class="modal-status-footer" style="
+                        padding: 1rem 1.5rem;
+                        border-top: 1px solid #eee;
+                        display: flex;
+                        justify-content: flex-end;
+                    ">
+                        <button class="btn-cancelar-status" style="
+                            padding: 8px 16px;
+                            border: 1px solid #ddd;
+                            background: white;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            transition: all 0.2s;
+                        ">Cancelar</button>
                     </div>
                 </div>
             </div>
@@ -995,6 +1089,7 @@ async function mostrarModalSelecaoStatus(produto, currentStatus) {
         document.body.appendChild(modalContainer);
         
         const modal = modalContainer.querySelector('.modal-status-overlay');
+        const modalContent = modal.querySelector('.modal-status');
         
         // Configurar eventos
         const closeBtn = modal.querySelector('.modal-status-close');
@@ -1004,8 +1099,11 @@ async function mostrarModalSelecaoStatus(produto, currentStatus) {
         // Fechar modal
         const fecharModal = () => {
             modal.style.opacity = '0';
+            modalContent.style.transform = 'scale(0.9)';
             setTimeout(() => {
-                document.body.removeChild(modalContainer);
+                if (modalContainer.parentNode) {
+                    document.body.removeChild(modalContainer);
+                }
                 resolve(null); // Retorna null se cancelado
             }, 300);
         };
@@ -1023,23 +1121,71 @@ async function mostrarModalSelecaoStatus(produto, currentStatus) {
         
         // Evento de seleção de status
         statusOptions.forEach(option => {
-            option.addEventListener('click', () => {
+            option.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const selectedStatus = option.getAttribute('data-status');
                 console.log(`✅ Status selecionado: ${selectedStatus}`);
                 
-                // Fechar modal
-                modal.style.opacity = '0';
+                // Adicionar feedback visual
+                option.style.background = selectedStatus === 'ativo' ? '#e7f5ec' : '#fdf2f2';
+                option.style.borderColor = selectedStatus === 'ativo' ? '#28a745' : '#dc3545';
+                
+                // Fechar modal após breve delay
                 setTimeout(() => {
-                    document.body.removeChild(modalContainer);
-                    resolve(selectedStatus); // Retorna o status selecionado
-                }, 300);
+                    fecharModal();
+                    setTimeout(() => {
+                        resolve(selectedStatus); // Retorna o status selecionado
+                    }, 100);
+                }, 200);
+            });
+        });
+        
+        // Adicionar estilos de hover
+        statusOptions.forEach(option => {
+            option.addEventListener('mouseenter', function() {
+                const status = this.getAttribute('data-status');
+                if (status === 'ativo') {
+                    this.style.background = '#e7f5ec';
+                    this.style.borderColor = '#28a745';
+                } else {
+                    this.style.background = '#fdf2f2';
+                    this.style.borderColor = '#dc3545';
+                }
+            });
+            
+            option.addEventListener('mouseleave', function() {
+                this.style.background = 'white';
+                this.style.borderColor = '#dee2e6';
             });
         });
         
         // Animar entrada do modal
         setTimeout(() => {
             modal.style.opacity = '1';
+            modalContent.style.transform = 'scale(1)';
         }, 10);
+        
+        // Adicionar evento de teclado (ESC para fechar)
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                fecharModal();
+                document.removeEventListener('keydown', handleKeyDown);
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyDown);
+        
+        // Limpar evento quando o modal for fechado
+        setTimeout(() => {
+            const checkModal = () => {
+                if (!document.body.contains(modalContainer)) {
+                    document.removeEventListener('keydown', handleKeyDown);
+                } else {
+                    setTimeout(checkModal, 100);
+                }
+            };
+            checkModal();
+        }, 1000);
     });
 }
 
@@ -1786,4 +1932,5 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
