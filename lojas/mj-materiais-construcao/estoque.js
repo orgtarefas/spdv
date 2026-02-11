@@ -29,6 +29,9 @@ let imagemUploadResult = null;
 let uploadArea, fileInput, previewImage, imagePreview;
 let uploadProgress, progressFill, progressPercent, imageStatus;
 
+// IMAGEM GERADA EM BASE64 QUANDO NÃO HOUVER IMAGENS
+const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNNDAgMzVMNjAgNTVNNTAgNDVMNzAgMjVNNjAgMzVMMzAgNjVNNzAgMzVMNTAgNTVNMzAgMzVMMzUgMzBNNzAgNTVMNjUgNjBNMzUgNjVMMzAgNjBNNjUgMzVMNzAgMzAiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzZjNzU3ZCIgZm9udC13ZWlnaHQ9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VNIEZPVE88L3RleHQ+Cjwvc3ZnPg==";
+
 // ============================================
 // 1. INICIALIZAÇÃO
 // ============================================
@@ -523,9 +526,9 @@ function renderizarProdutos() {
         const tipoUnidade = produto.unidade_peso || produto.tipo_unidade || 'unid';
         const quantidade = produto.quantidade || 0;
         
-        // URL da imagem
-        const imagemUrl = produto.imagens?.principal || '/images/sem-foto.png';
-        const imagemThumb = produto.imagens?.thumbnail || produto.imagens?.principal || '/images/sem-foto.png';
+        // URL da imagem - usando base64 como fallback
+        const imagemUrl = produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
+        const imagemThumb = produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         
         // Formatar a unidade para exibição
         const unidadeDisplay = formatarUnidadeExibicao(valorUnidade, tipoUnidade);
@@ -536,13 +539,12 @@ function renderizarProdutos() {
         
         html += `
             <tr data-id="${produto.id}">
-                <!-- COLUNA: Imagem -->
+                <!-- COLUNA: Imagem (imagem maior e centralizada) -->
                 <td class="imagem-cell">
-                    <div class="produto-imagem-container">
+                    <div class="produto-imagem-grande-container">
                         <img src="${imagemThumb}" 
                              alt="${produto.nome || 'Produto'}"
-                             class="produto-imagem"
-                             onerror="this.src='/images/sem-foto.png'">
+                             class="produto-imagem-grande">
                     </div>
                 </td>
                 
@@ -601,28 +603,30 @@ function renderizarProdutos() {
                     </span>
                 </td>
                 
+                <!-- COLUNA: Ações com dropdown -->
                 <td class="acoes-cell">
-                    <div class="acoes-container">
-                        <button class="btn-acao btn-editar" title="Editar produto" data-id="${produto.id}">
-                            <i class="fas fa-edit"></i>
-                            <span class="acao-tooltip">Editar</span>
+                    <div class="acoes-dropdown">
+                        <button class="btn-acao-menu" title="Ações">
+                            <i class="fas fa-ellipsis-v"></i>
                         </button>
-                        <button class="btn-acao ${produto.ativo ? 'btn-desativar' : 'btn-ativar'}" 
-                                title="${produto.ativo ? 'Desativar produto' : 'Ativar produto'}" 
-                                data-id="${produto.id}">
-                            <i class="fas ${produto.ativo ? 'fa-ban' : 'fa-check'}"></i>
-                            <span class="acao-tooltip">${produto.ativo ? 'Desativar' : 'Ativar'}</span>
-                        </button>
-                        <button class="btn-acao btn-entrada" title="Entrada de estoque" data-id="${produto.id}">
-                            <i class="fas fa-plus-circle"></i>
-                            <span class="acao-tooltip">Entrada</span>
-                        </button>
-                        <button class="btn-acao btn-excluir" title="Excluir produto permanentemente" data-id="${produto.id}">
-                            <i class="fas fa-trash-alt"></i>
-                            <span class="acao-tooltip">
-                                Excluir permanentemente
-                            </span>
-                        </button>
+                        <div class="dropdown-content">
+                            <button class="dropdown-item btn-editar" data-id="${produto.id}">
+                                <i class="fas fa-edit"></i>
+                                <span>Editar</span>
+                            </button>
+                            <button class="dropdown-item ${produto.ativo ? 'btn-desativar' : 'btn-ativar'}" data-id="${produto.id}">
+                                <i class="fas ${produto.ativo ? 'fa-ban' : 'fa-check'}"></i>
+                                <span>${produto.ativo ? 'Desativar' : 'Ativar'}</span>
+                            </button>
+                            <button class="dropdown-item btn-entrada" data-id="${produto.id}">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Entrada</span>
+                            </button>
+                            <button class="dropdown-item btn-excluir" data-id="${produto.id}">
+                                <i class="fas fa-trash-alt"></i>
+                                <span>Excluir</span>
+                            </button>
+                        </div>
                     </div>
                 </td>
             </tr>
@@ -642,15 +646,18 @@ function renderizarProdutos() {
 // 10. ADICIONAR EVENTOS AOS BOTÕES
 // ============================================
 function adicionarEventosBotoes() {
+    // Botões do dropdown
     document.querySelectorAll('.btn-editar').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const produtoId = this.getAttribute('data-id');
             abrirModalEditar(produtoId);
         });
     });
     
     document.querySelectorAll('.btn-ativar, .btn-desativar').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
             if (produto) {
@@ -660,7 +667,8 @@ function adicionarEventosBotoes() {
     });
     
     document.querySelectorAll('.btn-entrada').forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
             if (produto) {
@@ -671,8 +679,8 @@ function adicionarEventosBotoes() {
     
     document.querySelectorAll('.btn-excluir').forEach(btn => {
         btn.addEventListener('click', function(e) {
-            e.preventDefault();
             e.stopPropagation();
+            e.preventDefault();
             
             const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
@@ -706,6 +714,20 @@ function adicionarEventosBotoes() {
             }
             
             excluirProduto(produto);
+        });
+    });
+    
+    // Fechar dropdown quando clicar fora
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+            dropdown.style.display = 'none';
+        });
+    });
+    
+    // Prevenir fechamento quando clicar dentro do dropdown
+    document.querySelectorAll('.acoes-dropdown').forEach(dropdown => {
+        dropdown.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
     });
 }
@@ -1445,82 +1467,171 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             color: #bdc3c7;
         }
         
-        .btn-acao {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            margin: 0 5px;
-            padding: 5px;
-            border-radius: 4px;
-            transition: all 0.2s;
+        .empty-state p {
+            margin-bottom: 5px;
+            font-size: 1.1rem;
         }
         
-        .btn-acao:hover {
-            background-color: #f8f9fa;
-            transform: scale(1.1);
-        }
-        
-        .btn-editar { color: #3498db; }
-        .btn-desativar { color: #e74c3c; }
-        .btn-ativar { color: #27ae60; }
-        .btn-entrada { color: #f39c12; }
-        .btn-excluir { color: #e74c3c; }
-        
-        .acoes-cell {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
+        .empty-state small {
+            font-size: 0.9rem;
+            color: #95a5a6;
         }
 
-        /* Estilos para a coluna de imagem */
+        /* Estilos para a coluna de imagem (IMAGEM GRANDE) */
         .imagem-cell {
-            width: 60px;
+            width: 90px;
             padding: 8px;
+            text-align: center;
+            vertical-align: middle;
         }
         
-        .produto-imagem-container {
-            width: 50px;
-            height: 50px;
-            border-radius: 6px;
+        .produto-imagem-grande-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
             overflow: hidden;
-            border: 1px solid #e0e0e0;
+            border: 2px solid #e0e0e0;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #f8f9fa;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
-        .produto-imagem {
+        .produto-imagem-grande-container:hover {
+            border-color: #3498db;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+        }
+        
+        .produto-imagem-grande {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            display: block;
         }
         
-        /* Estilos para a coluna de unidade */
-        .unidade-cell {
-            min-width: 100px;
+        /* Estilos para dropdown de ações */
+        .acoes-cell {
+            width: 70px;
+            text-align: center;
+            vertical-align: middle;
         }
         
-        .unidade-info {
+        .acoes-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .btn-acao-menu {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #495057;
+            transition: all 0.2s;
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
         }
         
-        .unidade-valor {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.95rem;
+        .btn-acao-menu:hover {
+            background-color: #3498db;
+            border-color: #3498db;
+            color: white;
+            box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
         }
         
-        .unidade-total small {
-            font-size: 0.8rem;
-            color: #7f8c8d;
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            border-radius: 10px;
+            z-index: 1000;
+            overflow: hidden;
+            border: 1px solid #dee2e6;
+            margin-top: 8px;
         }
         
-        .unidade-total i {
-            margin-right: 4px;
+        .acoes-dropdown:hover .dropdown-content {
+            display: block;
+            animation: fadeInUp 0.2s ease;
+        }
+        
+        .dropdown-item {
+            width: 100%;
+            padding: 12px 16px;
+            text-align: left;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .dropdown-item.btn-editar:hover {
+            background-color: #e3f2fd;
+            color: #3498db;
+        }
+        
+        .dropdown-item.btn-desativar:hover {
+            background-color: #ffebee;
+            color: #e74c3c;
+        }
+        
+        .dropdown-item.btn-ativar:hover {
+            background-color: #e8f5e9;
+            color: #27ae60;
+        }
+        
+        .dropdown-item.btn-entrada:hover {
+            background-color: #fff3e0;
+            color: #f39c12;
+        }
+        
+        .dropdown-item.btn-excluir:hover {
+            background-color: #ffebee;
+            color: #e74c3c;
+        }
+        
+        .dropdown-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 1rem;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .form-section {
@@ -1810,22 +1921,19 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             margin-top: 0.25rem;
         }
         
-        .acoes-container {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            align-items: center;
-        }
-        
         .estoque-table {
             width: 100%;
             border-collapse: collapse;
             background: white;
+            table-layout: fixed;
         }
         
         .estoque-table thead {
             background: #f8f9fa;
             border-bottom: 2px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
         .estoque-table th {
@@ -1834,21 +1942,170 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             font-weight: 600;
             color: #495057;
             border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
         }
         
         .estoque-table td {
             padding: 0.75rem 1rem;
             border-bottom: 1px solid #dee2e6;
             vertical-align: middle;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .estoque-table tbody tr {
+            transition: all 0.2s;
         }
         
         .estoque-table tbody tr:hover {
             background-color: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-
-        .btn-excluir i {
-            font-size: 1rem;
+        
+        /* Estilos específicos para colunas */
+        .codigo-cell {
+            width: 100px;
+            font-family: monospace;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .nome-cell {
+            min-width: 200px;
+            max-width: 250px;
+        }
+        
+        .produto-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .produto-nome {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .produto-descricao {
+            margin-top: 2px;
+        }
+        
+        .categoria-cell {
+            width: 120px;
+        }
+        
+        .categoria-badge {
             display: inline-block;
+            padding: 4px 10px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .unidade-cell {
+            width: 120px;
+        }
+        
+        .unidade-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .unidade-valor {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+        
+        .unidade-total small {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+        
+        .unidade-total i {
+            margin-right: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .estoque-cell {
+            width: 100px;
+        }
+        
+        .estoque-info {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+        }
+        
+        .estoque-quantidade {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .estoque-unidade {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+        
+        .minimo-cell {
+            width: 80px;
+            text-align: center;
+            color: #6c757d;
+        }
+        
+        .custo-cell {
+            width: 100px;
+            color: #6c757d;
+        }
+        
+        .venda-cell {
+            width: 120px;
+        }
+        
+        .preco-venda {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #27ae60;
+        }
+        
+        .status-cell {
+            width: 100px;
+        }
+        
+        .acao-tooltip {
+            display: none;
+        }
+        
+        @media (max-width: 1200px) {
+            .estoque-table {
+                table-layout: auto;
+            }
+            
+            .nome-cell {
+                min-width: 180px;
+                max-width: 200px;
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .estoque-table-container {
+                overflow-x: auto;
+            }
+            
+            .estoque-table {
+                min-width: 1000px;
+            }
+            
+            .nome-cell {
+                min-width: 200px;
+            }
         }
         
         @media (max-width: 768px) {
@@ -1857,13 +2114,8 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
                 gap: 0.5rem;
             }
             
-            .acoes-cell {
-                flex-direction: column;
-                gap: 0.25rem;
-            }
-            
             .estoque-table {
-                font-size: 0.9rem;
+                font-size: 0.85rem;
             }
             
             .estoque-table th,
@@ -1871,8 +2123,24 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
                 padding: 0.5rem;
             }
             
-            .imagem-cell {
-                display: none;
+            .produto-imagem-grande-container {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .btn-acao-menu {
+                width: 36px;
+                height: 36px;
+                padding: 6px;
+            }
+            
+            .dropdown-content {
+                min-width: 160px;
+            }
+            
+            .dropdown-item {
+                padding: 10px 12px;
+                font-size: 0.85rem;
             }
         }
         
@@ -1882,6 +2150,11 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         }
     `;
     document.head.appendChild(estiloBadge);
+    
+    // Adicionar também a constante IMAGEM_PADRAO_BASE64
+    if (!window.IMAGEM_PADRAO_BASE64) {
+        window.IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNMzUgMzVMMzUgMzVMNjUgNjVNNjUgMzVMMzUgNjUiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODIiIGZvbnQtZmFtaWxseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5NWE1OTYiIGZvbnQtd2VpZ2h0PSI1MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNFTUZPVE88L3RleHQ+Cjwvc3ZnPg==";
+    }
 })();
 
 // ============================================
@@ -1891,3 +2164,4 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
