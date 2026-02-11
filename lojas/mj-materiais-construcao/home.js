@@ -168,81 +168,51 @@ async function atualizarInterfaceLoja() {
 // ============================================
 // 2.1. CARREGAR LOGO DA LOJA
 // ============================================
-// ============================================
-// 2.1. CARREGAR LOGO DA LOJA - VERSÃO CORRIGIDA
-// ============================================
 async function carregarLogoLoja() {
     try {
         const lojaId = lojaServices.lojaId;
-        if (!lojaId) {
-            console.log('❌ Sem lojaId disponível');
-            return;
-        }
+        if (!lojaId) return;
         
-        // CAMINHO CORRETO: absoluto a partir da raiz do site
-        // Remove qualquer subdiretório atual e vai direto para /imagens/
-        const baseUrl = window.location.origin + '/spdv/'; // Ajuste se necessário
+        // CAMINHO ABSOLUTO BASEADO NA ORIGEM
+        // Isso funciona independente de onde a página está
+        const baseUrl = window.location.origin + '/spdv/';
         const caminhoLogo = `${baseUrl}imagens/${lojaId}/logo.png`;
         
-        console.log(`🖼️ Tentando carregar logo: ${caminhoLogo}`);
+        console.log(`🖼️ Carregando logo: ${caminhoLogo}`);
         
         const welcomeIcon = document.querySelector('.welcome-icon');
-        if (!welcomeIcon) {
-            console.log('❌ Elemento .welcome-icon não encontrado');
-            return;
-        }
+        if (!welcomeIcon) return;
         
-        console.log('✅ Elemento .welcome-icon encontrado');
-        
-        const img = new Image();
-        img.onload = function() {
-            console.log('✅ IMAGEM CARREGADA COM SUCESSO!');
-            welcomeIcon.innerHTML = '';
-            welcomeIcon.style.background = 'none';
-            welcomeIcon.style.padding = '0';
-            welcomeIcon.style.opacity = '1';
-            
-            const logoImg = document.createElement('img');
-            logoImg.src = caminhoLogo;
-            logoImg.alt = 'Logo da Loja';
-            logoImg.style.maxWidth = '120px';
-            logoImg.style.maxHeight = '120px';
-            logoImg.style.objectFit = 'contain';
-            logoImg.style.borderRadius = '8px';
-            logoImg.style.opacity = '1';
-            
-            welcomeIcon.appendChild(logoImg);
-            console.log(`✅ Logo carregada e exibida: ${caminhoLogo}`);
-        };
-        
-        img.onerror = function() {
-            console.log(`❌ ERRO: Logo não encontrada em: ${caminhoLogo}`);
-            console.log(`📁 Verifique se o arquivo existe em: /imagens/${lojaId}/logo.png`);
-            
-            // Tenta um fallback com caminho relativo como último recurso
-            const fallbackPath = `../../imagens/${lojaId}/logo.png`;
-            console.log(`🔄 Tentando fallback: ${fallbackPath}`);
-            
-            const imgFallback = new Image();
-            imgFallback.onload = function() {
-                console.log('✅ Logo carregada com fallback!');
-                welcomeIcon.innerHTML = '';
-                const logoImg = document.createElement('img');
-                logoImg.src = fallbackPath;
-                logoImg.alt = 'Logo da Loja';
-                logoImg.style.maxWidth = '120px';
-                logoImg.style.maxHeight = '120px';
-                logoImg.style.objectFit = 'contain';
-                logoImg.style.borderRadius = '8px';
-                welcomeIcon.appendChild(logoImg);
-            };
-            imgFallback.src = fallbackPath;
-        };
-        
-        img.src = caminhoLogo;
+        // Testa se a imagem existe
+        fetch(caminhoLogo, { method: 'HEAD' })
+            .then(response => {
+                if (response.ok) {
+                    // Imagem existe, exibe
+                    welcomeIcon.innerHTML = '';
+                    welcomeIcon.style.background = 'none';
+                    welcomeIcon.style.padding = '0';
+                    welcomeIcon.style.opacity = '1';
+                    
+                    const logoImg = document.createElement('img');
+                    logoImg.src = caminhoLogo;
+                    logoImg.alt = 'Logo da Loja';
+                    logoImg.style.maxWidth = '120px';
+                    logoImg.style.maxHeight = '120px';
+                    logoImg.style.objectFit = 'contain';
+                    logoImg.style.borderRadius = '8px';
+                    
+                    welcomeIcon.appendChild(logoImg);
+                    console.log(`✅ Logo carregada com sucesso!`);
+                } else {
+                    console.log(`ℹ️ Logo não encontrada (${response.status})`);
+                }
+            })
+            .catch(() => {
+                console.log(`ℹ️ Logo não disponível`);
+            });
         
     } catch (error) {
-        console.error('❌ Erro ao carregar logo:', error);
+        console.error('❌ Erro:', error);
     }
 }
 
@@ -1223,5 +1193,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
