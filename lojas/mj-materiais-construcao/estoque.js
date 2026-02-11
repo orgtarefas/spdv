@@ -161,48 +161,23 @@ function formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, uni
         return '0 ' + (unidadeVenda || 'UN');
     }
     
-    const valorTotal = valorUnidade * quantidade;
-    
-    // Se não tem valor por unidade ou é 1 (padrão)
-    if (!valorUnidade || valorUnidade === 1 || tipoUnidade === 'unid' || !tipoUnidade) {
-        return `${quantidade} ${unidadeVenda || 'UN'}`;
-    }
-    
-    // Formatador de tipo de unidade
-    const formatarTipoUnidade = (tipo) => {
-        const unidades = {
-            'kg': 'kg',
-            'g': 'g',
-            'ton': 't',
-            'l': 'L',
-            'ml': 'mL',
-            'm': 'm',
-            'cm': 'cm',
-            'm2': 'm²',
-            'm3': 'm³',
-            'unid': 'unid',
-            'und': 'unid'
+    // Formatar o valor da unidade
+    if (valorUnidade && valorUnidade !== 1) {
+        const valorLimpo = valorUnidade % 1 === 0 ? valorUnidade : valorUnidade.toFixed(1).replace(/\.0$/, '');
+        
+        const abreviacoes = {
+            'unid': 'unid', 'kg': 'kg', 'g': 'g', 'ton': 't',
+            'l': 'L', 'ml': 'mL', 'm': 'm', 'cm': 'cm',
+            'm2': 'm²', 'm3': 'm³'
         };
-        return unidades[tipo] || tipo;
-    };
-    
-    const tipoFormatado = formatarTipoUnidade(tipoUnidade);
-    const unidadeVendaFormatada = (unidadeVenda || 'UN').toUpperCase();
-    
-    // Para gramas: converter para kg se maior que 1000g
-    if (tipoUnidade === 'g' && valorTotal >= 1000) {
-        const valorKg = (valorTotal / 1000).toFixed(1);
-        return `${quantidade} ${unidadeVendaFormatada} / ${valorKg}kg`;
+        
+        const unidadeAbreviada = abreviacoes[tipoUnidade] || tipoUnidade;
+        
+        // Formato: "4 UN - 175g"
+        return `${quantidade} ${unidadeVenda || 'UN'} - ${valorLimpo}${unidadeAbreviada}`;
     }
     
-    // Para mililitros: converter para litros se maior que 1000ml
-    if (tipoUnidade === 'ml' && valorTotal >= 1000) {
-        const valorL = (valorTotal / 1000).toFixed(1);
-        return `${quantidade} ${unidadeVendaFormatada} / ${valorL}L`;
-    }
-    
-    // Para outros tipos
-    return `${quantidade} ${unidadeVendaFormatada} / ${valorTotal}${tipoFormatado}`;
+    return `${quantidade} ${unidadeVenda || 'UN'}`;
 }
 
 // ============================================
@@ -561,6 +536,18 @@ function renderizarProdutos() {
         const tipoUnidade = produto.tipo_unidade || produto.unidade_peso || 'unid';
         const quantidade = produto.quantidade || 0;
         const unidadeVenda = produto.unidade_venda || 'UN';
+
+        // Formatar a unidade para exibição - AGORA CORRETO
+        const unidadeDisplay = formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, unidadeVenda);
+        
+        // Na tabela:
+        html += `
+            <td class="unidade-cell">
+                <div class="unidade-info">
+                    <span class="unidade-valor">${unidadeDisplay}</span>
+                </div>
+            </td>
+        `;
         
         // URL da imagem
         const imagemUrl = produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
@@ -1976,6 +1963,7 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
