@@ -492,6 +492,9 @@ async function carregarCategorias() {
 // ============================================
 // 9. RENDERIZAR PRODUTOS NA TABELA
 // ============================================
+// ============================================
+// 9. RENDERIZAR PRODUTOS NA TABELA - VERSÃO CORRIGIDA
+// ============================================
 function renderizarProdutos() {
     if (!estoqueTableBody) return;
     
@@ -604,30 +607,65 @@ function renderizarProdutos() {
                     </span>
                 </td>
                 
-                <!-- COLUNA: Ações com dropdown (VERSÃO SIMPLIFICADA E FUNCIONAL) -->
+                <!-- COLUNA: Ações com dropdown (VERSÃO COMPLETA E VISÍVEL) -->
                 <td class="acoes-cell">
                     <div class="acoes-dropdown">
                         <button class="btn-acao-menu" title="Ações" data-id="${produto.id}">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                         <div class="dropdown-content" style="display: none;">
+                            <div class="dropdown-header">
+                                <strong>Ações para:</strong>
+                                <div class="produto-nome-dropdown">${produto.nome}</div>
+                            </div>
                             <button class="dropdown-item btn-editar" data-action="editar" data-id="${produto.id}">
                                 <i class="fas fa-edit"></i>
-                                <span>Editar</span>
+                                <span>Editar Produto</span>
                             </button>
-                            <button class="dropdown-item ${produto.ativo ? 'btn-desativar' : 'btn-ativar'}" 
-                                    data-action="${produto.ativo ? 'desativar' : 'ativar'}" 
-                                    data-id="${produto.id}">
-                                <i class="fas ${produto.ativo ? 'fa-ban' : 'fa-check'}"></i>
-                                <span>${produto.ativo ? 'Desativar' : 'Ativar'}</span>
-                            </button>
-                            <button class="dropdown-item btn-entrada" data-action="entrada" data-id="${produto.id}">
-                                <i class="fas fa-plus-circle"></i>
-                                <span>Entrada</span>
-                            </button>
+                            <div class="dropdown-item dropdown-quantidade">
+                                <div class="quantidade-header">
+                                    <i class="fas fa-plus-circle text-success"></i>
+                                    <span>Adicionar Estoque</span>
+                                </div>
+                                <div class="quantidade-controls">
+                                    <button class="btn-quantidade btn-diminuir" data-id="${produto.id}" data-tipo="remover">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" class="quantidade-input" data-id="${produto.id}" 
+                                           value="1" min="1" max="1000" placeholder="Qtd">
+                                    <button class="btn-quantidade btn-aumentar" data-id="${produto.id}" data-tipo="adicionar">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="btn-aplicar" data-id="${produto.id}" data-tipo="adicionar">
+                                        Aplicar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="dropdown-item dropdown-quantidade">
+                                <div class="quantidade-header">
+                                    <i class="fas fa-minus-circle text-danger"></i>
+                                    <span>Remover Estoque</span>
+                                </div>
+                                <div class="quantidade-controls">
+                                    <button class="btn-quantidade btn-diminuir" data-id="${produto.id}" data-tipo="remover_estoque">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" class="quantidade-input" data-id="${produto.id}" 
+                                           value="1" min="1" max="${quantidade}" placeholder="Qtd">
+                                    <button class="btn-quantidade btn-aumentar" data-id="${produto.id}" data-tipo="remover_estoque">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="btn-aplicar btn-remover" data-id="${produto.id}" data-tipo="remover">
+                                        Aplicar
+                                    </button>
+                                </div>
+                                <div class="quantidade-info">
+                                    <small>Estoque atual: <strong>${quantidade}</strong></small>
+                                </div>
+                            </div>
                             <button class="dropdown-item btn-excluir" data-action="excluir" data-id="${produto.id}">
                                 <i class="fas fa-trash-alt"></i>
-                                <span>Excluir</span>
+                                <span>Excluir Produto</span>
                             </button>
                         </div>
                     </div>
@@ -647,7 +685,7 @@ function renderizarProdutos() {
 }
 
 // ============================================
-// FUNÇÃO DE CONFIGURAÇÃO DOS DROPDOWNS (SIMPLIFICADA E FUNCIONAL)
+// 10 - FUNÇÃO DE CONFIGURAÇÃO DOS DROPDOWNS (COMPLETA)
 // ============================================
 function configurarDropdowns() {
     // Configurar clique nos botões de menu
@@ -666,18 +704,35 @@ function configurarDropdowns() {
             // Alternar o dropdown atual
             const dropdown = this.nextElementSibling;
             if (dropdown && dropdown.classList.contains('dropdown-content')) {
-                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                const isVisible = dropdown.style.display === 'block';
+                dropdown.style.display = isVisible ? 'none' : 'block';
             }
         });
     });
     
-    // Configurar clique nos itens do dropdown
-    document.querySelectorAll('.dropdown-item').forEach(item => {
+    // Configurar clique no botão Editar
+    document.querySelectorAll('.dropdown-item.btn-editar').forEach(item => {
         item.addEventListener('click', function(e) {
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
-            const action = this.getAttribute('data-action');
+            
+            // Fechar o dropdown
+            const dropdown = this.closest('.dropdown-content');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+            
+            abrirModalEditar(produtoId);
+        });
+    });
+    
+    // Configurar clique no botão Excluir
+    document.querySelectorAll('.dropdown-item.btn-excluir').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
             const produto = produtos.find(p => p.id === produtoId);
             
             // Fechar o dropdown
@@ -686,21 +741,112 @@ function configurarDropdowns() {
                 dropdown.style.display = 'none';
             }
             
-            // Executar ação correspondente
-            switch(action) {
-                case 'editar':
-                    abrirModalEditar(produtoId);
-                    break;
-                case 'desativar':
-                case 'ativar':
-                    if (produto) alterarStatusProduto(produto);
-                    break;
-                case 'entrada':
-                    if (produto) abrirModalEntradaEstoque(produto);
-                    break;
-                case 'excluir':
-                    if (produto) excluirProdutoComConfirmacao(produto);
-                    break;
+            if (produto) {
+                excluirProdutoComConfirmacao(produto);
+            }
+        });
+    });
+    
+    // Configurar botões de quantidade
+    document.querySelectorAll('.btn-quantidade').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const tipo = this.getAttribute('data-tipo');
+            const input = this.closest('.quantidade-controls').querySelector('.quantidade-input');
+            
+            if (!input) return;
+            
+            let valor = parseInt(input.value) || 1;
+            
+            if (this.classList.contains('btn-aumentar')) {
+                valor++;
+            } else if (this.classList.contains('btn-diminuir')) {
+                valor = Math.max(1, valor - 1);
+            }
+            
+            // Se for remoção, não pode passar do estoque atual
+            if (tipo === 'remover' || tipo === 'remover_estoque') {
+                const produto = produtos.find(p => p.id === produtoId);
+                if (produto) {
+                    valor = Math.min(valor, produto.quantidade);
+                }
+            }
+            
+            input.value = valor;
+        });
+    });
+    
+    // Configurar botões Aplicar
+    document.querySelectorAll('.btn-aplicar').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const tipo = this.getAttribute('data-tipo');
+            const input = this.closest('.quantidade-controls').querySelector('.quantidade-input');
+            
+            if (!input) return;
+            
+            const quantidade = parseInt(input.value) || 1;
+            const produto = produtos.find(p => p.id === produtoId);
+            
+            if (!produto) {
+                mostrarMensagem('Produto não encontrado', 'error');
+                return;
+            }
+            
+            // Fechar o dropdown
+            const dropdown = this.closest('.dropdown-content');
+            if (dropdown) {
+                dropdown.style.display = 'none';
+            }
+            
+            // Validar quantidade para remoção
+            if ((tipo === 'remover' || tipo === 'remover_estoque') && quantidade > produto.quantidade) {
+                mostrarMensagem(`Não é possível remover ${quantidade} unidades. Estoque atual: ${produto.quantidade}`, 'error');
+                return;
+            }
+            
+            if ((tipo === 'remover' || tipo === 'remover_estoque') && quantidade <= 0) {
+                mostrarMensagem('A quantidade para remoção deve ser maior que zero', 'error');
+                return;
+            }
+            
+            try {
+                mostrarLoading('Processando...', 'Atualizando estoque...');
+                
+                const resultado = await lojaServices.atualizarEstoque(
+                    produtoId, 
+                    quantidade, 
+                    tipo === 'adicionar' ? 'entrada' : 'saida'
+                );
+                
+                if (resultado.success) {
+                    if (tipo === 'adicionar') {
+                        mostrarMensagem(`${quantidade} unidade(s) adicionada(s) ao estoque!`, 'success');
+                    } else {
+                        mostrarMensagem(`${quantidade} unidade(s) removida(s) do estoque!`, 'warning');
+                        
+                        // Verificar se estoque ficou zerado
+                        const novoEstoque = produto.quantidade - quantidade;
+                        if (novoEstoque === 0) {
+                            setTimeout(() => {
+                                mostrarMensagem('Estoque zerado. Considere excluir o produto se necessário.', 'info');
+                            }, 1500);
+                        }
+                    }
+                    
+                    await carregarProdutos();
+                } else {
+                    mostrarMensagem(resultado.error || 'Erro ao atualizar estoque', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao atualizar estoque:', error);
+                mostrarMensagem('Erro ao atualizar estoque', 'error');
+            } finally {
+                esconderLoading();
             }
         });
     });
@@ -713,6 +859,33 @@ function configurarDropdowns() {
             });
         }
     });
+    
+    // Validar inputs de quantidade
+    document.querySelectorAll('.quantidade-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const produtoId = this.getAttribute('data-id');
+            const produto = produtos.find(p => p.id === produtoId);
+            let valor = parseInt(this.value) || 1;
+            
+            // Não permitir valores negativos
+            if (valor < 1) {
+                valor = 1;
+                this.value = valor;
+            }
+            
+            // Se for input de remoção, não pode passar do estoque atual
+            const controls = this.closest('.quantidade-controls');
+            const aplicarBtn = controls.querySelector('.btn-aplicar');
+            if (aplicarBtn && (aplicarBtn.getAttribute('data-tipo') === 'remover' || 
+                               aplicarBtn.classList.contains('btn-remover'))) {
+                if (produto && valor > produto.quantidade) {
+                    valor = produto.quantidade;
+                    this.value = valor;
+                    mostrarMensagem(`Máximo: ${produto.quantidade} unidades`, 'info');
+                }
+            }
+        });
+    });
 }
 
 // Função auxiliar para excluir produto
@@ -720,11 +893,12 @@ function excluirProdutoComConfirmacao(produto) {
     if (!produto) return;
     
     const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE!\n\n` +
-                          `Deseja EXCLUIR o produto:\n` +
+                          `Deseja realmente excluir o produto:\n` +
                           `"${produto.nome}"\n` +
                           `Código: ${produto.codigo || 'sem código'}\n` +
                           `Estoque atual: ${produto.quantidade}\n\n` +
-                          `Esta ação não poderá ser desfeita!`;
+                          `TODOS OS DADOS SERÃO PERDIDOS, incluindo a imagem!\n\n` +
+                          `Tem certeza que deseja excluir definitivamente?`;
     
     if (!confirm(confirmMessage)) {
         return;
@@ -733,8 +907,8 @@ function excluirProdutoComConfirmacao(produto) {
     if (produto.quantidade > 0) {
         const estoqueConfirm = confirm(
             `ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
-            `Você realmente deseja excluir mesmo com estoque?\n` +
-            `Todo o estoque será perdido permanentemente.`
+            `Ao excluir, todo o estoque será perdido permanentemente.\n` +
+            `Deseja continuar com a exclusão?`
         );
         
         if (!estoqueConfirm) {
@@ -1526,9 +1700,11 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             display: block;
         }
         
-        /* ESTILOS GARANTIDOS PARA DROPDOWN CLICÁVEL */
+        /* =========================================== */
+        /* ESTILOS PARA DROPDOWN COMPLETO E VISÍVEL */
+        /* =========================================== */
         .acoes-cell {
-            width: 70px;
+            width: 80px;
             text-align: center;
             vertical-align: middle;
         }
@@ -1560,24 +1736,19 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             color: white;
         }
         
-        .btn-acao-menu.active {
-            background-color: #3498db;
-            border-color: #3498db;
-            color: white;
-        }
-        
         .dropdown-content {
             position: absolute;
             right: 0;
             top: 100%;
             background-color: white;
-            min-width: 180px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border-radius: 8px;
+            min-width: 320px;
+            max-width: 350px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border-radius: 10px;
             z-index: 1000;
             overflow: hidden;
             border: 1px solid #dee2e6;
-            margin-top: 5px;
+            margin-top: 8px;
             display: none;
         }
         
@@ -1586,15 +1757,31 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             animation: fadeInUp 0.2s ease;
         }
         
-        /* Também funciona com hover para compatibilidade */
-        .acoes-dropdown:hover .dropdown-content {
+        .dropdown-header {
+            padding: 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .dropdown-header strong {
             display: block;
-            animation: fadeInUp 0.2s ease;
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .produto-nome-dropdown {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .dropdown-item {
             width: 100%;
-            padding: 10px 15px;
+            padding: 12px 15px;
             text-align: left;
             border: none;
             background: none;
@@ -1603,7 +1790,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             color: #495057;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             transition: all 0.2s;
             border-bottom: 1px solid #f8f9fa;
         }
@@ -1621,32 +1808,132 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             color: #3498db;
         }
         
-        .dropdown-item.btn-desativar:hover {
-            background-color: #ffebee;
-            color: #e74c3c;
-        }
-        
-        .dropdown-item.btn-ativar:hover {
-            background-color: #e8f5e9;
-            color: #27ae60;
-        }
-        
-        .dropdown-item.btn-entrada:hover {
-            background-color: #fff3e0;
-            color: #f39c12;
-        }
-        
         .dropdown-item.btn-excluir:hover {
             background-color: #ffebee;
             color: #e74c3c;
         }
         
-        .dropdown-item i {
-            width: 16px;
-            text-align: center;
-            font-size: 1rem;
+        .dropdown-quantidade {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 15px;
+            cursor: default;
         }
         
+        .dropdown-quantidade:hover {
+            background-color: transparent;
+        }
+        
+        .quantidade-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        
+        .quantidade-header .text-success {
+            color: #27ae60;
+        }
+        
+        .quantidade-header .text-danger {
+            color: #e74c3c;
+        }
+        
+        .quantidade-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-quantidade {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .btn-quantidade:hover {
+            background: #f8f9fa;
+            border-color: #3498db;
+        }
+        
+        .btn-quantidade.btn-aumentar:hover {
+            background: #e8f5e9;
+            border-color: #27ae60;
+            color: #27ae60;
+        }
+        
+        .btn-quantidade.btn-diminuir:hover {
+            background: #ffebee;
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+        
+        .quantidade-input {
+            flex: 1;
+            height: 36px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 0 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .quantidade-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn-aplicar {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: #3498db;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            height: 36px;
+        }
+        
+        .btn-aplicar:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+        
+        .btn-aplicar.btn-remover {
+            background: #e74c3c;
+        }
+        
+        .btn-aplicar.btn-remover:hover {
+            background: #c0392b;
+        }
+        
+        .quantidade-info {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #e0e0e0;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        .quantidade-info strong {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
         @keyframes fadeInUp {
             from {
                 opacity: 0;
@@ -2108,6 +2395,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             display: none;
         }
         
+        /* Responsividade para o dropdown */
         @media (max-width: 1200px) {
             .estoque-table {
                 table-layout: auto;
@@ -2130,6 +2418,11 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             
             .nome-cell {
                 min-width: 200px;
+            }
+            
+            .dropdown-content {
+                min-width: 280px;
+                right: -20px;
             }
         }
         
@@ -2160,13 +2453,45 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             }
             
             .dropdown-content {
-                min-width: 160px;
-                right: -10px;
+                min-width: 260px;
+                right: -30px;
+                max-width: 300px;
             }
             
             .dropdown-item {
                 padding: 10px 12px;
                 font-size: 0.85rem;
+            }
+            
+            .quantidade-controls {
+                flex-wrap: wrap;
+            }
+            
+            .btn-aplicar {
+                flex: 1;
+                margin-top: 5px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .dropdown-content {
+                min-width: 240px;
+                right: -40px;
+            }
+            
+            .quantidade-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn-quantidade, 
+            .quantidade-input, 
+            .btn-aplicar {
+                width: 100%;
+            }
+            
+            .btn-quantidade {
+                justify-content: center;
             }
         }
         
@@ -2185,3 +2510,4 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
