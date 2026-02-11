@@ -171,38 +171,54 @@ function carregarLojasDoArquivo() {
     defaultOption.selected = true;
     lojaSelect.appendChild(defaultOption);
     
+    // Usar a função global getLojasAtivas se disponível
+    let lojasArray = [];
+    
+    if (typeof window.getLojasAtivas === 'function') {
+        lojasArray = window.getLojasAtivas();
+    } else {
+        // Fallback: converter LOJAS_CONFIG em array
+        lojasArray = Object.entries(window.LOJAS_CONFIG || {})
+            .map(([id, config]) => ({
+                id: id,
+                banco_login: id,
+                nome: config.nome || id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                local: config.local || '',
+                telefone: config.telefone || '',
+                banco_estoque: config.banco_estoque || `estoque_${id.replace(/-/g, '_')}`,
+                banco_vendas: config.banco_vendas || `vendas_${id.replace(/-/g, '_')}`,
+                imgbb_api_key: config.imgbb_api_key
+            }))
+            .filter(loja => loja.ativo !== false);
+    }
+    
     // Ordenar lojas por nome
-    const lojasOrdenadas = Object.entries(LOJAS_CONFIG)
-        .map(([id, config]) => ({
-            id: id,
-            banco_login: id, // O ID da loja é o mesmo que banco_login
-            nome: config.nome,
-            banco_estoque: config.banco_estoque,
-            banco_vendas: config.banco_vendas
-        }))
-        .sort((a, b) => a.nome.localeCompare(b.nome));
+    lojasArray.sort((a, b) => a.nome.localeCompare(b.nome));
     
     // Adicionar lojas ao select
-    lojasOrdenadas.forEach(loja => {
+    lojasArray.forEach(loja => {
         const option = document.createElement('option');
-        option.value = loja.banco_login; // Usar o ID da loja como valor
+        option.value = loja.banco_login;
         option.textContent = loja.nome;
         option.dataset.id = loja.id;
+        option.dataset.local = loja.local || '';
+        option.dataset.telefone = loja.telefone || '';
         option.dataset.banco_estoque = loja.banco_estoque;
         option.dataset.banco_vendas = loja.banco_vendas;
+        option.dataset.imgbb_key = loja.imgbb_api_key || '';
         lojaSelect.appendChild(option);
     });
     
-    if (lojasOrdenadas.length === 0) {
+    if (lojasArray.length === 0) {
         showMessage('Nenhuma loja configurada no sistema', 'warning');
         lojaSelect.disabled = true;
     } else {
         // Selecionar primeira loja se houver apenas uma
-        if (lojasOrdenadas.length === 1) {
+        if (lojasArray.length === 1) {
             lojaSelect.selectedIndex = 1;
         }
         
-        console.log(`📊 Lojas carregadas do arquivo:`, lojasOrdenadas);
+        console.log(`📊 Lojas carregadas do arquivo:`, lojasArray);
     }
 }
 
@@ -685,4 +701,5 @@ fontAwesomeLinks.forEach(link => {
 });
 
 console.log('✅ login.js carregado com sucesso! Sistema com Admin Global e configuração dinâmica.');
+
 
