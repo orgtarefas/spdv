@@ -1,5 +1,5 @@
-// home.js - SISTEMA HOME PDV MULTILOJA (Versão Dinâmica)
-console.log("🏠 Sistema PDV - Página Inicial (Versão Dinâmica)");
+// home.js - SISTEMA HOME PDV MULTILOJA (Versão Corrigida - IMGBB)
+console.log("🏠 Sistema PDV - Página Inicial (Versão IMGBB)");
 
 import { lojaServices } from './firebase_config.js';
 
@@ -150,7 +150,7 @@ async function atualizarInterfaceLoja() {
             userPerfil.className = `user-perfil ${perfil.includes('admin') ? 'admin' : 'user'}`;
         }
 
-        // 6. CARREGAR LOGO DA LOJA (adicione esta linha)
+        // 6. CARREGAR LOGO DA LOJA
         await carregarLogoLoja();
         
     } catch (error) {
@@ -181,7 +181,6 @@ async function carregarLogoLoja() {
         if (!lojaId) return;
         
         // CAMINHO ABSOLUTO BASEADO NA ORIGEM
-        // Isso funciona independente de onde a página está
         const baseUrl = window.location.origin + '/spdv/';
         const caminhoLogo = `${baseUrl}imagens/${lojaId}/logo.png`;
         
@@ -194,7 +193,6 @@ async function carregarLogoLoja() {
         fetch(caminhoLogo, { method: 'HEAD' })
             .then(response => {
                 if (response.ok) {
-                    // Imagem existe, exibe
                     welcomeIcon.innerHTML = '';
                     welcomeIcon.style.background = 'none';
                     welcomeIcon.style.padding = '0';
@@ -266,19 +264,18 @@ function configurarEventos() {
         btnConsultaRapida.addEventListener('click', abrirModalConsulta);
     }
     
-    // BOTÃO RELATÓRIO - CORRIGIDO: não redireciona, mostra mensagem
+    // BOTÃO RELATÓRIO
     const btnRelatorio = document.getElementById('btnRelatorio');
     if (btnRelatorio) {
         btnRelatorio.addEventListener('click', function(event) {
-            event.preventDefault(); // IMPEDE O REDIRECIONAMENTO
+            event.preventDefault();
             mostrarMensagem('📊 Relatório em desenvolvimento! Em breve você poderá visualizar todos os relatórios do sistema.', 'info', 5000);
         });
     }
     
-    // Modal consulta rápida - fechar
+    // Modal consulta rápida
     const modalConsulta = document.getElementById('quickSearchModal');
     if (modalConsulta) {
-        // Botão fechar
         const modalClose = modalConsulta.querySelector('.modal-close');
         if (modalClose) {
             modalClose.addEventListener('click', () => {
@@ -286,7 +283,6 @@ function configurarEventos() {
             });
         }
         
-        // Botão limpar busca
         const searchClear = document.getElementById('searchClear');
         if (searchClear) {
             searchClear.addEventListener('click', () => {
@@ -299,21 +295,18 @@ function configurarEventos() {
             });
         }
         
-        // Fechar ao clicar fora
         modalConsulta.addEventListener('click', function(e) {
             if (e.target === this) {
                 this.style.display = 'none';
             }
         });
         
-        // Busca em tempo real
         const searchProductInput = document.getElementById('searchProductInput');
         if (searchProductInput) {
             searchProductInput.addEventListener('input', function() {
                 buscarProdutoConsultaRapida(this.value);
             });
             
-            // Buscar ao pressionar Enter
             searchProductInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     buscarProdutoConsultaRapida(this.value);
@@ -321,15 +314,12 @@ function configurarEventos() {
             });
         }
         
-        // Filtros de busca
         const filterBtns = modalConsulta.querySelectorAll('.filter-btn');
         filterBtns.forEach(btn => {
             btn.addEventListener('click', function() {
-                // Atualizar botões ativos
                 filterBtns.forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 
-                // Refiltrar resultados
                 const searchInput = document.getElementById('searchProductInput');
                 if (searchInput) {
                     buscarProdutoConsultaRapida(searchInput.value);
@@ -342,11 +332,8 @@ function configurarEventos() {
     const activityFilters = document.querySelectorAll('.activity-filters .filter-btn');
     activityFilters.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Atualizar botões ativos
             activityFilters.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            
-            // Filtrar atividades
             const filtro = this.dataset.filter;
             filtrarAtividades(filtro);
         });
@@ -354,7 +341,7 @@ function configurarEventos() {
 }
 
 // ============================================
-// 5. CARREGAR PRODUTOS PARA CONSULTA
+// 5. CARREGAR PRODUTOS PARA CONSULTA - CORRIGIDO!
 // ============================================
 async function carregarProdutos() {
     try {
@@ -365,8 +352,29 @@ async function carregarProdutos() {
         if (resultado.success) {
             produtos = resultado.data;
             
-            // CORRIGIR IMAGENS COM BASE64
-            corrigirImagensProdutos();
+            // ✅ CORRIGIDO: Só aplica BASE64 para produtos SEM imagem
+            let contadorImgBB = 0;
+            let contadorSemImagem = 0;
+            
+            produtos = produtos.map(produto => {
+                // Verifica se TEM imagem do IMGBB (URL HTTP/HTTPS)
+                const temImgBB = produto.imagem && 
+                                typeof produto.imagem === 'string' && 
+                                (produto.imagem.startsWith('http://') || 
+                                 produto.imagem.startsWith('https://')) &&
+                                produto.imagem.length > 20;
+                
+                if (temImgBB) {
+                    // ✅ MANTÉM A IMAGEM ORIGINAL DO IMGBB
+                    contadorImgBB++;
+                    return produto;
+                } else {
+                    // ❌ SÓ APLICA BASE64 SE NÃO TIVER IMAGEM IMGBB
+                    contadorSemImagem++;
+                    produto.imagem = IMAGEM_PADRAO_BASE64;
+                    return produto;
+                }
+            });
             
             // Atualizar badge
             const totalProdutosBadge = document.getElementById('totalProdutosBadge');
@@ -375,7 +383,9 @@ async function carregarProdutos() {
                 totalProdutosBadge.style.display = produtos.length > 0 ? 'flex' : 'none';
             }
             
-            console.log(`✅ ${produtos.length} produtos carregados - Imagens padrão em BASE64`);
+            console.log(`✅ ${produtos.length} produtos carregados:`);
+            console.log(`   🖼️ IMGBB: ${contadorImgBB} produtos`);
+            console.log(`   📦 BASE64: ${contadorSemImagem} produtos (sem foto)`);
             
             const modal = document.getElementById('quickSearchModal');
             if (modal && modal.style.display === 'flex') {
@@ -383,13 +393,13 @@ async function carregarProdutos() {
             }
         }
     } catch (error) {
-        console.error("❌ Erro:", error);
+        console.error("❌ Erro ao carregar produtos:", error);
         produtos = [];
     }
 }
 
 // ============================================
-// EXIBIR TODOS OS PRODUTOS - COM IMAGENS
+// EXIBIR TODOS OS PRODUTOS
 // ============================================
 function exibirTodosProdutos() {
     const searchResults = document.getElementById('searchResults');
@@ -436,7 +446,6 @@ function atualizarEstatisticasUI() {
     if (!estatisticas) return;
     
     try {
-        // Vendas de hoje
         const vendasHojeElement = document.getElementById('vendasHoje');
         const quantidadeVendasElement = document.getElementById('quantidadeVendas');
         
@@ -447,20 +456,17 @@ function atualizarEstatisticasUI() {
             quantidadeVendasElement.textContent = `${estatisticas.quantidadeVendasHoje} venda${estatisticas.quantidadeVendasHoje !== 1 ? 's' : ''}`;
         }
         
-        // Total de produtos
         const totalProdutosElement = document.getElementById('totalProdutos');
         const produtosBaixoElement = document.getElementById('produtosBaixo');
         
         if (totalProdutosElement) totalProdutosElement.textContent = estatisticas.totalProdutos;
         if (produtosBaixoElement) produtosBaixoElement.textContent = `${estatisticas.produtosBaixoEstoque} com baixo estoque`;
         
-        // Valor em estoque
         const valorEstoqueElement = document.getElementById('valorEstoque');
         if (valorEstoqueElement) {
             valorEstoqueElement.textContent = formatarMoeda(estatisticas.totalValorEstoque);
         }
         
-        // Meta do mês
         const metaMensal = estatisticas.meta_mensal || 10000;
         const vendasHojeNumero = parseFloat(estatisticas.vendasHoje) || 0;
         const percentual = metaMensal > 0 ? Math.min(Math.round((vendasHojeNumero / metaMensal) * 100), 100) : 0;
@@ -474,13 +480,11 @@ function atualizarEstatisticasUI() {
         if (metaRestanteElement) metaRestanteElement.textContent = formatarMoeda(restante);
         if (metaProgressBar) metaProgressBar.style.width = `${percentual}%`;
         
-        // Atualizar progresso das vendas
         const progressBar = document.querySelector('.stat-progress .progress-bar');
         if (progressBar && estatisticas.quantidadeVendasHoje > 0) {
             progressBar.style.width = '100%';
         }
         
-        // Atualizar última atualização
         const ultimaAtualizacao = document.getElementById('ultimaAtualizacao');
         if (ultimaAtualizacao) {
             ultimaAtualizacao.textContent = new Date().toLocaleTimeString('pt-BR', { 
@@ -558,7 +562,6 @@ function exibirAtividades(listaAtividades) {
         const horaFormatada = dataVenda.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         const dataFormatada = dataVenda.toLocaleDateString('pt-BR');
         
-        // Determinar ícone baseado no status
         let iconClass = 'fas fa-shopping-cart';
         if (atividade.status === 'cancelada') iconClass = 'fas fa-ban';
         if (atividade.status === 'pendente') iconClass = 'fas fa-clock';
@@ -600,10 +603,9 @@ function filtrarAtividades(filtro) {
     let atividadesFiltradas = atividades;
     
     if (filtro === 'vendas') {
-        atividadesFiltradas = atividades; // Já são todas vendas
+        atividadesFiltradas = atividades;
     } else if (filtro === 'estoque') {
-        // Se tivéssemos atividades de estoque, filtraríamos aqui
-        atividadesFiltradas = []; // Exemplo: sem atividades de estoque por enquanto
+        atividadesFiltradas = [];
     }
     
     exibirAtividades(atividadesFiltradas);
@@ -612,9 +614,7 @@ function filtrarAtividades(filtro) {
 // ============================================
 // 8. CONSULTA RÁPIDA - MODAL
 // ============================================
-// ============================================
-// ABRIR MODAL CONSULTA - COM TODOS OS PRODUTOS
-// ============================================
+
 function abrirModalConsulta() {
     const modal = document.getElementById('quickSearchModal');
     const searchInput = document.getElementById('searchProductInput');
@@ -624,7 +624,6 @@ function abrirModalConsulta() {
         searchInput.value = '';
         searchInput.focus();
         
-        // Resetar filtro para "Todos"
         const filterBtns = modal.querySelectorAll('.filter-btn');
         filterBtns.forEach(btn => {
             btn.classList.remove('active');
@@ -633,34 +632,25 @@ function abrirModalConsulta() {
             }
         });
         
-        // Exibir todos os produtos imediatamente
         exibirTodosProdutos();
-        
         console.log('📱 Modal aberto - exibindo todos os produtos');
     }
 }
 
-
-// ============================================
-// BUSCAR PRODUTO CONSULTA RÁPIDA - COM IMAGENS
-// ============================================
 function buscarProdutoConsultaRapida(termo) {
     const searchResults = document.getElementById('searchResults');
     if (!searchResults) return;
     
     const termoLimpo = termo.toLowerCase().trim();
     
-    // Se não digitou nada, mostra todos os produtos
     if (!termoLimpo) {
         exibirResultadosBusca(produtos);
         return;
     }
     
-    // Obter filtro ativo
     const filtroAtivo = document.querySelector('.search-filters .filter-btn.active');
     const tipoFiltro = filtroAtivo ? filtroAtivo.dataset.filter : 'all';
     
-    // Filtrar produtos baseado no termo de busca
     let resultados = produtos.filter(produto => {
         const codigo = (produto.codigo || '').toLowerCase();
         const nome = (produto.nome || '').toLowerCase();
@@ -673,7 +663,6 @@ function buscarProdutoConsultaRapida(termo) {
                descricao.includes(termoLimpo);
     });
     
-    // Aplicar filtro de estoque
     if (tipoFiltro === 'estoque') {
         resultados = resultados.filter(p => p.quantidade > 0);
     } else if (tipoFiltro === 'baixo') {
@@ -684,7 +673,7 @@ function buscarProdutoConsultaRapida(termo) {
 }
 
 // ============================================
-// EXIBIR RESULTADOS DA BUSCA - COM BASE64
+// EXIBIR RESULTADOS DA BUSCA - CORRIGIDO!
 // ============================================
 function exibirResultadosBusca(resultados) {
     const searchResults = document.getElementById('searchResults');
@@ -708,10 +697,11 @@ function exibirResultadosBusca(resultados) {
         const temEstoque = produto.quantidade > 0;
         const precoFormatado = formatarMoeda(produto.preco);
         
-        // Usar a imagem do produto ou a BASE64 padrão
-        const imagemProduto = produto.imagem || IMAGEM_PADRAO_BASE64;
+        // ✅ CORRIGIDO: Usa a imagem do IMGBB ou BASE64, mas NUNCA substitui IMGBB por BASE64
+        const imagemProduto = produto.imagem && 
+                            typeof produto.imagem === 'string' && 
+                            produto.imagem.length > 0 ? produto.imagem : IMAGEM_PADRAO_BASE64;
         
-        // Status do estoque
         let stockClass = 'normal';
         let stockText = `${produto.quantidade || 0} ${produto.unidade || 'UN'}`;
         if (!temEstoque) {
@@ -768,23 +758,8 @@ function exibirResultadosBusca(resultados) {
 }
 
 // ============================================
-// CORRIGIR IMAGENS DOS PRODUTOS - USA BASE64
+// FUNÇÕES DOS BOTÕES DO MODAL
 // ============================================
-function corrigirImagensProdutos() {
-    if (!produtos || produtos.length === 0) return;
-    
-    produtos = produtos.map(produto => {
-        // Se não tem imagem OU imagem é string vazia OU é null/undefined
-        if (!produto.imagem || produto.imagem === '' || produto.imagem === null || produto.imagem === undefined) {
-            produto.imagem = IMAGEM_PADRAO_BASE64;
-        }
-        return produto;
-    });
-    
-    console.log('🖼️ Imagens dos produtos corrigidas com BASE64');
-}
-
-// Funções globais para os botões do modal
 window.verDetalhesProduto = async function(produtoId) {
     try {
         const resultado = await lojaServices.buscarProdutoPorId(produtoId);
@@ -825,16 +800,13 @@ window.verDetalhesProduto = async function(produtoId) {
 };
 
 window.irParaVendaComProduto = function(produtoId) {
-    // Salvar o produto selecionado para a página de vendas
     sessionStorage.setItem('produto_selecionado_venda', produtoId);
     
-    // Fechar modal
     const modal = document.getElementById('quickSearchModal');
     if (modal) {
         modal.style.display = 'none';
     }
     
-    // Ir para página de vendas
     window.location.href = 'venda.html';
 };
 
@@ -882,15 +854,11 @@ function atualizarStatusConexao(conectado) {
     
     if (conectado) {
         if (statusText) statusText.textContent = 'Conectado';
-        if (icon) {
-            icon.style.color = '#27ae60';
-        }
+        if (icon) icon.style.color = '#27ae60';
         statusElement.style.color = '#27ae60';
     } else {
         if (statusText) statusText.textContent = 'Desconectado';
-        if (icon) {
-            icon.style.color = '#e74c3c';
-        }
+        if (icon) icon.style.color = '#e74c3c';
         statusElement.style.color = '#e74c3c';
     }
 }
@@ -922,11 +890,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         return;
     }
     
-    // Configurar alerta
     alert.className = `message-alert ${tipo}`;
     alert.style.display = 'block';
     
-    // Ícone
     const icon = alert.querySelector('.message-icon');
     const icons = {
         success: 'fas fa-check-circle',
@@ -937,11 +903,9 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
     
     if (icon) icon.className = `message-icon ${icons[tipo] || icons.info}`;
     
-    // Texto
     const text = alert.querySelector('.message-text');
     if (text) text.textContent = texto;
     
-    // Botão fechar
     const closeBtn = alert.querySelector('.message-close');
     if (closeBtn) {
         closeBtn.onclick = function() {
@@ -949,7 +913,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
         };
     }
     
-    // Auto-ocultar
     setTimeout(function() {
         if (alert.style.display === 'block') {
             alert.style.display = 'none';
@@ -1243,6 +1206,147 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             border: 1px solid #eee;
         }
         
+        .product-image-container {
+            width: 100%;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .results-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+            padding: 8px;
+        }
+        
+        .product-result {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            border: 1px solid #eee;
+        }
+        
+        .product-result:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+            border-color: #3498db;
+        }
+        
+        .product-code {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+            background: #f1f3f4;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+        
+        .product-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 8px 0 4px;
+        }
+        
+        .product-category {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-bottom: 12px;
+        }
+        
+        .product-price {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        
+        .product-price strong {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+        
+        .product-price span {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #27ae60;
+        }
+        
+        .product-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .btn-action {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-info {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .btn-info:hover {
+            background: #e0e6e8;
+        }
+        
+        .btn-sell {
+            background: linear-gradient(135deg, #27ae60, #219a52);
+            color: white;
+        }
+        
+        .btn-sell:hover {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(46,204,113,0.3);
+        }
+        
+        .empty-results {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-results i {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+        
+        @media (max-width: 768px) {
+            .results-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .product-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         /* Estilos para loading em atividades */
         .loading-activity {
             text-align: center;
@@ -1285,14 +1389,14 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
                 flex-direction: column;
                 gap: 0.5rem;
             }
+            
+            .modal-content {
+                width: 95%;
+                max-height: 90vh;
+            }
         }
     `;
     document.head.appendChild(estilo);
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
-
-
-
-
-
