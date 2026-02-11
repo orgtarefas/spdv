@@ -492,12 +492,12 @@ async function carregarCategorias() {
 // ============================================
 // 9. RENDERIZAR PRODUTOS NA TABELA
 // ============================================
-// ============================================
-// 9. RENDERIZAR PRODUTOS NA TABELA - VERSÃO CORRIGIDA
-// ============================================
 function renderizarProdutos() {
     if (!estoqueTableBody) return;
     
+    console.log(`🔄 Renderizando ${produtosFiltrados.length} produtos...`);
+    
+    // Se não houver produtos
     if (produtosFiltrados.length === 0) {
         estoqueTableBody.innerHTML = `
             <tr>
@@ -518,6 +518,7 @@ function renderizarProdutos() {
     let html = '';
     
     produtosFiltrados.forEach(produto => {
+        // Determinar status do produto
         const statusClass = !produto.ativo ? 'status-inativo' : 
                           produto.quantidade <= produto.estoque_minimo ? 'status-baixo' : 'status-ativo';
         
@@ -542,7 +543,7 @@ function renderizarProdutos() {
         
         html += `
             <tr data-id="${produto.id}">
-                <!-- COLUNA: Imagem (imagem maior e centralizada) -->
+                <!-- COLUNA: Imagem -->
                 <td class="imagem-cell">
                     <div class="produto-imagem-grande-container">
                         <img src="${imagemThumb}" 
@@ -552,8 +553,12 @@ function renderizarProdutos() {
                     </div>
                 </td>
                 
-                <td class="codigo-cell">${produto.codigo || 'N/A'}</td>
+                <!-- COLUNA: Código -->
+                <td class="codigo-cell">
+                    <span class="codigo-badge">${produto.codigo || 'N/A'}</span>
+                </td>
                 
+                <!-- COLUNA: Nome e Descrição -->
                 <td class="nome-cell">
                     <div class="produto-info">
                         <strong class="produto-nome">${produto.nome || 'Produto sem nome'}</strong>
@@ -565,11 +570,12 @@ function renderizarProdutos() {
                     </div>
                 </td>
                 
+                <!-- COLUNA: Categoria -->
                 <td class="categoria-cell">
                     <span class="categoria-badge">${produto.categoria || 'Sem categoria'}</span>
                 </td>
                 
-                <!-- COLUNA: Unidade com valor (ex: 175 g) -->
+                <!-- COLUNA: Unidade com valor -->
                 <td class="unidade-cell">
                     <div class="unidade-info">
                         <span class="unidade-valor">${unidadeDisplay}</span>
@@ -584,20 +590,33 @@ function renderizarProdutos() {
                     </div>
                 </td>
                 
+                <!-- COLUNA: Estoque -->
                 <td class="estoque-cell">
                     <div class="estoque-info">
                         <strong class="estoque-quantidade">${quantidade.toLocaleString('pt-BR')}</strong>
                         <span class="estoque-unidade">${produto.unidade_venda || produto.unidade || 'UN'}</span>
+                        ${produto.estoque_minimo ? `
+                            <div class="estoque-minimo">
+                                <small class="text-muted">
+                                    Mín: ${produto.estoque_minimo}
+                                </small>
+                            </div>
+                        ` : ''}
                     </div>
                 </td>
                 
+                <!-- COLUNA: Estoque Mínimo -->
                 <td class="minimo-cell">${produto.estoque_minimo || 5}</td>
+                
+                <!-- COLUNA: Preço de Custo -->
                 <td class="custo-cell">${formatarMoeda(produto.preco_custo || 0)}</td>
                 
+                <!-- COLUNA: Preço de Venda -->
                 <td class="venda-cell">
                     <strong class="preco-venda">${formatarMoeda(produto.preco || 0)}</strong>
                 </td>
                 
+                <!-- COLUNA: Status -->
                 <td class="status-cell">
                     <span class="status-badge ${statusClass}">
                         <i class="status-icon ${statusClass === 'status-ativo' ? 'fas fa-check-circle' : 
@@ -607,66 +626,70 @@ function renderizarProdutos() {
                     </span>
                 </td>
                 
-                <!-- COLUNA: Ações com dropdown (VERSÃO COMPLETA E VISÍVEL) -->
+                <!-- COLUNA: Ações com DROPDOWN SIMPLIFICADO -->
                 <td class="acoes-cell">
                     <div class="acoes-dropdown">
                         <button class="btn-acao-menu" title="Ações" data-id="${produto.id}">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
+                        
                         <div class="dropdown-content" style="display: none;">
-                            <div class="dropdown-header">
-                                <strong>Ações para:</strong>
-                                <div class="produto-nome-dropdown">${produto.nome}</div>
-                            </div>
-                            <button class="dropdown-item btn-editar" data-action="editar" data-id="${produto.id}">
-                                <i class="fas fa-edit"></i>
-                                <span>Editar Produto</span>
-                            </button>
-                            <div class="dropdown-item dropdown-quantidade">
+                            <!-- ENTRADA DE ESTOQUE -->
+                            <div class="dropdown-quantidade">
                                 <div class="quantidade-header">
                                     <i class="fas fa-plus-circle text-success"></i>
-                                    <span>Adicionar Estoque</span>
+                                    <span>Entrada de Estoque</span>
                                 </div>
                                 <div class="quantidade-controls">
-                                    <button class="btn-quantidade btn-diminuir" data-id="${produto.id}" data-tipo="remover">
+                                    <button class="btn-quantidade btn-diminuir" data-id="${produto.id}">
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     <input type="number" class="quantidade-input" data-id="${produto.id}" 
-                                           value="1" min="1" max="1000" placeholder="Qtd">
-                                    <button class="btn-quantidade btn-aumentar" data-id="${produto.id}" data-tipo="adicionar">
+                                           value="1" min="1" max="9999" placeholder="Qtd">
+                                    <button class="btn-quantidade btn-aumentar" data-id="${produto.id}">
                                         <i class="fas fa-plus"></i>
                                     </button>
-                                    <button class="btn-aplicar" data-id="${produto.id}" data-tipo="adicionar">
-                                        Aplicar
-                                    </button>
                                 </div>
+                                <button class="btn-aplicar btn-aplicar-entrada" data-id="${produto.id}">
+                                    Aplicar Entrada
+                                </button>
                             </div>
-                            <div class="dropdown-item dropdown-quantidade">
+                            
+                            <!-- SAÍDA DE ESTOQUE -->
+                            <div class="dropdown-quantidade dropdown-item-remover">
                                 <div class="quantidade-header">
                                     <i class="fas fa-minus-circle text-danger"></i>
-                                    <span>Remover Estoque</span>
+                                    <span>Saída de Estoque</span>
                                 </div>
                                 <div class="quantidade-controls">
-                                    <button class="btn-quantidade btn-diminuir" data-id="${produto.id}" data-tipo="remover_estoque">
+                                    <button class="btn-quantidade btn-diminuir" data-id="${produto.id}">
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     <input type="number" class="quantidade-input" data-id="${produto.id}" 
-                                           value="1" min="1" max="${quantidade}" placeholder="Qtd">
-                                    <button class="btn-quantidade btn-aumentar" data-id="${produto.id}" data-tipo="remover_estoque">
+                                           value="1" min="1" max="${produto.quantidade}" placeholder="Qtd">
+                                    <button class="btn-quantidade btn-aumentar" data-id="${produto.id}">
                                         <i class="fas fa-plus"></i>
                                     </button>
-                                    <button class="btn-aplicar btn-remover" data-id="${produto.id}" data-tipo="remover">
-                                        Aplicar
-                                    </button>
                                 </div>
-                                <div class="quantidade-info">
-                                    <small>Estoque atual: <strong>${quantidade}</strong></small>
+                                <div class="estoque-info">
+                                    Estoque atual: <strong>${produto.quantidade}</strong> unidades
                                 </div>
+                                <button class="btn-aplicar btn-aplicar-saida" data-id="${produto.id}">
+                                    Aplicar Saída
+                                </button>
                             </div>
-                            <button class="dropdown-item btn-excluir" data-action="excluir" data-id="${produto.id}">
-                                <i class="fas fa-trash-alt"></i>
-                                <span>Excluir Produto</span>
-                            </button>
+                            
+                            <!-- AÇÕES -->
+                            <div class="dropdown-actions">
+                                <button class="btn-action btn-editar" data-id="${produto.id}">
+                                    <i class="fas fa-edit"></i>
+                                    Editar Produto
+                                </button>
+                                <button class="btn-action btn-excluir" data-id="${produto.id}">
+                                    <i class="fas fa-trash-alt"></i>
+                                    Excluir Produto
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </td>
@@ -676,42 +699,267 @@ function renderizarProdutos() {
     
     estoqueTableBody.innerHTML = html;
     
+    // Atualizar contador
     if (currentCountElement) {
-        currentCountElement.textContent = produtosFiltrados.length;
+        currentCountElement.textContent = produtosFiltrados.length.toLocaleString('pt-BR');
     }
     
     // Configurar eventos dos dropdowns
     configurarDropdowns();
+    
+    console.log(`✅ ${produtosFiltrados.length} produtos renderizados`);
 }
 
 // ============================================
 // 10 - FUNÇÃO DE CONFIGURAÇÃO DOS DROPDOWNS (COMPLETA)
 // ============================================
 function configurarDropdowns() {
-    // Configurar clique nos botões de menu
+    console.log('⚙️ Configurando dropdowns...');
+    
+    // 1. CONFIGURAR CLIQUE NOS BOTÕES DE MENU
     document.querySelectorAll('.btn-acao-menu').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             
-            // Fechar todos os dropdowns abertos
+            const produtoId = this.getAttribute('data-id');
+            const produto = produtos.find(p => p.id === produtoId);
+            
+            if (!produto) {
+                console.error('❌ Produto não encontrado:', produtoId);
+                return;
+            }
+            
+            // Fechar outros dropdowns
             document.querySelectorAll('.dropdown-content').forEach(dd => {
-                if (dd !== this.nextElementSibling) {
-                    dd.style.display = 'none';
-                }
+                dd.style.display = 'none';
             });
             
-            // Alternar o dropdown atual
-            const dropdown = this.nextElementSibling;
-            if (dropdown && dropdown.classList.contains('dropdown-content')) {
-                const isVisible = dropdown.style.display === 'block';
-                dropdown.style.display = isVisible ? 'none' : 'block';
+            // Encontrar dropdown desta linha
+            const row = this.closest('tr');
+            const dropdown = row.querySelector('.dropdown-content');
+            
+            if (!dropdown) {
+                console.error('❌ Dropdown não encontrado na linha');
+                return;
+            }
+            
+            // Atualizar informações no dropdown
+            const quantidadeInput = dropdown.querySelector('.quantidade-input');
+            if (quantidadeInput) {
+                quantidadeInput.value = '1';
+                quantidadeInput.setAttribute('data-id', produtoId);
+                quantidadeInput.max = produto.quantidade;
+            }
+            
+            // Atualizar botões de quantidade
+            dropdown.querySelectorAll('.btn-quantidade').forEach(btnQtd => {
+                btnQtd.setAttribute('data-id', produtoId);
+            });
+            
+            // Atualizar botão excluir
+            const btnExcluir = dropdown.querySelector('.btn-excluir');
+            if (btnExcluir) {
+                btnExcluir.setAttribute('data-id', produtoId);
+            }
+            
+            // Atualizar botão editar
+            const btnEditar = dropdown.querySelector('.btn-editar');
+            if (btnEditar) {
+                btnEditar.setAttribute('data-id', produtoId);
+            }
+            
+            // Mostrar dropdown
+            dropdown.style.display = 'block';
+            
+            // Posicionar próximo ao botão
+            const rect = this.getBoundingClientRect();
+            dropdown.style.position = 'fixed';
+            dropdown.style.top = (rect.bottom + 5) + 'px';
+            dropdown.style.right = (window.innerWidth - rect.right + 10) + 'px';
+            dropdown.style.zIndex = '1000';
+        });
+    });
+    
+    // 2. BOTÕES DE QUANTIDADE (+/-)
+    document.querySelectorAll('.btn-quantidade').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const tipo = this.classList.contains('btn-aumentar') ? 'aumentar' : 'diminuir';
+            const dropdown = this.closest('.dropdown-content');
+            const input = dropdown.querySelector('.quantidade-input');
+            
+            if (!input) return;
+            
+            let valor = parseInt(input.value) || 1;
+            
+            if (tipo === 'aumentar') {
+                valor++;
+            } else {
+                valor = Math.max(1, valor - 1); // Não permite menos que 1
+            }
+            
+            // Se for remoção, não pode passar do estoque atual
+            const produto = produtos.find(p => p.id === produtoId);
+            if (produto && this.closest('.dropdown-item-remover')) {
+                valor = Math.min(valor, produto.quantidade);
+            }
+            
+            input.value = valor;
+        });
+    });
+    
+    // 3. VALIDAÇÃO DO INPUT DE QUANTIDADE
+    document.querySelectorAll('.quantidade-input').forEach(input => {
+        input.addEventListener('input', function() {
+            let valor = parseInt(this.value) || 1;
+            
+            // Não permitir valores negativos ou zero
+            if (valor < 1) {
+                valor = 1;
+                this.value = valor;
+            }
+            
+            // Não permitir valores muito altos
+            if (valor > 9999) {
+                valor = 9999;
+                this.value = valor;
+            }
+            
+            // Se for remoção, não pode passar do estoque atual
+            const produtoId = this.getAttribute('data-id');
+            const produto = produtos.find(p => p.id === produtoId);
+            const dropdownItem = this.closest('.dropdown-item');
+            
+            if (produto && dropdownItem && dropdownItem.classList.contains('dropdown-item-remover')) {
+                if (valor > produto.quantidade) {
+                    valor = produto.quantidade;
+                    this.value = valor;
+                    mostrarMensagem(`Máximo: ${produto.quantidade} unidades`, 'info');
+                }
             }
         });
     });
     
-    // Configurar clique no botão Editar
-    document.querySelectorAll('.dropdown-item.btn-editar').forEach(item => {
+    // 4. BOTÃO APLICAR (ENTRADA DE ESTOQUE)
+    document.querySelectorAll('.btn-aplicar-entrada').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const dropdown = this.closest('.dropdown-content');
+            const input = dropdown.querySelector('.quantidade-input');
+            
+            if (!input) return;
+            
+            const quantidade = parseInt(input.value) || 1;
+            const produto = produtos.find(p => p.id === produtoId);
+            
+            if (!produto) {
+                mostrarMensagem('Produto não encontrado', 'error');
+                return;
+            }
+            
+            if (quantidade < 1) {
+                mostrarMensagem('Quantidade mínima: 1 unidade', 'error');
+                return;
+            }
+            
+            // Fechar dropdown
+            dropdown.style.display = 'none';
+            
+            try {
+                mostrarLoading('Registrando entrada...', 'Atualizando estoque...');
+                
+                const resultado = await lojaServices.atualizarEstoque(
+                    produtoId, 
+                    quantidade, 
+                    'entrada'
+                );
+                
+                if (resultado.success) {
+                    mostrarMensagem(`${quantidade} unidade(s) adicionada(s) ao estoque!`, 'success');
+                    await carregarProdutos();
+                } else {
+                    mostrarMensagem(resultado.error || 'Erro ao adicionar estoque', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao adicionar estoque:', error);
+                mostrarMensagem('Erro ao adicionar estoque', 'error');
+            } finally {
+                esconderLoading();
+            }
+        });
+    });
+    
+    // 5. BOTÃO APLICAR (SAÍDA DE ESTOQUE)
+    document.querySelectorAll('.btn-aplicar-saida').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            
+            const produtoId = this.getAttribute('data-id');
+            const dropdown = this.closest('.dropdown-content');
+            const input = dropdown.querySelector('.quantidade-input');
+            
+            if (!input) return;
+            
+            const quantidade = parseInt(input.value) || 1;
+            const produto = produtos.find(p => p.id === produtoId);
+            
+            if (!produto) {
+                mostrarMensagem('Produto não encontrado', 'error');
+                return;
+            }
+            
+            if (quantidade < 1) {
+                mostrarMensagem('Quantidade mínima: 1 unidade', 'error');
+                return;
+            }
+            
+            if (quantidade > produto.quantidade) {
+                mostrarMensagem(`Não há estoque suficiente. Disponível: ${produto.quantidade}`, 'error');
+                return;
+            }
+            
+            // Fechar dropdown
+            dropdown.style.display = 'none';
+            
+            try {
+                mostrarLoading('Registrando saída...', 'Atualizando estoque...');
+                
+                const resultado = await lojaServices.atualizarEstoque(
+                    produtoId, 
+                    quantidade, 
+                    'saida'
+                );
+                
+                if (resultado.success) {
+                    mostrarMensagem(`${quantidade} unidade(s) removida(s) do estoque!`, 'warning');
+                    await carregarProdutos();
+                    
+                    // Verificar se estoque ficou zerado
+                    const novoEstoque = produto.quantidade - quantidade;
+                    if (novoEstoque === 0) {
+                        setTimeout(() => {
+                            mostrarMensagem('Estoque zerado', 'info');
+                        }, 1500);
+                    }
+                } else {
+                    mostrarMensagem(resultado.error || 'Erro ao remover estoque', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao remover estoque:', error);
+                mostrarMensagem('Erro ao remover estoque', 'error');
+            } finally {
+                esconderLoading();
+            }
+        });
+    });
+    
+    // 6. BOTÃO EDITAR
+    document.querySelectorAll('.btn-editar').forEach(item => {
         item.addEventListener('click', function(e) {
             e.stopPropagation();
             
@@ -727,69 +975,12 @@ function configurarDropdowns() {
         });
     });
     
-    // Configurar clique no botão Excluir
-    document.querySelectorAll('.dropdown-item.btn-excluir').forEach(item => {
-        item.addEventListener('click', function(e) {
+    // 7. BOTÃO EXCLUIR (COM CONFIRMAÇÃO E EXCLUSÃO DA IMAGEM)
+    document.querySelectorAll('.btn-excluir').forEach(item => {
+        item.addEventListener('click', async function(e) {
             e.stopPropagation();
             
             const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
-            
-            // Fechar o dropdown
-            const dropdown = this.closest('.dropdown-content');
-            if (dropdown) {
-                dropdown.style.display = 'none';
-            }
-            
-            if (produto) {
-                excluirProdutoComConfirmacao(produto);
-            }
-        });
-    });
-    
-    // Configurar botões de quantidade
-    document.querySelectorAll('.btn-quantidade').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            
-            const produtoId = this.getAttribute('data-id');
-            const tipo = this.getAttribute('data-tipo');
-            const input = this.closest('.quantidade-controls').querySelector('.quantidade-input');
-            
-            if (!input) return;
-            
-            let valor = parseInt(input.value) || 1;
-            
-            if (this.classList.contains('btn-aumentar')) {
-                valor++;
-            } else if (this.classList.contains('btn-diminuir')) {
-                valor = Math.max(1, valor - 1);
-            }
-            
-            // Se for remoção, não pode passar do estoque atual
-            if (tipo === 'remover' || tipo === 'remover_estoque') {
-                const produto = produtos.find(p => p.id === produtoId);
-                if (produto) {
-                    valor = Math.min(valor, produto.quantidade);
-                }
-            }
-            
-            input.value = valor;
-        });
-    });
-    
-    // Configurar botões Aplicar
-    document.querySelectorAll('.btn-aplicar').forEach(btn => {
-        btn.addEventListener('click', async function(e) {
-            e.stopPropagation();
-            
-            const produtoId = this.getAttribute('data-id');
-            const tipo = this.getAttribute('data-tipo');
-            const input = this.closest('.quantidade-controls').querySelector('.quantidade-input');
-            
-            if (!input) return;
-            
-            const quantidade = parseInt(input.value) || 1;
             const produto = produtos.find(p => p.id === produtoId);
             
             if (!produto) {
@@ -797,126 +988,94 @@ function configurarDropdowns() {
                 return;
             }
             
-            // Fechar o dropdown
+            // Fechar dropdown
             const dropdown = this.closest('.dropdown-content');
             if (dropdown) {
                 dropdown.style.display = 'none';
             }
             
-            // Validar quantidade para remoção
-            if ((tipo === 'remover' || tipo === 'remover_estoque') && quantidade > produto.quantidade) {
-                mostrarMensagem(`Não é possível remover ${quantidade} unidades. Estoque atual: ${produto.quantidade}`, 'error');
+            // CONFIRMAÇÃO DE EXCLUSÃO
+            const confirmMessage = 
+                `🚨 ATENÇÃO: EXCLUSÃO PERMANENTE!\n\n` +
+                `Produto: ${produto.nome || 'Sem nome'}\n` +
+                `Código: ${produto.codigo || 'Sem código'}\n` +
+                `Estoque atual: ${produto.quantidade} unidades\n\n` +
+                `Esta ação irá:\n` +
+                `✓ Excluir o produto do banco de dados\n` +
+                `✓ Excluir a imagem do ImgBB (se houver)\n` +
+                `✓ Perder todo o histórico\n\n` +
+                `Tem certeza que deseja excluir DEFINITIVAMENTE?`;
+            
+            if (!confirm(confirmMessage)) {
                 return;
             }
             
-            if ((tipo === 'remover' || tipo === 'remover_estoque') && quantidade <= 0) {
-                mostrarMensagem('A quantidade para remoção deve ser maior que zero', 'error');
-                return;
+            if (produto.quantidade > 0) {
+                const estoqueConfirm = confirm(
+                    `⚠️ ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
+                    `Ao excluir, todo o estoque será perdido permanentemente.\n` +
+                    `Deseja continuar mesmo assim?`
+                );
+                
+                if (!estoqueConfirm) {
+                    return;
+                }
             }
             
             try {
-                mostrarLoading('Processando...', 'Atualizando estoque...');
+                mostrarLoading('Excluindo produto...', 'Esta ação é irreversível...');
                 
-                const resultado = await lojaServices.atualizarEstoque(
-                    produtoId, 
-                    quantidade, 
-                    tipo === 'adicionar' ? 'entrada' : 'saida'
-                );
+                // Primeiro, excluir a imagem do ImgBB se existir
+                if (produto.imagens?.provider === 'imgbb' && produto.imagens?.provider_id) {
+                    console.log('🗑️ Tentando excluir imagem do ImgBB:', produto.imagens.provider_id);
+                    
+                    try {
+                        const resultadoExclusaoImg = await imagemServices.excluirImagem(
+                            produto.imagens.provider_id,
+                            lojaServices
+                        );
+                        
+                        if (resultadoExclusaoImg.success) {
+                            console.log('✅ Imagem excluída do ImgBB com sucesso');
+                        } else {
+                            console.warn('⚠️ Não foi possível excluir imagem do ImgBB:', resultadoExclusaoImg.error);
+                        }
+                    } catch (imgError) {
+                        console.warn('⚠️ Erro ao excluir imagem:', imgError);
+                        // Continua mesmo se não conseguir excluir a imagem
+                    }
+                }
+                
+                // Excluir produto do Firebase
+                const resultado = await lojaServices.excluirProduto(produtoId);
                 
                 if (resultado.success) {
-                    if (tipo === 'adicionar') {
-                        mostrarMensagem(`${quantidade} unidade(s) adicionada(s) ao estoque!`, 'success');
-                    } else {
-                        mostrarMensagem(`${quantidade} unidade(s) removida(s) do estoque!`, 'warning');
-                        
-                        // Verificar se estoque ficou zerado
-                        const novoEstoque = produto.quantidade - quantidade;
-                        if (novoEstoque === 0) {
-                            setTimeout(() => {
-                                mostrarMensagem('Estoque zerado. Considere excluir o produto se necessário.', 'info');
-                            }, 1500);
-                        }
-                    }
-                    
+                    mostrarMensagem('✅ Produto excluído permanentemente!', 'success');
                     await carregarProdutos();
                 } else {
-                    mostrarMensagem(resultado.error || 'Erro ao atualizar estoque', 'error');
+                    throw new Error(resultado.error || 'Erro ao excluir produto');
                 }
+                
             } catch (error) {
-                console.error('❌ Erro ao atualizar estoque:', error);
-                mostrarMensagem('Erro ao atualizar estoque', 'error');
+                console.error('❌ Erro ao excluir produto:', error);
+                mostrarMensagem('Erro ao excluir produto', 'error');
             } finally {
                 esconderLoading();
             }
         });
     });
     
-    // Fechar dropdowns ao clicar fora
+    // 8. FECHAR DROPDOWNS AO CLICAR FORA
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('.acoes-dropdown')) {
+        if (!e.target.closest('.acoes-dropdown') && 
+            !e.target.closest('.dropdown-content')) {
             document.querySelectorAll('.dropdown-content').forEach(dd => {
                 dd.style.display = 'none';
             });
         }
     });
     
-    // Validar inputs de quantidade
-    document.querySelectorAll('.quantidade-input').forEach(input => {
-        input.addEventListener('input', function() {
-            const produtoId = this.getAttribute('data-id');
-            const produto = produtos.find(p => p.id === produtoId);
-            let valor = parseInt(this.value) || 1;
-            
-            // Não permitir valores negativos
-            if (valor < 1) {
-                valor = 1;
-                this.value = valor;
-            }
-            
-            // Se for input de remoção, não pode passar do estoque atual
-            const controls = this.closest('.quantidade-controls');
-            const aplicarBtn = controls.querySelector('.btn-aplicar');
-            if (aplicarBtn && (aplicarBtn.getAttribute('data-tipo') === 'remover' || 
-                               aplicarBtn.classList.contains('btn-remover'))) {
-                if (produto && valor > produto.quantidade) {
-                    valor = produto.quantidade;
-                    this.value = valor;
-                    mostrarMensagem(`Máximo: ${produto.quantidade} unidades`, 'info');
-                }
-            }
-        });
-    });
-}
-
-// Função auxiliar para excluir produto
-function excluirProdutoComConfirmacao(produto) {
-    if (!produto) return;
-    
-    const confirmMessage = `ATENÇÃO: Esta ação é PERMANENTE!\n\n` +
-                          `Deseja realmente excluir o produto:\n` +
-                          `"${produto.nome}"\n` +
-                          `Código: ${produto.codigo || 'sem código'}\n` +
-                          `Estoque atual: ${produto.quantidade}\n\n` +
-                          `TODOS OS DADOS SERÃO PERDIDOS, incluindo a imagem!\n\n` +
-                          `Tem certeza que deseja excluir definitivamente?`;
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-    
-    if (produto.quantidade > 0) {
-        const estoqueConfirm = confirm(
-            `ATENÇÃO: O produto tem ${produto.quantidade} unidades em estoque!\n\n` +
-            `Ao excluir, todo o estoque será perdido permanentemente.\n` +
-            `Deseja continuar com a exclusão?`
-        );
-        
-        if (!estoqueConfirm) {
-            return;
-        }
-    }
-    
-    excluirProduto(produto);
+    console.log('✅ Dropdowns configurados com sucesso');
 }
 
 // ============================================
@@ -1736,208 +1895,219 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
             color: white;
         }
         
+        /* DROPDOWN SIMPLIFICADO */
         .dropdown-content {
             position: absolute;
             right: 0;
             top: 100%;
             background-color: white;
-            min-width: 320px;
-            max-width: 350px;
+            min-width: 280px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             border-radius: 10px;
             z-index: 1000;
             overflow: hidden;
             border: 1px solid #dee2e6;
             margin-top: 8px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+            display: none;
+            padding: 15px;
         }
         
         .dropdown-content.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
+            display: block !important;
         }
-                
         
-        .dropdown-header {
+        /* GRUPO DE QUANTIDADE */
+        .dropdown-quantidade {
+            margin-bottom: 15px;
             padding: 15px;
             background: #f8f9fa;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .dropdown-header strong {
-            display: block;
-            font-size: 0.9rem;
-            color: #6c757d;
-            margin-bottom: 5px;
-        }
-        
-        .produto-nome-dropdown {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 0.95rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .dropdown-item {
-            width: 100%;
-            padding: 12px 15px;
-            text-align: left;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 14px;
-            color: #495057;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: all 0.2s;
-            border-bottom: 1px solid #f8f9fa;
-        }
-        
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-        
-        .dropdown-item:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .dropdown-item.btn-editar:hover {
-            background-color: #e3f2fd;
-            color: #3498db;
-        }
-        
-        .dropdown-item.btn-excluir:hover {
-            background-color: #ffebee;
-            color: #e74c3c;
-        }
-        
-        .dropdown-quantidade {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 10px;
-            padding: 15px;
-            cursor: default;
-        }
-        
-        .dropdown-quantidade:hover {
-            background-color: transparent;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
         }
         
         .quantidade-header {
             display: flex;
             align-items: center;
             gap: 10px;
-            font-weight: 500;
+            margin-bottom: 12px;
+            color: #495057;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .quantidade-header i {
+            font-size: 16px;
         }
         
         .quantidade-header .text-success {
-            color: #27ae60;
+            color: #28a745;
         }
         
         .quantidade-header .text-danger {
-            color: #e74c3c;
+            color: #dc3545;
         }
         
         .quantidade-controls {
             display: flex;
             align-items: center;
             gap: 8px;
+            margin-bottom: 10px;
         }
         
         .btn-quantidade {
-            width: 36px;
-            height: 36px;
-            border: 1px solid #dee2e6;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ced4da;
             border-radius: 6px;
             background: white;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
             transition: all 0.2s;
         }
         
         .btn-quantidade:hover {
-            background: #f8f9fa;
-            border-color: #3498db;
+            background: #e9ecef;
+            border-color: #6c757d;
+        }
+        
+        .btn-quantidade:active {
+            transform: scale(0.95);
         }
         
         .btn-quantidade.btn-aumentar:hover {
-            background: #e8f5e9;
-            border-color: #27ae60;
-            color: #27ae60;
+            background: #d4edda;
+            border-color: #28a745;
+            color: #28a745;
         }
         
         .btn-quantidade.btn-diminuir:hover {
-            background: #ffebee;
-            border-color: #e74c3c;
-            color: #e74c3c;
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #dc3545;
         }
         
         .quantidade-input {
             flex: 1;
-            height: 36px;
-            border: 1px solid #dee2e6;
+            height: 40px;
+            border: 1px solid #ced4da;
             border-radius: 6px;
-            padding: 0 10px;
+            padding: 0 12px;
             text-align: center;
-            font-size: 14px;
-            font-weight: 500;
-            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+            color: #495057;
         }
         
         .quantidade-input:focus {
             outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
         }
         
         .btn-aplicar {
-            padding: 8px 12px;
+            padding: 10px 16px;
             border: none;
             border-radius: 6px;
-            background: #3498db;
+            background: #007bff;
             color: white;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
-            white-space: nowrap;
-            height: 36px;
+            flex: 1;
         }
         
         .btn-aplicar:hover {
-            background: #2980b9;
+            background: #0056b3;
             transform: translateY(-1px);
         }
         
-        .btn-aplicar.btn-remover {
-            background: #e74c3c;
+        .btn-aplicar:active {
+            transform: translateY(0);
         }
         
-        .btn-aplicar.btn-remover:hover {
-            background: #c0392b;
+        .btn-aplicar-entrada {
+            background: #28a745;
         }
         
-        .quantidade-info {
+        .btn-aplicar-entrada:hover {
+            background: #1e7e34;
+        }
+        
+        .btn-aplicar-saida {
+            background: #dc3545;
+        }
+        
+        .btn-aplicar-saida:hover {
+            background: #bd2130;
+        }
+        
+        /* BOTÕES DE AÇÃO */
+        .dropdown-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .btn-action {
+            padding: 12px 16px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            background: white;
+            color: #495057;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .btn-action:hover {
+            background: #f8f9fa;
+            transform: translateX(3px);
+        }
+        
+        .btn-action.btn-editar:hover {
+            border-color: #007bff;
+            color: #007bff;
+            background: #e7f1ff;
+        }
+        
+        .btn-action.btn-excluir:hover {
+            border-color: #dc3545;
+            color: #dc3545;
+            background: #fdf2f2;
+        }
+        
+        .btn-action i {
+            font-size: 16px;
+            width: 20px;
+        }
+        
+        /* INFO ESTOQUE */
+        .estoque-info {
+            font-size: 12px;
+            color: #6c757d;
+            text-align: center;
             margin-top: 8px;
             padding-top: 8px;
-            border-top: 1px dashed #e0e0e0;
-            font-size: 0.85rem;
-            color: #6c757d;
+            border-top: 1px dashed #dee2e6;
         }
         
-        .quantidade-info strong {
-            color: #2c3e50;
-            font-weight: 600;
+        .estoque-info strong {
+            color: #495057;
         }
+
+
+
+
 
         @keyframes fadeInUp {
             from {
@@ -2515,5 +2685,6 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
