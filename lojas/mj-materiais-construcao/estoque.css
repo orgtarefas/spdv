@@ -90,6 +90,70 @@ body {
     width: 100%;
 }
 
+/* ==================== MODAL DE STATUS ==================== */
+.status-ativo:hover {
+    background: #28a745 !important;
+    color: white !important;
+}
+
+.status-inativo:hover {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+/* ESTILOS ESPECÍFICOS PARA OS BOTÕES DE STATUS NA TABELA */
+.status-toggle {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    width: 100%;
+    justify-content: center;
+}
+
+.status-toggle.status-ativo {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.status-toggle.status-ativo:hover {
+    background-color: #c3e6cb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
+}
+
+.status-toggle.status-inativo {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.status-toggle.status-inativo:hover {
+    background-color: #f5c6cb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
+}
+
+.status-toggle.status-baixo {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+.status-toggle.status-baixo:hover {
+    background-color: #ffeaa7;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
+}
+
 /* ==================== AÇÕES ==================== */
 .estoque-actions {
     display: flex;
@@ -1787,3 +1851,4 @@ body {
         gap: 6px;
     }
 }
+
