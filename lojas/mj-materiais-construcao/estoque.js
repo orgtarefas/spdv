@@ -492,6 +492,9 @@ async function carregarCategorias() {
 // ============================================
 // 9. RENDERIZAR PRODUTOS NA TABELA
 // ============================================
+// ============================================
+// 9. RENDERIZAR PRODUTOS NA TABELA
+// ============================================
 function renderizarProdutos() {
     if (!estoqueTableBody) return;
     
@@ -501,7 +504,7 @@ function renderizarProdutos() {
     if (produtosFiltrados.length === 0) {
         estoqueTableBody.innerHTML = `
             <tr>
-                <td colspan="11" class="empty-state">
+                <td colspan="10" class="empty-state"> <!-- ALTERADO DE 11 PARA 10 -->
                     <i class="fas fa-box-open"></i>
                     <p>Nenhum produto encontrado</p>
                     <small>${produtos.length === 0 ? 'Cadastre o primeiro produto' : 'Tente outro filtro'}</small>
@@ -525,25 +528,21 @@ function renderizarProdutos() {
         const statusText = !produto.ativo ? 'Inativo' : 
                           produto.quantidade <= produto.estoque_minimo ? 'Baixo' : 'Ativo';
         
-        // Dados da unidade (mantendo compatibilidade com dados antigos)
+        // Dados da unidade
         const valorUnidade = produto.peso_por_unidade || produto.valor_unidade || 0;
         const tipoUnidade = produto.unidade_peso || produto.tipo_unidade || 'unid';
         const quantidade = produto.quantidade || 0;
         
-        // URL da imagem - usando base64 como fallback
+        // URL da imagem
         const imagemUrl = produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         const imagemThumb = produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         
         // Formatar a unidade para exibição
         const unidadeDisplay = formatarUnidadeExibicao(valorUnidade, tipoUnidade);
         
-        // Calcular total
-        const totalUnidade = valorUnidade * quantidade;
-        const totalDisplay = totalUnidade > 0 ? formatarUnidadeExibicao(totalUnidade, tipoUnidade) : '';
-        
         html += `
             <tr data-id="${produto.id}">
-                <!-- COLUNA: Imagem -->
+                <!-- COLUNA 1: Imagem -->
                 <td class="imagem-cell">
                     <div class="produto-imagem-grande-container">
                         <img src="${imagemThumb}" 
@@ -553,12 +552,12 @@ function renderizarProdutos() {
                     </div>
                 </td>
                 
-                <!-- COLUNA: Código -->
+                <!-- COLUNA 2: Código -->
                 <td class="codigo-cell">
                     <span class="codigo-badge">${produto.codigo || 'N/A'}</span>
                 </td>
                 
-                <!-- COLUNA: Nome e Descrição -->
+                <!-- COLUNA 3: Nome -->
                 <td class="nome-cell">
                     <div class="produto-info">
                         <strong class="produto-nome">${produto.nome || 'Produto sem nome'}</strong>
@@ -570,53 +569,35 @@ function renderizarProdutos() {
                     </div>
                 </td>
                 
-                <!-- COLUNA: Categoria -->
+                <!-- COLUNA 4: Categoria -->
                 <td class="categoria-cell">
                     <span class="categoria-badge">${produto.categoria || 'Sem categoria'}</span>
                 </td>
                 
-                <!-- COLUNA: Unidade com valor -->
+                <!-- COLUNA 5: Unidade -->
                 <td class="unidade-cell">
                     <div class="unidade-info">
                         <span class="unidade-valor">${unidadeDisplay}</span>
-                        ${totalUnidade > 0 && tipoUnidade !== 'unid' ? `
-                            <div class="unidade-total">
-                                <small class="text-muted">
-                                    <i class="fas fa-calculator"></i>
-                                    Total: ${totalDisplay}
-                                </small>
+                        ${produto.unidade_venda ? `
+                            <div class="unidade-tipo">
+                                <small class="text-muted">${produto.unidade_venda}</small>
                             </div>
                         ` : ''}
                     </div>
                 </td>
                 
-                <!-- COLUNA: Estoque -->
-                <td class="estoque-cell">
-                    <div class="estoque-info">
-                        <strong class="estoque-quantidade">${quantidade.toLocaleString('pt-BR')}</strong>
-                        <span class="estoque-unidade">${produto.unidade_venda || produto.unidade || 'UN'}</span>
-                        ${produto.estoque_minimo ? `
-                            <div class="estoque-minimo">
-                                <small class="text-muted">
-                                    Mín: ${produto.estoque_minimo}
-                                </small>
-                            </div>
-                        ` : ''}
-                    </div>
-                </td>
-                
-                <!-- COLUNA: Estoque Mínimo -->
+                <!-- COLUNA 6: Estoque Mínimo -->
                 <td class="minimo-cell">${produto.estoque_minimo || 5}</td>
                 
-                <!-- COLUNA: Preço de Custo -->
+                <!-- COLUNA 7: Preço Custo -->
                 <td class="custo-cell">${formatarMoeda(produto.preco_custo || 0)}</td>
                 
-                <!-- COLUNA: Preço de Venda -->
+                <!-- COLUNA 8: Preço Venda -->
                 <td class="venda-cell">
                     <strong class="preco-venda">${formatarMoeda(produto.preco || 0)}</strong>
                 </td>
                 
-                <!-- COLUNA: Status -->
+                <!-- COLUNA 9: Status -->
                 <td class="status-cell">
                     <span class="status-badge ${statusClass}">
                         <i class="status-icon ${statusClass === 'status-ativo' ? 'fas fa-check-circle' : 
@@ -626,14 +607,14 @@ function renderizarProdutos() {
                     </span>
                 </td>
                 
-                <!-- COLUNA: Ações com DROPDOWN SIMPLIFICADO -->
+                <!-- COLUNA 10: Ações -->
                 <td class="acoes-cell">
                     <div class="acoes-dropdown">
                         <button class="btn-acao-menu" title="Ações" data-id="${produto.id}">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
                         
-                        <div class="dropdown-content" style="display: none;">
+                        <div class="dropdown-content">
                             <!-- ENTRADA DE ESTOQUE -->
                             <div class="dropdown-quantidade">
                                 <div class="quantidade-header">
@@ -2537,6 +2518,7 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
