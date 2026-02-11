@@ -1,5 +1,6 @@
 /* ============================================
    home.css - VERSÃO PROFISSIONAL COMPLETA
+   LOGO 50% MAIOR - TODOS OS LIMITES AJUSTADOS
    ============================================ */
 
 * {
@@ -42,6 +43,7 @@ body {
     max-width: 1400px;
     margin: 0 auto;
     width: 100%;
+    padding: 0 20px;
 }
 
 /* ============================================
@@ -114,7 +116,7 @@ body {
 }
 
 /* ============================================
-   WELCOME SECTION - COM LOGO PROFISSIONAL
+   WELCOME SECTION - LOGO 50% MAIOR
    ============================================ */
 .welcome-section {
     background: linear-gradient(135deg, #1e2b3a, #2c3e50);
@@ -153,29 +155,30 @@ body {
     gap: 5px;
 }
 
-/* CONTAINER DA LOGO - PROFISSIONAL E LIMITADO */
+/* CONTAINER DA LOGO - 50% MAIOR (150x150) */
 .welcome-icon {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100px;
-    height: 100px;
-    min-width: 100px;
-    max-width: 100px;
+    width: 150px;
+    height: 150px;
+    min-width: 150px;
+    max-width: 150px;
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-radius: 16px;
     overflow: hidden;
     transition: var(--transition);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
 }
 
 /* Efeito hover na logo */
 .welcome-icon:hover {
     border-color: rgba(255, 255, 255, 0.4);
-    transform: scale(1.02);
+    transform: scale(1.03);
     background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 /* ESTILO DA IMAGEM DA LOGO */
@@ -183,17 +186,17 @@ body {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    padding: 10px;
+    padding: 15px;
     transition: transform 0.3s ease;
 }
 
 .welcome-icon img:hover {
-    transform: scale(1.08);
+    transform: scale(1.1);
 }
 
-/* Ícone padrão (quando não tem logo) */
+/* Ícone padrão (fallback) */
 .welcome-icon i {
-    font-size: 3.5rem;
+    font-size: 5rem;
     color: rgba(255, 255, 255, 0.3);
     transition: var(--transition);
 }
@@ -431,6 +434,7 @@ body {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 .filter-btn {
@@ -522,6 +526,7 @@ body {
     align-items: center;
     gap: 15px;
     font-size: 0.85rem;
+    flex-wrap: wrap;
 }
 
 .activity-vendedor {
@@ -605,6 +610,7 @@ body {
     align-items: center;
     font-size: 0.85rem;
     opacity: 0.9;
+    flex-wrap: wrap;
 }
 
 #footerVersao {
@@ -749,6 +755,11 @@ body {
     gap: 10px;
     margin-bottom: 25px;
     flex-wrap: wrap;
+}
+
+.search-results {
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 /* ============================================
@@ -917,7 +928,7 @@ body {
    ============================================ */
 @media (max-width: 1024px) {
     .container {
-        padding: 0 20px;
+        padding: 0 15px;
     }
 }
 
@@ -954,10 +965,16 @@ body {
         font-size: 1.6rem;
     }
     
+    /* LOGO REDIMENSIONADA PARA MOBILE */
     .welcome-icon {
-        width: 90px;
-        height: 90px;
-        min-width: 90px;
+        width: 130px;
+        height: 130px;
+        min-width: 130px;
+        max-width: 130px;
+    }
+    
+    .welcome-icon i {
+        font-size: 4rem;
     }
     
     .actions-grid {
@@ -992,6 +1009,10 @@ body {
 }
 
 @media (max-width: 480px) {
+    .container {
+        padding: 0 10px;
+    }
+    
     .actions-grid {
         grid-template-columns: 1fr;
     }
@@ -1002,6 +1023,18 @@ body {
     
     .welcome-content h2 {
         font-size: 1.3rem;
+    }
+    
+    /* LOGO REDIMENSIONADA PARA CELULAR PEQUENO */
+    .welcome-icon {
+        width: 120px;
+        height: 120px;
+        min-width: 120px;
+        max-width: 120px;
+    }
+    
+    .welcome-icon i {
+        font-size: 3.5rem;
     }
     
     .stat-card {
@@ -1019,8 +1052,9 @@ body {
     }
     
     .activity-details {
-        flex-wrap: wrap;
-        gap: 10px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
     
     .modal-header {
@@ -1038,6 +1072,16 @@ body {
     .filter-btn {
         padding: 6px 15px;
         font-size: 0.8rem;
+    }
+    
+    .user-perfil {
+        margin-left: 0;
+        margin-top: 5px;
+    }
+    
+    .user-welcome {
+        flex-direction: column;
+        gap: 5px;
     }
 }
 
@@ -1078,4 +1122,38 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--primary-color);
+}
+
+/* Animações adicionais */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+/* Acessibilidade */
+:focus {
+    outline: 3px solid rgba(52, 152, 219, 0.5);
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+    .main-header, .quick-actions, .recent-activity, .modal, .loading-overlay, .message-alert, .btn-logout {
+        display: none !important;
+    }
+    
+    .welcome-section {
+        background: white;
+        color: black;
+        border: 1px solid #ddd;
+    }
+    
+    .welcome-icon {
+        border: 1px solid #ddd;
+    }
 }
