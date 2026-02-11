@@ -21,6 +21,13 @@ const LOJAS_CONFIG = {
         banco_vendas: 'vendas_acai_ponto_11',
         imgbb_api_key: '44efee2efa10458a73a2dc535098c9e4'
     }
+
+    // Loja 3: Teste Operacional
+    'teste_operacional': {
+        banco_estoque: 'estoque_teste_operacional',
+        banco_vendas: 'vendas_teste_operacional',
+        imgbb_api_key: '8672a2a27a3fc040c576910255d18dc0'
+    }
 };
 
 function getLojaConfig(lojaId) {
@@ -52,3 +59,4 @@ function lojaTemImgBB(lojaId) {
 
 export { LOJAS_CONFIG, getLojaConfig, getImgBBKey, lojaTemImgBB };
 console.log('✅ lojas.js carregado SEM ALBUM');
+
