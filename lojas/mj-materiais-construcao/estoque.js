@@ -136,14 +136,19 @@ function calcularTotalUnidade() {
         return;
     }
     
-    const valorUnidade = parseFloat(valorUnidadeInput.value) || 0;
+    const valorUnidade = parseFloat(valorUnidadeInput.value) || 1; // Padrão 1 se não informado
     const quantidade = parseInt(quantidadeInput.value) || 0;
     const tipoUnidade = tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid';
     
     const totalUnidade = valorUnidade * quantidade;
     
     if (totalEstoqueUnidadeInput) {
-        totalEstoqueUnidadeInput.value = totalUnidade.toFixed(2);
+        // Formatar com 2 casas decimais, exceto para valores inteiros
+        if (Number.isInteger(totalUnidade)) {
+            totalEstoqueUnidadeInput.value = totalUnidade;
+        } else {
+            totalEstoqueUnidadeInput.value = totalUnidade.toFixed(2);
+        }
     }
     
     if (totalEstoqueTipoSpan) {
@@ -153,10 +158,15 @@ function calcularTotalUnidade() {
 
 function formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, unidadeVenda) {
     if (!quantidade || quantidade === 0) {
-        return '0 ' + unidadeVenda;
+        return '0 ' + (unidadeVenda || 'UN');
     }
     
     const valorTotal = valorUnidade * quantidade;
+    
+    // Se não tem valor por unidade ou é 1 (padrão)
+    if (!valorUnidade || valorUnidade === 1 || tipoUnidade === 'unid' || !tipoUnidade) {
+        return `${quantidade} ${unidadeVenda || 'UN'}`;
+    }
     
     // Formatador de tipo de unidade
     const formatarTipoUnidade = (tipo) => {
@@ -177,41 +187,22 @@ function formatarQuantidadeComUnidade(quantidade, valorUnidade, tipoUnidade, uni
     };
     
     const tipoFormatado = formatarTipoUnidade(tipoUnidade);
-    const unidadeVendaFormatada = unidadeVenda.toUpperCase();
+    const unidadeVendaFormatada = (unidadeVenda || 'UN').toUpperCase();
     
-    // Se for unidade padrão (sem peso/medida especial)
-    if (tipoUnidade === 'unid' || tipoUnidade === 'und' || !tipoUnidade) {
-        return `${quantidade} ${unidadeVendaFormatada}`;
+    // Para gramas: converter para kg se maior que 1000g
+    if (tipoUnidade === 'g' && valorTotal >= 1000) {
+        const valorKg = (valorTotal / 1000).toFixed(1);
+        return `${quantidade} ${unidadeVendaFormatada} / ${valorKg}kg`;
     }
     
-    // Se tiver valor por unidade (ex: 175g por unidade)
-    if (valorUnidade > 1) {
-        // Exibir: "12 Unid / 2.1kg" (se for 175g cada)
-        if (['g', 'kg', 'ml', 'l'].includes(tipoUnidade)) {
-            // Converter para unidade apropriada
-            let valorExibicao;
-            let tipoExibicao;
-            
-            if (tipoUnidade === 'g' && valorTotal >= 1000) {
-                valorExibicao = (valorTotal / 1000).toFixed(1);
-                tipoExibicao = 'kg';
-            } else if (tipoUnidade === 'ml' && valorTotal >= 1000) {
-                valorExibicao = (valorTotal / 1000).toFixed(1);
-                tipoExibicao = 'L';
-            } else {
-                valorExibicao = valorTotal;
-                tipoExibicao = tipoFormatado;
-            }
-            
-            return `${quantidade} ${unidadeVendaFormatada} / ${valorExibicao}${tipoExibicao}`;
-        }
-        
-        // Para outras unidades
-        return `${quantidade} ${unidadeVendaFormatada} / ${valorTotal}${tipoFormatado}`;
+    // Para mililitros: converter para litros se maior que 1000ml
+    if (tipoUnidade === 'ml' && valorTotal >= 1000) {
+        const valorL = (valorTotal / 1000).toFixed(1);
+        return `${quantidade} ${unidadeVendaFormatada} / ${valorL}L`;
     }
     
-    // Caso simples
-    return `${quantidade} ${unidadeVendaFormatada}`;
+    // Para outros tipos
+    return `${quantidade} ${unidadeVendaFormatada} / ${valorTotal}${tipoFormatado}`;
 }
 
 // ============================================
@@ -1477,9 +1468,28 @@ async function abrirModalEditar(produtoId) {
             if (categoriaInput) categoriaInput.value = produto.categoria || '';
             if (unidadeVendaSelect) unidadeVendaSelect.value = produto.unidade_venda || produto.unidade || 'UN';
             
-            // Carregar valores da unidade (compatibilidade com dados antigos)
-            if (valorUnidadeInput) valorUnidadeInput.value = produto.peso_por_unidade || produto.valor_unidade || 0;
-            if (tipoUnidadeSelect) tipoUnidadeSelect.value = produto.unidade_peso || produto.tipo_unidade || 'unid';
+            // CORREÇÃO AQUI: Carregar valores da unidade corretamente
+            if (valorUnidadeInput) {
+                // Tentar primeiro os campos novos, depois os antigos para compatibilidade
+                if (produto.valor_unidade !== undefined) {
+                    valorUnidadeInput.value = produto.valor_unidade;
+                } else if (produto.peso_por_unidade !== undefined) {
+                    valorUnidadeInput.value = produto.peso_por_unidade;
+                } else {
+                    valorUnidadeInput.value = 1; // Valor padrão
+                }
+            }
+            
+            if (tipoUnidadeSelect) {
+                // Tentar primeiro os campos novos, depois os antigos para compatibilidade
+                if (produto.tipo_unidade !== undefined) {
+                    tipoUnidadeSelect.value = produto.tipo_unidade;
+                } else if (produto.unidade_peso !== undefined) {
+                    tipoUnidadeSelect.value = produto.unidade_peso;
+                } else {
+                    tipoUnidadeSelect.value = 'unid'; // Valor padrão
+                }
+            }
             
             if (precoCustoInput) precoCustoInput.value = produto.preco_custo || 0;
             if (precoInput) precoInput.value = produto.preco || 0;
@@ -1488,8 +1498,10 @@ async function abrirModalEditar(produtoId) {
             if (descricaoTextarea) descricaoTextarea.value = produto.descricao || '';
             if (fornecedorInput) fornecedorInput.value = produto.fornecedor || '';
             
-            // Calcular total
-            calcularTotalUnidade();
+            // Calcular total - IMPORTANTE: Executar após carregar todos os valores
+            setTimeout(() => {
+                calcularTotalUnidade();
+            }, 100);
 
             // Carregar imagem se existir
             if (produto.imagens && produto.imagens.principal) {
@@ -1541,6 +1553,10 @@ async function salvarProduto(e) {
             throw new Error('Estoque mínimo deve ser um número positivo ou zero');
         }
         
+        // CORREÇÃO: Capturar valores da unidade corretamente
+        const valorUnidade = parseFloat(valorUnidadeInput ? valorUnidadeInput.value : 1) || 1;
+        const tipoUnidade = tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid';
+        
         let dadosImagem = null;
         
         if (imagemAtual instanceof File) {
@@ -1562,7 +1578,6 @@ async function salvarProduto(e) {
                 };
                 console.log('✅ Upload de imagem bem-sucedido:', uploadResult.url.substring(0, 50) + '...');
             } else {
-                // USANDO BASE64 EM VEZ DE /images/sem-foto.png
                 dadosImagem = {
                     imagens: {
                         principal: IMAGEM_PADRAO_BASE64,
@@ -1577,7 +1592,6 @@ async function salvarProduto(e) {
             mostrarLoading('Salvando produto...', 'Finalizando...');
         } 
         else if (imagemUploadResult && imagemUploadResult.url) {
-            console.log('📷 Usando imagem existente:', imagemUploadResult.url.substring(0, 50) + '...');
             dadosImagem = {
                 imagens: {
                     principal: imagemUploadResult.url,
@@ -1590,8 +1604,6 @@ async function salvarProduto(e) {
             };
         }
         else {
-            console.log('🖼️ Sem imagem, usando base64 padrão');
-            // USANDO BASE64 EM VEZ DE /images/sem-foto.png
             dadosImagem = {
                 imagens: {
                     principal: IMAGEM_PADRAO_BASE64,
@@ -1608,12 +1620,15 @@ async function salvarProduto(e) {
             nome: nomeInput.value.trim(),
             categoria: categoriaInput ? categoriaInput.value.trim() : 'Sem Categoria',
             unidade_venda: unidadeVendaSelect ? unidadeVendaSelect.value : 'UN',
-            // Novos campos para unidade com valor
-            valor_unidade: valorUnidadeInput ? parseFloat(valorUnidadeInput.value) || 0 : 0,
-            tipo_unidade: tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid',
+            
+            // CAMPOS NOVOS - valor por unidade
+            valor_unidade: valorUnidade,
+            tipo_unidade: tipoUnidade,
+            
             // Campos antigos para compatibilidade
-            peso_por_unidade: valorUnidadeInput ? parseFloat(valorUnidadeInput.value) || 0 : 0,
-            unidade_peso: tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid',
+            peso_por_unidade: valorUnidade,
+            unidade_peso: tipoUnidade,
+            
             preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value.replace(',', '.')) || 0 : 0,
             preco: precoInput ? parseFloat(precoInput.value.replace(',', '.')) || 0 : 0,
             quantidade: quantidade,
@@ -1621,7 +1636,7 @@ async function salvarProduto(e) {
             descricao: descricaoTextarea ? descricaoTextarea.value.trim() : '',
             fornecedor: fornecedorInput ? fornecedorInput.value.trim() : '',
             ativo: true,
-            data_cadastro: new Date().toISOString(),
+            data_cadastro: produtoIdInput.value ? (await lojaServices.buscarProdutoPorId(produtoIdInput.value)).data?.data_cadastro || new Date().toISOString() : new Date().toISOString(),
             data_atualizacao: new Date().toISOString(),
             loja_id: lojaServices.lojaId,
             loja_nome: lojaServices.dadosLoja?.nome || lojaServices.lojaId
@@ -1668,6 +1683,11 @@ async function salvarProduto(e) {
         }
         
         console.log('📊 Dados salvos no Firebase com sucesso');
+        console.log('📐 Dados da unidade:', {
+            valor_unidade: dadosProduto.valor_unidade,
+            tipo_unidade: dadosProduto.tipo_unidade,
+            quantidade: dadosProduto.quantidade
+        });
         
         imagemAtual = null;
         imagemPreviewURL = null;
@@ -1959,6 +1979,7 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
 
 
 
