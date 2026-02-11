@@ -109,9 +109,11 @@
                 <table class="estoque-table" id="estoqueTable">
                     <thead>
                         <tr>
+                            <th>Imagem</th> <!-- NOVA COLUNA ADICIONADA -->
                             <th>Código</th>
                             <th>Produto</th>
                             <th>Categoria</th>
+                            <th>Unidade</th> <!-- MODIFICADA: Mostra valor+tipo (ex: 175 g) -->
                             <th>Estoque</th>
                             <th>Mínimo</th>
                             <th>Preço Custo</th>
@@ -123,7 +125,7 @@
                     <tbody id="estoqueTableBody">
                         <!-- Produtos serão carregados aqui -->
                         <tr>
-                            <td colspan="9" class="empty-state">
+                            <td colspan="11" class="empty-state"> <!-- COLSPAN ATUALIZADO PARA 11 -->
                                 <i class="fas fa-spinner fa-spin"></i>
                                 <p>Carregando produtos...</p>
                             </td>
@@ -186,8 +188,8 @@
                             </datalist>
                         </div>
                         <div class="form-group">
-                            <label for="unidade">Unidade de Venda *</label>
-                            <select id="unidade" required>
+                            <label for="unidade_venda">Unidade de Venda *</label> <!-- RENOMEADO para unidade_venda -->
+                            <select id="unidade_venda" required>
                                 <option value="">Selecione</option>
                                 <option value="UN">Unidade (UN)</option>
                                 <option value="PC">Peça (PC)</option>
@@ -199,41 +201,38 @@
                                 <option value="CX">Caixa (CX)</option>
                                 <option value="LT">Litro (LT)</option>
                             </select>
-                            <small class="form-hint">Como o produto é vendido</small>
+                            <small class="form-hint">Como o produto é vendido (pacote, caixa, unidade)</small>
                         </div>
                     </div>
                     
-                    <!-- SEÇÃO: Peso/Medida por Unidade - IDs CORRIGIDOS -->
+                    <!-- SEÇÃO: Unidade com valor (ex: 175 g) -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="peso_por_unidade">Peso/Medida por Unidade</label>
+                            <label for="valor_unidade">Unidade com Valor (ex: 175 g)</label>
                             <div class="input-with-unit">
-                                <input type="number" id="peso_por_unidade" step="0.001" min="0" placeholder="0.000">
-                                <!-- MUDADO de "unidade_medida" para "unidade_peso" -->
-                                <select id="unidade_peso" class="unit-select">
-                                    <option value="kg">Quilos (kg)</option>
+                                <input type="number" id="valor_unidade" step="0.001" min="0" placeholder="0.000">
+                                <select id="tipo_unidade" class="unit-select">
+                                    <option value="kg">Quilogramas (kg)</option>
                                     <option value="g">Gramas (g)</option>
                                     <option value="ton">Toneladas (t)</option>
-                                    <option value="l">Litros (l)</option>
-                                    <option value="ml">Mililitros (ml)</option>
+                                    <option value="l">Litros (L)</option>
+                                    <option value="ml">Mililitros (mL)</option>
                                     <option value="m">Metros (m)</option>
                                     <option value="cm">Centímetros (cm)</option>
                                     <option value="m2">Metros² (m²)</option>
                                     <option value="m3">Metros³ (m³)</option>
-                                    <option value="und" selected>Unidades</option>
+                                    <option value="unid" selected>Unidades (unid)</option>
                                 </select>
                             </div>
-                            <small class="form-hint">Ex: 50kg por saco, 1L por unidade, 0.5m por peça</small>
+                            <small class="form-hint">Ex: 175 g, 1.5 L, 2.5 m, 1 unid (por pacote/caixa)</small>
                         </div>
                         <div class="form-group">
-                            <label for="total_peso">Total em Estoque</label>
+                            <label for="total_estoque_unidade">Total em Estoque (Calculado)</label>
                             <div class="input-readonly">
-                                <!-- MUDADO de "total_medida" para "total_peso" -->
-                                <input type="text" id="total_peso" readonly placeholder="0.00">
-                                <!-- MUDADO de "total_unidade" para "total_peso_unidade" -->
-                                <span id="total_peso_unidade">unidades</span>
+                                <input type="text" id="total_estoque_unidade" readonly placeholder="0.00">
+                                <span id="total_estoque_tipo">unid</span>
                             </div>
-                            <small class="form-hint">Quantidade × Peso por unidade</small>
+                            <small class="form-hint">Quantidade × Valor da Unidade</small>
                         </div>
                     </div>
                     
@@ -258,12 +257,12 @@
                         <div class="form-group">
                             <label for="quantidade">Quantidade em Estoque *</label>
                             <input type="number" id="quantidade" min="0" required>
-                            <small class="form-hint">Número de unidades no estoque</small>
+                            <small class="form-hint">Número de pacotes/caixas/unidades físicas no estoque</small>
                         </div>
                         <div class="form-group">
                             <label for="estoque_minimo">Estoque Mínimo *</label>
                             <input type="number" id="estoque_minimo" min="0" value="5" required>
-                            <small class="form-hint">Alerta quando atingir este valor</small>
+                            <small class="form-hint">Alerta quando atingir este número de pacotes/caixas</small>
                         </div>
                     </div>
                     
@@ -272,7 +271,7 @@
                         <textarea id="descricao" rows="3"></textarea>
                     </div>
     
-                    <!-- SEÇÃO: Imagem do Produto - BOTÕES CORRIGIDOS -->
+                    <!-- SEÇÃO: Imagem do Produto -->
                     <div class="form-section">
                         <h4><i class="fas fa-images"></i> Imagem do Produto</h4>
                         
@@ -300,7 +299,6 @@
                                 <div class="preview-container">
                                     <img id="previewImage" src="" alt="Imagem do produto">
                                     <div class="preview-overlay">
-                                        <!-- CORRIGIDO: Removido estoqueManager. -->
                                         <button type="button" class="btn-change" onclick="trocarImagem()">
                                             <i class="fas fa-sync-alt"></i> Trocar
                                         </button>
@@ -334,9 +332,7 @@
                             <p><i class="fas fa-lightbulb"></i> Dica: Uma boa imagem aumenta as vendas!</p>
                         </div>
                     </div>
-                    <!-- ========== FIM DA SEÇÃO DE IMAGEM ========== -->
                     
-                    <!-- APENAS UM CAMPO FORNECEDOR - REMOVIDO O DUPLICADO -->
                     <div class="form-group">
                         <label for="fornecedor">Fornecedor</label>
                         <input type="text" id="fornecedor">
@@ -376,5 +372,3 @@
     <script type="module" src="estoque.js"></script>
 </body>
 </html>
-
-
