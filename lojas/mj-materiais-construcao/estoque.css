@@ -101,6 +101,34 @@ body {
     color: white !important;
 }
 
+/* ==================== ESTILOS DA COLUNA UNIDADE ==================== */
+.unidade-cell {
+    white-space: nowrap;
+}
+
+.unidade-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.unidade-valor {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+}
+
+.unidade-tipo {
+    font-size: 0.75rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+
 /* ESTILOS ESPECÍFICOS PARA OS BOTÕES DE STATUS NA TABELA */
 .status-toggle {
     padding: 4px 10px;
@@ -1851,4 +1879,5 @@ body {
         gap: 6px;
     }
 }
+
 
