@@ -136,11 +136,6 @@ body {
     opacity: 0.9;
 }
 
-.welcome-icon {
-    font-size: 5rem;
-    opacity: 0.2;
-}
-
 /* Quick Actions */
 .quick-actions {
     margin-bottom: 40px;
@@ -877,5 +872,6 @@ body {
 .user-perfil {
     /* Adicionado no JS */
 }
+
 
 
