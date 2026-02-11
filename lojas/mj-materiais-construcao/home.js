@@ -1,5 +1,5 @@
-// home.js - SISTEMA HOME PDV MULTILOJA (Versão Corrigida - IMGBB)
-console.log("🏠 Sistema PDV - Página Inicial (Versão IMGBB)");
+// home.js - SISTEMA HOME PDV MULTILOJA (Versão CORRIGIDA - Igual ao estoque.js)
+console.log("🏠 Sistema PDV - Página Inicial (Versão Corrigida)");
 
 import { lojaServices } from './firebase_config.js';
 
@@ -201,8 +201,8 @@ async function carregarLogoLoja() {
                     const logoImg = document.createElement('img');
                     logoImg.src = caminhoLogo;
                     logoImg.alt = 'Logo da Loja';
-                    logoImg.style.maxWidth = '120px';
-                    logoImg.style.maxHeight = '120px';
+                    logoImg.style.maxWidth = '150px';
+                    logoImg.style.maxHeight = '150px';
                     logoImg.style.objectFit = 'contain';
                     logoImg.style.borderRadius = '8px';
                     
@@ -217,7 +217,7 @@ async function carregarLogoLoja() {
             });
         
     } catch (error) {
-        console.error('❌ Erro:', error);
+        console.error('❌ Erro ao carregar logo:', error);
     }
 }
 
@@ -341,7 +341,7 @@ function configurarEventos() {
 }
 
 // ============================================
-// 5. CARREGAR PRODUTOS PARA CONSULTA - CORRIGIDO!
+// 5. CARREGAR PRODUTOS PARA CONSULTA - IGUAL AO ESTOQUE.JS!
 // ============================================
 async function carregarProdutos() {
     try {
@@ -352,27 +352,24 @@ async function carregarProdutos() {
         if (resultado.success) {
             produtos = resultado.data;
             
-            // ✅ CORRIGIDO: Só aplica BASE64 para produtos SEM imagem
+            // CORREÇÃO: Exatamente como no estoque.js - NÃO substitui imagens!
             let contadorImgBB = 0;
             let contadorSemImagem = 0;
             
             produtos = produtos.map(produto => {
-                // Verifica se TEM imagem do IMGBB (URL HTTP/HTTPS)
-                const temImgBB = produto.imagem && 
-                                typeof produto.imagem === 'string' && 
-                                (produto.imagem.startsWith('http://') || 
-                                 produto.imagem.startsWith('https://')) &&
-                                produto.imagem.length > 20;
+                // Verificar se o produto TEM imagem do IMGBB
+                const temImgBB = produto.imagens && 
+                                produto.imagens.principal && 
+                                produto.imagens.principal !== IMAGEM_PADRAO_BASE64 &&
+                                (produto.imagens.principal.startsWith('http://') || 
+                                 produto.imagens.principal.startsWith('https://'));
                 
                 if (temImgBB) {
-                    // ✅ MANTÉM A IMAGEM ORIGINAL DO IMGBB
                     contadorImgBB++;
-                    return produto;
+                    return produto; // Mantém a imagem original do IMGBB
                 } else {
-                    // ❌ SÓ APLICA BASE64 SE NÃO TIVER IMAGEM IMGBB
                     contadorSemImagem++;
-                    produto.imagem = IMAGEM_PADRAO_BASE64;
-                    return produto;
+                    return produto; // Não altera nada, o fallback será no onerror
                 }
             });
             
@@ -385,7 +382,7 @@ async function carregarProdutos() {
             
             console.log(`✅ ${produtos.length} produtos carregados:`);
             console.log(`   🖼️ IMGBB: ${contadorImgBB} produtos`);
-            console.log(`   📦 BASE64: ${contadorSemImagem} produtos (sem foto)`);
+            console.log(`   📦 SEM IMAGEM: ${contadorSemImagem} produtos (usarão BASE64 no onerror)`);
             
             const modal = document.getElementById('quickSearchModal');
             if (modal && modal.style.display === 'flex') {
@@ -395,6 +392,8 @@ async function carregarProdutos() {
     } catch (error) {
         console.error("❌ Erro ao carregar produtos:", error);
         produtos = [];
+    } finally {
+        esconderLoading();
     }
 }
 
@@ -439,6 +438,8 @@ async function carregarEstatisticas() {
     } catch (error) {
         console.error("❌ Erro ao carregar estatísticas:", error);
         estatisticas = null;
+    } finally {
+        esconderLoading();
     }
 }
 
@@ -522,6 +523,8 @@ async function carregarAtividadesRecentes() {
         console.error("❌ Erro ao carregar atividades:", error);
         atividades = [];
         exibirAtividades([]);
+    } finally {
+        esconderLoading();
     }
 }
 
@@ -673,7 +676,7 @@ function buscarProdutoConsultaRapida(termo) {
 }
 
 // ============================================
-// EXIBIR RESULTADOS DA BUSCA - CORRIGIDO!
+// EXIBIR RESULTADOS DA BUSCA - IGUAL AO ESTOQUE.JS!
 // ============================================
 function exibirResultadosBusca(resultados) {
     const searchResults = document.getElementById('searchResults');
@@ -697,25 +700,28 @@ function exibirResultadosBusca(resultados) {
         const temEstoque = produto.quantidade > 0;
         const precoFormatado = formatarMoeda(produto.preco);
         
-        // ✅ CORRIGIDO: Usa a imagem do IMGBB ou BASE64, mas NUNCA substitui IMGBB por BASE64
-        const imagemProduto = produto.imagem && 
-                            typeof produto.imagem === 'string' && 
-                            produto.imagem.length > 0 ? produto.imagem : IMAGEM_PADRAO_BASE64;
+        // 🔥 LÓGICA IDÊNTICA AO ESTOQUE.JS!
+        // URL da imagem - usa imagens.principal se existir, senão fallback para BASE64 no onerror
+        const imagemUrl = produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
+        const imagemThumb = produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
+        
+        // Unidade de medida
+        const unidade = produto.unidade || produto.unidade_venda || 'UN';
         
         let stockClass = 'normal';
-        let stockText = `${produto.quantidade || 0} ${produto.unidade || 'UN'}`;
+        let stockText = `${produto.quantidade || 0} ${unidade}`;
         if (!temEstoque) {
             stockClass = 'out';
             stockText = 'ESGOTADO';
         } else if (estoqueBaixo) {
             stockClass = 'low';
-            stockText = `${produto.quantidade} ${produto.unidade || 'UN'} ⚠️`;
+            stockText = `${produto.quantidade} ${unidade} ⚠️`;
         }
         
         html += `
             <div class="product-result">
                 <div class="product-image-container">
-                    <img src="${imagemProduto}" 
+                    <img src="${imagemThumb}" 
                          alt="${produto.nome || 'Produto'}" 
                          class="product-image"
                          loading="lazy"
@@ -769,13 +775,14 @@ window.verDetalhesProduto = async function(produtoId) {
             
             const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
             const estoqueStatus = estoqueBaixo ? 'BAIXO' : 'NORMAL';
+            const unidade = produto.unidade || produto.unidade_venda || 'UN';
             
             let mensagem = `📦 DETALHES DO PRODUTO\n\n`;
             mensagem += `Código: ${produto.codigo || 'Não informado'}\n`;
             mensagem += `Nome: ${produto.nome || 'Sem nome'}\n`;
             mensagem += `Categoria: ${produto.categoria || 'Não informada'}\n`;
-            mensagem += `Estoque: ${produto.quantidade || 0} ${produto.unidade || 'UN'}\n`;
-            mensagem += `Estoque mínimo: ${produto.estoque_minimo || 5} ${produto.unidade || 'UN'}\n`;
+            mensagem += `Estoque: ${produto.quantidade || 0} ${unidade}\n`;
+            mensagem += `Estoque mínimo: ${produto.estoque_minimo || 5} ${unidade}\n`;
             mensagem += `Status: ${estoqueStatus}\n`;
             mensagem += `Preço venda: ${formatarMoeda(produto.preco)}\n`;
             mensagem += `Preço custo: ${formatarMoeda(produto.preco_custo)}\n`;
