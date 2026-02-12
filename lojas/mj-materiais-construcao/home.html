@@ -211,28 +211,75 @@
     <div id="quickSearchModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-search"></i> Consulta Rápida</h3>
-                <button class="modal-close">&times;</button>
+                <h3>
+                    <i class="fas fa-search"></i> 
+                    Consulta Rápida
+                </h3>
+                <button class="modal-close" title="Fechar (ESC)">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
+            
             <div class="modal-body">
+                <!-- SEARCH BOX COM BOTÕES -->
                 <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchProductInput" placeholder="Código, nome ou categoria do produto" autofocus>
-                    <button class="search-clear" id="searchClear">
+                    <i class="fas fa-search search-icon"></i>
+                    
+                    <input 
+                        type="text" 
+                        id="searchProductInput" 
+                        placeholder="Código, nome ou categoria do produto"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    
+                    <!-- BOTÃO LIMPAR (X) -->
+                    <button class="search-clear" id="searchClear" title="Limpar busca">
                         <i class="fas fa-times"></i>
                     </button>
+                    
+                    <!-- BOTÃO SCAN (LEITOR DE CÓDIGO DE BARRAS) -->
+                    <button class="btn-scan" id="btnScanCode" title="Ler código de barras">
+                        <i class="fas fa-barcode"></i>
+                    </button>
                 </div>
+                
+                <!-- FILTROS RÁPIDOS -->
                 <div class="search-filters">
-                    <button class="filter-btn active" data-filter="all">Todos</button>
-                    <button class="filter-btn" data-filter="estoque">Em estoque</button>
-                    <button class="filter-btn" data-filter="baixo">Baixo estoque</button>
+                    <button class="filter-btn active" data-filter="all">
+                        <i class="fas fa-list"></i> Todos
+                    </button>
+                    <button class="filter-btn" data-filter="estoque">
+                        <i class="fas fa-check-circle"></i> Em estoque
+                    </button>
+                    <button class="filter-btn" data-filter="baixo">
+                        <i class="fas fa-exclamation-triangle"></i> Baixo estoque
+                    </button>
                 </div>
+                
+                <!-- DICA DE ATALHO -->
+                <div class="search-tip">
+                    <i class="fas fa-lightbulb"></i>
+                    Dica: Use o leitor de código de barras ou digite o código manualmente
+                    <span class="shortcut">Ctrl+K</span>
+                </div>
+                
+                <!-- RESULTADOS DA BUSCA -->
                 <div class="search-results" id="searchResults">
                     <div class="empty-results">
                         <i class="fas fa-search"></i>
                         <p>Digite para buscar um produto</p>
-                        <small>Busque por código, nome ou categoria</small>
+                        <small>Busque por código, nome, categoria ou use o leitor de código de barras</small>
                     </div>
+                </div>
+                
+                <!-- INDICADOR DE SCAN ATIVO (aparece quando modo scan está ativo) -->
+                <div id="scanIndicator" class="scan-indicator" style="display: none;">
+                    <i class="fas fa-barcode fa-spin"></i>
+                    <span>Modo scan ativo - Aponte o leitor...</span>
+                    <button class="btn-stop-scan" onclick="window.gerenciadorCodigoBarrasHome?.desativarModoScan()">
+                        <i class="fas fa-stop"></i> Parar
+                    </button>
                 </div>
             </div>
         </div>
@@ -243,5 +290,6 @@
     <script type="module" src="home.js"></script>
 </body>
 </html>
+
 
 
