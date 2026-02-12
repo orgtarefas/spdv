@@ -22,8 +22,6 @@ let valorUnidadeInput, tipoUnidadeSelect, totalEstoqueUnidadeInput, totalEstoque
 
 // GERENCIADOR DE CÓDIGO DE BARRAS
 let gerenciadorCodigoBarras; 
-// NOVOS ELEMENTOS PARA UNIDADE COM VALOR
-let valorUnidadeInput, tipoUnidadeSelect, totalEstoqueUnidadeInput, totalEstoqueTipoSpan;
 
 // VARIÁVEIS PARA IMAGENS
 let imagemAtual = null;
@@ -2371,6 +2369,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
