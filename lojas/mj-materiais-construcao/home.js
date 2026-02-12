@@ -17,7 +17,7 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 
 
 // ============================================
-// CLASSE: GerenciadorCodigoBarrasHome - CORRIGIDA
+// CLASSE: GerenciadorCodigoBarrasHome
 // ============================================
 class GerenciadorCodigoBarrasHome {
     constructor() {
@@ -53,8 +53,15 @@ class GerenciadorCodigoBarrasHome {
                 searchInput.focus();
             }
             
+            // SE FOR O PRIMEIRO CARACTERE DA LEITURA, LIMPAR O CAMPO!
+            if (this.bufferScan.length === 0 && e.key.length === 1 && /[0-9]/.test(e.key)) {
+                // LIMPAR CAMPO ANTES DE COMEÇAR A LER!
+                searchInput.value = '';
+                console.log('🧹 Campo limpo para nova leitura');
+            }
+            
             // Prevenir comportamento padrão para teclas de controle
-            if (e.key === 'Enter' || e.key === 'Tab' || e.key === ' ') {
+            if (e.key === 'Enter' || e.key === 'Tab') {
                 e.preventDefault();
             }
             
@@ -65,8 +72,8 @@ class GerenciadorCodigoBarrasHome {
                 return;
             }
             
-            // Adicionar caractere ao buffer (apenas se for dígito ou letra)
-            if (e.key.length === 1 && /[A-Za-z0-9]/.test(e.key)) {
+            // Adicionar caractere ao buffer (apenas dígitos)
+            if (e.key.length === 1 && /[0-9]/.test(e.key)) {
                 this.bufferScan += e.key;
                 
                 // Limpar timer anterior
@@ -101,20 +108,12 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
-        // PEGAR SOMENTE OS ÚLTIMOS 13 CARACTERES (EAN-13) ou o buffer completo se menor
+        // PEGAR SOMENTE OS PRIMEIROS 13 DÍGITOS (EAN-13)
         let codigoLido = this.bufferScan.trim();
         
-        // SE O CÓDIGO FOR MUITO GRANDE, PEGAR APENAS OS ÚLTIMOS 13 DÍGITOS
+        // Limitar a 13 dígitos (maioria dos códigos de barras)
         if (codigoLido.length > 13) {
-            // Verificar se é uma repetição do mesmo código
-            const possivelRepeticao = codigoLido.slice(0, 13);
-            if (codigoLido.includes(possivelRepeticao + possivelRepeticao)) {
-                // Está repetido, pegar apenas os primeiros 13 dígitos
-                codigoLido = possivelRepeticao;
-            } else {
-                // Pegar os últimos 13 dígitos
-                codigoLido = codigoLido.slice(-13);
-            }
+            codigoLido = codigoLido.substring(0, 13);
         }
         
         // LIMPAR BUFFER IMEDIATAMENTE
@@ -133,10 +132,9 @@ class GerenciadorCodigoBarrasHome {
         
         console.log(`📷 Código de barras lido: ${codigoLido}`);
         
-        // LIMPAR O INPUT ANTES DE PREENCHER
+        // PREENCHER O CAMPO (já está limpo, só definir o valor)
         if (inputElement) {
-            inputElement.value = ''; // LIMPAR PRIMEIRO!
-            inputElement.value = codigoLido; // DEPOIS PREENCHER
+            inputElement.value = codigoLido;
             
             // Feedback visual
             inputElement.style.borderColor = '#27ae60';
@@ -178,8 +176,9 @@ class GerenciadorCodigoBarrasHome {
         this.bufferScan = '';
         this.processando = false;
         
+        // LIMPAR CAMPO AO ATIVAR SCAN!
+        searchInput.value = '';
         searchInput.focus();
-        searchInput.value = ''; // LIMPAR CAMPO
         searchInput.placeholder = '📷 Modo scan ativo - Aponte o leitor...';
         searchInput.style.borderColor = '#e74c3c';
         searchInput.style.backgroundColor = '#fff5f5';
@@ -542,12 +541,18 @@ function configurarEventos() {
             });
         }
         
-        // 4.4. BOTÃO DE SCAN (LEITOR DE CÓDIGO DE BARRAS)
+        // 4.4. BOTÃO DE SCAN
         const btnScanCode = document.getElementById('btnScanCode');
         if (btnScanCode) {
             btnScanCode.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
+                
+                // LIMPAR CAMPO IMEDIATAMENTE!
+                const searchInput = document.getElementById('searchProductInput');
+                if (searchInput) {
+                    searchInput.value = ''; // LIMPAR SEMPRE!
+                }
                 
                 // Toggle do modo scan
                 this.classList.toggle('active');
@@ -556,13 +561,11 @@ function configurarEventos() {
                     // Ativar modo scan
                     if (window.gerenciadorCodigoBarrasHome) {
                         window.gerenciadorCodigoBarrasHome.ativarModoScan();
-                        mostrarMensagem('📷 Modo scan ativado. Aponte o leitor para o código de barras.', 'info', 3000);
                     }
                 } else {
                     // Desativar modo scan
                     if (window.gerenciadorCodigoBarrasHome) {
                         window.gerenciadorCodigoBarrasHome.desativarModoScan();
-                        mostrarMensagem('📷 Modo scan desativado.', 'info', 2000);
                     }
                 }
             });
@@ -955,28 +958,20 @@ function abrirModalConsulta() {
     
     if (modal && searchInput) {
         modal.style.display = 'flex';
+        
+        // LIMPAR CAMPO AO ABRIR MODAL!
         searchInput.value = '';
         
-        // Focar no input e dar um pequeno delay para garantir
         setTimeout(() => {
             searchInput.focus();
             
-            // Desativar modo scan anterior se existir
+            // Desativar modo scan anterior
             if (window.gerenciadorCodigoBarrasHome) {
                 window.gerenciadorCodigoBarrasHome.desativarModoScan();
             }
         }, 100);
         
-        const filterBtns = modal.querySelectorAll('.filter-btn');
-        filterBtns.forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.filter === 'all') {
-                btn.classList.add('active');
-            }
-        });
-        
         exibirTodosProdutos();
-        console.log('📱 Modal aberto - exibindo todos os produtos');
     }
 }
 
@@ -1786,5 +1781,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
