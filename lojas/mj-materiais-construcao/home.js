@@ -7,7 +7,7 @@ import { lojaServices } from './firebase_config.js';
 let produtos = [];
 let estatisticas = null;
 let atividades = [];
-
+let gerenciadorCodigoBarrasHome = null;
 // ============================================
 // CONSTANTES GLOBAIS
 // ============================================
@@ -1700,6 +1700,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
