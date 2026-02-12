@@ -231,6 +231,8 @@
                         placeholder="Código, nome ou categoria do produto"
                         autocomplete="off"
                         spellcheck="false"
+                        onkeypress="return event.charCode >= 48 && event.charCode <= 57" <!-- SÓ NÚMEROS! -->
+                        maxlength="13" <!-- MÁXIMO 13 CARACTERES! -->
                     >
                     
                     <!-- BOTÃO LIMPAR (X) -->
@@ -290,6 +292,7 @@
     <script type="module" src="home.js"></script>
 </body>
 </html>
+
 
 
 
