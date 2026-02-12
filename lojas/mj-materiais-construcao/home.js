@@ -16,91 +16,74 @@ let atividades = [];
 const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNNDAgMzVMNjAgNTVNNTAgNDVMNzAgMjVNNjAgMzVMMzAgNjVNNzAgMzVMNTAgNTVNMzAgMzVMMzUgMzBNNzAgNTVMNjUgNjBNMzUgNjVMMzAgNjBNNjUgMzVMNzAgMzAiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzZjNzU3ZCIgZm9udC13ZWlnaHQ9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VNIEZPVE88L3RleHQ+Cjwvc3ZnPg==";
 
 // ============================================
-// CLASSE: GerenciadorCodigoBarrasHome - VERSÃO HARDCORE
+// CLASSE: GerenciadorCodigoBarrasHome - VERSÃO FINAL
 // ============================================
 class GerenciadorCodigoBarrasHome {
-    constructor() {
-        this.scanTimer = null;
-        this.timeoutScan = 50;
-    }
-
+    
     // ========================================
-    // INICIAR ESCUTA - APENAS ENTER
+    // INICIAR ESCUTA - APENAS O ESSENCIAL
     // ========================================
     iniciarEscuta() {
         console.log('📷 Iniciando sistema de código de barras');
         
-        // O INPUT JÁ TEM: 
-        // - onkeypress="return event.charCode >= 48 && event.charCode <= 57" (SÓ NÚMEROS)
-        // - maxlength="13" (MÁXIMO 13 DÍGITOS)
-        // - autocomplete="off" (SEM AUTOPREENCHIMENTO)
+        const searchInput = document.getElementById('searchProductInput');
+        if (!searchInput) return;
         
-        // SÓ PRECISAMOS DO ENTER!
-        document.addEventListener('keydown', (e) => {
-            const modal = document.getElementById('quickSearchModal');
-            const searchInput = document.getElementById('searchProductInput');
+        // 1. FORÇAR O INPUT A ACEITAR SÓ NÚMEROS E MÁXIMO 13 DÍGITOS
+        searchInput.addEventListener('input', function(e) {
+            // Remove QUALQUER caractere que não seja número
+            this.value = this.value.replace(/[^0-9]/g, '');
             
-            if (!modal || modal.style.display !== 'flex' || !searchInput) return;
-            
-            // Processar Enter
+            // Limita a 13 dígitos
+            if (this.value.length > 13) {
+                this.value = this.value.slice(0, 13);
+            }
+        });
+        
+        // 2. PROCESSAR ENTER
+        searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 
-                const codigo = searchInput.value.trim();
-                if (codigo.length >= 3) {
-                    this.processarCodigoLido(searchInput);
-                }
+                const modal = document.getElementById('quickSearchModal');
+                if (modal) modal.style.display = 'flex';
+                
+                this.processarCodigoLido(searchInput);
             }
         });
-
-        // EVENTO DE COLA - FORÇAR SÓ NÚMEROS E 13 DÍGITOS
-        document.addEventListener('paste', (e) => {
-            const modal = document.getElementById('quickSearchModal');
-            const searchInput = document.getElementById('searchProductInput');
-            
-            if (!modal || modal.style.display !== 'flex' || !searchInput) return;
-            
+        
+        // 3. PROCESSAR COLA
+        searchInput.addEventListener('paste', (e) => {
             e.preventDefault();
             e.stopPropagation();
             
-            const textoColado = e.clipboardData.getData('text');
+            // Pega o texto colado
+            const texto = e.clipboardData.getData('text');
             
-            // 1. REMOVER TUDO QUE NÃO É NÚMERO
-            // 2. PEGAR SÓ OS PRIMEIROS 13 DÍGITOS
-            const apenasNumeros = textoColado.replace(/[^0-9]/g, '').slice(0, 13);
+            // Remove TUDO que não é número e pega só 13 dígitos
+            const apenasNumeros = texto.replace(/[^0-9]/g, '').slice(0, 13);
             
+            // Atualiza o campo
             searchInput.value = apenasNumeros;
             
+            // Se tiver 13 dígitos, processa automaticamente
             if (apenasNumeros.length === 13) {
                 this.processarCodigoLido(searchInput);
             }
         });
-
-        // EVENTO DE INPUT - GARANTIR QUE SÓ TEM NÚMEROS E 13 DÍGITOS
-        document.addEventListener('input', (e) => {
-            if (e.target.id === 'searchProductInput') {
-                // REMOVER QUALQUER LETRA QUE TENHA PASSADO
-                e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                
-                // GARANTIR MÁXIMO 13 DÍGITOS
-                if (e.target.value.length > 13) {
-                    e.target.value = e.target.value.slice(0, 13);
-                }
-            }
-        });
         
-        console.log('✅ Sistema de código de barras pronto');
+        console.log('✅ Sistema de código de barras pronto - MÁXIMO 13 DÍGITOS');
     }
 
     // ========================================
     // PROCESSAR CÓDIGO LIDO
     // ========================================
     processarCodigoLido(inputElement) {
-        const codigoLido = inputElement.value.trim();
+        const codigo = inputElement.value.trim();
         
-        if (!codigoLido || codigoLido.length < 3) return;
+        if (!codigo || codigo.length < 3) return;
         
-        console.log(`📷 Código: ${codigoLido} (${codigoLido.length} dígitos)`);
+        console.log(`📷 Código: ${codigo} (${codigo.length} dígitos)`);
         
         // Feedback visual
         inputElement.style.borderColor = '#27ae60';
@@ -115,7 +98,7 @@ class GerenciadorCodigoBarrasHome {
         const event = new Event('input', { bubbles: true });
         inputElement.dispatchEvent(event);
         
-        mostrarMensagem(`✅ Código: ${codigoLido}`, 'success', 1500);
+        mostrarMensagem(`✅ Código: ${codigo}`, 'success', 1500);
     }
 
     // ========================================
@@ -1725,6 +1708,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
