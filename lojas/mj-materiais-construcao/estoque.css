@@ -1950,6 +1950,205 @@ body {
     }
 }
 
+/* ========================================
+   ESTILOS PARA CÓDIGO DE BARRAS
+   ======================================== */
+
+.barcode-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.barcode-input-group input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.3s;
+    font-family: 'Courier New', monospace;
+}
+
+.barcode-input-group input:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    outline: none;
+}
+
+.barcode-input-group input.barcode-valid {
+    border-color: #27ae60;
+    background-color: #f0fff4;
+}
+
+.barcode-input-group input.barcode-duplicate {
+    border-color: #e74c3c;
+    background-color: #fff5f5;
+}
+
+.barcode-input-group input.scan-mode-active {
+    border-color: #e74c3c;
+    background-color: #fff5f5;
+    animation: pulse-border 1.5s infinite;
+}
+
+.btn-barcode-read,
+.btn-barcode-generate {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 6px;
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e0e0e0;
+}
+
+.btn-barcode-read {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+}
+
+.btn-barcode-read:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+.btn-barcode-read.active {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.btn-barcode-generate {
+    background: linear-gradient(135deg, #27ae60, #219a52);
+    color: white;
+}
+
+.btn-barcode-generate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+}
+
+.barcode-feedback {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.barcode-feedback.warning {
+    background: #fff3e0;
+    color: #e67e22;
+    border-left: 3px solid #e67e22;
+}
+
+.barcode-feedback.success {
+    background: #d4edda;
+    color: #27ae60;
+    border-left: 3px solid #27ae60;
+}
+
+.barcode-reader-status {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #2c3e50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    z-index: 9999;
+    animation: slideInRight 0.3s;
+    border-left: 4px solid #e74c3c;
+}
+
+.barcode-reader-status i {
+    font-size: 24px;
+    color: #e74c3c;
+    animation: pulse 1.5s infinite;
+}
+
+.barcode-reader-status .status-content {
+    flex: 1;
+}
+
+.barcode-reader-status strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 3px;
+}
+
+.barcode-reader-status small {
+    display: block;
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.btn-stop-scan {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-stop-scan:hover {
+    background: rgba(255,255,255,0.3);
+    transform: scale(1.1);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse-border {
+    0% {
+        border-color: #e74c3c;
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+    }
+    70% {
+        border-color: #c0392b;
+        box-shadow: 0 0 0 5px rgba(231, 76, 60, 0);
+    }
+    100% {
+        border-color: #e74c3c;
+        box-shadow: 0 0 0 0 rgba(231, 76, 60, 0);
+    }
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Modal LG para caber o campo de código de barras */
+.modal-lg {
+    max-width: 900px !important;
+    width: 90% !important;
+}
+
+
 
 
 
