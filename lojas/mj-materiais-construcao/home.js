@@ -16,12 +16,12 @@ let atividades = [];
 const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNNDAgMzVMNjAgNTVNNTAgNDVMNzAgMjVNNjAgMzVMMzAgNjVNNzAgMzVMNTAgNTVNMzAgMzVMMzUgMzBNNzAgNTVMNjUgNjBNMzUgNjVMMzAgNjBNNjUgMzVMNzAgMzAiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzZjNzU3ZCIgZm9udC13ZWlnaHQ9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VNIEZPVE88L3RleHQ+Cjwvc3ZnPg==";
 
 // ============================================
-// CLASSE: GerenciadorCodigoBarrasHome - VERSÃO FINAL
+// CLASSE: GerenciadorCodigoBarrasHome
 // ============================================
 class GerenciadorCodigoBarrasHome {
     
     // ========================================
-    // INICIAR ESCUTA - APENAS O ESSENCIAL
+    // INICIAR ESCUTA
     // ========================================
     iniciarEscuta() {
         console.log('📷 Iniciando sistema de código de barras');
@@ -29,18 +29,54 @@ class GerenciadorCodigoBarrasHome {
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
         
-        // 1. FORÇAR O INPUT A ACEITAR SÓ NÚMEROS E MÁXIMO 13 DÍGITOS
+        // VARIÁVEL PARA CONTROLAR SE JÁ ATINGIU 13 DÍGITOS
+        let atingiu13Digitos = false;
+        
+        // 1. EVENTO DE INPUT - CORAÇÃO DO SISTEMA
         searchInput.addEventListener('input', function(e) {
+            const valorAnterior = this.value;
+            
             // Remove QUALQUER caractere que não seja número
             this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // VERIFICAR SE É UMA NOVA TENTATIVA DE DIGITAÇÃO
+            if (atingiu13Digitos && this.value.length > 0) {
+                console.log('🧹 NOVA DIGITAÇÃO APÓS 13 DÍGITOS - LIMPANDO CAMPO!');
+                this.value = this.value.slice(-1); // Pega só o último dígito digitado
+                atingiu13Digitos = false;
+            }
             
             // Limita a 13 dígitos
             if (this.value.length > 13) {
                 this.value = this.value.slice(0, 13);
             }
+            
+            // VERIFICAR SE ATINGIU 13 DÍGITOS
+            if (this.value.length === 13) {
+                atingiu13Digitos = true;
+                console.log('🎯 13 dígitos atingidos!');
+                
+                // Feedback visual de sucesso
+                this.style.borderColor = '#27ae60';
+                this.style.backgroundColor = '#f0fff4';
+                
+                setTimeout(() => {
+                    this.style.borderColor = '';
+                    this.style.backgroundColor = '';
+                }, 500);
+                
+                // Disparar busca
+                const event = new Event('search', { bubbles: true });
+                this.dispatchEvent(event);
+            }
         });
         
-        // 2. PROCESSAR ENTER
+        // 2. EVENTO DE SEARCH - PROCESSAR BUSCA
+        searchInput.addEventListener('search', (e) => {
+            this.processarCodigoLido(searchInput);
+        });
+        
+        // 3. PROCESSAR ENTER
         searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -48,11 +84,13 @@ class GerenciadorCodigoBarrasHome {
                 const modal = document.getElementById('quickSearchModal');
                 if (modal) modal.style.display = 'flex';
                 
-                this.processarCodigoLido(searchInput);
+                if (searchInput.value.length > 0) {
+                    this.processarCodigoLido(searchInput);
+                }
             }
         });
         
-        // 3. PROCESSAR COLA
+        // 4. PROCESSAR COLA
         searchInput.addEventListener('paste', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -63,16 +101,32 @@ class GerenciadorCodigoBarrasHome {
             // Remove TUDO que não é número e pega só 13 dígitos
             const apenasNumeros = texto.replace(/[^0-9]/g, '').slice(0, 13);
             
+            // SE COLOU ALGO, RESETA O FLAG
+            if (apenasNumeros.length > 0) {
+                atingiu13Digitos = false;
+            }
+            
             // Atualiza o campo
             searchInput.value = apenasNumeros;
             
             // Se tiver 13 dígitos, processa automaticamente
             if (apenasNumeros.length === 13) {
+                atingiu13Digitos = true;
                 this.processarCodigoLido(searchInput);
             }
         });
         
-        console.log('✅ Sistema de código de barras pronto - MÁXIMO 13 DÍGITOS');
+        // 5. BOTÃO LIMPAR - RESETAR FLAG
+        const searchClear = document.getElementById('searchClear');
+        if (searchClear) {
+            searchClear.addEventListener('click', () => {
+                searchInput.value = '';
+                atingiu13Digitos = false;
+                searchInput.focus();
+            });
+        }
+        
+        console.log('✅ Sistema de código de barras pronto - AUTO LIMPEZA AO TENTAR DIGITAR NOVAMENTE');
     }
 
     // ========================================
@@ -85,20 +139,20 @@ class GerenciadorCodigoBarrasHome {
         
         console.log(`📷 Código: ${codigo} (${codigo.length} dígitos)`);
         
-        // Feedback visual
-        inputElement.style.borderColor = '#27ae60';
-        inputElement.style.backgroundColor = '#f0fff4';
-        
-        setTimeout(() => {
-            inputElement.style.borderColor = '';
-            inputElement.style.backgroundColor = '';
-        }, 500);
-        
         // Disparar busca
-        const event = new Event('input', { bubbles: true });
-        inputElement.dispatchEvent(event);
+        this.buscarProduto(codigo);
         
         mostrarMensagem(`✅ Código: ${codigo}`, 'success', 1500);
+    }
+
+    // ========================================
+    // BUSCAR PRODUTO
+    // ========================================
+    buscarProduto(codigo) {
+        // Usar a função existente de busca
+        if (typeof buscarProdutoConsultaRapida === 'function') {
+            buscarProdutoConsultaRapida(codigo);
+        }
     }
 
     // ========================================
@@ -113,8 +167,12 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
-        // LIMPAR CAMPO
+        // LIMPAR CAMPO E RESETAR FLAG
         searchInput.value = '';
+        if (typeof this.atingiu13Digitos !== 'undefined') {
+            this.atingiu13Digitos = false;
+        }
+        
         searchInput.focus();
         searchInput.placeholder = '📷 Aguardando código de barras...';
         searchInput.style.borderColor = '#e74c3c';
@@ -1708,6 +1766,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
