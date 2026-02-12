@@ -29,32 +29,45 @@ class GerenciadorCodigoBarrasHome {
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
         
-        // VARIÁVEL PARA CONTROLAR SE JÁ ATINGIU 13 DÍGITOS
-        let atingiu13Digitos = false;
+        // VARIÁVEL PARA CONTROLAR SE JÁ TEM 13 DÍGITOS
+        let tem13Digitos = false;
+        let valorAnterior = '';
         
-        // 1. EVENTO DE INPUT - CORAÇÃO DO SISTEMA
+        // 1. EVENTO KEYDOWN - CAPTURA ANTES DE DIGITAR
+        searchInput.addEventListener('keydown', (e) => {
+            // Só processar se for caractere imprimível (números)
+            if (e.key.length === 1 && /[0-9]/.test(e.key)) {
+                
+                // SE JÁ TEM 13 DÍGITOS E ESTÁ TENTANDO DIGITAR NOVO NÚMERO
+                if (searchInput.value.length === 13) {
+                    console.log('🧹 13 DÍGITOS DETECTADO - NOVA DIGITAÇÃO: LIMPANDO CAMPO!');
+                    
+                    // LIMPAR CAMPO COMPLETAMENTE!
+                    searchInput.value = '';
+                    tem13Digitos = false;
+                    
+                    // Vai permitir digitar o novo número normalmente
+                }
+            }
+        });
+        
+        // 2. EVENTO INPUT - PROCESSAR DIGITAÇÃO
         searchInput.addEventListener('input', function(e) {
-            const valorAnterior = this.value;
+            // Guardar valor anterior para controle
+            valorAnterior = this.value;
             
             // Remove QUALQUER caractere que não seja número
             this.value = this.value.replace(/[^0-9]/g, '');
             
-            // VERIFICAR SE É UMA NOVA TENTATIVA DE DIGITAÇÃO
-            if (atingiu13Digitos && this.value.length > 0) {
-                console.log('🧹 NOVA DIGITAÇÃO APÓS 13 DÍGITOS - LIMPANDO CAMPO!');
-                this.value = this.value.slice(-1); // Pega só o último dígito digitado
-                atingiu13Digitos = false;
-            }
-            
-            // Limita a 13 dígitos
+            // Limita a 13 dígitos (segurança)
             if (this.value.length > 13) {
                 this.value = this.value.slice(0, 13);
             }
             
             // VERIFICAR SE ATINGIU 13 DÍGITOS
             if (this.value.length === 13) {
-                atingiu13Digitos = true;
-                console.log('🎯 13 dígitos atingidos!');
+                tem13Digitos = true;
+                console.log('🎯 13 dígitos atingidos! Processando busca...');
                 
                 // Feedback visual de sucesso
                 this.style.borderColor = '#27ae60';
@@ -65,15 +78,13 @@ class GerenciadorCodigoBarrasHome {
                     this.style.backgroundColor = '';
                 }, 500);
                 
-                // Disparar busca
-                const event = new Event('search', { bubbles: true });
-                this.dispatchEvent(event);
+                // Disparar busca automaticamente
+                if (typeof buscarProdutoConsultaRapida === 'function') {
+                    buscarProdutoConsultaRapida(this.value);
+                }
+            } else {
+                tem13Digitos = false;
             }
-        });
-        
-        // 2. EVENTO DE SEARCH - PROCESSAR BUSCA
-        searchInput.addEventListener('search', (e) => {
-            this.processarCodigoLido(searchInput);
         });
         
         // 3. PROCESSAR ENTER
@@ -81,11 +92,10 @@ class GerenciadorCodigoBarrasHome {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 
-                const modal = document.getElementById('quickSearchModal');
-                if (modal) modal.style.display = 'flex';
-                
                 if (searchInput.value.length > 0) {
-                    this.processarCodigoLido(searchInput);
+                    if (typeof buscarProdutoConsultaRapida === 'function') {
+                        buscarProdutoConsultaRapida(searchInput.value);
+                    }
                 }
             }
         });
@@ -95,64 +105,45 @@ class GerenciadorCodigoBarrasHome {
             e.preventDefault();
             e.stopPropagation();
             
-            // Pega o texto colado
             const texto = e.clipboardData.getData('text');
-            
-            // Remove TUDO que não é número e pega só 13 dígitos
             const apenasNumeros = texto.replace(/[^0-9]/g, '').slice(0, 13);
             
-            // SE COLOU ALGO, RESETA O FLAG
-            if (apenasNumeros.length > 0) {
-                atingiu13Digitos = false;
-            }
+            // LIMPAR CAMPO ANTES DE COLAR!
+            searchInput.value = '';
             
-            // Atualiza o campo
+            // Colar o novo código
             searchInput.value = apenasNumeros;
             
-            // Se tiver 13 dígitos, processa automaticamente
             if (apenasNumeros.length === 13) {
-                atingiu13Digitos = true;
-                this.processarCodigoLido(searchInput);
+                if (typeof buscarProdutoConsultaRapida === 'function') {
+                    buscarProdutoConsultaRapida(searchInput.value);
+                }
             }
         });
         
-        // 5. BOTÃO LIMPAR - RESETAR FLAG
+        // 5. BOTÃO LIMPAR
         const searchClear = document.getElementById('searchClear');
         if (searchClear) {
             searchClear.addEventListener('click', () => {
                 searchInput.value = '';
-                atingiu13Digitos = false;
+                tem13Digitos = false;
                 searchInput.focus();
             });
         }
         
-        console.log('✅ Sistema de código de barras pronto - AUTO LIMPEZA AO TENTAR DIGITAR NOVAMENTE');
-    }
-
-    // ========================================
-    // PROCESSAR CÓDIGO LIDO
-    // ========================================
-    processarCodigoLido(inputElement) {
-        const codigo = inputElement.value.trim();
-        
-        if (!codigo || codigo.length < 3) return;
-        
-        console.log(`📷 Código: ${codigo} (${codigo.length} dígitos)`);
-        
-        // Disparar busca
-        this.buscarProduto(codigo);
-        
-        mostrarMensagem(`✅ Código: ${codigo}`, 'success', 1500);
-    }
-
-    // ========================================
-    // BUSCAR PRODUTO
-    // ========================================
-    buscarProduto(codigo) {
-        // Usar a função existente de busca
-        if (typeof buscarProdutoConsultaRapida === 'function') {
-            buscarProdutoConsultaRapida(codigo);
+        // 6. FOCAR NO INPUT QUANDO MODAL ABRIR
+        const modal = document.getElementById('quickSearchModal');
+        if (modal) {
+            modal.addEventListener('transitionend', () => {
+                if (modal.style.display === 'flex') {
+                    searchInput.value = '';
+                    tem13Digitos = false;
+                    searchInput.focus();
+                }
+            });
         }
+        
+        console.log('✅ Sistema de código de barras pronto - LIMPEZA AUTOMÁTICA AO ATINGIR 13 DÍGITOS');
     }
 
     // ========================================
@@ -167,12 +158,8 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
-        // LIMPAR CAMPO E RESETAR FLAG
+        // LIMPAR CAMPO
         searchInput.value = '';
-        if (typeof this.atingiu13Digitos !== 'undefined') {
-            this.atingiu13Digitos = false;
-        }
-        
         searchInput.focus();
         searchInput.placeholder = '📷 Aguardando código de barras...';
         searchInput.style.borderColor = '#e74c3c';
@@ -1766,6 +1753,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
