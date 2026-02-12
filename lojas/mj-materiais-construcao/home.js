@@ -17,50 +17,56 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 
 
 // ============================================
-// CLASSE: GerenciadorCodigoBarrasHome
-// ============================================
-// Gerencia leitura de código de barras na página Home
+// CLASSE: GerenciadorCodigoBarrasHome - CORRIGIDA
 // ============================================
 class GerenciadorCodigoBarrasHome {
     constructor() {
         this.modoScanAtivo = false;
         this.bufferScan = '';
         this.scanTimer = null;
-        this.timeoutScan = 100; // ms entre caracteres
+        this.timeoutScan = 100;
         this.ultimoCodigoLido = '';
         this.tempoUltimoCodigo = 0;
         this.inputAtual = null;
+        this.processando = false;
     }
 
     // ========================================
-    // INICIAR ESCUTA GLOBAL
+    // INICIAR ESCUTA GLOBAL - CORRIGIDO
     // ========================================
     iniciarEscuta() {
         document.addEventListener('keydown', (e) => {
-            // Verificar se o modal está aberto e o input está focado
+            // Verificar se o modal está aberto
             const modal = document.getElementById('quickSearchModal');
             const searchInput = document.getElementById('searchProductInput');
             
             if (!modal || modal.style.display !== 'flex' || !searchInput) return;
             
-            // Se o input NÃO está focado, focar automaticamente
+            // IGNORAR COMPLETAMENTE SE JÁ ESTIVER PROCESSANDO
+            if (this.processando) {
+                e.preventDefault();
+                return;
+            }
+            
+            // Focar no input se não estiver focado
             if (document.activeElement !== searchInput) {
                 searchInput.focus();
             }
             
             // Prevenir comportamento padrão para teclas de controle
-            if (e.key === 'Enter' || e.key === 'Tab') {
+            if (e.key === 'Enter' || e.key === 'Tab' || e.key === ' ') {
                 e.preventDefault();
             }
             
-            // Processar Enter (fim da leitura)
+            // Processar Enter - FINALIZAR LEITURA
             if (e.key === 'Enter') {
+                e.preventDefault();
                 this.processarCodigoLido(searchInput);
                 return;
             }
             
-            // Adicionar caractere ao buffer
-            if (e.key.length === 1) {
+            // Adicionar caractere ao buffer (apenas se for dígito ou letra)
+            if (e.key.length === 1 && /[A-Za-z0-9]/.test(e.key)) {
                 this.bufferScan += e.key;
                 
                 // Limpar timer anterior
@@ -80,33 +86,57 @@ class GerenciadorCodigoBarrasHome {
     // PROCESSAR CÓDIGO LIDO
     // ========================================
     processarCodigoLido(inputElement) {
-        if (!this.bufferScan || this.bufferScan.length < 3) {
+        // EVITAR PROCESSAMENTO DUPLICADO
+        if (this.processando) {
+            console.log('⚠️ Já processando um código, ignorando...');
             this.bufferScan = '';
             return;
         }
         
-        const codigoLido = this.bufferScan.trim();
+        this.processando = true;
+        
+        if (!this.bufferScan || this.bufferScan.length < 3) {
+            this.bufferScan = '';
+            this.processando = false;
+            return;
+        }
+        
+        // PEGAR SOMENTE OS ÚLTIMOS 13 CARACTERES (EAN-13) ou o buffer completo se menor
+        let codigoLido = this.bufferScan.trim();
+        
+        // SE O CÓDIGO FOR MUITO GRANDE, PEGAR APENAS OS ÚLTIMOS 13 DÍGITOS
+        if (codigoLido.length > 13) {
+            // Verificar se é uma repetição do mesmo código
+            const possivelRepeticao = codigoLido.slice(0, 13);
+            if (codigoLido.includes(possivelRepeticao + possivelRepeticao)) {
+                // Está repetido, pegar apenas os primeiros 13 dígitos
+                codigoLido = possivelRepeticao;
+            } else {
+                // Pegar os últimos 13 dígitos
+                codigoLido = codigoLido.slice(-13);
+            }
+        }
+        
+        // LIMPAR BUFFER IMEDIATAMENTE
         this.bufferScan = '';
         
-        // Verificar duplicata rápida (mesmo código em menos de 2 segundos)
+        // Verificar duplicata rápida (mesmo código em menos de 3 segundos)
         const agora = Date.now();
-        if (codigoLido === this.ultimoCodigoLido && (agora - this.tempoUltimoCodigo) < 2000) {
-            console.log('⚠️ Código duplicado ignorado');
+        if (codigoLido === this.ultimoCodigoLido && (agora - this.tempoUltimoCodigo) < 3000) {
+            console.log('⚠️ Código duplicado ignorado:', codigoLido);
+            this.processando = false;
             return;
         }
         
         this.ultimoCodigoLido = codigoLido;
         this.tempoUltimoCodigo = agora;
         
-        console.log(`📷 Código de barras lido na Home: ${codigoLido}`);
+        console.log(`📷 Código de barras lido: ${codigoLido}`);
         
-        // Preencher o input
+        // LIMPAR O INPUT ANTES DE PREENCHER
         if (inputElement) {
-            inputElement.value = codigoLido;
-            
-            // Disparar evento de input para buscar o produto
-            const event = new Event('input', { bubbles: true });
-            inputElement.dispatchEvent(event);
+            inputElement.value = ''; // LIMPAR PRIMEIRO!
+            inputElement.value = codigoLido; // DEPOIS PREENCHER
             
             // Feedback visual
             inputElement.style.borderColor = '#27ae60';
@@ -115,15 +145,24 @@ class GerenciadorCodigoBarrasHome {
             setTimeout(() => {
                 inputElement.style.borderColor = '';
                 inputElement.style.backgroundColor = '';
-            }, 1000);
+            }, 500);
+            
+            // Disparar evento de input APENAS UMA VEZ
+            const event = new Event('input', { bubbles: true });
+            inputElement.dispatchEvent(event);
             
             // Mostrar mensagem
-            mostrarMensagem(`✅ Código lido: ${codigoLido}`, 'success', 2000);
+            mostrarMensagem(`✅ Código lido: ${codigoLido}`, 'success', 1500);
         }
+        
+        // Resetar flag após processamento
+        setTimeout(() => {
+            this.processando = false;
+        }, 500);
     }
 
     // ========================================
-    // ATIVAR MODO SCAN MANUAL
+    // ATIVAR MODO SCAN
     // ========================================
     ativarModoScan() {
         const modal = document.getElementById('quickSearchModal');
@@ -134,20 +173,24 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
+        // Resetar estados
+        this.modoScanAtivo = true;
+        this.bufferScan = '';
+        this.processando = false;
+        
         searchInput.focus();
-        searchInput.value = '';
+        searchInput.value = ''; // LIMPAR CAMPO
         searchInput.placeholder = '📷 Modo scan ativo - Aponte o leitor...';
         searchInput.style.borderColor = '#e74c3c';
         searchInput.style.backgroundColor = '#fff5f5';
         
-        this.modoScanAtivo = true;
+        // Mostrar indicador
+        const scanIndicator = document.getElementById('scanIndicator');
+        if (scanIndicator) {
+            scanIndicator.style.display = 'flex';
+        }
         
         mostrarMensagem('📷 Modo scan ativado!', 'info', 2000);
-        
-        // Desativar após 30 segundos
-        setTimeout(() => {
-            this.desativarModoScan();
-        }, 30000);
     }
 
     // ========================================
@@ -158,11 +201,24 @@ class GerenciadorCodigoBarrasHome {
         
         this.modoScanAtivo = false;
         this.bufferScan = '';
+        this.processando = false;
         
         if (searchInput) {
             searchInput.placeholder = 'Código, nome ou categoria do produto';
             searchInput.style.borderColor = '';
             searchInput.style.backgroundColor = '';
+        }
+        
+        // Esconder indicador
+        const scanIndicator = document.getElementById('scanIndicator');
+        if (scanIndicator) {
+            scanIndicator.style.display = 'none';
+        }
+        
+        // Remover active do botão
+        const btnScan = document.getElementById('btnScanCode');
+        if (btnScan) {
+            btnScan.classList.remove('active');
         }
     }
 }
@@ -924,11 +980,16 @@ function abrirModalConsulta() {
     }
 }
 
+// ============================================
+// BUSCAR PRODUTO CONSULTA RÁPIDA
+// ============================================
 function buscarProdutoConsultaRapida(termo) {
     const searchResults = document.getElementById('searchResults');
     if (!searchResults) return;
     
-    const termoLimpo = termo.toLowerCase().trim();
+    const termoLimpo = termo.toString().trim();
+    
+    console.log(`🔍 Buscando por: "${termoLimpo}"`);
     
     if (!termoLimpo) {
         exibirResultadosBusca(produtos);
@@ -938,24 +999,58 @@ function buscarProdutoConsultaRapida(termo) {
     const filtroAtivo = document.querySelector('.search-filters .filter-btn.active');
     const tipoFiltro = filtroAtivo ? filtroAtivo.dataset.filter : 'all';
     
+    // Buscar em TODOS os produtos (não apenas nos filtrados)
     let resultados = produtos.filter(produto => {
+        // Verificar código de barras (EXATAMENTE IGUAL)
+        const codigoBarras = (produto.codigo_barras || '').toString().trim();
+        if (codigoBarras === termoLimpo) {
+            console.log(`✅ Produto encontrado por código de barras: ${produto.nome}`);
+            return true;
+        }
+        
+        // Verificar código interno
         const codigo = (produto.codigo || '').toLowerCase();
+        if (codigo === termoLimpo.toLowerCase()) {
+            return true;
+        }
+        
+        // Verificar se o termo está contido no nome, código ou categoria
         const nome = (produto.nome || '').toLowerCase();
         const categoria = (produto.categoria || '').toLowerCase();
         const descricao = (produto.descricao || '').toLowerCase();
+        const termoLower = termoLimpo.toLowerCase();
         
-        return codigo.includes(termoLimpo) || 
-               nome.includes(termoLimpo) || 
-               categoria.includes(termoLimpo) || 
-               descricao.includes(termoLimpo);
+        return nome.includes(termoLower) || 
+               codigo.includes(termoLower) || 
+               categoria.includes(termoLower) || 
+               descricao.includes(termoLower) ||
+               codigoBarras.includes(termoLower);
     });
     
+    // Se não encontrou por código de barras exato, tentar buscar por EAN-13
+    if (resultados.length === 0 && /^\d{13}$/.test(termoLimpo)) {
+        resultados = produtos.filter(produto => {
+            const codigoBarras = (produto.codigo_barras || '').toString().trim();
+            // Remover zeros à esquerda e comparar
+            const codigoSemZero = codigoBarras.replace(/^0+/, '');
+            const termoSemZero = termoLimpo.replace(/^0+/, '');
+            
+            return codigoSemZero === termoSemZero || codigoBarras === termoLimpo;
+        });
+        
+        if (resultados.length > 0) {
+            console.log(`✅ Produto encontrado após normalização: ${resultados[0].nome}`);
+        }
+    }
+    
+    // Aplicar filtros de estoque
     if (tipoFiltro === 'estoque') {
         resultados = resultados.filter(p => p.quantidade > 0);
     } else if (tipoFiltro === 'baixo') {
         resultados = resultados.filter(p => p.quantidade <= (p.estoque_minimo || 5) && p.quantidade > 0);
     }
     
+    console.log(`📊 Encontrados ${resultados.length} resultados`);
     exibirResultadosBusca(resultados);
 }
 
@@ -1691,4 +1786,5 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
