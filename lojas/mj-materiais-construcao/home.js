@@ -1701,7 +1701,10 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
     document.head.appendChild(estilo);
 })();
 
+window.gerenciadorCodigoBarrasHome = gerenciadorCodigoBarrasHome;
+
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
