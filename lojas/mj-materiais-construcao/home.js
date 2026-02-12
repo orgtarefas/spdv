@@ -30,10 +30,11 @@ class GerenciadorCodigoBarrasHome {
         this.inputAtual = null;
         this.processando = false;
         this.ultimoTempoKeyDown = 0;
+        this.leituraEmAndamento = false;
     }
 
     // ========================================
-    // INICIAR ESCUTA GLOBAL - CORRIGIDO 100%
+    // INICIAR ESCUTA GLOBAL - 100% CORRIGIDO
     // ========================================
     iniciarEscuta() {
         document.addEventListener('keydown', (e) => {
@@ -52,21 +53,19 @@ class GerenciadorCodigoBarrasHome {
             const tempoDesdeUltimo = agora - this.ultimoTempoKeyDown;
             this.ultimoTempoKeyDown = agora;
             
-            // DETECTAR LEITOR OU COLA: mais de 3 caracteres em menos de 50ms
-            const isLeitorRapido = tempoDesdeUltimo < 50 && this.bufferScan.length > 0;
+            // DETECTAR LEITURA RÁPIDA (menos de 50ms entre caracteres)
+            const isLeituraRapida = tempoDesdeUltimo < 50;
             
-            // SE FOR O PRIMEIRO CARACTERE DE UMA LEITURA RÁPIDA, LIMPAR CAMPO!
-            if (this.bufferScan.length === 0 && e.key.length === 1 && /[0-9]/.test(e.key)) {
-                // VERIFICAR SE É INÍCIO DE LEITURA RÁPIDA
-                if (isLeitorRapido || true) { // Sempre limpar no primeiro caractere
-                    console.log('🧹 NOVA LEITURA DETECTADA - LIMPANDO CAMPO');
-                    searchInput.value = ''; // LIMPAR CAMPO!
-                }
+            // REGRA DE OURO: SE FOR O INÍCIO DE UMA LEITURA RÁPIDA, LIMPAR CAMPO!
+            if (isLeituraRapida && this.bufferScan.length === 0 && e.key.length === 1) {
+                console.log('🧩 NOVA LEITURA RÁPIDA DETECTADA - LIMPANDO CAMPO!');
+                searchInput.value = ''; // LIMPAR CAMPO ANTES DE QUALQUER COISA!
+                this.leituraEmAndamento = true;
             }
             
-            // Se for uma sequência muito rápida, é leitor - limpar novamente se necessário
-            if (isLeitorRapido && this.bufferScan.length === 1) {
-                console.log('⚡ Leitura rápida detectada - garantindo campo limpo');
+            // SE JÁ TEM CONTEÚDO NO CAMPO E COMEÇOU UMA LEITURA RÁPIDA, LIMPAR!
+            if (isLeituraRapida && searchInput.value.length > 0 && this.bufferScan.length === 0) {
+                console.log('⚠️ LEITURA RÁPIDA COM CAMPO SUJO - LIMPANDO!');
                 searchInput.value = '';
             }
             
@@ -79,6 +78,7 @@ class GerenciadorCodigoBarrasHome {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.processarCodigoLido(searchInput);
+                this.leituraEmAndamento = false;
                 return;
             }
             
@@ -92,11 +92,12 @@ class GerenciadorCodigoBarrasHome {
                 // Timer para processar quando parar de digitar
                 this.scanTimer = setTimeout(() => {
                     this.processarCodigoLido(searchInput);
+                    this.leituraEmAndamento = false;
                 }, this.timeoutScan);
             }
         });
 
-        // TAMBÉM CAPTURAR EVENTO DE COLA (CTRL+V)
+        // CAPTURAR EVENTO DE COLA (CTRL+V) - LIMPAR SEMPRE!
         document.addEventListener('paste', (e) => {
             const modal = document.getElementById('quickSearchModal');
             const searchInput = document.getElementById('searchProductInput');
@@ -107,38 +108,59 @@ class GerenciadorCodigoBarrasHome {
             e.preventDefault();
             e.stopPropagation();
             
-            // PEGAR TEXTO COLADO
+            // 1. LIMPAR CAMPO ANTES DE COLAR! (sempre)
+            searchInput.value = '';
+            console.log('📋 COLA DETECTADA - CAMPO LIMPO');
+            
+            // 2. PEGAR TEXTO COLADO
             const textoColado = e.clipboardData.getData('text');
             
-            // LIMPAR CAMPO ANTES DE COLAR!
-            searchInput.value = '';
-            
-            // SE FOR NÚMERO, PROCESSAR COMO CÓDIGO
+            // 3. SE FOR NÚMERO, PROCESSAR COMO CÓDIGO
             if (/^\d+$/.test(textoColado)) {
-                console.log('📋 Código colado:', textoColado);
-                
-                // LIMITAR A 13 DÍGITOS
                 let codigo = textoColado.trim();
+                
+                // Limitar a 13 dígitos
                 if (codigo.length > 13) {
                     codigo = codigo.substring(0, 13);
                 }
                 
                 searchInput.value = codigo;
+                console.log(`📋 Código colado (limpo): ${codigo}`);
                 
                 // Disparar busca
                 const event = new Event('input', { bubbles: true });
                 searchInput.dispatchEvent(event);
                 
-                mostrarMensagem(`✅ Código colado: ${codigo}`, 'success', 1500);
+                mostrarMensagem(`✅ Código: ${codigo}`, 'success', 1500);
             } else {
-                // SE NÃO FOR NÚMERO, COLAR NORMALMENTE
+                // Colar texto normal
                 searchInput.value = textoColado;
                 const event = new Event('input', { bubbles: true });
                 searchInput.dispatchEvent(event);
             }
-        }, true); // Capturar na fase de captura
+        }, true);
+
+        // CAPTURAR EVENTO DE INPUT - PARA DETECTAR COLA RÁPIDA
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'searchProductInput') {
+                const searchInput = e.target;
+                
+                // Se o valor foi inserido muito rápido e é grande, pode ser cola
+                if (searchInput.value.length > 13 && /^\d+$/.test(searchInput.value)) {
+                    console.log('⚡ INPUT RÁPIDO DETECTADO - NORMALIZANDO');
+                    
+                    // Pegar apenas os primeiros 13 dígitos
+                    const codigo = searchInput.value.substring(0, 13);
+                    searchInput.value = codigo;
+                    
+                    // Disparar busca novamente
+                    const event = new Event('input', { bubbles: true });
+                    searchInput.dispatchEvent(event);
+                }
+            }
+        });
         
-        console.log('📷 Escuta de código de barras iniciada na Home');
+        console.log('📷 Escuta de código de barras - MODO HARDCORE ATIVADO!');
     }
 
     // ========================================
@@ -171,7 +193,7 @@ class GerenciadorCodigoBarrasHome {
         
         console.log(`📷 Código de barras lido: ${codigoLido}`);
         
-        // PREENCHER O CAMPO (já está limpo)
+        // PREENCHER O CAMPO (já deve estar limpo)
         if (inputElement) {
             inputElement.value = codigoLido;
             
@@ -188,8 +210,10 @@ class GerenciadorCodigoBarrasHome {
             const event = new Event('input', { bubbles: true });
             inputElement.dispatchEvent(event);
             
-            mostrarMensagem(`✅ Código lido: ${codigoLido}`, 'success', 1500);
+            mostrarMensagem(`✅ Código: ${codigoLido}`, 'success', 1500);
         }
+        
+        this.leituraEmAndamento = false;
     }
 
     // ========================================
@@ -206,6 +230,7 @@ class GerenciadorCodigoBarrasHome {
         
         this.modoScanAtivo = true;
         this.bufferScan = '';
+        this.leituraEmAndamento = false;
         
         // LIMPAR CAMPO AO ATIVAR SCAN!
         searchInput.value = '';
@@ -220,7 +245,6 @@ class GerenciadorCodigoBarrasHome {
             scanIndicator.style.display = 'flex';
         }
         
-        // Desativar active de outros botões
         const btnScan = document.getElementById('btnScanCode');
         if (btnScan) {
             btnScan.classList.add('active');
@@ -237,6 +261,7 @@ class GerenciadorCodigoBarrasHome {
         
         this.modoScanAtivo = false;
         this.bufferScan = '';
+        this.leituraEmAndamento = false;
         
         if (searchInput) {
             searchInput.placeholder = 'Código, nome ou categoria do produto';
@@ -244,13 +269,11 @@ class GerenciadorCodigoBarrasHome {
             searchInput.style.backgroundColor = '';
         }
         
-        // Esconder indicador
         const scanIndicator = document.getElementById('scanIndicator');
         if (scanIndicator) {
             scanIndicator.style.display = 'none';
         }
         
-        // Remover active do botão
         const btnScan = document.getElementById('btnScanCode');
         if (btnScan) {
             btnScan.classList.remove('active');
@@ -1817,6 +1840,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
