@@ -21,7 +21,7 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 class GerenciadorCodigoBarrasHome {
     
     // ========================================
-    // INICIAR ESCUTA - VERSÃO SIMPLES E FUNCIONAL
+    // INICIAR ESCUTA
     // ========================================
     iniciarEscuta() {
         console.log('📷 Iniciando sistema de código de barras');
@@ -29,21 +29,22 @@ class GerenciadorCodigoBarrasHome {
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
         
-        // ÚNICA REGRA: Se tiver 13 dígitos e tentar digitar, limpa!
+        // ÚNICA REGRA: Se tiver 13 dígitos, qualquer tecla número limpa o campo
         searchInput.addEventListener('keydown', (e) => {
-            // Só números
-            if (e.key.length === 1 && /[0-9]/.test(e.key)) {
+            // Verifica se é um número (0-9)
+            if (e.key >= '0' && e.key <= '9') {
                 
-                // SE JÁ TEM 13 DÍGITOS, LIMPAR CAMPO!
+                // Se o campo já tem 13 dígitos
                 if (searchInput.value.length === 13) {
-                    console.log('🧹 13 DÍGITOS - NOVA DIGITAÇÃO: LIMPANDO CAMPO!');
-                    searchInput.value = ''; // LIMPA COMPLETAMENTE
+                    console.log('🧹 13 dígitos - nova digitação: limpando campo');
+                    
+                    // LIMPAR O CAMPO COMPLETAMENTE
+                    searchInput.value = '';
+                    
+                    // OBS: Não precisa fazer mais nada, o caractere será digitado normalmente
                 }
             }
         });
-        
-        // O RESTO (input, paste, etc) já funciona pelo HTML!
-        // O HTML já tem: maxlength="13" e oninput="this.value = this.value.replace(/[^0-9]/g, '')"
         
         console.log('✅ Sistema de código de barras pronto!');
     }
@@ -1655,6 +1656,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
