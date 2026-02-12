@@ -312,11 +312,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         console.log(`✅ Loja identificada: ${lojaServices.lojaId}`);
         
+        // CRIAR INSTÂNCIA DOS SERVIÇOS AVANÇADOS PRIMEIRO
+        window.servicosAvancados = new ServicosAvancadosPDV(vendaManager);
+        
         atualizarInterfaceLoja();
         configurarEventos();
         configurarModalBusca();
         verificarLeitorCodigoBarras();
-        await carregarConfigImpressora();
+        
+        // CARREGAR CONFIGURAÇÃO DA IMPRESSORA
+        await window.servicosAvancados.carregarConfigImpressora(lojaServices.lojaId);
+        
         await carregarProdutos();
         verificarProdutoPreSelecionado();
         
@@ -1107,37 +1113,41 @@ function formatarQuantidadeComUnidade(produto) {
 // - Modo scan avançado
 // ============================================
 
+// ============================================
+// CLASSE: ServicosAvancadosPDV - APENAS IMPRESSÃO
+// ============================================
+// Funcionalidades APENAS de impressão
+// ============================================
+
 class ServicosAvancadosPDV {
     constructor(vendaManager) {
         this.vendaManager = vendaManager;
-        this.isLeitorConectado = false;
-        this.modoScanAtivo = false;
-        this.bufferScan = '';
-        this.scanTimer = null;
         this.configImpressora = null;
     }
 
     // ========================================
-    // 1. IMPRESSÃO DE NOTA FISCAL
+    // IMPRESSÃO - FUNCIONALIDADE ÚNICA
     // ========================================
 
     async carregarConfigImpressora(lojaId) {
         try {
             const configSalva = localStorage.getItem(`impressora_config_${lojaId}`);
+            
             if (configSalva) {
                 this.configImpressora = JSON.parse(configSalva);
                 this.vendaManager.configImpressora = this.configImpressora;
             } else {
                 // Configuração padrão
                 this.configImpressora = {
-                    tipo: 'usb',
-                    modelo: 'epson',
-                    largura: 80,
-                    cortarAutomatico: true,
-                    abrirGaveta: false,
+                    tipo: 'sistema',
+                    modelo: 'padrao',
+                    largura: 48,
                     imprimirLogo: true
                 };
                 this.vendaManager.configImpressora = this.configImpressora;
+                
+                // Salvar configuração padrão
+                localStorage.setItem(`impressora_config_${lojaId}`, JSON.stringify(this.configImpressora));
             }
             
             this.atualizarBotaoImpressao();
@@ -1145,6 +1155,12 @@ class ServicosAvancadosPDV {
             
         } catch (error) {
             console.error('❌ Erro ao carregar config impressora:', error);
+            this.configImpressora = {
+                tipo: 'sistema',
+                modelo: 'padrao',
+                largura: 48
+            };
+            this.vendaManager.configImpressora = this.configImpressora;
             return { success: false, error: error.message };
         }
     }
@@ -1152,19 +1168,33 @@ class ServicosAvancadosPDV {
     atualizarBotaoImpressao() {
         const btnImprimir = document.getElementById('btnImprimirNota');
         if (btnImprimir) {
-            btnImprimir.disabled = !this.configImpressora;
-            btnImprimir.title = this.configImpressora ? 
-                `Impressora: ${this.configImpressora.modelo.toUpperCase()}` :
-                'Configure a impressora primeiro';
+            // SEMPRE HABILITADO - usa impressora do Windows
+            btnImprimir.disabled = false;
+            btnImprimir.removeAttribute('disabled');
+            btnImprimir.title = "Imprimir Nota Fiscal (impressora padrão do Windows)";
+            btnImprimir.style.opacity = '1';
+            btnImprimir.style.pointerEvents = 'auto';
+            
+            // Adicionar evento se não existir
+            if (!btnImprimir.hasAttribute('data-print-listener')) {
+                btnImprimir.setAttribute('data-print-listener', 'true');
+                btnImprimir.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    await this.imprimirNotaFiscal(
+                        this.vendaManager.carrinho,
+                        this.vendaManager.subtotal,
+                        this.vendaManager.total,
+                        this.vendaManager.desconto,
+                        this.vendaManager.formaPagamento,
+                        lojaServices
+                    );
+                });
+            }
         }
     }
 
     async imprimirNotaFiscal(carrinho, subtotal, total, desconto, formaPagamento, lojaServices) {
-        if (!this.configImpressora) {
-            this.mostrarModalConfigImpressora();
-            return;
-        }
-        
         if (!carrinho || carrinho.length === 0) {
             mostrarMensagem('Adicione produtos ao carrinho para imprimir', 'warning');
             return;
@@ -1173,19 +1203,15 @@ class ServicosAvancadosPDV {
         try {
             mostrarLoading('Preparando impressão...', 'Gerando nota fiscal...');
             
-            const conteudoNota = this.gerarConteudoNotaFiscal(carrinho, subtotal, total, desconto, formaPagamento, lojaServices);
+            const conteudoNota = this.gerarConteudoNotaFiscal(
+                carrinho, subtotal, total, desconto, formaPagamento, lojaServices
+            );
             
-            switch (this.configImpressora.tipo) {
-                case 'usb': await this.imprimirViaUSB(conteudoNota); break;
-                case 'bluetooth': await this.imprimirViaBluetooth(conteudoNota); break;
-                case 'serial': await this.imprimirViaSerial(conteudoNota); break;
-                case 'rede': await this.imprimirViaRede(conteudoNota); break;
-                case 'nuvem': await this.imprimirViaNuvem(conteudoNota); break;
-                default: this.imprimirNoNavegador(conteudoNota); break;
-            }
+            // Único método de impressão - via navegador
+            this.imprimirNoNavegador(conteudoNota);
             
             esconderLoading();
-            mostrarMensagem('Nota fiscal impressa com sucesso!', 'success');
+            mostrarMensagem('Nota fiscal enviada para impressão!', 'success');
             return { success: true };
             
         } catch (error) {
@@ -1197,209 +1223,293 @@ class ServicosAvancadosPDV {
     }
 
     gerarConteudoNotaFiscal(carrinho, subtotal, total, desconto, formaPagamento, lojaServices) {
-        const config = this.configImpressora;
+        const config = this.configImpressora || { largura: 48 };
         const largura = config.largura || 48;
-        const nomeLoja = lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        // Dados da loja
+        const nomeLoja = lojaServices.dadosLoja?.nome || 
+                         lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        const cnpj = lojaServices.dadosLoja?.cnpj || '00.000.000/0000-00';
+        const endereco = lojaServices.dadosLoja?.endereco || 'Endereço da Loja';
+        const telefone = lojaServices.dadosLoja?.telefone || '(00) 0000-0000';
+        
         const dataHora = new Date().toLocaleString('pt-BR');
-        const numeroVenda = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const numeroVenda = this.gerarNumeroVenda();
         const vendedor = lojaServices.nomeUsuario || 'Vendedor';
         
         let conteudo = '';
         
-        // Cabeçalho
-        conteudo += '='.repeat(largura) + '\n';
-        conteudo += nomeLoja.padStart((largura + nomeLoja.length) / 2).trim() + '\n';
-        conteudo += 'PDV - SISTEMA DE VENDAS\n';
-        conteudo += '='.repeat(largura) + '\n';
+        // CABEÇALHO
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
+        conteudo += this.centralizar(nomeLoja, largura) + '\n';
+        conteudo += this.centralizar('CNPJ: ' + cnpj, largura) + '\n';
+        conteudo += this.centralizar(endereco, largura) + '\n';
+        conteudo += this.centralizar('Tel: ' + telefone, largura) + '\n';
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
+        conteudo += this.centralizar('CUPOM NÃO FISCAL', largura) + '\n';
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
         conteudo += `Data: ${dataHora}\n`;
-        conteudo += `Venda: #${numeroVenda}\n`;
+        conteudo += `Venda: ${numeroVenda}\n`;
         conteudo += `Vendedor: ${vendedor}\n`;
         conteudo += '-'.repeat(largura) + '\n';
-        conteudo += 'PRODUTOS\n';
+        
+        // CABEÇALHO DOS ITENS
+        conteudo += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
         conteudo += '-'.repeat(largura) + '\n';
         
-        // Itens
-        carrinho.forEach(item => {
-            const nome = item.nome.length > 30 ? item.nome.substring(0, 27) + '...' : item.nome;
-            conteudo += `${nome}\n`;
-            conteudo += `  ${item.quantidade}x ${formatarMoeda(item.preco_unitario)} = ${formatarMoeda(item.subtotal)}\n`;
+        // ITENS
+        carrinho.forEach((item, index) => {
+            const numItem = (index + 1).toString().padStart(2, '0');
+            const nome = this.truncarTexto(item.nome, 22);
+            const qtd = item.quantidade.toString().padStart(3, ' ');
+            const preco = this.formatarMoedaResumida(item.preco_unitario).padStart(8, ' ');
+            const subtotalItem = this.formatarMoedaResumida(item.subtotal).padStart(8, ' ');
+            
+            conteudo += `${numItem} ${nome}\n`;
+            conteudo += `         ${qtd}x ${preco} = ${subtotalItem}\n`;
         });
         
-        // Totais
+        // TOTAIS
         conteudo += '-'.repeat(largura) + '\n';
-        conteudo += `Subtotal: ${' '.repeat(largura - 20)}${formatarMoeda(subtotal)}\n`;
-        conteudo += `Desconto: ${' '.repeat(largura - 20)}${formatarMoeda(subtotal * (desconto / 100))}\n`;
-        conteudo += `TOTAL: ${' '.repeat(largura - 20)}${formatarMoeda(total)}\n`;
-        conteudo += `Pagamento: ${formaPagamento.replace('_', ' ').toUpperCase()}\n`;
-        conteudo += '-'.repeat(largura) + '\n';
-        conteudo += 'Obrigado pela preferência!\n';
-        conteudo += 'Volte sempre!\n';
-        conteudo += '*'.repeat(largura) + '\n';
         
-        // Comandos específicos da impressora
-        if (config.modelo === 'epson') {
-            conteudo += '\x1B\x40'; // Inicializar
-            if (config.cortarAutomatico) conteudo += '\x1D\x56\x41\x03'; // Cortar papel
-            if (config.abrirGaveta) conteudo += '\x1B\x70\x00\x19\x19'; // Abrir gaveta
+        const subtotalStr = this.formatarMoedaResumida(subtotal).padStart(largura - 10);
+        conteudo += `Subtotal:${subtotalStr}\n`;
+        
+        if (desconto > 0) {
+            const valorDesconto = this.formatarMoedaResumida(subtotal * (desconto / 100)).padStart(largura - 16);
+            conteudo += `Desconto (${desconto}%):${valorDesconto}\n`;
         }
+        
+        const totalStr = this.formatarMoedaResumida(total).padStart(largura - 7);
+        conteudo += `TOTAL:${totalStr}\n`;
+        
+        // FORMA DE PAGAMENTO
+        const formaPagamentoStr = this.traduzirFormaPagamento(formaPagamento);
+        conteudo += `Pagamento: ${formaPagamentoStr}\n`;
+        
+        if (formaPagamento === 'dinheiro') {
+            const troco = this.calcularTroco(total);
+            if (troco > 0) {
+                conteudo += `Troco: ${this.formatarMoedaResumida(troco)}\n`;
+            }
+        }
+        
+        // RODAPÉ
+        conteudo += '='.repeat(largura) + '\n';
+        conteudo += this.centralizar('OBRIGADO PELA PREFERÊNCIA!', largura) + '\n';
+        conteudo += this.centralizar('VOLTE SEMPRE!', largura) + '\n';
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
+        conteudo += '\n';
+        conteudo += this.centralizar(new Date().toLocaleDateString('pt-BR'), largura) + '\n';
+        conteudo += this.centralizar(new Date().toLocaleTimeString('pt-BR'), largura) + '\n';
+        conteudo += '\n\n\n\n';
         
         return conteudo;
     }
 
-    async imprimirViaUSB(conteudo) {
-        try {
-            if ('usb' in navigator) {
-                const device = await navigator.usb.requestDevice({
-                    filters: [
-                        { vendorId: 0x04b8 }, // Epson
-                        { vendorId: 0x067b }, // Prolific
-                        { vendorId: 0x0403 }  // FTDI
-                    ]
-                });
-                
-                await device.open();
-                await device.selectConfiguration(1);
-                await device.claimInterface(0);
-                
-                const encoder = new TextEncoder();
-                const data = encoder.encode(conteudo);
-                
-                await device.transferOut(1, data);
-                await device.close();
-                
-                return true;
-            }
-            throw new Error('WebUSB não suportado neste navegador');
-        } catch (error) {
-            console.error('Erro impressão USB:', error);
-            throw error;
-        }
+    // ========================================
+    // MÉTODOS AUXILIARES DE FORMATAÇÃO
+    // ========================================
+
+    centralizar(texto, largura) {
+        if (texto.length >= largura) return texto;
+        const espacos = Math.floor((largura - texto.length) / 2);
+        return ' '.repeat(espacos) + texto;
     }
 
-    async imprimirViaBluetooth(conteudo) {
-        try {
-            if ('bluetooth' in navigator) {
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [
-                        { namePrefix: 'Printer' },
-                        { namePrefix: 'EPSON' },
-                        { namePrefix: 'Bematech' },
-                        { namePrefix: 'Elgin' }
-                    ],
-                    optionalServices: ['generic_access', '000018f0-0000-1000-8000-00805f9b34fb']
-                });
-                
-                const server = await device.gatt.connect();
-                const service = await server.getPrimaryService('generic_access');
-                const characteristic = await service.getCharacteristic('device_name');
-                
-                const encoder = new TextEncoder();
-                const data = encoder.encode(conteudo);
-                
-                await characteristic.writeValue(data);
-                
-                return true;
-            }
-            throw new Error('Web Bluetooth não suportado neste navegador');
-        } catch (error) {
-            console.error('Erro impressão Bluetooth:', error);
-            throw error;
-        }
+    truncarTexto(texto, tamanho) {
+        if (texto.length <= tamanho) return texto.padEnd(tamanho, ' ');
+        return texto.substring(0, tamanho - 3) + '...';
     }
 
-    async imprimirViaSerial(conteudo) {
-        try {
-            if ('serial' in navigator) {
-                const port = await navigator.serial.requestPort();
-                await port.open({ baudRate: 9600 });
-                
-                const encoder = new TextEncoder();
-                const writer = port.writable.getWriter();
-                const data = encoder.encode(conteudo);
-                
-                await writer.write(data);
-                writer.releaseLock();
-                await port.close();
-                
-                return true;
-            }
-            throw new Error('Web Serial não suportado neste navegador');
-        } catch (error) {
-            console.error('Erro impressão Serial:', error);
-            throw error;
-        }
+    formatarMoedaResumida(valor) {
+        const numero = parseFloat(valor) || 0;
+        return numero.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
     }
 
-    async imprimirViaRede(conteudo) {
-        try {
-            const endereco = this.configImpressora.endereco || '192.168.1.100';
-            const porta = this.configImpressora.porta || 9100;
-            
-            // Simulação de impressão em rede
-            console.log(`📡 Enviando para impressora em ${endereco}:${porta}`);
-            console.log('📄 Conteúdo da nota:', conteudo);
-            
-            mostrarMensagem('Impressão em rede simulada', 'info');
-            return true;
-            
-        } catch (error) {
-            console.error('Erro impressão em rede:', error);
-            throw error;
-        }
+    gerarNumeroVenda() {
+        const data = new Date();
+        const ano = data.getFullYear().toString().slice(-2);
+        const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+        const dia = data.getDate().toString().padStart(2, '0');
+        const hora = data.getHours().toString().padStart(2, '0');
+        const minuto = data.getMinutes().toString().padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `${ano}${mes}${dia}${hora}${minuto}-${random}`;
     }
 
-    async imprimirViaNuvem(conteudo) {
-        try {
-            const apiKey = this.configImpressora.apiKey || '';
-            const printerId = this.configImpressora.printerId || '';
-            
-            // Aqui você integraria com Google Cloud Print, etc.
-            console.log('☁️ Enviando para impressora na nuvem');
-            console.log('📄 Conteúdo da nota:', conteudo);
-            
-            mostrarMensagem('Impressão em nuvem simulada', 'info');
-            return true;
-            
-        } catch (error) {
-            console.error('Erro impressão em nuvem:', error);
-            throw error;
-        }
+    traduzirFormaPagamento(forma) {
+        const traducoes = {
+            'dinheiro': 'DINHEIRO',
+            'cartao_credito': 'CARTÃO DE CRÉDITO',
+            'cartao_debito': 'CARTÃO DE DÉBITO',
+            'pix': 'PIX',
+            'credito_loja': 'CRÉDITO DA LOJA',
+            'vale': 'VALE'
+        };
+        return traducoes[forma] || forma.toUpperCase();
     }
+
+    calcularTroco(total) {
+        // Implementar se necessário
+        return 0;
+    }
+
+    // ========================================
+    // MÉTODO DE IMPRESSÃO PRINCIPAL
+    // ========================================
 
     imprimirNoNavegador(conteudo) {
-        const printWindow = window.open('', '_blank');
+        // Criar janela de impressão
+        const printWindow = window.open('', '_blank', 'width=400,height=600');
+        
+        const estilo = `
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 12px;
+                    line-height: 1.4;
+                    background: white;
+                    padding: 0;
+                    margin: 0;
+                }
+                
+                .nota-fiscal {
+                    width: 100%;
+                    max-width: 300px;
+                    margin: 0 auto;
+                    padding: 15px 10px;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 12px;
+                    background: white;
+                }
+                
+                @media print {
+                    body {
+                        background: white;
+                    }
+                    .nota-fiscal {
+                        padding: 5px;
+                        max-width: 100%;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                }
+                
+                .print-controls {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: linear-gradient(to top, rgba(0,0,0,0.1), transparent);
+                    padding: 20px;
+                    text-align: center;
+                    display: flex;
+                    gap: 10px;
+                    justify-content: center;
+                    backdrop-filter: blur(5px);
+                }
+                
+                .btn-print {
+                    background: #27ae60;
+                    color: white;
+                    border: none;
+                    padding: 12px 30px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    transition: all 0.3s;
+                    border: 1px solid rgba(255,255,255,0.2);
+                }
+                
+                .btn-print:hover {
+                    background: #219a52;
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+                }
+                
+                .btn-close {
+                    background: #e74c3c;
+                    color: white;
+                    border: none;
+                    padding: 12px 30px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    transition: all 0.3s;
+                }
+                
+                .btn-close:hover {
+                    background: #c0392b;
+                    transform: translateY(-2px);
+                    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+                }
+                
+                .print-header {
+                    text-align: center;
+                    margin-bottom: 10px;
+                    padding-bottom: 10px;
+                    border-bottom: 1px dashed #ccc;
+                }
+            </style>
+        `;
+        
         printWindow.document.write(`
+            <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Nota Fiscal</title>
-                    <style>
-                        body {
-                            font-family: 'Courier New', monospace;
-                            font-size: 12px;
-                            line-height: 1.2;
-                            margin: 0;
-                            padding: 10px;
-                            width: ${this.configImpressora.largura * 6}px;
-                        }
-                        .nota-fiscal {
-                            white-space: pre;
-                            word-wrap: break-word;
-                        }
-                        @media print {
-                            body { margin: 0; }
-                            button { display: none; }
-                        }
-                    </style>
+                    <title>Nota Fiscal - PDV</title>
+                    ${estilo}
                 </head>
                 <body>
-                    <pre class="nota-fiscal">${conteudo}</pre>
-                    <button onclick="window.print()">Imprimir</button>
-                    <button onclick="window.close()">Fechar</button>
+                    <div class="nota-fiscal">${conteudo}</div>
+                    <div class="print-controls no-print">
+                        <button class="btn-print" onclick="window.print();">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                        <button class="btn-close" onclick="window.close()">
+                            <i class="fas fa-times"></i> Fechar
+                        </button>
+                    </div>
+                    <script>
+                        // Auto-imprimir após 500ms
+                        setTimeout(() => {
+                            window.print();
+                        }, 500);
+                    <\/script>
                 </body>
             </html>
         `);
+        
         printWindow.document.close();
     }
+
+    // ========================================
+    // MODAL DE CONFIGURAÇÃO DA IMPRESSORA
+    // ========================================
 
     mostrarModalConfigImpressora() {
         const modalHTML = `
@@ -1411,63 +1521,66 @@ class ServicosAvancadosPDV {
                     </div>
                     <div class="modal-body">
                         <div class="printer-config">
-                            <div class="config-group">
-                                <label>Tipo de Conexão:</label>
-                                <select id="tipoImpressora">
-                                    <option value="usb">USB</option>
-                                    <option value="bluetooth">Bluetooth</option>
-                                    <option value="serial">Serial (COM)</option>
-                                    <option value="rede">Rede</option>
-                                    <option value="nuvem">Impressora na Nuvem</option>
-                                </select>
+                            <!-- INFORMAÇÃO IMPORTANTE -->
+                            <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #3498db; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <div style="display: flex; gap: 15px; align-items: flex-start;">
+                                    <i class="fas fa-info-circle" style="color: #3498db; font-size: 24px;"></i>
+                                    <div>
+                                        <strong style="color: #2c3e50; font-size: 16px;">Impressora do Windows</strong>
+                                        <p style="margin: 8px 0 0 0; color: #34495e;">
+                                            O sistema usará a impressora PADRÃO configurada no Windows.<br>
+                                            Para imprimir, basta clicar no botão "Imprimir" e selecionar sua impressora.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="config-group">
-                                <label>Modelo da Impressora:</label>
-                                <select id="modeloImpressora">
-                                    <option value="epson">Epson TM-T20/T81</option>
-                                    <option value="bematech">Bematech MP-4200 TH</option>
-                                    <option value="daruma">Daruma DR700</option>
-                                    <option value="elgin">Elgin i9</option>
-                                    <option value="sweda">Sweda SI-300</option>
-                                    <option value="outro">Outro Modelo</option>
-                                </select>
+
+                            <!-- CONFIGURAÇÕES -->
+                            <div style="display: grid; gap: 15px;">
+                                <div class="config-group">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">
+                                        <i class="fas fa-newspaper"></i> Modelo da Nota:
+                                    </label>
+                                    <select id="modeloImpressora" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
+                                        <option value="padrao">Padrão (80mm - 48 colunas)</option>
+                                        <option value="pequeno">Pequeno (58mm - 32 colunas)</option>
+                                        <option value="grande">Grande (80mm - com detalhes)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="config-group">
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">
+                                        <i class="fas fa-arrows-alt-h"></i> Largura da Nota:
+                                    </label>
+                                    <input type="number" id="larguraImpressora" 
+                                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;"
+                                           min="30" max="80" value="48" step="1">
+                                    <small style="display: block; margin-top: 5px; color: #7f8c8d;">
+                                        Número de caracteres por linha (48 = papel 80mm, 32 = papel 58mm)
+                                    </small>
+                                </div>
+                                
+                                <div class="config-options" style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                        <input type="checkbox" id="imprimirLogo" checked style="width: 18px; height: 18px;">
+                                        <span style="font-weight: 500;">Incluir cabeçalho completo da loja</span>
+                                    </label>
+                                </div>
                             </div>
-                            
-                            <div class="config-group">
-                                <label>Largura da Nota (colunas):</label>
-                                <input type="number" id="larguraImpressora" min="40" max="120" value="80">
-                            </div>
-                            
-                            <div class="config-options">
-                                <label>
-                                    <input type="checkbox" id="cortarAutomatico" checked>
-                                    Cortar papel automaticamente
-                                </label>
-                                <label>
-                                    <input type="checkbox" id="abrirGaveta">
-                                    Abrir gaveta de dinheiro
-                                </label>
-                                <label>
-                                    <input type="checkbox" id="imprimirLogo" checked>
-                                    Imprimir logo da loja
-                                </label>
-                            </div>
-                            
-                            <div class="config-group">
-                                <label>Endereço/Porta (se necessário):</label>
-                                <input type="text" id="enderecoImpressora" placeholder="Ex: COM3, 192.168.1.100, 00:11:22:33:44:55">
-                            </div>
-                            
-                            <div class="config-actions">
-                                <button id="btnTestImpressora" class="btn-test">
+
+                            <!-- AÇÕES -->
+                            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                                <button id="btnTestImpressora" 
+                                        style="flex: 1; padding: 14px; background: #f39c12; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                                     <i class="fas fa-print"></i> Testar Impressão
                                 </button>
-                                <button id="btnSalvarImpressora" class="btn-save">
-                                    <i class="fas fa-save"></i> Salvar Configuração
+                                <button id="btnSalvarImpressora" 
+                                        style="flex: 1; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <i class="fas fa-save"></i> Salvar
                                 </button>
-                                <button id="btnCancelImpressora" class="btn-cancel">
-                                    <i class="fas fa-times"></i> Cancelar
+                                <button id="btnCancelImpressora" 
+                                        style="padding: 14px 20px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                                    <i class="fas fa-times"></i>
                                 </button>
                             </div>
                         </div>
@@ -1476,6 +1589,7 @@ class ServicosAvancadosPDV {
             </div>
         `;
         
+        // Adicionar modal ao DOM
         const modalContainer = document.createElement('div');
         modalContainer.innerHTML = modalHTML;
         document.body.appendChild(modalContainer.firstElementChild);
@@ -1484,14 +1598,13 @@ class ServicosAvancadosPDV {
         const config = this.configImpressora || {};
         
         // Preencher valores atuais
-        if (config.tipo) document.getElementById('tipoImpressora').value = config.tipo;
         if (config.modelo) document.getElementById('modeloImpressora').value = config.modelo;
         if (config.largura) document.getElementById('larguraImpressora').value = config.largura;
-        if (config.endereco) document.getElementById('enderecoImpressora').value = config.endereco;
         
-        document.getElementById('cortarAutomatico').checked = config.cortarAutomatico !== false;
-        document.getElementById('abrirGaveta').checked = config.abrirGaveta === true;
-        document.getElementById('imprimirLogo').checked = config.imprimirLogo !== false;
+        const imprimirLogoCheck = document.getElementById('imprimirLogo');
+        if (imprimirLogoCheck) {
+            imprimirLogoCheck.checked = config.imprimirLogo !== false;
+        }
         
         // Eventos
         modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
@@ -1499,13 +1612,10 @@ class ServicosAvancadosPDV {
         
         modal.querySelector('#btnSalvarImpressora').addEventListener('click', () => {
             const novaConfig = {
-                tipo: document.getElementById('tipoImpressora').value,
+                tipo: 'sistema',
                 modelo: document.getElementById('modeloImpressora').value,
-                largura: parseInt(document.getElementById('larguraImpressora').value) || 80,
-                endereco: document.getElementById('enderecoImpressora').value,
-                cortarAutomatico: document.getElementById('cortarAutomatico').checked,
-                abrirGaveta: document.getElementById('abrirGaveta').checked,
-                imprimirLogo: document.getElementById('imprimirLogo').checked
+                largura: parseInt(document.getElementById('larguraImpressora').value) || 48,
+                imprimirLogo: document.getElementById('imprimirLogo')?.checked || true
             };
             
             this.configImpressora = novaConfig;
@@ -1521,465 +1631,50 @@ class ServicosAvancadosPDV {
             this.testarImpressao();
         });
         
-        modal.style.display = 'flex';
-        
+        // Fechar ao clicar fora
         modal.addEventListener('click', function(e) {
             if (e.target === this) modal.remove();
         });
+        
+        modal.style.display = 'flex';
     }
+
+    // ========================================
+    // TESTE DE IMPRESSÃO
+    // ========================================
 
     async testarImpressao() {
-        try {
-            const conteudoTeste = 
-                '='.repeat(48) + '\n' +
-                'TESTE DE IMPRESSORA\n' +
-                '='.repeat(48) + '\n' +
-                'Data: ' + new Date().toLocaleString('pt-BR') + '\n' +
-                'Loja: ' + lojaServices.lojaId + '\n' +
-                '='.repeat(48) + '\n' +
-                'Esta é uma página de teste.\n' +
-                'Se esta mensagem apareceu,\n' +
-                'sua impressora está configurada\n' +
-                'corretamente.\n' +
-                '='.repeat(48) + '\n';
-            
-            await this.imprimirViaUSB(conteudoTeste);
-            mostrarMensagem('Teste de impressão enviado!', 'success');
-            
-        } catch (error) {
-            mostrarMensagem('Erro no teste de impressão', 'error');
-        }
-    }
-
-    // ========================================
-    // 2. LEITOR DE CÓDIGO DE BARRAS AVANÇADO
-    // ========================================
-
-    async verificarLeitorCodigoBarras() {
-        try {
-            let conectado = false;
-            
-            if ('usb' in navigator) {
-                const dispositivos = await navigator.usb.getDevices();
-                conectado = dispositivos.some(d => 
-                    d.vendorId === 0x067b || 
-                    d.vendorId === 0x0403 || 
-                    d.productName?.toLowerCase().includes('barcode') ||
-                    d.productName?.toLowerCase().includes('scanner')
-                );
-            }
-            
-            if ('serial' in navigator && !conectado) {
-                try {
-                    const port = await navigator.serial.getPorts();
-                    conectado = port.length > 0;
-                } catch (e) {}
-            }
-            
-            this.isLeitorConectado = conectado;
-            this.vendaManager.isLeitorConectado = conectado;
-            
-            this.atualizarBotaoScan();
-            
-            return { success: true, conectado };
-            
-        } catch (error) {
-            console.error('❌ Erro ao verificar leitor:', error);
-            this.isLeitorConectado = false;
-            return { success: false, error: error.message };
-        }
-    }
-
-    atualizarBotaoScan() {
-        const btnScan = document.getElementById('btnScan');
-        if (btnScan) {
-            if (this.isLeitorConectado) {
-                btnScan.title = "Leitor de código de barras conectado. Clique para ativar modo scan.";
-                btnScan.style.background = 'linear-gradient(135deg, #27ae60, #219653)';
-            } else {
-                btnScan.title = "Leitor de código de barras não detectado. Clique para configurar.";
-                btnScan.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
-            }
-        }
-    }
-
-    ativarModoScan() {
-        this.modoScanAtivo = !this.modoScanAtivo;
-        this.bufferScan = '';
+        const config = this.configImpressora || { largura: 48 };
+        const largura = config.largura || 48;
         
-        const btnScan = document.getElementById('btnScan');
-        const searchInput = document.getElementById('searchProduct');
+        const conteudoTeste = 
+            '='.repeat(largura) + '\n' +
+            this.centralizar('TESTE DE IMPRESSÃO', largura) + '\n' +
+            '='.repeat(largura) + '\n' +
+            '\n' +
+            this.centralizar('PDV - SISTEMA DE VENDAS', largura) + '\n' +
+            '\n' +
+            '-'.repeat(largura) + '\n' +
+            'Data: ' + new Date().toLocaleString('pt-BR') + '\n' +
+            'Loja: ' + lojaServices.lojaId + '\n' +
+            'Impressora: ' + (this.configImpressora?.modelo || 'Padrão') + '\n' +
+            'Largura: ' + largura + ' colunas\n' +
+            '-'.repeat(largura) + '\n' +
+            '\n' +
+            this.centralizar('✅ IMPRESSÃO OK!', largura) + '\n' +
+            '\n' +
+            'Se você está lendo esta mensagem,\n' +
+            'sua impressora está configurada\n' +
+            'corretamente no Windows!\n' +
+            '\n' +
+            '='.repeat(largura) + '\n' +
+            this.centralizar('FIM DO TESTE', largura) + '\n' +
+            '='.repeat(largura) + '\n' +
+            '\n\n';
         
-        if (this.modoScanAtivo) {
-            btnScan.innerHTML = '<i class="fas fa-stop-circle"></i> Parar Scan';
-            btnScan.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
-            searchInput.placeholder = "MODO SCAN ATIVO - Aponte o leitor...";
-            searchInput.disabled = true;
-            
-            mostrarMensagem('Modo scan ativado. Aponte o leitor de código de barras.', 'info');
-        } else {
-            btnScan.innerHTML = '<i class="fas fa-barcode"></i> Escanear';
-            btnScan.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
-            searchInput.placeholder = "Buscar produto por código ou nome...";
-            searchInput.disabled = false;
-            searchInput.focus();
-        }
-    }
-
-    processarCodigoBarras(produtos, callback) {
-        if (!this.bufferScan || this.bufferScan.length < 3) {
-            this.bufferScan = '';
-            return;
-        }
-        
-        const codigo = this.bufferScan.trim();
-        this.bufferScan = '';
-        
-        console.log(`📷 Código de barras lido: ${codigo}`);
-        
-        const produto = produtos.find(p => 
-            p.codigo === codigo || 
-            p.id === codigo ||
-            (p.codigo_barras && p.codigo_barras === codigo)
-        );
-        
-        if (produto && callback) {
-            callback(produto);
-        } else {
-            mostrarMensagem('Produto não encontrado com este código', 'error');
-        }
-    }
-
-    iniciarEscutaTeclado() {
-        document.addEventListener('keydown', (e) => {
-            if (this.modoScanAtivo && e.key !== 'Enter') {
-                this.bufferScan += e.key;
-                clearTimeout(this.scanTimer);
-                this.scanTimer = setTimeout(() => {
-                    this.processarCodigoBarras(this.vendaManager.produtos, (produto) => {
-                        if (produto.quantidade > 0) {
-                            window.adicionarProdutoCarrinho(produto.id);
-                        } else {
-                            mostrarMensagem('Produto sem estoque', 'warning');
-                        }
-                    });
-                }, 100);
-            }
-        });
-    }
-
-    mostrarModalConfigLeitor() {
-        const modalHTML = `
-            <div id="leitorConfigModal" class="modal">
-                <div class="modal-content modal-sm">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-barcode"></i> Configurar Leitor</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Leitor de código de barras não detectado automaticamente.</p>
-                        <p>Opções de conexão:</p>
-                        <div class="config-options" style="display: flex; flex-direction: column; gap: 10px; margin: 15px 0;">
-                            <button id="btnConfigUSB" class="btn-action" style="padding: 10px; background: var(--secondary-color); color: white; border: none; border-radius: 6px;">
-                                <i class="fas fa-usb"></i> Conectar via USB
-                            </button>
-                            <button id="btnConfigBluetooth" class="btn-action" style="padding: 10px; background: var(--info-color); color: white; border: none; border-radius: 6px;">
-                                <i class="fas fa-bluetooth"></i> Conectar via Bluetooth
-                            </button>
-                            <button id="btnConfigSerial" class="btn-action" style="padding: 10px; background: var(--warning-color); color: white; border: none; border-radius: 6px;">
-                                <i class="fas fa-plug"></i> Conectar via Serial (COM)
-                            </button>
-                            <button id="btnConfigManual" class="btn-action" style="padding: 10px; background: var(--success-color); color: white; border: none; border-radius: 6px;">
-                                <i class="fas fa-keyboard"></i> Modo Manual (Teclado)
-                            </button>
-                        </div>
-                        <p class="help-text">
-                            <small>
-                                <i class="fas fa-info-circle"></i>
-                                No modo manual, o sistema irá detectar automaticamente a entrada rápida do teclado.
-                            </small>
-                        </p>
-                    </div>
-                    <div class="modal-footer">
-                        <button id="btnCancelConfig" class="btn-cancel">Cancelar</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const modalContainer = document.createElement('div');
-        modalContainer.innerHTML = modalHTML;
-        document.body.appendChild(modalContainer.firstElementChild);
-        
-        const modal = document.getElementById('leitorConfigModal');
-        
-        modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
-        modal.querySelector('#btnCancelConfig').addEventListener('click', () => modal.remove());
-        
-        modal.querySelector('#btnConfigUSB').addEventListener('click', async () => {
-            try {
-                if ('usb' in navigator) {
-                    const device = await navigator.usb.requestDevice({
-                        filters: [{ vendorId: 0x067b }, { vendorId: 0x0403 }]
-                    });
-                    this.isLeitorConectado = true;
-                    this.atualizarBotaoScan();
-                    mostrarMensagem('Leitor USB configurado com sucesso!', 'success');
-                    modal.remove();
-                } else {
-                    mostrarMensagem('API WebUSB não suportada', 'error');
-                }
-            } catch (error) {
-                console.error('Erro ao configurar USB:', error);
-                mostrarMensagem('Erro ao configurar leitor USB', 'error');
-            }
-        });
-        
-        modal.querySelector('#btnConfigBluetooth').addEventListener('click', async () => {
-            try {
-                if ('bluetooth' in navigator) {
-                    const device = await navigator.bluetooth.requestDevice({
-                        filters: [{ namePrefix: 'Barcode' }, { namePrefix: 'Scanner' }]
-                    });
-                    this.isLeitorConectado = true;
-                    this.atualizarBotaoScan();
-                    mostrarMensagem('Leitor Bluetooth configurado!', 'success');
-                    modal.remove();
-                } else {
-                    mostrarMensagem('API Bluetooth não suportada', 'error');
-                }
-            } catch (error) {
-                console.error('Erro ao configurar Bluetooth:', error);
-                mostrarMensagem('Erro ao configurar leitor Bluetooth', 'error');
-            }
-        });
-        
-        modal.querySelector('#btnConfigSerial').addEventListener('click', async () => {
-            try {
-                if ('serial' in navigator) {
-                    const port = await navigator.serial.requestPort();
-                    this.isLeitorConectado = true;
-                    this.atualizarBotaoScan();
-                    mostrarMensagem('Leitor Serial configurado!', 'success');
-                    modal.remove();
-                } else {
-                    mostrarMensagem('API Serial não suportada', 'error');
-                }
-            } catch (error) {
-                console.error('Erro ao configurar Serial:', error);
-                mostrarMensagem('Erro ao configurar leitor Serial', 'error');
-            }
-        });
-        
-        modal.querySelector('#btnConfigManual').addEventListener('click', () => {
-            this.isLeitorConectado = true;
-            this.atualizarBotaoScan();
-            mostrarMensagem('Modo manual ativado. Digite rapidamente os códigos.', 'success');
-            modal.remove();
-        });
-        
-        modal.style.display = 'flex';
-        
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) modal.remove();
-        });
-    }
-
-    // ========================================
-    // 3. RELATÓRIOS E EXPORTAÇÕES
-    // ========================================
-
-    gerarRelatorioVendas(vendas, periodo = 'diario') {
-        try {
-            const dataAtual = new Date();
-            let vendasFiltradas = vendas;
-            
-            switch(periodo) {
-                case 'diario':
-                    vendasFiltradas = vendas.filter(v => {
-                        const dataVenda = new Date(v.data_venda);
-                        return dataVenda.toDateString() === dataAtual.toDateString();
-                    });
-                    break;
-                case 'semanal':
-                    const umaSemanaAtras = new Date(dataAtual.setDate(dataAtual.getDate() - 7));
-                    vendasFiltradas = vendas.filter(v => new Date(v.data_venda) >= umaSemanaAtras);
-                    break;
-                case 'mensal':
-                    const umMesAtras = new Date(dataAtual.setMonth(dataAtual.getMonth() - 1));
-                    vendasFiltradas = vendas.filter(v => new Date(v.data_venda) >= umMesAtras);
-                    break;
-            }
-            
-            const totalVendas = vendasFiltradas.length;
-            const valorTotal = vendasFiltradas.reduce((acc, v) => acc + (v.total || 0), 0);
-            const ticketMedio = totalVendas > 0 ? valorTotal / totalVendas : 0;
-            
-            const relatorio = {
-                periodo,
-                data_geracao: new Date().toISOString(),
-                total_vendas: totalVendas,
-                valor_total: valorTotal,
-                ticket_medio: ticketMedio,
-                vendas: vendasFiltradas
-            };
-            
-            return { success: true, relatorio };
-            
-        } catch (error) {
-            console.error('❌ Erro ao gerar relatório:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    exportarParaCSV(dados, nomeArquivo = 'relatorio.csv') {
-        try {
-            if (!dados || dados.length === 0) {
-                throw new Error('Não há dados para exportar');
-            }
-            
-            const headers = Object.keys(dados[0]).join(',');
-            const rows = dados.map(item => Object.values(item).join(',')).join('\n');
-            const csv = `${headers}\n${rows}`;
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = nomeArquivo;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            return { success: true };
-            
-        } catch (error) {
-            console.error('❌ Erro ao exportar CSV:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    exportarParaPDF(dados, nomeArquivo = 'relatorio.pdf') {
-        try {
-            // Aqui você integraria bibliotecas como jsPDF
-            console.log('📄 Exportando para PDF:', nomeArquivo);
-            console.log('📊 Dados:', dados);
-            
-            mostrarMensagem('Exportação para PDF simulada', 'info');
-            
-            return { success: true };
-            
-        } catch (error) {
-            console.error('❌ Erro ao exportar PDF:', error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // ========================================
-    // 4. BACKUP E RESTAURAÇÃO
-    // ========================================
-
-    async gerarBackupDados(lojaServices) {
-        try {
-            mostrarLoading('Gerando backup...', 'Coletando dados...');
-            
-            const produtos = await lojaServices.buscarProdutos();
-            const categorias = await lojaServices.buscarCategorias();
-            
-            const backup = {
-                loja_id: lojaServices.lojaId,
-                loja_nome: lojaServices.dadosLoja?.nome || lojaServices.lojaId,
-                data_backup: new Date().toISOString(),
-                versao: '1.0.0',
-                produtos: produtos.data || [],
-                categorias: categorias.data || [],
-                estatisticas: {
-                    total_produtos: produtos.data?.length || 0,
-                    total_categorias: categorias.data?.length || 0
-                }
-            };
-            
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `backup_${lojaServices.lojaId}_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            esconderLoading();
-            mostrarMensagem('Backup gerado com sucesso!', 'success');
-            
-            return { success: true, backup };
-            
-        } catch (error) {
-            console.error('❌ Erro ao gerar backup:', error);
-            esconderLoading();
-            mostrarMensagem('Erro ao gerar backup', 'error');
-            return { success: false, error: error.message };
-        }
-    }
-
-    async restaurarBackup(arquivo, lojaServices) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            
-            reader.onload = async (e) => {
-                try {
-                    const backup = JSON.parse(e.target.result);
-                    
-                    if (!backup.loja_id || !backup.produtos) {
-                        throw new Error('Arquivo de backup inválido');
-                    }
-                    
-                    if (backup.loja_id !== lojaServices.lojaId) {
-                        const confirmar = confirm(`Este backup é da loja "${backup.loja_nome}". Deseja restaurar mesmo assim?`);
-                        if (!confirmar) {
-                            resolve({ success: false, message: 'Restauração cancelada' });
-                            return;
-                        }
-                    }
-                    
-                    mostrarLoading('Restaurando backup...', 'Isso pode levar alguns minutos...');
-                    
-                    let produtosRestaurados = 0;
-                    for (const produto of backup.produtos) {
-                        delete produto.id;
-                        delete produto.createdAt;
-                        delete produto.updatedAt;
-                        
-                        const resultado = await lojaServices.cadastrarProduto(produto);
-                        if (resultado.success) produtosRestaurados++;
-                    }
-                    
-                    esconderLoading();
-                    mostrarMensagem(`Backup restaurado! ${produtosRestaurados} produtos importados.`, 'success');
-                    
-                    resolve({ success: true, produtos_importados: produtosRestaurados });
-                    
-                } catch (error) {
-                    console.error('❌ Erro ao restaurar backup:', error);
-                    esconderLoading();
-                    mostrarMensagem('Erro ao restaurar backup', 'error');
-                    reject(error);
-                }
-            };
-            
-            reader.readAsText(arquivo);
-        });
+        this.imprimirNoNavegador(conteudoTeste);
+        mostrarMensagem('Teste de impressão enviado!', 'success');
     }
 }
-
-// ============================================
-// INSTANCIAR SERVIÇOS AVANÇADOS
-// ============================================
-// Adicione esta linha no final do arquivo, APÓS a declaração da classe
-const servicosAvancados = new ServicosAvancadosPDV(vendaManager);
-
-// Exportar para uso global
-window.servicosAvancados = servicosAvancados;
-
-console.log("✅ Serviços avançados do PDV carregados!");
-
-
 
 
