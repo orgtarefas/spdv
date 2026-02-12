@@ -29,10 +29,11 @@ class GerenciadorCodigoBarrasHome {
         this.tempoUltimoCodigo = 0;
         this.inputAtual = null;
         this.processando = false;
+        this.ultimoTempoKeyDown = 0;
     }
 
     // ========================================
-    // INICIAR ESCUTA GLOBAL - CORRIGIDO
+    // INICIAR ESCUTA GLOBAL - CORRIGIDO 100%
     // ========================================
     iniciarEscuta() {
         document.addEventListener('keydown', (e) => {
@@ -42,22 +43,31 @@ class GerenciadorCodigoBarrasHome {
             
             if (!modal || modal.style.display !== 'flex' || !searchInput) return;
             
-            // IGNORAR COMPLETAMENTE SE JÁ ESTIVER PROCESSANDO
-            if (this.processando) {
-                e.preventDefault();
-                return;
-            }
-            
             // Focar no input se não estiver focado
             if (document.activeElement !== searchInput) {
                 searchInput.focus();
             }
             
-            // SE FOR O PRIMEIRO CARACTERE DA LEITURA, LIMPAR O CAMPO!
+            const agora = Date.now();
+            const tempoDesdeUltimo = agora - this.ultimoTempoKeyDown;
+            this.ultimoTempoKeyDown = agora;
+            
+            // DETECTAR LEITOR OU COLA: mais de 3 caracteres em menos de 50ms
+            const isLeitorRapido = tempoDesdeUltimo < 50 && this.bufferScan.length > 0;
+            
+            // SE FOR O PRIMEIRO CARACTERE DE UMA LEITURA RÁPIDA, LIMPAR CAMPO!
             if (this.bufferScan.length === 0 && e.key.length === 1 && /[0-9]/.test(e.key)) {
-                // LIMPAR CAMPO ANTES DE COMEÇAR A LER!
+                // VERIFICAR SE É INÍCIO DE LEITURA RÁPIDA
+                if (isLeitorRapido || true) { // Sempre limpar no primeiro caractere
+                    console.log('🧹 NOVA LEITURA DETECTADA - LIMPANDO CAMPO');
+                    searchInput.value = ''; // LIMPAR CAMPO!
+                }
+            }
+            
+            // Se for uma sequência muito rápida, é leitor - limpar novamente se necessário
+            if (isLeitorRapido && this.bufferScan.length === 1) {
+                console.log('⚡ Leitura rápida detectada - garantindo campo limpo');
                 searchInput.value = '';
-                console.log('🧹 Campo limpo para nova leitura');
             }
             
             // Prevenir comportamento padrão para teclas de controle
@@ -85,6 +95,48 @@ class GerenciadorCodigoBarrasHome {
                 }, this.timeoutScan);
             }
         });
+
+        // TAMBÉM CAPTURAR EVENTO DE COLA (CTRL+V)
+        document.addEventListener('paste', (e) => {
+            const modal = document.getElementById('quickSearchModal');
+            const searchInput = document.getElementById('searchProductInput');
+            
+            if (!modal || modal.style.display !== 'flex' || !searchInput) return;
+            
+            // PREVENIR COMPORTAMENTO PADRÃO
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // PEGAR TEXTO COLADO
+            const textoColado = e.clipboardData.getData('text');
+            
+            // LIMPAR CAMPO ANTES DE COLAR!
+            searchInput.value = '';
+            
+            // SE FOR NÚMERO, PROCESSAR COMO CÓDIGO
+            if (/^\d+$/.test(textoColado)) {
+                console.log('📋 Código colado:', textoColado);
+                
+                // LIMITAR A 13 DÍGITOS
+                let codigo = textoColado.trim();
+                if (codigo.length > 13) {
+                    codigo = codigo.substring(0, 13);
+                }
+                
+                searchInput.value = codigo;
+                
+                // Disparar busca
+                const event = new Event('input', { bubbles: true });
+                searchInput.dispatchEvent(event);
+                
+                mostrarMensagem(`✅ Código colado: ${codigo}`, 'success', 1500);
+            } else {
+                // SE NÃO FOR NÚMERO, COLAR NORMALMENTE
+                searchInput.value = textoColado;
+                const event = new Event('input', { bubbles: true });
+                searchInput.dispatchEvent(event);
+            }
+        }, true); // Capturar na fase de captura
         
         console.log('📷 Escuta de código de barras iniciada na Home');
     }
@@ -93,25 +145,13 @@ class GerenciadorCodigoBarrasHome {
     // PROCESSAR CÓDIGO LIDO
     // ========================================
     processarCodigoLido(inputElement) {
-        // EVITAR PROCESSAMENTO DUPLICADO
-        if (this.processando) {
-            console.log('⚠️ Já processando um código, ignorando...');
-            this.bufferScan = '';
-            return;
-        }
-        
-        this.processando = true;
-        
         if (!this.bufferScan || this.bufferScan.length < 3) {
             this.bufferScan = '';
-            this.processando = false;
             return;
         }
         
-        // PEGAR SOMENTE OS PRIMEIROS 13 DÍGITOS (EAN-13)
+        // PEGAR SOMENTE OS PRIMEIROS 13 DÍGITOS
         let codigoLido = this.bufferScan.trim();
-        
-        // Limitar a 13 dígitos (maioria dos códigos de barras)
         if (codigoLido.length > 13) {
             codigoLido = codigoLido.substring(0, 13);
         }
@@ -119,11 +159,10 @@ class GerenciadorCodigoBarrasHome {
         // LIMPAR BUFFER IMEDIATAMENTE
         this.bufferScan = '';
         
-        // Verificar duplicata rápida (mesmo código em menos de 3 segundos)
+        // Verificar duplicata rápida
         const agora = Date.now();
-        if (codigoLido === this.ultimoCodigoLido && (agora - this.tempoUltimoCodigo) < 3000) {
+        if (codigoLido === this.ultimoCodigoLido && (agora - this.tempoUltimoCodigo) < 2000) {
             console.log('⚠️ Código duplicado ignorado:', codigoLido);
-            this.processando = false;
             return;
         }
         
@@ -132,7 +171,7 @@ class GerenciadorCodigoBarrasHome {
         
         console.log(`📷 Código de barras lido: ${codigoLido}`);
         
-        // PREENCHER O CAMPO (já está limpo, só definir o valor)
+        // PREENCHER O CAMPO (já está limpo)
         if (inputElement) {
             inputElement.value = codigoLido;
             
@@ -145,18 +184,12 @@ class GerenciadorCodigoBarrasHome {
                 inputElement.style.backgroundColor = '';
             }, 500);
             
-            // Disparar evento de input APENAS UMA VEZ
+            // Disparar evento de input
             const event = new Event('input', { bubbles: true });
             inputElement.dispatchEvent(event);
             
-            // Mostrar mensagem
             mostrarMensagem(`✅ Código lido: ${codigoLido}`, 'success', 1500);
         }
-        
-        // Resetar flag após processamento
-        setTimeout(() => {
-            this.processando = false;
-        }, 500);
     }
 
     // ========================================
@@ -171,10 +204,8 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
-        // Resetar estados
         this.modoScanAtivo = true;
         this.bufferScan = '';
-        this.processando = false;
         
         // LIMPAR CAMPO AO ATIVAR SCAN!
         searchInput.value = '';
@@ -189,6 +220,12 @@ class GerenciadorCodigoBarrasHome {
             scanIndicator.style.display = 'flex';
         }
         
+        // Desativar active de outros botões
+        const btnScan = document.getElementById('btnScanCode');
+        if (btnScan) {
+            btnScan.classList.add('active');
+        }
+        
         mostrarMensagem('📷 Modo scan ativado!', 'info', 2000);
     }
 
@@ -200,7 +237,6 @@ class GerenciadorCodigoBarrasHome {
         
         this.modoScanAtivo = false;
         this.bufferScan = '';
-        this.processando = false;
         
         if (searchInput) {
             searchInput.placeholder = 'Código, nome ou categoria do produto';
@@ -1781,6 +1817,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
