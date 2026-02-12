@@ -177,16 +177,26 @@
                         </div>
                     </div>
     
-                    <!-- NOVA LINHA: Código de Barras -->
+                    <!-- Código de Barras -->
                     <div class="form-row">
                         <div class="form-group" style="flex: 2;">
                             <label for="codigo_barras">
                                 <i class="fas fa-barcode"></i> Código de Barras
                             </label>
                             <div class="barcode-input-group">
-                                <input type="text" id="codigo_barras" 
-                                       placeholder="Digite ou use o leitor de código de barras"
-                                       autocomplete="off">
+                                <input 
+                                    type="text" 
+                                    id="codigo_barras" 
+                                    name="codigo_barras"
+                                    placeholder="Digite ou use o leitor de código de barras"
+                                    autocomplete="off"
+                                    spellcheck="false"
+                                    inputmode="numeric"
+                                    pattern="\d*"
+                                    maxlength="13"
+                                    oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                                    onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                                >
                                 <button type="button" id="btnLerCodigoBarras" class="btn-barcode-read" 
                                         title="Ler código de barras">
                                     <i class="fas fa-camera"></i>
@@ -198,7 +208,7 @@
                             </div>
                             <small class="form-hint">
                                 <i class="fas fa-info-circle"></i> 
-                                Use o leitor USB/Bluetooth ou clique na câmera para ativar o modo scan
+                                Apenas números • Máximo 13 dígitos
                             </small>
                             <div id="codigoBarrasFeedback" class="barcode-feedback" style="display: none;"></div>
                         </div>
@@ -436,6 +446,7 @@
     <script type="module" src="estoque.js"></script>
 </body>
 </html>
+
 
 
 
