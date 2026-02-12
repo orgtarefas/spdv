@@ -29,25 +29,47 @@ class GerenciadorCodigoBarrasHome {
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
         
-        // ÚNICA REGRA: Se tiver 13 dígitos, qualquer tecla número limpa o campo
+        // 1. CAPTURAR TECLA ANTES DE DIGITAR
         searchInput.addEventListener('keydown', (e) => {
-            // Verifica se é um número (0-9)
+            // Só processar números
             if (e.key >= '0' && e.key <= '9') {
                 
-                // Se o campo já tem 13 dígitos
+                // Se já TEM 13 DÍGITOS, vamos limpar ANTES de digitar o 14º
                 if (searchInput.value.length === 13) {
-                    console.log('🧹 13 dígitos - nova digitação: limpando campo');
+                    console.log('🧹 13 dígitos - limpando para o 14º');
                     
                     // LIMPAR O CAMPO COMPLETAMENTE
                     searchInput.value = '';
                     
-                    // OBS: Não precisa fazer mais nada, o caractere será digitado normalmente
+                    // Não precisa fazer mais nada, o 14º será digitado normalmente
+                }
+            }
+        });
+        
+        // 2. QUANDO ATINGIR 13 DÍGITOS, BUSCAR AUTOMATICAMENTE
+        searchInput.addEventListener('input', () => {
+            if (searchInput.value.length === 13) {
+                console.log('🎯 13 dígitos! Buscando produto...');
+                
+                // Feedback visual
+                searchInput.style.borderColor = '#27ae60';
+                searchInput.style.backgroundColor = '#f0fff4';
+                
+                setTimeout(() => {
+                    searchInput.style.borderColor = '';
+                    searchInput.style.backgroundColor = '';
+                }, 500);
+                
+                // Buscar produto
+                if (typeof buscarProdutoConsultaRapida === 'function') {
+                    buscarProdutoConsultaRapida(searchInput.value);
                 }
             }
         });
         
         console.log('✅ Sistema de código de barras pronto!');
     }
+
 
     // ========================================
     // ATIVAR MODO SCAN
@@ -1656,6 +1678,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
