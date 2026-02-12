@@ -144,15 +144,12 @@ class GerenciadorCodigoBarrasHome {
 // ============================================
 // 1. INICIALIZAÇÃO
 // ============================================
-
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página home carregada");
     
-    // Mostrar loading inicial
     mostrarLoading('Inicializando sistema...', 'Carregando configurações...');
     
     try {
-        // Verificar se a loja está carregada
         if (!lojaServices || !lojaServices.lojaId) {
             console.warn('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja. Redirecionando...', 'error');
@@ -164,6 +161,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         console.log(`✅ Loja identificada: ${lojaServices.lojaId}`);
         console.log(`👤 Usuário: ${lojaServices.nomeUsuario}`);
+        
+        // 🔵🔵🔵 INICIALIZAR GERENCIADOR DE CÓDIGO DE BARRAS 🔵🔵🔵
+        gerenciadorCodigoBarrasHome = new GerenciadorCodigoBarrasHome();
+        window.gerenciadorCodigoBarrasHome = gerenciadorCodigoBarrasHome;
+        gerenciadorCodigoBarrasHome.iniciarEscuta();
         
         // Atualizar interface com dados da loja
         await atualizarInterfaceLoja();
@@ -1700,6 +1702,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
