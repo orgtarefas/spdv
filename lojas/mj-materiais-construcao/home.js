@@ -17,26 +17,31 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 
 
 // ============================================
-// CLASSE: GerenciadorCodigoBarrasHome
+// CLASSE: GerenciadorCodigoBarrasHome - DETECÇÃO INFALÍVEL DE SCANNER
 // ============================================
 class GerenciadorCodigoBarrasHome {
     constructor() {
         this.modoScanAtivo = false;
         this.bufferScan = '';
         this.scanTimer = null;
-        this.timeoutScan = 100;
+        this.timeoutScan = 50; // REDUZIDO para 50ms
         this.ultimoCodigoLido = '';
         this.tempoUltimoCodigo = 0;
         this.inputAtual = null;
-        this.processando = false;
-        this.ultimoTempoKeyDown = 0;
-        this.leituraEmAndamento = false;
+        
+        // VARIÁVEIS PARA DETECÇÃO DE SCANNER
+        this.velocidadeDigitacao = [];
+        this.ultimoTimestamp = 0;
+        this.isScanner = false;
+        this.leituraScannerEmAndamento = false;
     }
 
     // ========================================
-    // INICIAR ESCUTA GLOBAL - 100% CORRIGIDO
+    // INICIAR ESCUTA GLOBAL - COM DETECÇÃO DE SCANNER
     // ========================================
     iniciarEscuta() {
+        console.log('📷 Iniciando detecção de scanner...');
+        
         document.addEventListener('keydown', (e) => {
             // Verificar se o modal está aberto
             const modal = document.getElementById('quickSearchModal');
@@ -50,117 +55,154 @@ class GerenciadorCodigoBarrasHome {
             }
             
             const agora = Date.now();
-            const tempoDesdeUltimo = agora - this.ultimoTempoKeyDown;
-            this.ultimoTempoKeyDown = agora;
             
-            // DETECTAR LEITURA RÁPIDA (menos de 50ms entre caracteres)
-            const isLeituraRapida = tempoDesdeUltimo < 50;
-            
-            // REGRA DE OURO: SE FOR O INÍCIO DE UMA LEITURA RÁPIDA, LIMPAR CAMPO!
-            if (isLeituraRapida && this.bufferScan.length === 0 && e.key.length === 1) {
-                console.log('🧩 NOVA LEITURA RÁPIDA DETECTADA - LIMPANDO CAMPO!');
-                searchInput.value = ''; // LIMPAR CAMPO ANTES DE QUALQUER COISA!
-                this.leituraEmAndamento = true;
+            // ========================================
+            // DETECÇÃO DE SCANNER (INFALÍVEL)
+            // ========================================
+            if (this.ultimoTimestamp > 0) {
+                const intervalo = agora - this.ultimoTimestamp;
+                
+                // Scanner: intervalo CONSTANTE entre 5-30ms
+                // Digitação humana: intervalo VARIÁVEL > 80ms
+                if (intervalo < 40 && e.key.length === 1) {
+                    this.velocidadeDigitacao.push(intervalo);
+                    
+                    // Manter apenas os últimos 5 intervalos
+                    if (this.velocidadeDigitacao.length > 5) {
+                        this.velocidadeDigitacao.shift();
+                    }
+                    
+                    // Calcular média dos intervalos
+                    const media = this.velocidadeDigitacao.reduce((a, b) => a + b, 0) / this.velocidadeDigitacao.length;
+                    
+                    // Se média < 30ms, É SCANNER!
+                    if (media < 30 && this.velocidadeDigitacao.length >= 3) {
+                        if (!this.isScanner) {
+                            console.log('🎯 SCANNER DETECTADO! Velocidade média:', media.toFixed(1) + 'ms');
+                            this.isScanner = true;
+                        }
+                        
+                        // SE É SCANNER E ESTÁ COMEÇANDO LEITURA, LIMPAR CAMPO!
+                        if (this.bufferScan.length === 0 && !this.leituraScannerEmAndamento) {
+                            console.log('🧹 NOVA LEITURA DO SCANNER - LIMPANDO CAMPO!');
+                            searchInput.value = ''; // LIMPAR CAMPO!
+                            this.leituraScannerEmAndamento = true;
+                        }
+                    }
+                } else {
+                    // Intervalo > 40ms, provavelmente não é scanner
+                    if (this.isScanner && intervalo > 100) {
+                        console.log('⏸️ Scanner pausado/desconectado');
+                        this.isScanner = false;
+                        this.velocidadeDigitacao = [];
+                        this.leituraScannerEmAndamento = false;
+                    }
+                }
             }
             
-            // SE JÁ TEM CONTEÚDO NO CAMPO E COMEÇOU UMA LEITURA RÁPIDA, LIMPAR!
-            if (isLeituraRapida && searchInput.value.length > 0 && this.bufferScan.length === 0) {
-                console.log('⚠️ LEITURA RÁPIDA COM CAMPO SUJO - LIMPANDO!');
-                searchInput.value = '';
-            }
+            this.ultimoTimestamp = agora;
             
-            // Prevenir comportamento padrão para teclas de controle
+            // ========================================
+            // PREVENIR COMPORTAMENTO PADRÃO
+            // ========================================
             if (e.key === 'Enter' || e.key === 'Tab') {
                 e.preventDefault();
             }
             
-            // Processar Enter - FINALIZAR LEITURA
+            // ========================================
+            // PROCESSAR ENTER - FIM DA LEITURA
+            // ========================================
             if (e.key === 'Enter') {
                 e.preventDefault();
                 this.processarCodigoLido(searchInput);
-                this.leituraEmAndamento = false;
+                
+                // Resetar flags de scanner
+                this.leituraScannerEmAndamento = false;
+                this.velocidadeDigitacao = [];
                 return;
             }
             
-            // Adicionar caractere ao buffer (apenas dígitos)
+            // ========================================
+            // ADICIONAR CARACTERE AO BUFFER
+            // ========================================
             if (e.key.length === 1 && /[0-9]/.test(e.key)) {
                 this.bufferScan += e.key;
+                
+                // Se for scanner e buffer estiver crescendo, campo já está limpo!
+                if (this.isScanner) {
+                    // Garantir que o campo está vazio durante a leitura
+                    if (searchInput.value.length > 0 && this.bufferScan.length === 1) {
+                        searchInput.value = '';
+                    }
+                }
                 
                 // Limpar timer anterior
                 clearTimeout(this.scanTimer);
                 
-                // Timer para processar quando parar de digitar
+                // Timer para processar quando parar
                 this.scanTimer = setTimeout(() => {
                     this.processarCodigoLido(searchInput);
-                    this.leituraEmAndamento = false;
+                    this.leituraScannerEmAndamento = false;
+                    this.velocidadeDigitacao = [];
                 }, this.timeoutScan);
             }
         });
 
-        // CAPTURAR EVENTO DE COLA (CTRL+V) - LIMPAR SEMPRE!
+        // ========================================
+        // EVENTO DE COLA (CTRL+V) - SEMPRE LIMPAR!
+        // ========================================
         document.addEventListener('paste', (e) => {
             const modal = document.getElementById('quickSearchModal');
             const searchInput = document.getElementById('searchProductInput');
             
             if (!modal || modal.style.display !== 'flex' || !searchInput) return;
             
-            // PREVENIR COMPORTAMENTO PADRÃO
+            // PREVENIR COLA PADRÃO
             e.preventDefault();
             e.stopPropagation();
             
-            // 1. LIMPAR CAMPO ANTES DE COLAR! (sempre)
+            // 1. LIMPAR CAMPO SEMPRE!
             searchInput.value = '';
             console.log('📋 COLA DETECTADA - CAMPO LIMPO');
             
             // 2. PEGAR TEXTO COLADO
             const textoColado = e.clipboardData.getData('text');
             
-            // 3. SE FOR NÚMERO, PROCESSAR COMO CÓDIGO
+            // 3. PROCESSAR
             if (/^\d+$/.test(textoColado)) {
                 let codigo = textoColado.trim();
-                
-                // Limitar a 13 dígitos
-                if (codigo.length > 13) {
-                    codigo = codigo.substring(0, 13);
-                }
-                
+                if (codigo.length > 13) codigo = codigo.substring(0, 13);
                 searchInput.value = codigo;
-                console.log(`📋 Código colado (limpo): ${codigo}`);
                 
-                // Disparar busca
                 const event = new Event('input', { bubbles: true });
                 searchInput.dispatchEvent(event);
-                
                 mostrarMensagem(`✅ Código: ${codigo}`, 'success', 1500);
             } else {
-                // Colar texto normal
                 searchInput.value = textoColado;
                 const event = new Event('input', { bubbles: true });
                 searchInput.dispatchEvent(event);
             }
         }, true);
 
-        // CAPTURAR EVENTO DE INPUT - PARA DETECTAR COLA RÁPIDA
+        // ========================================
+        // EVENTO DE INPUT - VALIDAÇÃO FINAL
+        // ========================================
         document.addEventListener('input', (e) => {
             if (e.target.id === 'searchProductInput') {
                 const searchInput = e.target;
                 
-                // Se o valor foi inserido muito rápido e é grande, pode ser cola
-                if (searchInput.value.length > 13 && /^\d+$/.test(searchInput.value)) {
-                    console.log('⚡ INPUT RÁPIDO DETECTADO - NORMALIZANDO');
-                    
-                    // Pegar apenas os primeiros 13 dígitos
+                // Se veio do scanner e tem mais de 13 dígitos, corrigir
+                if (this.isScanner && searchInput.value.length > 13) {
                     const codigo = searchInput.value.substring(0, 13);
                     searchInput.value = codigo;
                     
-                    // Disparar busca novamente
                     const event = new Event('input', { bubbles: true });
                     searchInput.dispatchEvent(event);
                 }
             }
         });
         
-        console.log('📷 Escuta de código de barras - MODO HARDCORE ATIVADO!');
+        console.log('📷 Sistema de detecção de scanner ativado!');
     }
 
     // ========================================
@@ -172,16 +214,16 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
-        // PEGAR SOMENTE OS PRIMEIROS 13 DÍGITOS
+        // PEGAR APENAS 13 DÍGITOS
         let codigoLido = this.bufferScan.trim();
         if (codigoLido.length > 13) {
             codigoLido = codigoLido.substring(0, 13);
         }
         
-        // LIMPAR BUFFER IMEDIATAMENTE
+        // LIMPAR BUFFER
         this.bufferScan = '';
         
-        // Verificar duplicata rápida
+        // VERIFICAR DUPLICATA
         const agora = Date.now();
         if (codigoLido === this.ultimoCodigoLido && (agora - this.tempoUltimoCodigo) < 2000) {
             console.log('⚠️ Código duplicado ignorado:', codigoLido);
@@ -191,9 +233,9 @@ class GerenciadorCodigoBarrasHome {
         this.ultimoCodigoLido = codigoLido;
         this.tempoUltimoCodigo = agora;
         
-        console.log(`📷 Código de barras lido: ${codigoLido}`);
+        console.log(`📷 Código lido: ${codigoLido} ${this.isScanner ? '(SCANNER)' : '(digitação)'}`);
         
-        // PREENCHER O CAMPO (já deve estar limpo)
+        // PREENCHER CAMPO
         if (inputElement) {
             inputElement.value = codigoLido;
             
@@ -206,14 +248,20 @@ class GerenciadorCodigoBarrasHome {
                 inputElement.style.backgroundColor = '';
             }, 500);
             
-            // Disparar evento de input
+            // Disparar busca
             const event = new Event('input', { bubbles: true });
             inputElement.dispatchEvent(event);
             
-            mostrarMensagem(`✅ Código: ${codigoLido}`, 'success', 1500);
+            // Mensagem diferente para scanner vs digitação
+            if (this.isScanner) {
+                mostrarMensagem(`📷 Scanner: ${codigoLido}`, 'success', 1500);
+            } else {
+                mostrarMensagem(`✅ Código: ${codigoLido}`, 'success', 1500);
+            }
         }
         
-        this.leituraEmAndamento = false;
+        // Resetar flags
+        this.leituraScannerEmAndamento = false;
     }
 
     // ========================================
@@ -228,27 +276,26 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
+        // Resetar tudo
         this.modoScanAtivo = true;
         this.bufferScan = '';
-        this.leituraEmAndamento = false;
+        this.leituraScannerEmAndamento = false;
+        this.velocidadeDigitacao = [];
+        this.isScanner = false;
         
-        // LIMPAR CAMPO AO ATIVAR SCAN!
+        // LIMPAR CAMPO!
         searchInput.value = '';
         searchInput.focus();
-        searchInput.placeholder = '📷 Modo scan ativo - Aponte o leitor...';
+        searchInput.placeholder = '📷 Modo scan - Aponte o leitor...';
         searchInput.style.borderColor = '#e74c3c';
         searchInput.style.backgroundColor = '#fff5f5';
         
         // Mostrar indicador
         const scanIndicator = document.getElementById('scanIndicator');
-        if (scanIndicator) {
-            scanIndicator.style.display = 'flex';
-        }
+        if (scanIndicator) scanIndicator.style.display = 'flex';
         
         const btnScan = document.getElementById('btnScanCode');
-        if (btnScan) {
-            btnScan.classList.add('active');
-        }
+        if (btnScan) btnScan.classList.add('active');
         
         mostrarMensagem('📷 Modo scan ativado!', 'info', 2000);
     }
@@ -261,7 +308,9 @@ class GerenciadorCodigoBarrasHome {
         
         this.modoScanAtivo = false;
         this.bufferScan = '';
-        this.leituraEmAndamento = false;
+        this.leituraScannerEmAndamento = false;
+        this.velocidadeDigitacao = [];
+        this.isScanner = false;
         
         if (searchInput) {
             searchInput.placeholder = 'Código, nome ou categoria do produto';
@@ -270,14 +319,10 @@ class GerenciadorCodigoBarrasHome {
         }
         
         const scanIndicator = document.getElementById('scanIndicator');
-        if (scanIndicator) {
-            scanIndicator.style.display = 'none';
-        }
+        if (scanIndicator) scanIndicator.style.display = 'none';
         
         const btnScan = document.getElementById('btnScanCode');
-        if (btnScan) {
-            btnScan.classList.remove('active');
-        }
+        if (btnScan) btnScan.classList.remove('active');
     }
 }
 
@@ -1840,6 +1885,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
