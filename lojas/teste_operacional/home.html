@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home - SPDV-I</title>
+    <link rel="stylesheet" href="home.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-store"></i>
+                    <div>
+                        <h1 id="lojaNomeHeader">Sistema Ponto de Vendas Integrado</h1>
+                        <p class="subtitle">Gestão Comercial</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="userName">Carregando...</span>
+                    <button id="btnLogout" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
+                    </button>
+                </div>
+                <div class="header-info">
+                    <span id="lojaLocal"></span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <div class="welcome-content">
+                <h2>Bem-vindo ao <span class="loja-name" id="lojaNomeBemVindo">Sistema Ponto de Vendas Integrado</span></h2>
+                <p id="currentDateTime">Carregando data e hora...</p>
+                <div class="user-welcome">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userWelcome">Usuário</span>
+                    <span class="user-perfil" id="userPerfil"></span>
+                </div>
+            </div>
+            <div class="welcome-icon" id="welcomeLogoContainer">
+                <!-- A imagem será inserida via JavaScript -->
+                <img id="lojaLogo" src="" alt="Logo da Loja" style="display: none; max-width: 120px; max-height: 120px; object-fit: contain;">
+                <i id="defaultWelcomeIcon" class="fas fa-chart-line"></i>
+            </div>
+        </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <h2><i class="fas fa-bolt"></i> Ações Rápidas</h2>
+                <div class="actions-grid">
+                    <a href="venda.html" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #4CAF50, #2E7D32);">
+                            <i class="fas fa-cash-register"></i>
+                        </div>
+                        <h3>Nova Venda</h3>
+                        <p>Iniciar uma nova venda</p>
+                        <div class="action-badge" id="vendasPendentes">0</div>
+                    </a>
+                    
+                    <a href="estoque.html" class="action-card">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #2196F3, #0D47A1);">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                        <h3>Estoque</h3>
+                        <p>Gerenciar produtos</p>
+                        <div class="action-badge" id="totalProdutosBadge">0</div>
+                    </a>
+                    
+                    <div class="action-card" id="btnConsultaRapida">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #FF9800, #E65100);">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3>Consulta Rápida</h3>
+                        <p>Buscar produto</p>
+                    </div>
+                    
+                    <a href="relatorios.html" class="action-card" id="btnRelatorio">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #9C27B0, #4A148C);">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h3>Relatórios</h3>
+                        <p>Ver relatórios</p>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-section">
+                <h2><i class="fas fa-chart-line"></i> Estatísticas <small id="statsPeriodo">Hoje</small></h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Vendas Hoje</h3>
+                            <p class="stat-number" id="vendasHoje">R$ 0,00</p>
+                            <p class="stat-subtitle" id="quantidadeVendas">0 vendas</p>
+                            <div class="stat-progress">
+                                <div class="progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Produtos em Estoque</h3>
+                            <p class="stat-number" id="totalProdutos">0</p>
+                            <p class="stat-subtitle" id="produtosBaixo">0 com baixo estoque</p>
+                            <div class="stat-trend">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Última atualização: <span id="ultimaAtualizacao">Agora</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Valor em Estoque</h3>
+                            <p class="stat-number" id="valorEstoque">R$ 0,00</p>
+                            <p class="stat-subtitle">Valor total</p>
+                            <div class="stat-detail">
+                                <span>Custo: <span id="valorCusto">R$ 0,00</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>Meta do Mês</h3>
+                            <p class="stat-number" id="metaPercentual">0%</p>
+                            <p class="stat-subtitle" id="metaRestante">R$ 0,00</p>
+                            <div class="stat-progress">
+                                <div class="progress-bar" id="metaProgressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="recent-activity">
+                <h2><i class="fas fa-history"></i> Atividade Recente</h2>
+                <div class="activity-filters">
+                    <button class="filter-btn active" data-filter="all">Todas</button>
+                    <button class="filter-btn" data-filter="vendas">Vendas</button>
+                    <button class="filter-btn" data-filter="estoque">Estoque</button>
+                </div>
+                <div class="activity-list" id="activityList">
+                    <!-- Atividades serão carregadas aqui -->
+                    <div class="empty-activity">
+                        <div class="loading-activity">
+                            <div class="spinner"></div>
+                            <p>Carregando atividades...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p><i class="fas fa-store"></i> <span id="lojaNomeFooter">Sistema Ponto de Vendas Integrado</span> © SPDV-I</p>
+                <p id="connectionStatus"><i class="fas fa-circle"></i> <span id="statusText">Conectando...</span></p>
+                <div class="footer-info">
+                    <span id="footerInfo"></span>
+                    <span id="footerVersao">v2.0</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Carregando Sistema</h3>
+            <p id="loadingDetail">Inicializando...</p>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <div class="message-text"></div>
+            <button class="message-close">&times;</button>
+        </div>
+    </div>
+
+    <!-- Quick Search Modal -->
+    <div id="quickSearchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <i class="fas fa-search"></i> 
+                    Consulta Rápida
+                </h3>
+                <button class="modal-close" title="Fechar (ESC)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- SEARCH BOX COM BOTÕES -->
+                <div class="search-box">
+                    <i class="fas fa-search search-icon"></i>
+                    
+                    <input 
+                        type="text" 
+                        id="searchProductInput" 
+                        placeholder="Código, nome ou categoria do produto" 
+                        autocomplete="off" 
+                        spellcheck="false" 
+                        inputmode="numeric" 
+                        pattern="\d*" 
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    >
+                    
+                    <!-- BOTÃO LIMPAR (X) -->
+                    <button class="search-clear" id="searchClear" title="Limpar busca">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    
+                    <!-- BOTÃO SCAN -->
+                    <button class="btn-scan" id="btnScanCode" title="Ler código de barras">
+                        <i class="fas fa-barcode"></i>
+                    </button>
+                </div>
+                
+                <!-- FILTROS RÁPIDOS -->
+                <div class="search-filters">
+                    <button class="filter-btn active" data-filter="all">
+                        <i class="fas fa-list"></i> Todos
+                    </button>
+                    <button class="filter-btn" data-filter="estoque">
+                        <i class="fas fa-check-circle"></i> Em estoque
+                    </button>
+                    <button class="filter-btn" data-filter="baixo">
+                        <i class="fas fa-exclamation-triangle"></i> Baixo estoque
+                    </button>
+                </div>
+                
+                <!-- DICA DE ATALHO -->
+                <div class="search-tip">
+                    <i class="fas fa-lightbulb"></i>
+                    Dica: Use o leitor de código de barras ou digite o código manualmente
+                    <span class="shortcut">Ctrl+K</span>
+                </div>
+                
+                <!-- RESULTADOS DA BUSCA -->
+                <div class="search-results" id="searchResults">
+                    <div class="empty-results">
+                        <i class="fas fa-search"></i>
+                        <p>Digite para buscar um produto</p>
+                        <small>Busque por código, nome, categoria ou use o leitor de código de barras</small>
+                    </div>
+                </div>
+    
+                <!-- INDICADOR DE SCAN ATIVO -->
+                <div id="scanIndicator" class="scan-indicator" style="display: none;">
+                    <i class="fas fa-barcode fa-spin"></i>
+                    <span>Modo scan ativo - Aponte o leitor para o código de barras</span>
+                    <button class="btn-stop-scan" onclick="window.gerenciadorCodigoBarrasHome?.desativarModoScan()">
+                        <i class="fas fa-stop"></i> Parar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts MÓDULOS (importando do firebase_config.js) -->
+    <script type="module" src="firebase_config.js"></script>
+    <script type="module" src="home.js"></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
