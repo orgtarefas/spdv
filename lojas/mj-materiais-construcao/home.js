@@ -20,54 +20,76 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 // ============================================
 class GerenciadorCodigoBarrasHome {
     
-    // ========================================
-    // INICIAR ESCUTA
-    // ========================================
     iniciarEscuta() {
         console.log('📷 Iniciando sistema de código de barras');
         
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
         
-        // 1. CAPTURAR TECLA ANTES DE DIGITAR
+        // 1. CONTROLE DE DIGITAÇÃO - TUDO AQUI!
         searchInput.addEventListener('keydown', (e) => {
-            // Só processar números
+            // Só números
             if (e.key >= '0' && e.key <= '9') {
                 
-                // Se já TEM 13 DÍGITOS, vamos limpar ANTES de digitar o 14º
+                // Se já TEM 13 DÍGITOS, limpa ANTES de digitar
                 if (searchInput.value.length === 13) {
-                    console.log('🧹 13 dígitos - limpando para o 14º');
-                    
-                    // LIMPAR O CAMPO COMPLETAMENTE
-                    searchInput.value = '';
-                    
-                    // Não precisa fazer mais nada, o 14º será digitado normalmente
+                    console.log('🧹 13 dígitos - limpando para nova digitação');
+                    searchInput.value = ''; // LIMPA COMPLETAMENTE!
                 }
             }
         });
         
-        // 2. QUANDO ATINGIR 13 DÍGITOS, BUSCAR AUTOMATICAMENTE
-        searchInput.addEventListener('input', () => {
-            if (searchInput.value.length === 13) {
+        // 2. GARANTIR MÁXIMO DE 13 DÍGITOS (NOSSO PRÓPRIO MAXLENGTH)
+        searchInput.addEventListener('input', function(e) {
+            // Garantir só números (reforço)
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // NOSSO PRÓPRIO MAXLENGTH - MAIS CONFIÁVEL!
+            if (this.value.length > 13) {
+                this.value = this.value.slice(0, 13);
+            }
+            
+            // Quando atinge 13, busca automaticamente
+            if (this.value.length === 13) {
                 console.log('🎯 13 dígitos! Buscando produto...');
                 
-                // Feedback visual
-                searchInput.style.borderColor = '#27ae60';
-                searchInput.style.backgroundColor = '#f0fff4';
+                this.style.borderColor = '#27ae60';
+                this.style.backgroundColor = '#f0fff4';
                 
                 setTimeout(() => {
-                    searchInput.style.borderColor = '';
-                    searchInput.style.backgroundColor = '';
+                    this.style.borderColor = '';
+                    this.style.backgroundColor = '';
                 }, 500);
                 
-                // Buscar produto
+                if (typeof buscarProdutoConsultaRapida === 'function') {
+                    buscarProdutoConsultaRapida(this.value);
+                }
+            }
+        });
+        
+        // 3. COLA - CONTROLE TOTAL TAMBÉM
+        searchInput.addEventListener('paste', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const texto = e.clipboardData.getData('text');
+            let apenasNumeros = texto.replace(/[^0-9]/g, '');
+            
+            // NOSSO CONTROLE: limita a 13 e já trata
+            if (apenasNumeros.length > 13) {
+                apenasNumeros = apenasNumeros.slice(0, 13);
+            }
+            
+            searchInput.value = apenasNumeros;
+            
+            if (apenasNumeros.length === 13) {
                 if (typeof buscarProdutoConsultaRapida === 'function') {
                     buscarProdutoConsultaRapida(searchInput.value);
                 }
             }
         });
         
-        console.log('✅ Sistema de código de barras pronto!');
+        console.log('✅ Sistema de código de barras com controle total!');
     }
 
 
@@ -1678,6 +1700,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
