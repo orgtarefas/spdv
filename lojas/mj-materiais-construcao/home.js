@@ -15,6 +15,158 @@ let atividades = [];
 // IMAGEM GERADA EM BASE64 QUANDO NÃO HOUVER IMAGENS
 const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNNDAgMzVMNjAgNTVNNTAgNDVMNzAgMjVNNjAgMzVMMzAgNjVNNzAgMzVMNTAgNTVNMzAgMzVMMzUgMzBNNzAgNTVMNjUgNjBNMzUgNjVMMzAgNjBNNjUgMzVMNzAgMzAiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzZjNzU3ZCIgZm9udC13ZWlnaHQ9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VNIEZPVE88L3RleHQ+Cjwvc3ZnPg==";
 
+
+// ============================================
+// CLASSE: GerenciadorCodigoBarrasHome
+// ============================================
+// Gerencia leitura de código de barras na página Home
+// ============================================
+class GerenciadorCodigoBarrasHome {
+    constructor() {
+        this.modoScanAtivo = false;
+        this.bufferScan = '';
+        this.scanTimer = null;
+        this.timeoutScan = 100; // ms entre caracteres
+        this.ultimoCodigoLido = '';
+        this.tempoUltimoCodigo = 0;
+        this.inputAtual = null;
+    }
+
+    // ========================================
+    // INICIAR ESCUTA GLOBAL
+    // ========================================
+    iniciarEscuta() {
+        document.addEventListener('keydown', (e) => {
+            // Verificar se o modal está aberto e o input está focado
+            const modal = document.getElementById('quickSearchModal');
+            const searchInput = document.getElementById('searchProductInput');
+            
+            if (!modal || modal.style.display !== 'flex' || !searchInput) return;
+            
+            // Se o input NÃO está focado, focar automaticamente
+            if (document.activeElement !== searchInput) {
+                searchInput.focus();
+            }
+            
+            // Prevenir comportamento padrão para teclas de controle
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+            }
+            
+            // Processar Enter (fim da leitura)
+            if (e.key === 'Enter') {
+                this.processarCodigoLido(searchInput);
+                return;
+            }
+            
+            // Adicionar caractere ao buffer
+            if (e.key.length === 1) {
+                this.bufferScan += e.key;
+                
+                // Limpar timer anterior
+                clearTimeout(this.scanTimer);
+                
+                // Timer para processar quando parar de digitar
+                this.scanTimer = setTimeout(() => {
+                    this.processarCodigoLido(searchInput);
+                }, this.timeoutScan);
+            }
+        });
+        
+        console.log('📷 Escuta de código de barras iniciada na Home');
+    }
+
+    // ========================================
+    // PROCESSAR CÓDIGO LIDO
+    // ========================================
+    processarCodigoLido(inputElement) {
+        if (!this.bufferScan || this.bufferScan.length < 3) {
+            this.bufferScan = '';
+            return;
+        }
+        
+        const codigoLido = this.bufferScan.trim();
+        this.bufferScan = '';
+        
+        // Verificar duplicata rápida (mesmo código em menos de 2 segundos)
+        const agora = Date.now();
+        if (codigoLido === this.ultimoCodigoLido && (agora - this.tempoUltimoCodigo) < 2000) {
+            console.log('⚠️ Código duplicado ignorado');
+            return;
+        }
+        
+        this.ultimoCodigoLido = codigoLido;
+        this.tempoUltimoCodigo = agora;
+        
+        console.log(`📷 Código de barras lido na Home: ${codigoLido}`);
+        
+        // Preencher o input
+        if (inputElement) {
+            inputElement.value = codigoLido;
+            
+            // Disparar evento de input para buscar o produto
+            const event = new Event('input', { bubbles: true });
+            inputElement.dispatchEvent(event);
+            
+            // Feedback visual
+            inputElement.style.borderColor = '#27ae60';
+            inputElement.style.backgroundColor = '#f0fff4';
+            
+            setTimeout(() => {
+                inputElement.style.borderColor = '';
+                inputElement.style.backgroundColor = '';
+            }, 1000);
+            
+            // Mostrar mensagem
+            mostrarMensagem(`✅ Código lido: ${codigoLido}`, 'success', 2000);
+        }
+    }
+
+    // ========================================
+    // ATIVAR MODO SCAN MANUAL
+    // ========================================
+    ativarModoScan() {
+        const modal = document.getElementById('quickSearchModal');
+        const searchInput = document.getElementById('searchProductInput');
+        
+        if (!modal || modal.style.display !== 'flex' || !searchInput) {
+            mostrarMensagem('📷 Abra a consulta rápida para ler códigos', 'info', 3000);
+            return;
+        }
+        
+        searchInput.focus();
+        searchInput.value = '';
+        searchInput.placeholder = '📷 Modo scan ativo - Aponte o leitor...';
+        searchInput.style.borderColor = '#e74c3c';
+        searchInput.style.backgroundColor = '#fff5f5';
+        
+        this.modoScanAtivo = true;
+        
+        mostrarMensagem('📷 Modo scan ativado!', 'info', 2000);
+        
+        // Desativar após 30 segundos
+        setTimeout(() => {
+            this.desativarModoScan();
+        }, 30000);
+    }
+
+    // ========================================
+    // DESATIVAR MODO SCAN
+    // ========================================
+    desativarModoScan() {
+        const searchInput = document.getElementById('searchProductInput');
+        
+        this.modoScanAtivo = false;
+        this.bufferScan = '';
+        
+        if (searchInput) {
+            searchInput.placeholder = 'Código, nome ou categoria do produto';
+            searchInput.style.borderColor = '';
+            searchInput.style.backgroundColor = '';
+        }
+    }
+}
+
 // ============================================
 // 1. INICIALIZAÇÃO
 // ============================================
@@ -248,23 +400,36 @@ async function carregarDadosIniciais() {
 // 4. CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
-    // Botão logout
+    console.log("⚙️ Configurando eventos da Home...");
+    
+    // ========================================
+    // 1. BOTÃO LOGOUT
+    // ========================================
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
-        btnLogout.addEventListener('click', function() {
+        btnLogout.addEventListener('click', function(e) {
+            e.preventDefault();
             if (confirm("Tem certeza que deseja sair do sistema?")) {
+                mostrarLoading('Saindo do sistema...', 'Redirecionando...');
                 lojaServices.logout();
             }
         });
     }
     
-    // Botão consulta rápida
+    // ========================================
+    // 2. BOTÃO CONSULTA RÁPIDA
+    // ========================================
     const btnConsultaRapida = document.getElementById('btnConsultaRapida');
     if (btnConsultaRapida) {
-        btnConsultaRapida.addEventListener('click', abrirModalConsulta);
+        btnConsultaRapida.addEventListener('click', function(e) {
+            e.preventDefault();
+            abrirModalConsulta();
+        });
     }
     
-    // BOTÃO RELATÓRIO
+    // ========================================
+    // 3. BOTÃO RELATÓRIO
+    // ========================================
     const btnRelatorio = document.getElementById('btnRelatorio');
     if (btnRelatorio) {
         btnRelatorio.addEventListener('click', function(event) {
@@ -273,19 +438,45 @@ function configurarEventos() {
         });
     }
     
-    // Modal consulta rápida
+    // ========================================
+    // 4. MODAL DE CONSULTA RÁPIDA
+    // ========================================
     const modalConsulta = document.getElementById('quickSearchModal');
     if (modalConsulta) {
+        
+        // 4.1. FECHAR MODAL (X)
         const modalClose = modalConsulta.querySelector('.modal-close');
         if (modalClose) {
             modalClose.addEventListener('click', () => {
                 modalConsulta.style.display = 'none';
+                // Desativar modo scan ao fechar
+                if (window.gerenciadorCodigoBarrasHome) {
+                    window.gerenciadorCodigoBarrasHome.desativarModoScan();
+                    const btnScan = document.getElementById('btnScanCode');
+                    if (btnScan) btnScan.classList.remove('active');
+                }
             });
         }
         
+        // 4.2. FECHAR AO CLICAR FORA
+        modalConsulta.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+                // Desativar modo scan ao fechar
+                if (window.gerenciadorCodigoBarrasHome) {
+                    window.gerenciadorCodigoBarrasHome.desativarModoScan();
+                    const btnScan = document.getElementById('btnScanCode');
+                    if (btnScan) btnScan.classList.remove('active');
+                }
+            }
+        });
+        
+        // 4.3. BOTÃO LIMPAR BUSCA (X)
         const searchClear = document.getElementById('searchClear');
         if (searchClear) {
-            searchClear.addEventListener('click', () => {
+            searchClear.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 const searchInput = document.getElementById('searchProductInput');
                 if (searchInput) {
                     searchInput.value = '';
@@ -295,31 +486,65 @@ function configurarEventos() {
             });
         }
         
-        modalConsulta.addEventListener('click', function(e) {
-            if (e.target === this) {
-                this.style.display = 'none';
-            }
-        });
-        
-        const searchProductInput = document.getElementById('searchProductInput');
-        if (searchProductInput) {
-            searchProductInput.addEventListener('input', function() {
-                buscarProdutoConsultaRapida(this.value);
-            });
-            
-            searchProductInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    buscarProdutoConsultaRapida(this.value);
+        // 4.4. BOTÃO DE SCAN (LEITOR DE CÓDIGO DE BARRAS)
+        const btnScanCode = document.getElementById('btnScanCode');
+        if (btnScanCode) {
+            btnScanCode.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle do modo scan
+                this.classList.toggle('active');
+                
+                if (this.classList.contains('active')) {
+                    // Ativar modo scan
+                    if (window.gerenciadorCodigoBarrasHome) {
+                        window.gerenciadorCodigoBarrasHome.ativarModoScan();
+                        mostrarMensagem('📷 Modo scan ativado. Aponte o leitor para o código de barras.', 'info', 3000);
+                    }
+                } else {
+                    // Desativar modo scan
+                    if (window.gerenciadorCodigoBarrasHome) {
+                        window.gerenciadorCodigoBarrasHome.desativarModoScan();
+                        mostrarMensagem('📷 Modo scan desativado.', 'info', 2000);
+                    }
                 }
             });
         }
         
+        // 4.5. INPUT DE BUSCA
+        const searchProductInput = document.getElementById('searchProductInput');
+        if (searchProductInput) {
+            // Evento de input (digitação)
+            searchProductInput.addEventListener('input', function() {
+                buscarProdutoConsultaRapida(this.value);
+            });
+            
+            // Evento de keypress (Enter)
+            searchProductInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    buscarProdutoConsultaRapida(this.value);
+                }
+            });
+            
+            // Evento de focus
+            searchProductInput.addEventListener('focus', function() {
+                // Selecionar todo o texto ao focar
+                setTimeout(() => this.select(), 50);
+            });
+        }
+        
+        // 4.6. FILTROS DO MODAL
         const filterBtns = modalConsulta.querySelectorAll('.filter-btn');
         filterBtns.forEach(btn => {
             btn.addEventListener('click', function() {
+                // Remover active de todos
                 filterBtns.forEach(b => b.classList.remove('active'));
+                // Adicionar active no clicado
                 this.classList.add('active');
                 
+                // Buscar com filtro ativo
                 const searchInput = document.getElementById('searchProductInput');
                 if (searchInput) {
                     buscarProdutoConsultaRapida(searchInput.value);
@@ -328,16 +553,66 @@ function configurarEventos() {
         });
     }
     
-    // Filtros de atividades
+    // ========================================
+    // 5. FILTROS DE ATIVIDADES
+    // ========================================
     const activityFilters = document.querySelectorAll('.activity-filters .filter-btn');
     activityFilters.forEach(btn => {
         btn.addEventListener('click', function() {
+            // Remover active de todos
             activityFilters.forEach(b => b.classList.remove('active'));
+            // Adicionar active no clicado
             this.classList.add('active');
+            
+            // Filtrar atividades
             const filtro = this.dataset.filter;
             filtrarAtividades(filtro);
         });
     });
+    
+    // ========================================
+    // 6. BOTÃO VOLTAR (SE EXISTIR)
+    // ========================================
+    const btnVoltar = document.getElementById('btnVoltar');
+    if (btnVoltar) {
+        btnVoltar.addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = 'home.html';
+        });
+    }
+    
+    // ========================================
+    // 7. ATALHOS DE TECLADO GLOBAIS
+    // ========================================
+    document.addEventListener('keydown', function(e) {
+        // Ctrl + K ou Cmd + K - Abrir consulta rápida
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            abrirModalConsulta();
+        }
+        
+        // ESC - Fechar modal
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('quickSearchModal');
+            if (modal && modal.style.display === 'flex') {
+                modal.style.display = 'none';
+                // Desativar modo scan
+                if (window.gerenciadorCodigoBarrasHome) {
+                    window.gerenciadorCodigoBarrasHome.desativarModoScan();
+                    const btnScan = document.getElementById('btnScanCode');
+                    if (btnScan) btnScan.classList.remove('active');
+                }
+            }
+        }
+        
+        // F1 - Ajuda
+        if (e.key === 'F1') {
+            e.preventDefault();
+            mostrarMensagem('📖 Sistema PDV - Pressione Ctrl+K para busca rápida', 'info', 4000);
+        }
+    });
+    
+    console.log("✅ Eventos configurados com sucesso");
 }
 
 // ============================================
@@ -625,7 +900,16 @@ function abrirModalConsulta() {
     if (modal && searchInput) {
         modal.style.display = 'flex';
         searchInput.value = '';
-        searchInput.focus();
+        
+        // Focar no input e dar um pequeno delay para garantir
+        setTimeout(() => {
+            searchInput.focus();
+            
+            // Desativar modo scan anterior se existir
+            if (window.gerenciadorCodigoBarrasHome) {
+                window.gerenciadorCodigoBarrasHome.desativarModoScan();
+            }
+        }, 100);
         
         const filterBtns = modal.querySelectorAll('.filter-btn');
         filterBtns.forEach(btn => {
@@ -1407,3 +1691,4 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
