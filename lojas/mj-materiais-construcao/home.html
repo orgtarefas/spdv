@@ -225,6 +225,7 @@
                 <div class="search-box">
                     <i class="fas fa-search search-icon"></i>
                     
+                    <!-- ✅ CAMPO CORRIGIDO - SEM MAXLENGTH! -->
                     <input 
                         type="text" 
                         id="searchProductInput" 
@@ -233,7 +234,6 @@
                         spellcheck="false"
                         inputmode="numeric"
                         pattern="\d*"
-                        maxlength="13"
                         oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                     >
                     
@@ -276,7 +276,7 @@
                         <small>Busque por código, nome, categoria ou use o leitor de código de barras</small>
                     </div>
                 </div>
-
+    
                 <!-- INDICADOR DE SCAN ATIVO -->
                 <div id="scanIndicator" class="scan-indicator" style="display: none;">
                     <i class="fas fa-barcode fa-spin"></i>
@@ -294,6 +294,7 @@
     <script type="module" src="home.js"></script>
 </body>
 </html>
+
 
 
 
