@@ -151,7 +151,7 @@
 
     <!-- Modal Novo/Editar Produto -->
     <div id="modalProduto" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3><i class="fas fa-box"></i> <span id="modalTitle">Novo Produto</span></h3>
                 <button class="modal-close">&times;</button>
@@ -160,56 +160,101 @@
                 <div class="modal-body">
                     <input type="hidden" id="produtoId">
                     
+                    <!-- LINHA 1: Código Interno e Nome -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="codigo">Código *</label>
-                            <input type="text" id="codigo" required>
-                            <small class="form-hint">Código único do produto</small>
+                            <label for="codigo">
+                                <i class="fas fa-hashtag"></i> Código Interno *
+                            </label>
+                            <input type="text" id="codigo" required placeholder="Ex: PROD-001">
+                            <small class="form-hint">Código único do produto no sistema</small>
                         </div>
                         <div class="form-group">
-                            <label for="nome">Nome do Produto *</label>
-                            <input type="text" id="nome" required>
+                            <label for="nome">
+                                <i class="fas fa-tag"></i> Nome do Produto *
+                            </label>
+                            <input type="text" id="nome" required placeholder="Ex: Arroz Branco 5kg">
+                        </div>
+                    </div>
+    
+                    <!-- NOVA LINHA: Código de Barras -->
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label for="codigo_barras">
+                                <i class="fas fa-barcode"></i> Código de Barras
+                            </label>
+                            <div class="barcode-input-group">
+                                <input type="text" id="codigo_barras" 
+                                       placeholder="Digite ou use o leitor de código de barras"
+                                       autocomplete="off">
+                                <button type="button" id="btnLerCodigoBarras" class="btn-barcode-read" 
+                                        title="Ler código de barras">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                                <button type="button" id="btnGerarCodigoBarras" class="btn-barcode-generate" 
+                                        title="Gerar código de barras automático">
+                                    <i class="fas fa-magic"></i>
+                                </button>
+                            </div>
+                            <small class="form-hint">
+                                <i class="fas fa-info-circle"></i> 
+                                Use o leitor USB/Bluetooth ou clique na câmera para ativar o modo scan
+                            </small>
+                            <div id="codigoBarrasFeedback" class="barcode-feedback" style="display: none;"></div>
                         </div>
                     </div>
                     
+                    <!-- LINHA 2: Categoria e Unidade de Venda -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="categoria">Categoria</label>
-                            <input type="text" id="categoria" list="categoriasList">
+                            <label for="categoria">
+                                <i class="fas fa-folder"></i> Categoria
+                            </label>
+                            <input type="text" id="categoria" list="categoriasList" placeholder="Selecione ou digite">
                             <datalist id="categoriasList">
                                 <!-- Categorias serão carregadas dinamicamente -->
                             </datalist>
                         </div>
                         <div class="form-group">
-                            <label for="unidade_venda">Unidade de Venda *</label> <!-- RENOMEADO para unidade_venda -->
+                            <label for="unidade_venda">
+                                <i class="fas fa-cubes"></i> Unidade de Venda *
+                            </label>
                             <select id="unidade_venda" required>
                                 <option value="">Selecione</option>
                                 <option value="UN">Unidade (UN)</option>
                                 <option value="PC">Peça (PC)</option>
+                                <option value="CX">Caixa (CX)</option>
+                                <option value="PCT">Pacote (PCT)</option>
                                 <option value="MT">Metro (MT)</option>
                                 <option value="M2">Metro Quadrado (M²)</option>
                                 <option value="M3">Metro Cúbico (M³)</option>
                                 <option value="KG">Quilograma (KG)</option>
-                                <option value="SC">Saco (SC)</option>
-                                <option value="CX">Caixa (CX)</option>
+                                <option value="G">Grama (G)</option>
                                 <option value="LT">Litro (LT)</option>
+                                <option value="ML">Mililitro (ML)</option>
+                                <option value="SC">Saco (SC)</option>
+                                <option value="FD">Fardo (FD)</option>
                             </select>
-                            <small class="form-hint">Como o produto é vendido (pacote, caixa, unidade)</small>
+                            <small class="form-hint">Como o produto é vendido</small>
                         </div>
                     </div>
-                    <!-- SEÇÃO: Unidade com valor -->
+                    
+                    <!-- LINHA 3: Valor por Unidade e Total Calculado -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="valor_unidade">Valor por Unidade</label>
+                            <label for="valor_unidade">
+                                <i class="fas fa-weight-hanging"></i> Valor por Unidade
+                            </label>
                             <div class="input-with-unit">
                                 <input 
-                                  type="text"
-                                  id="valor_unidade"
-                                  maxlength="7"
-                                  inputmode="decimal"
-                                  pattern="^\d{1,6}(,\d{1,2})?$"
-                                  placeholder="0,0"
-                                  required>
+                                    type="text"
+                                    id="valor_unidade"
+                                    maxlength="7"
+                                    inputmode="decimal"
+                                    pattern="^\d{1,6}(,\d{1,2})?$"
+                                    placeholder="0,0"
+                                    value="1"
+                                    required>
                                 <select id="tipo_unidade" class="unit-select">
                                     <option value="unid" selected>Unidades (unid)</option>
                                     <option value="kg">Quilogramas (kg)</option>
@@ -223,56 +268,79 @@
                                     <option value="m3">Metros³ (m³)</option>
                                 </select>
                             </div>
-                            <small class="form-hint">Ex: 175 g, 1,5 L, 2,5 m, 1 unid (por pacote/caixa)</small>
+                            <small class="form-hint">Ex: 175 g, 1,5 L, 2,5 m</small>
                         </div>
                         <div class="form-group">
-                            <label for="total_estoque_unidade">Total em Estoque (Calculado)</label>
+                            <label for="total_estoque_unidade">
+                                <i class="fas fa-calculator"></i> Total em Estoque
+                            </label>
                             <div class="input-readonly">
-                                <input type="text" id="total_estoque_unidade" readonly placeholder="0.00">
+                                <input type="text" id="total_estoque_unidade" readonly placeholder="0,00">
                                 <span id="total_estoque_tipo">unid</span>
                             </div>
                             <small class="form-hint">Quantidade × Valor da Unidade</small>
                         </div>
                     </div>
                     
+                    <!-- LINHA 4: Preços -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="preco_custo">Preço de Custo *</label>
+                            <label for="preco_custo">
+                                <i class="fas fa-coins"></i> Preço de Custo *
+                            </label>
                             <div class="input-with-icon">
                                 <i class="fas fa-dollar-sign"></i>
-                                <input type="number" id="preco_custo" step="0.01" min="0" required>
+                                <input type="number" id="preco_custo" step="0.01" min="0" value="0.00" required>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="preco">Preço de Venda *</label>
+                            <label for="preco">
+                                <i class="fas fa-tag"></i> Preço de Venda *
+                            </label>
                             <div class="input-with-icon">
                                 <i class="fas fa-dollar-sign"></i>
-                                <input type="number" id="preco" step="0.01" min="0" required>
+                                <input type="number" id="preco" step="0.01" min="0" value="0.00" required>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- LINHA 5: Quantidade e Estoque Mínimo -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="quantidade">Quantidade em Estoque *</label>
-                            <input type="number" id="quantidade" min="0" required>
-                            <small class="form-hint">Número de pacotes/caixas/unidades físicas no estoque</small>
+                            <label for="quantidade">
+                                <i class="fas fa-boxes"></i> Quantidade em Estoque *
+                            </label>
+                            <input type="number" id="quantidade" min="0" value="0" required>
+                            <small class="form-hint">Número de unidades físicas</small>
                         </div>
                         <div class="form-group">
-                            <label for="estoque_minimo">Estoque Mínimo *</label>
+                            <label for="estoque_minimo">
+                                <i class="fas fa-exclamation-triangle"></i> Estoque Mínimo *
+                            </label>
                             <input type="number" id="estoque_minimo" min="0" value="5" required>
-                            <small class="form-hint">Alerta quando atingir este número de pacotes/caixas</small>
+                            <small class="form-hint">Alerta quando atingir este valor</small>
                         </div>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="descricao">Descrição</label>
-                        <textarea id="descricao" rows="3"></textarea>
+                    <!-- LINHA 6: Fornecedor -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fornecedor">
+                                <i class="fas fa-truck"></i> Fornecedor
+                            </label>
+                            <input type="text" id="fornecedor" placeholder="Nome do fornecedor">
+                        </div>
+                        <div class="form-group">
+                            <label for="descricao">
+                                <i class="fas fa-align-left"></i> Descrição
+                            </label>
+                            <input type="text" id="descricao" placeholder="Breve descrição do produto">
+                        </div>
                     </div>
     
                     <!-- SEÇÃO: Imagem do Produto -->
                     <div class="form-section">
-                        <h4><i class="fas fa-images"></i> Imagem do Produto</h4>
+                        <h4><i class="fas fa-image"></i> Imagem do Produto</h4>
                         
                         <div class="image-upload-container">
                             <!-- Área de Upload -->
@@ -283,7 +351,7 @@
                                     <i class="fas fa-cloud-upload-alt"></i>
                                     <h5>Clique para adicionar imagem</h5>
                                     <p>ou arraste e solte aqui</p>
-                                    <small>JPG, PNG, GIF, WebP • Máx. 32MB</small>
+                                    <small>JPG, PNG, GIF, WebP • Máx. 5MB</small>
                                 </div>
                                 
                                 <!-- Preview do arrastar -->
@@ -298,10 +366,10 @@
                                 <div class="preview-container">
                                     <img id="previewImage" src="" alt="Imagem do produto">
                                     <div class="preview-overlay">
-                                        <button type="button" class="btn-change" onclick="trocarImagem()">
+                                        <button type="button" class="btn-change" onclick="window.trocarImagem()">
                                             <i class="fas fa-sync-alt"></i> Trocar
                                         </button>
-                                        <button type="button" class="btn-remove" onclick="removerImagem()">
+                                        <button type="button" class="btn-remove" onclick="window.removerImagem()">
                                             <i class="fas fa-trash"></i> Remover
                                         </button>
                                     </div>
@@ -310,7 +378,7 @@
                                 <div class="image-info">
                                     <div class="info-row">
                                         <span class="label">Status:</span>
-                                        <span class="status-pending" id="imageStatus">Pronto para enviar</span>
+                                        <span class="status-pending" id="imageStatus">Pronto</span>
                                     </div>
                                 </div>
                             </div>
@@ -322,26 +390,23 @@
                                     <span id="progressPercent">0%</span>
                                 </div>
                                 <div class="progress-bar">
-                                    <div class="progress-fill" id="progressFill"></div>
+                                    <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="image-tips">
-                            <p><i class="fas fa-lightbulb"></i> Dica: Uma boa imagem aumenta as vendas!</p>
+                            <p><i class="fas fa-lightbulb"></i> Uma boa imagem aumenta as vendas!</p>
                         </div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="fornecedor">Fornecedor</label>
-                        <input type="text" id="fornecedor">
-                    </div>
                 </div>
+                
                 <div class="modal-footer">
-                    <button type="button" class="btn-cancel">Cancelar</button>
+                    <button type="button" class="btn-cancel">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
                     <button type="submit" class="btn-save">
-                        <i class="fas fa-save"></i>
-                        Salvar Produto
+                        <i class="fas fa-save"></i> Salvar Produto
                     </button>
                 </div>
             </form>
