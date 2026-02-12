@@ -21,7 +21,7 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 class GerenciadorCodigoBarrasHome {
     
     // ========================================
-    // INICIAR ESCUTA
+    // INICIAR ESCUTA - VERSÃO SIMPLES E FUNCIONAL
     // ========================================
     iniciarEscuta() {
         console.log('📷 Iniciando sistema de código de barras');
@@ -29,121 +29,23 @@ class GerenciadorCodigoBarrasHome {
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
         
-        // VARIÁVEL PARA CONTROLAR SE JÁ TEM 13 DÍGITOS
-        let tem13Digitos = false;
-        let valorAnterior = '';
-        
-        // 1. EVENTO KEYDOWN - CAPTURA ANTES DE DIGITAR
+        // ÚNICA REGRA: Se tiver 13 dígitos e tentar digitar, limpa!
         searchInput.addEventListener('keydown', (e) => {
-            // Só processar se for caractere imprimível (números)
+            // Só números
             if (e.key.length === 1 && /[0-9]/.test(e.key)) {
                 
-                // SE JÁ TEM 13 DÍGITOS E ESTÁ TENTANDO DIGITAR NOVO NÚMERO
+                // SE JÁ TEM 13 DÍGITOS, LIMPAR CAMPO!
                 if (searchInput.value.length === 13) {
-                    console.log('🧹 13 DÍGITOS DETECTADO - NOVA DIGITAÇÃO: LIMPANDO CAMPO!');
-                    
-                    // LIMPAR CAMPO COMPLETAMENTE!
-                    searchInput.value = '';
-                    tem13Digitos = false;
-                    
-                    // Vai permitir digitar o novo número normalmente
+                    console.log('🧹 13 DÍGITOS - NOVA DIGITAÇÃO: LIMPANDO CAMPO!');
+                    searchInput.value = ''; // LIMPA COMPLETAMENTE
                 }
             }
         });
         
-        // 2. EVENTO INPUT - PROCESSAR DIGITAÇÃO
-        searchInput.addEventListener('input', function(e) {
-            // Guardar valor anterior para controle
-            valorAnterior = this.value;
-            
-            // Remove QUALQUER caractere que não seja número
-            this.value = this.value.replace(/[^0-9]/g, '');
-            
-            // Limita a 13 dígitos (segurança)
-            if (this.value.length > 13) {
-                this.value = this.value.slice(0, 13);
-            }
-            
-            // VERIFICAR SE ATINGIU 13 DÍGITOS
-            if (this.value.length === 13) {
-                tem13Digitos = true;
-                console.log('🎯 13 dígitos atingidos! Processando busca...');
-                
-                // Feedback visual de sucesso
-                this.style.borderColor = '#27ae60';
-                this.style.backgroundColor = '#f0fff4';
-                
-                setTimeout(() => {
-                    this.style.borderColor = '';
-                    this.style.backgroundColor = '';
-                }, 500);
-                
-                // Disparar busca automaticamente
-                if (typeof buscarProdutoConsultaRapida === 'function') {
-                    buscarProdutoConsultaRapida(this.value);
-                }
-            } else {
-                tem13Digitos = false;
-            }
-        });
+        // O RESTO (input, paste, etc) já funciona pelo HTML!
+        // O HTML já tem: maxlength="13" e oninput="this.value = this.value.replace(/[^0-9]/g, '')"
         
-        // 3. PROCESSAR ENTER
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                
-                if (searchInput.value.length > 0) {
-                    if (typeof buscarProdutoConsultaRapida === 'function') {
-                        buscarProdutoConsultaRapida(searchInput.value);
-                    }
-                }
-            }
-        });
-        
-        // 4. PROCESSAR COLA
-        searchInput.addEventListener('paste', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const texto = e.clipboardData.getData('text');
-            const apenasNumeros = texto.replace(/[^0-9]/g, '').slice(0, 13);
-            
-            // LIMPAR CAMPO ANTES DE COLAR!
-            searchInput.value = '';
-            
-            // Colar o novo código
-            searchInput.value = apenasNumeros;
-            
-            if (apenasNumeros.length === 13) {
-                if (typeof buscarProdutoConsultaRapida === 'function') {
-                    buscarProdutoConsultaRapida(searchInput.value);
-                }
-            }
-        });
-        
-        // 5. BOTÃO LIMPAR
-        const searchClear = document.getElementById('searchClear');
-        if (searchClear) {
-            searchClear.addEventListener('click', () => {
-                searchInput.value = '';
-                tem13Digitos = false;
-                searchInput.focus();
-            });
-        }
-        
-        // 6. FOCAR NO INPUT QUANDO MODAL ABRIR
-        const modal = document.getElementById('quickSearchModal');
-        if (modal) {
-            modal.addEventListener('transitionend', () => {
-                if (modal.style.display === 'flex') {
-                    searchInput.value = '';
-                    tem13Digitos = false;
-                    searchInput.focus();
-                }
-            });
-        }
-        
-        console.log('✅ Sistema de código de barras pronto - LIMPEZA AUTOMÁTICA AO ATINGIR 13 DÍGITOS');
+        console.log('✅ Sistema de código de barras pronto!');
     }
 
     // ========================================
@@ -1753,6 +1655,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
