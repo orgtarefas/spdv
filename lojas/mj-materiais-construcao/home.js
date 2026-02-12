@@ -17,7 +17,7 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 
 
 // ============================================
-// CLASSE: GerenciadorCodigoBarrasHome - VERSÃO SIMPLES E INFALÍVEL
+// CLASSE: GerenciadorCodigoBarrasHome - VERSÃO 100% FUNCIONAL
 // ============================================
 class GerenciadorCodigoBarrasHome {
     constructor() {
@@ -27,11 +27,12 @@ class GerenciadorCodigoBarrasHome {
     }
 
     // ========================================
-    // INICIAR ESCUTA - VERSÃO SIMPLES
+    // INICIAR ESCUTA - SOMENTE KEYDOWN
     // ========================================
     iniciarEscuta() {
-        console.log('📷 Iniciando sistema de código de barras (versão simples)');
+        console.log('📷 Iniciando sistema de código de barras');
         
+        // REMOVER EVENTO INPUT ANTERIOR - VAMOS USAR SÓ KEYDOWN!
         document.addEventListener('keydown', (e) => {
             // Verificar se o modal está aberto
             const modal = document.getElementById('quickSearchModal');
@@ -56,16 +57,26 @@ class GerenciadorCodigoBarrasHome {
                 return;
             }
             
+            // Backspace/Delete - permitir apagar
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                return; // Comportamento normal
+            }
+            
+            // Setas, Home, End - permitir navegação
+            if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') {
+                return; // Comportamento normal
+            }
+            
             // Adicionar apenas números
             if (e.key.length === 1 && /[0-9]/.test(e.key)) {
-                this.bufferScan += e.key;
+                e.preventDefault(); // IMPEDIR COMPORTAMENTO PADRÃO!
                 
-                // Limitar a 13 dígitos no buffer
-                if (this.bufferScan.length > 13) {
-                    this.bufferScan = this.bufferScan.slice(-13); // Pega os últimos 13
+                // SÓ PERMITIR ADICIONAR SE TIVER MENOS DE 13 DÍGITOS
+                if (this.bufferScan.length < 13) {
+                    this.bufferScan += e.key;
                 }
                 
-                // ATUALIZAR O CAMPO EM TEMPO REAL
+                // ATUALIZAR O CAMPO
                 searchInput.value = this.bufferScan;
                 
                 // SE ATINGIU 13 DÍGITOS, PROCESSAR AUTOMATICAMENTE!
@@ -79,7 +90,7 @@ class GerenciadorCodigoBarrasHome {
                 
                 // Timer de segurança
                 this.scanTimer = setTimeout(() => {
-                    if (this.bufferScan.length > 0) {
+                    if (this.bufferScan.length > 0 && this.bufferScan.length < 13) {
                         this.processarCodigoLido(searchInput);
                     }
                 }, this.timeoutScan);
@@ -87,7 +98,7 @@ class GerenciadorCodigoBarrasHome {
         });
 
         // ========================================
-        // EVENTO DE COLA - TAMBÉM LIMITA A 13 DÍGITOS
+        // EVENTO DE COLA - CONTROLADO
         // ========================================
         document.addEventListener('paste', (e) => {
             const modal = document.getElementById('quickSearchModal');
@@ -104,47 +115,33 @@ class GerenciadorCodigoBarrasHome {
             const apenasNumeros = textoColado.replace(/[^0-9]/g, '');
             
             if (apenasNumeros.length > 0) {
-                // Limitar a 13 dígitos
+                // PEGAR SOMENTE OS PRIMEIROS 13 DÍGITOS
                 this.bufferScan = apenasNumeros.slice(0, 13);
                 searchInput.value = this.bufferScan;
                 
                 // Se tiver 13 dígitos, processar
                 if (this.bufferScan.length === 13) {
                     this.processarCodigoLido(searchInput);
-                } else {
-                    const event = new Event('input', { bubbles: true });
-                    searchInput.dispatchEvent(event);
                 }
             }
         });
 
         // ========================================
-        // INPUT DIRETO - GARANTIR LIMITE DE 13 DÍGITOS
+        // EVENTO INPUT - APENAS PARA GARANTIR CONSISTÊNCIA
         // ========================================
         document.addEventListener('input', (e) => {
             if (e.target.id === 'searchProductInput') {
-                let valor = e.target.value;
+                // Sincronizar buffer com o campo
+                this.bufferScan = e.target.value.replace(/[^0-9]/g, '').slice(0, 13);
                 
-                // Remover tudo que não é número
-                valor = valor.replace(/[^0-9]/g, '');
-                
-                // Limitar a 13 dígitos
-                if (valor.length > 13) {
-                    valor = valor.slice(0, 13);
-                }
-                
-                // Atualizar campo e buffer
-                e.target.value = valor;
-                this.bufferScan = valor;
-                
-                // Se tiver 13 dígitos, processar
-                if (valor.length === 13) {
-                    this.processarCodigoLido(e.target);
+                // Corrigir campo se necessário
+                if (e.target.value !== this.bufferScan) {
+                    e.target.value = this.bufferScan;
                 }
             }
         });
         
-        console.log('✅ Sistema de código de barras pronto - LIMITE DE 13 DÍGITOS');
+        console.log('✅ Sistema de código de barras pronto - MÁXIMO 13 DÍGITOS');
     }
 
     // ========================================
@@ -152,13 +149,12 @@ class GerenciadorCodigoBarrasHome {
     // ========================================
     processarCodigoLido(inputElement) {
         if (!this.bufferScan || this.bufferScan.length < 3) {
-            this.bufferScan = '';
             return;
         }
         
         const codigoLido = this.bufferScan;
         
-        console.log(`📷 Código completo: ${codigoLido} (${codigoLido.length} dígitos)`);
+        console.log(`📷 Código: ${codigoLido} (${codigoLido.length} dígitos)`);
         
         // Feedback visual
         inputElement.style.borderColor = '#27ae60';
@@ -174,9 +170,6 @@ class GerenciadorCodigoBarrasHome {
         inputElement.dispatchEvent(event);
         
         mostrarMensagem(`✅ Código: ${codigoLido}`, 'success', 1500);
-        
-        // NÃO LIMPAR O BUFFER - DEIXAR PARA A PRÓXIMA LEITURA SOBRESCREVER
-        // this.bufferScan = ''; // COMENTADO - NÃO LIMPAR!
     }
 
     // ========================================
@@ -1789,6 +1782,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
