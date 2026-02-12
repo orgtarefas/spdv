@@ -15,91 +15,45 @@ let atividades = [];
 // IMAGEM GERADA EM BASE64 QUANDO NÃO HOUVER IMAGENS
 const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjZjBmMWYyIiByeD0iMTAiLz4KPGNpcmNsZSBjeD0iNTAiIGN5PSI0MCIgcj0iMjAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIiBzdHJva2U9IiNlNzRjM2MiIHN0cm9rZS13aWR0aD0iMiIvPgo8cGF0aCBkPSJNNDAgMzVMNjAgNTVNNTAgNDVMNzAgMjVNNjAgMzVMMzAgNjVNNzAgMzVMNTAgNTVNMzAgMzVMMzUgMzBNNzAgNTVMNjUgNjBNMzUgNjVMMzAgNjBNNjUgMzVMNzAgMzAiIHN0cm9rZT0iI2U3NGMzYyIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8dGV4dCB4PSI1MCIgeT0iODUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMSIgZmlsbD0iIzZjNzU3ZCIgZm9udC13ZWlnaHQ9IjUwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VNIEZPVE88L3RleHQ+Cjwvc3ZnPg==";
 
-
 // ============================================
-// CLASSE: GerenciadorCodigoBarrasHome - VERSÃO 100% FUNCIONAL
+// CLASSE: GerenciadorCodigoBarrasHome - VERSÃO HARDCORE
 // ============================================
 class GerenciadorCodigoBarrasHome {
     constructor() {
-        this.bufferScan = '';
         this.scanTimer = null;
         this.timeoutScan = 50;
     }
 
     // ========================================
-    // INICIAR ESCUTA - SOMENTE KEYDOWN
+    // INICIAR ESCUTA - APENAS ENTER
     // ========================================
     iniciarEscuta() {
         console.log('📷 Iniciando sistema de código de barras');
         
-        // REMOVER EVENTO INPUT ANTERIOR - VAMOS USAR SÓ KEYDOWN!
+        // O INPUT JÁ TEM: 
+        // - onkeypress="return event.charCode >= 48 && event.charCode <= 57" (SÓ NÚMEROS)
+        // - maxlength="13" (MÁXIMO 13 DÍGITOS)
+        // - autocomplete="off" (SEM AUTOPREENCHIMENTO)
+        
+        // SÓ PRECISAMOS DO ENTER!
         document.addEventListener('keydown', (e) => {
-            // Verificar se o modal está aberto
             const modal = document.getElementById('quickSearchModal');
             const searchInput = document.getElementById('searchProductInput');
             
             if (!modal || modal.style.display !== 'flex' || !searchInput) return;
             
-            // Focar no input
-            if (document.activeElement !== searchInput) {
-                searchInput.focus();
-            }
-            
-            // Prevenir Enter e Tab
-            if (e.key === 'Enter' || e.key === 'Tab') {
-                e.preventDefault();
-            }
-            
             // Processar Enter
             if (e.key === 'Enter') {
                 e.preventDefault();
-                this.processarCodigoLido(searchInput);
-                return;
-            }
-            
-            // Backspace/Delete - permitir apagar
-            if (e.key === 'Backspace' || e.key === 'Delete') {
-                return; // Comportamento normal
-            }
-            
-            // Setas, Home, End - permitir navegação
-            if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') {
-                return; // Comportamento normal
-            }
-            
-            // Adicionar apenas números
-            if (e.key.length === 1 && /[0-9]/.test(e.key)) {
-                e.preventDefault(); // IMPEDIR COMPORTAMENTO PADRÃO!
                 
-                // SÓ PERMITIR ADICIONAR SE TIVER MENOS DE 13 DÍGITOS
-                if (this.bufferScan.length < 13) {
-                    this.bufferScan += e.key;
-                }
-                
-                // ATUALIZAR O CAMPO
-                searchInput.value = this.bufferScan;
-                
-                // SE ATINGIU 13 DÍGITOS, PROCESSAR AUTOMATICAMENTE!
-                if (this.bufferScan.length === 13) {
-                    console.log('🎯 13 dígitos atingidos! Processando...');
+                const codigo = searchInput.value.trim();
+                if (codigo.length >= 3) {
                     this.processarCodigoLido(searchInput);
                 }
-                
-                // Limpar timer anterior
-                clearTimeout(this.scanTimer);
-                
-                // Timer de segurança
-                this.scanTimer = setTimeout(() => {
-                    if (this.bufferScan.length > 0 && this.bufferScan.length < 13) {
-                        this.processarCodigoLido(searchInput);
-                    }
-                }, this.timeoutScan);
             }
         });
 
-        // ========================================
-        // EVENTO DE COLA - CONTROLADO
-        // ========================================
+        // EVENTO DE COLA - FORÇAR SÓ NÚMEROS E 13 DÍGITOS
         document.addEventListener('paste', (e) => {
             const modal = document.getElementById('quickSearchModal');
             const searchInput = document.getElementById('searchProductInput');
@@ -111,48 +65,40 @@ class GerenciadorCodigoBarrasHome {
             
             const textoColado = e.clipboardData.getData('text');
             
-            // Pegar apenas números
-            const apenasNumeros = textoColado.replace(/[^0-9]/g, '');
+            // 1. REMOVER TUDO QUE NÃO É NÚMERO
+            // 2. PEGAR SÓ OS PRIMEIROS 13 DÍGITOS
+            const apenasNumeros = textoColado.replace(/[^0-9]/g, '').slice(0, 13);
             
-            if (apenasNumeros.length > 0) {
-                // PEGAR SOMENTE OS PRIMEIROS 13 DÍGITOS
-                this.bufferScan = apenasNumeros.slice(0, 13);
-                searchInput.value = this.bufferScan;
-                
-                // Se tiver 13 dígitos, processar
-                if (this.bufferScan.length === 13) {
-                    this.processarCodigoLido(searchInput);
-                }
+            searchInput.value = apenasNumeros;
+            
+            if (apenasNumeros.length === 13) {
+                this.processarCodigoLido(searchInput);
             }
         });
 
-        // ========================================
-        // EVENTO INPUT - APENAS PARA GARANTIR CONSISTÊNCIA
-        // ========================================
+        // EVENTO DE INPUT - GARANTIR QUE SÓ TEM NÚMEROS E 13 DÍGITOS
         document.addEventListener('input', (e) => {
             if (e.target.id === 'searchProductInput') {
-                // Sincronizar buffer com o campo
-                this.bufferScan = e.target.value.replace(/[^0-9]/g, '').slice(0, 13);
+                // REMOVER QUALQUER LETRA QUE TENHA PASSADO
+                e.target.value = e.target.value.replace(/[^0-9]/g, '');
                 
-                // Corrigir campo se necessário
-                if (e.target.value !== this.bufferScan) {
-                    e.target.value = this.bufferScan;
+                // GARANTIR MÁXIMO 13 DÍGITOS
+                if (e.target.value.length > 13) {
+                    e.target.value = e.target.value.slice(0, 13);
                 }
             }
         });
         
-        console.log('✅ Sistema de código de barras pronto - MÁXIMO 13 DÍGITOS');
+        console.log('✅ Sistema de código de barras pronto');
     }
 
     // ========================================
     // PROCESSAR CÓDIGO LIDO
     // ========================================
     processarCodigoLido(inputElement) {
-        if (!this.bufferScan || this.bufferScan.length < 3) {
-            return;
-        }
+        const codigoLido = inputElement.value.trim();
         
-        const codigoLido = this.bufferScan;
+        if (!codigoLido || codigoLido.length < 3) return;
         
         console.log(`📷 Código: ${codigoLido} (${codigoLido.length} dígitos)`);
         
@@ -184,8 +130,7 @@ class GerenciadorCodigoBarrasHome {
             return;
         }
         
-        // LIMPAR TUDO!
-        this.bufferScan = '';
+        // LIMPAR CAMPO
         searchInput.value = '';
         searchInput.focus();
         searchInput.placeholder = '📷 Aguardando código de barras...';
@@ -218,8 +163,6 @@ class GerenciadorCodigoBarrasHome {
         
         const btnScan = document.getElementById('btnScanCode');
         if (btnScan) btnScan.classList.remove('active');
-        
-        this.bufferScan = '';
     }
 }
 
@@ -1782,6 +1725,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
