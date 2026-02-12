@@ -16,9 +16,12 @@ let searchInput, btnNovoProduto, btnRelatorioEstoque, btnRefresh, filterStatus;
 let estoqueTableBody, totalProdutosElement, totalEstoqueElement, baixoEstoqueElement, valorTotalElement;
 let currentCountElement, lastUpdateElement, userNameElement, btnLogout;
 let modalProduto, formProduto, produtoIdInput, modalTitle;
-let codigoInput, nomeInput, categoriaInput, unidadeVendaSelect, precoCustoInput;
+let codigoInput, codigoBarrasInput, nomeInput, categoriaInput, unidadeVendaSelect, precoCustoInput;
 let precoInput, quantidadeInput, estoqueMinimoInput, descricaoTextarea, fornecedorInput;
+let valorUnidadeInput, tipoUnidadeSelect, totalEstoqueUnidadeInput, totalEstoqueTipoSpan;
 
+// GERENCIADOR DE CÓDIGO DE BARRAS
+let gerenciadorCodigoBarras; 
 // NOVOS ELEMENTOS PARA UNIDADE COM VALOR
 let valorUnidadeInput, tipoUnidadeSelect, totalEstoqueUnidadeInput, totalEstoqueTipoSpan;
 
@@ -55,6 +58,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         inicializarElementosDOM();
         atualizarInterfaceLoja();
+        
+        // INICIALIZAR GERENCIADOR DE CÓDIGO DE BARRAS
+        gerenciadorCodigoBarras = new GerenciadorCodigoBarras();
+        window.gerenciadorCodigoBarras = gerenciadorCodigoBarras;
+        await gerenciadorCodigoBarras.inicializar();
+        
         configurarEventos();
         await carregarDadosIniciais();
         atualizarUltimaAtualizacao();
@@ -98,6 +107,7 @@ function inicializarElementosDOM() {
     modalTitle = document.getElementById('modalTitle');
     
     codigoInput = document.getElementById('codigo');
+    codigoBarrasInput = document.getElementById('codigo_barras'); // NOVO
     nomeInput = document.getElementById('nome');
     categoriaInput = document.getElementById('categoria');
     unidadeVendaSelect = document.getElementById('unidade_venda');
@@ -108,13 +118,11 @@ function inicializarElementosDOM() {
     descricaoTextarea = document.getElementById('descricao');
     fornecedorInput = document.getElementById('fornecedor');
     
-    // NOVOS ELEMENTOS PARA UNIDADE COM VALOR
     valorUnidadeInput = document.getElementById('valor_unidade');
     tipoUnidadeSelect = document.getElementById('tipo_unidade');
     totalEstoqueUnidadeInput = document.getElementById('total_estoque_unidade');
     totalEstoqueTipoSpan = document.getElementById('total_estoque_tipo');
     
-    // Elementos de imagem
     uploadArea = document.getElementById('uploadArea');
     fileInput = document.getElementById('imagemProduto');
     previewImage = document.getElementById('previewImage');
@@ -1389,6 +1397,16 @@ function abrirModalNovoProduto() {
         codigoInput.value = `${prefixo}-${Date.now().toString().slice(-6)}`;
     }
     
+    // LIMPAR CÓDIGO DE BARRAS
+    if (codigoBarrasInput) {
+        codigoBarrasInput.value = '';
+        codigoBarrasInput.classList.remove('barcode-duplicate', 'barcode-valid');
+    }
+    
+    // Remover feedback
+    const feedback = document.getElementById('codigoBarrasFeedback');
+    if (feedback) feedback.style.display = 'none';
+    
     if (categoriaInput) {
         const datalist = document.getElementById('categoriasList');
         if (datalist) {
@@ -1402,7 +1420,6 @@ function abrirModalNovoProduto() {
         categoriaInput.value = '';
     }
     
-    // Configurar valores padrão
     if (quantidadeInput) quantidadeInput.value = '0';
     if (estoqueMinimoInput) estoqueMinimoInput.value = '5';
     if (precoCustoInput) precoCustoInput.value = '0.00';
@@ -1410,9 +1427,7 @@ function abrirModalNovoProduto() {
     if (valorUnidadeInput) valorUnidadeInput.value = '1';
     if (tipoUnidadeSelect) tipoUnidadeSelect.value = 'unid';
     
-    // Calcular total inicial
     calcularTotalUnidade();
-    
     removerImagem();
     
     if (modalProduto) {
@@ -1436,30 +1451,34 @@ async function abrirModalEditar(produtoId) {
             modalTitle.textContent = 'Editar Produto';
             
             if (codigoInput) codigoInput.value = produto.codigo || '';
+            
+            // CARREGAR CÓDIGO DE BARRAS
+            if (codigoBarrasInput) {
+                codigoBarrasInput.value = produto.codigo_barras || '';
+                codigoBarrasInput.classList.remove('barcode-duplicate', 'barcode-valid');
+            }
+            
             if (nomeInput) nomeInput.value = produto.nome || '';
             if (categoriaInput) categoriaInput.value = produto.categoria || '';
             if (unidadeVendaSelect) unidadeVendaSelect.value = produto.unidade_venda || produto.unidade || 'UN';
             
-            // CORREÇÃO AQUI: Carregar valores da unidade corretamente
             if (valorUnidadeInput) {
-                // Tentar primeiro os campos novos, depois os antigos para compatibilidade
                 if (produto.valor_unidade !== undefined) {
                     valorUnidadeInput.value = produto.valor_unidade;
                 } else if (produto.peso_por_unidade !== undefined) {
                     valorUnidadeInput.value = produto.peso_por_unidade;
                 } else {
-                    valorUnidadeInput.value = 1; // Valor padrão
+                    valorUnidadeInput.value = 1;
                 }
             }
             
             if (tipoUnidadeSelect) {
-                // Tentar primeiro os campos novos, depois os antigos para compatibilidade
                 if (produto.tipo_unidade !== undefined) {
                     tipoUnidadeSelect.value = produto.tipo_unidade;
                 } else if (produto.unidade_peso !== undefined) {
                     tipoUnidadeSelect.value = produto.unidade_peso;
                 } else {
-                    tipoUnidadeSelect.value = 'unid'; // Valor padrão
+                    tipoUnidadeSelect.value = 'unid';
                 }
             }
             
@@ -1470,12 +1489,10 @@ async function abrirModalEditar(produtoId) {
             if (descricaoTextarea) descricaoTextarea.value = produto.descricao || '';
             if (fornecedorInput) fornecedorInput.value = produto.fornecedor || '';
             
-            // Calcular total - IMPORTANTE: Executar após carregar todos os valores
             setTimeout(() => {
                 calcularTotalUnidade();
             }, 100);
 
-            // Carregar imagem se existir
             if (produto.imagens && produto.imagens.principal) {
                 mostrarImagemExistente(produto.imagens);
             } else {
@@ -1525,10 +1542,24 @@ async function salvarProduto(e) {
             throw new Error('Estoque mínimo deve ser um número positivo ou zero');
         }
         
-        // CORREÇÃO: Capturar valores da unidade corretamente
-        const valorUnidade = parseFloat(valorUnidadeInput ? valorUnidadeInput.value : 1) || 1;
+        const valorUnidade = parseFloat(valorUnidadeInput ? valorUnidadeInput.value.replace(',', '.') : 1) || 1;
         const tipoUnidade = tipoUnidadeSelect ? tipoUnidadeSelect.value : 'unid';
         
+        // VALIDAR CÓDIGO DE BARRAS
+        const codigoBarras = codigoBarrasInput ? codigoBarrasInput.value.trim() : '';
+        
+        if (codigoBarras) {
+            const duplicado = await gerenciadorCodigoBarras.verificarCodigoDuplicado(
+                codigoBarras, 
+                produtoIdInput.value
+            );
+            
+            if (duplicado) {
+                throw new Error('❌ Este código de barras já está cadastrado para outro produto!');
+            }
+        }
+        
+        // PROCESSAR IMAGEM
         let dadosImagem = null;
         
         if (imagemAtual instanceof File) {
@@ -1548,7 +1579,7 @@ async function salvarProduto(e) {
                         uploaded_at: new Date().toISOString()
                     }
                 };
-                console.log('✅ Upload de imagem bem-sucedido:', uploadResult.url.substring(0, 50) + '...');
+                console.log('✅ Upload de imagem bem-sucedido');
             } else {
                 dadosImagem = {
                     imagens: {
@@ -1589,20 +1620,17 @@ async function salvarProduto(e) {
         }
         
         const dadosProduto = {
+            codigo: codigoInput ? codigoInput.value.trim() : '',
+            codigo_barras: codigoBarras, // NOVO CAMPO
             nome: nomeInput.value.trim(),
             categoria: categoriaInput ? categoriaInput.value.trim() : 'Sem Categoria',
             unidade_venda: unidadeVendaSelect ? unidadeVendaSelect.value : 'UN',
-            
-            // CAMPOS NOVOS - valor por unidade
             valor_unidade: valorUnidade,
             tipo_unidade: tipoUnidade,
-            
-            // Campos antigos para compatibilidade
-            peso_por_unidade: valorUnidade,
-            unidade_peso: tipoUnidade,
-            
-            preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value.replace(',', '.')) || 0 : 0,
-            preco: precoInput ? parseFloat(precoInput.value.replace(',', '.')) || 0 : 0,
+            peso_por_unidade: valorUnidade, // compatibilidade
+            unidade_peso: tipoUnidade, // compatibilidade
+            preco_custo: precoCustoInput ? parseFloat(precoCustoInput.value) || 0 : 0,
+            preco: precoInput ? parseFloat(precoInput.value) || 0 : 0,
             quantidade: quantidade,
             estoque_minimo: estoqueMinimo,
             descricao: descricaoTextarea ? descricaoTextarea.value.trim() : '',
@@ -1614,28 +1642,11 @@ async function salvarProduto(e) {
             loja_nome: lojaServices.dadosLoja?.nome || lojaServices.lojaId
         };
         
-        if (codigoInput && codigoInput.value.trim()) {
-            dadosProduto.codigo = codigoInput.value.trim();
-        } else {
-            const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
-            dadosProduto.codigo = `${prefixo}-${Date.now().toString().slice(-8)}`;
-        }
-        
-        // Calcular total da unidade para exibição
-        if (dadosProduto.valor_unidade > 0 && dadosProduto.quantidade > 0) {
-            dadosProduto.total_unidade = dadosProduto.valor_unidade * dadosProduto.quantidade;
-            dadosProduto.tipo_unidade_total = dadosProduto.tipo_unidade;
-        }
-        
-        Object.assign(dadosProduto, dadosImagem);
-        
         if (dadosProduto.preco <= 0) {
             throw new Error('O preço de venda deve ser maior que R$ 0,00');
         }
         
-        if (dadosProduto.quantidade < 0) {
-            throw new Error('A quantidade não pode ser negativa');
-        }
+        Object.assign(dadosProduto, dadosImagem);
         
         const produtoId = produtoIdInput.value;
         let resultadoFirebase = null;
@@ -1654,16 +1665,14 @@ async function salvarProduto(e) {
             throw new Error(resultadoFirebase?.error || 'Erro ao salvar no banco de dados');
         }
         
-        console.log('📊 Dados salvos no Firebase com sucesso');
-        console.log('📐 Dados da unidade:', {
-            valor_unidade: dadosProduto.valor_unidade,
-            tipo_unidade: dadosProduto.tipo_unidade,
-            quantidade: dadosProduto.quantidade
-        });
-        
+        // LIMPAR ESTADO
         imagemAtual = null;
         imagemPreviewURL = null;
         imagemUploadResult = null;
+        
+        if (gerenciadorCodigoBarras && gerenciadorCodigoBarras.modoScanAtivo) {
+            gerenciadorCodigoBarras.desativarModoScan();
+        }
         
         if (modalProduto) {
             modalProduto.style.display = 'none';
@@ -1677,6 +1686,7 @@ async function salvarProduto(e) {
             if (precoInput) precoInput.value = '0.00';
             if (valorUnidadeInput) valorUnidadeInput.value = '1';
             if (tipoUnidadeSelect) tipoUnidadeSelect.value = 'unid';
+            if (codigoBarrasInput) codigoBarrasInput.value = ''; // LIMPAR
             calcularTotalUnidade();
         }
         
@@ -1684,35 +1694,13 @@ async function salvarProduto(e) {
         await carregarProdutos();
         atualizarEstatisticas();
         
-        if (!produtoId) {
-            setTimeout(() => {
-                const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
-                if (codigoInput) {
-                    codigoInput.value = `${prefixo}-${Date.now().toString().slice(-8)}`;
-                }
-            }, 100);
-        }
-        
     } catch (error) {
         console.error('❌ Erro ao salvar produto:', error);
-        
-        let mensagemErro = error.message;
-        
-        if (error.message.includes('permission')) {
-            mensagemErro = 'Você não tem permissão para salvar produtos. Verifique seu acesso.';
-        } else if (error.message.includes('network')) {
-            mensagemErro = 'Erro de conexão. Verifique sua internet e tente novamente.';
-        } else if (error.message.includes('Firebase')) {
-            mensagemErro = 'Erro no servidor. Tente novamente em alguns instantes.';
-        }
-        
-        mostrarMensagem(mensagemErro, 'error');
-        
+        mostrarMensagem(error.message || 'Erro ao salvar produto', 'error');
     } finally {
         esconderLoading();
     }
 }
-
 // ============================================
 // 22. EXCLUIR PRODUTO
 // ============================================
@@ -1951,6 +1939,439 @@ window.trocarImagem = trocarImagem;
 window.removerImagem = removerImagem;
 
 console.log("✅ Sistema de estoque dinâmico completamente carregado!");
+
+// ============================================
+// CLASSE: GerenciadorCodigoBarras
+// ============================================
+// Gerencia leitura, validação e geração de códigos de barras
+// ============================================
+class GerenciadorCodigoBarras {
+    constructor() {
+        this.modoScanAtivo = false;
+        this.bufferScan = '';
+        this.scanTimer = null;
+        this.leitorConectado = false;
+        this.inputAtual = null;
+        this.callbackLeitura = null;
+        this.timeoutScan = 100;
+        this.ultimoCodigoLido = '';
+        this.tempoUltimoCodigo = 0;
+    }
+
+    // ========================================
+    // 1. INICIALIZAR LEITOR
+    // ========================================
+    async inicializar() {
+        console.log('🔍 Inicializando sistema de código de barras...');
+        
+        await this.verificarLeitorConectado();
+        this.iniciarEscutaGlobal();
+        this.configurarBotoes();
+        
+        console.log(`✅ Sistema de código de barras inicializado. Leitor: ${this.leitorConectado ? 'CONECTADO' : 'NÃO DETECTADO'}`);
+        
+        return this.leitorConectado;
+    }
+
+    // ========================================
+    // 2. VERIFICAR LEITOR CONECTADO
+    // ========================================
+    async verificarLeitorConectado() {
+        try {
+            if ('usb' in navigator) {
+                const dispositivos = await navigator.usb.getDevices();
+                this.leitorConectado = dispositivos.some(d => 
+                    d.vendorId === 0x067b || 
+                    d.vendorId === 0x0403 || 
+                    d.vendorId === 0x1a86 ||
+                    d.productName?.toLowerCase().includes('barcode') ||
+                    d.productName?.toLowerCase().includes('scanner') ||
+                    d.productName?.toLowerCase().includes('leitor')
+                );
+            }
+            
+            if ('serial' in navigator && !this.leitorConectado) {
+                const ports = await navigator.serial.getPorts();
+                this.leitorConectado = ports.length > 0;
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ Erro ao verificar leitor:', error);
+            this.leitorConectado = false;
+        }
+        
+        return this.leitorConectado;
+    }
+
+    // ========================================
+    // 3. INICIAR ESCUTA GLOBAL DO TECLADO
+    // ========================================
+    iniciarEscutaGlobal() {
+        document.addEventListener('keydown', (e) => {
+            if (!this.modoScanAtivo) return;
+            
+            // Prevenir comportamento padrão para teclas de controle
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+            }
+            
+            // Processar Enter
+            if (e.key === 'Enter') {
+                this.processarCodigoLido();
+                return;
+            }
+            
+            // Adicionar caractere ao buffer
+            if (e.key.length === 1) {
+                this.bufferScan += e.key;
+                
+                clearTimeout(this.scanTimer);
+                this.scanTimer = setTimeout(() => {
+                    this.processarCodigoLido();
+                }, this.timeoutScan);
+            }
+        });
+    }
+
+    // ========================================
+    // 4. ATIVAR MODO SCAN
+    // ========================================
+    ativarModoScan(inputElement, callback) {
+        if (this.modoScanAtivo) {
+            this.desativarModoScan();
+        }
+        
+        this.inputAtual = inputElement;
+        this.callbackLeitura = callback;
+        this.modoScanAtivo = true;
+        this.bufferScan = '';
+        
+        if (this.inputAtual) {
+            this.inputAtual.classList.add('scan-mode-active');
+            this.inputAtual.focus();
+            this.inputAtual.value = '';
+            this.inputAtual.placeholder = 'Aguardando leitura do código...';
+        }
+        
+        this.mostrarIndicadorScan();
+        this.atualizarBotaoScan(true);
+        
+        mostrarMensagem('📷 Modo scan ativado. Aponte o leitor para o código de barras.', 'info', 3000);
+        console.log('📷 Modo scan ATIVADO');
+        
+        return true;
+    }
+
+    // ========================================
+    // 5. DESATIVAR MODO SCAN
+    // ========================================
+    desativarModoScan() {
+        this.modoScanAtivo = false;
+        this.bufferScan = '';
+        this.callbackLeitura = null;
+        
+        if (this.inputAtual) {
+            this.inputAtual.classList.remove('scan-mode-active');
+            this.inputAtual.placeholder = 'Digite ou use o leitor de código de barras';
+        }
+        
+        this.inputAtual = null;
+        this.removerIndicadorScan();
+        this.atualizarBotaoScan(false);
+        
+        console.log('📷 Modo scan DESATIVADO');
+    }
+
+    // ========================================
+    // 6. PROCESSAR CÓDIGO LIDO
+    // ========================================
+    processarCodigoLido() {
+        if (!this.modoScanAtivo || !this.bufferScan) {
+            this.bufferScan = '';
+            return;
+        }
+        
+        const codigoLido = this.bufferScan.trim();
+        this.bufferScan = '';
+        
+        if (codigoLido.length < 3) {
+            console.log('⚠️ Código muito curto:', codigoLido);
+            return;
+        }
+        
+        console.log(`📷 Código de barras lido: ${codigoLido}`);
+        
+        // Verificar duplicata rápida (mesmo código em menos de 2 segundos)
+        const agora = Date.now();
+        if (codigoLido === this.ultimoCodigoLido && (agora - this.tempoUltimoCodigo) < 2000) {
+            console.log('⚠️ Código duplicado ignorado');
+            return;
+        }
+        
+        this.ultimoCodigoLido = codigoLido;
+        this.tempoUltimoCodigo = agora;
+        
+        // Chamar callback
+        if (this.callbackLeitura) {
+            this.callbackLeitura(codigoLido);
+        }
+        
+        // Preencher campo
+        if (this.inputAtual) {
+            this.inputAtual.value = codigoLido;
+            this.inputAtual.classList.add('barcode-valid');
+            
+            const event = new Event('input', { bubbles: true });
+            this.inputAtual.dispatchEvent(event);
+            
+            setTimeout(() => {
+                if (this.inputAtual) {
+                    this.inputAtual.classList.remove('barcode-valid');
+                }
+            }, 2000);
+        }
+        
+        // Feedback visual
+        this.mostrarFeedback('✓ Código lido com sucesso!', 'success');
+        
+        // Desativar modo scan automaticamente
+        setTimeout(() => {
+            this.desativarModoScan();
+        }, 1500);
+    }
+
+    // ========================================
+    // 7. VALIDAR CÓDIGO DE BARRAS
+    // ========================================
+    validarFormatoCodigoBarras(codigo) {
+        if (!codigo) return false;
+        
+        const codigoStr = String(codigo).trim();
+        
+        // EAN-13
+        if (/^\d{13}$/.test(codigoStr)) return true;
+        
+        // EAN-8
+        if (/^\d{8}$/.test(codigoStr)) return true;
+        
+        // UPC-A
+        if (/^\d{12}$/.test(codigoStr)) return true;
+        
+        // CODE 39, CODE 128
+        if (/^[A-Z0-9\-]{3,30}$/.test(codigoStr)) return true;
+        
+        // Código interno
+        if (/^[A-Z]{2,3}-\d{4,}$/.test(codigoStr)) return true;
+        
+        return true; // Aceitar qualquer código por enquanto
+    }
+
+    // ========================================
+    // 8. VERIFICAR CÓDIGO DUPLICADO
+    // ========================================
+    async verificarCodigoDuplicado(codigo, produtoIdIgnorar = null) {
+        if (!codigo || !produtos) return false;
+        
+        const codigoStr = String(codigo).trim();
+        if (!codigoStr) return false;
+        
+        const produtoExistente = produtos.find(p => 
+            p.codigo_barras === codigoStr && 
+            p.id !== produtoIdIgnorar
+        );
+        
+        return !!produtoExistente;
+    }
+
+    // ========================================
+    // 9. GERAR CÓDIGO DE BARRAS
+    // ========================================
+    gerarCodigoBarras() {
+        const prefixo = lojaServices.lojaId.slice(0, 2).toUpperCase();
+        const timestamp = Date.now().toString().slice(-10);
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        
+        let codigo = `${prefixo}${timestamp}${random}`;
+        
+        if (codigo.length > 13) {
+            codigo = codigo.slice(0, 13);
+        }
+        
+        return codigo;
+    }
+
+    // ========================================
+    // 10. GERAR CÓDIGO DO INTERNO
+    // ========================================
+    gerarCodigoBarrasDoCodigoInterno(codigoInterno) {
+        if (!codigoInterno) return this.gerarCodigoBarras();
+        
+        const codigoLimpo = String(codigoInterno).replace(/[^A-Z0-9]/gi, '').toUpperCase();
+        
+        if (codigoLimpo.length < 8) {
+            return codigoLimpo.padEnd(13, '0');
+        }
+        
+        if (codigoLimpo.length > 13) {
+            return codigoLimpo.slice(0, 13);
+        }
+        
+        return codigoLimpo;
+    }
+
+    // ========================================
+    // 11. CONFIGURAR BOTÕES
+    // ========================================
+    configurarBotoes() {
+        const btnLer = document.getElementById('btnLerCodigoBarras');
+        const btnGerar = document.getElementById('btnGerarCodigoBarras');
+        const codigoBarrasInput = document.getElementById('codigo_barras');
+        
+        if (btnLer) {
+            btnLer.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                if (this.modoScanAtivo) {
+                    this.desativarModoScan();
+                } else {
+                    this.ativarModoScan(codigoBarrasInput, async (codigo) => {
+                        // Verificar duplicidade automaticamente
+                        const produtoId = document.getElementById('produtoId')?.value;
+                        const duplicado = await this.verificarCodigoDuplicado(codigo, produtoId);
+                        
+                        if (duplicado) {
+                            this.mostrarFeedback('⚠️ Código já cadastrado!', 'warning');
+                            if (codigoBarrasInput) {
+                                codigoBarrasInput.classList.add('barcode-duplicate');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        if (btnGerar) {
+            btnGerar.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                if (!codigoBarrasInput) return;
+                
+                const codigoInterno = document.getElementById('codigo')?.value || '';
+                let codigoBarras;
+                
+                if (codigoInterno) {
+                    codigoBarras = this.gerarCodigoBarrasDoCodigoInterno(codigoInterno);
+                } else {
+                    codigoBarras = this.gerarCodigoBarras();
+                }
+                
+                codigoBarrasInput.value = codigoBarras;
+                codigoBarrasInput.classList.add('barcode-valid');
+                
+                const event = new Event('input', { bubbles: true });
+                codigoBarrasInput.dispatchEvent(event);
+                
+                setTimeout(() => {
+                    codigoBarrasInput.classList.remove('barcode-valid');
+                }, 2000);
+                
+                mostrarMensagem(`Código gerado: ${codigoBarras}`, 'success', 3000);
+            });
+        }
+        
+        if (codigoBarrasInput) {
+            codigoBarrasInput.addEventListener('blur', async () => {
+                const codigo = codigoBarrasInput.value.trim();
+                if (!codigo) return;
+                
+                const produtoId = document.getElementById('produtoId')?.value;
+                const duplicado = await this.verificarCodigoDuplicado(codigo, produtoId);
+                
+                const feedback = document.getElementById('codigoBarrasFeedback');
+                if (feedback) {
+                    if (duplicado) {
+                        codigoBarrasInput.classList.add('barcode-duplicate');
+                        feedback.style.display = 'block';
+                        feedback.className = 'barcode-feedback warning';
+                        feedback.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Este código de barras já está cadastrado para outro produto!';
+                    } else {
+                        codigoBarrasInput.classList.remove('barcode-duplicate');
+                        feedback.style.display = 'none';
+                    }
+                }
+            });
+            
+            codigoBarrasInput.addEventListener('input', () => {
+                codigoBarrasInput.classList.remove('barcode-duplicate', 'barcode-valid');
+                const feedback = document.getElementById('codigoBarrasFeedback');
+                if (feedback) {
+                    feedback.style.display = 'none';
+                }
+            });
+        }
+    }
+
+    // ========================================
+    // 12. ATUALIZAR BOTÃO SCAN
+    // ========================================
+    atualizarBotaoScan(ativo) {
+        const btnLer = document.getElementById('btnLerCodigoBarras');
+        if (!btnLer) return;
+        
+        if (ativo) {
+            btnLer.classList.add('active');
+            btnLer.innerHTML = '<i class="fas fa-stop-circle"></i>';
+            btnLer.title = 'Parar leitura';
+        } else {
+            btnLer.classList.remove('active');
+            btnLer.innerHTML = '<i class="fas fa-camera"></i>';
+            btnLer.title = 'Ler código de barras';
+        }
+    }
+
+    // ========================================
+    // 13. MOSTRAR INDICADOR SCAN
+    // ========================================
+    mostrarIndicadorScan() {
+        this.removerIndicadorScan();
+        
+        const status = document.createElement('div');
+        status.id = 'barcodeReaderStatus';
+        status.className = 'barcode-reader-status';
+        status.innerHTML = `
+            <i class="fas fa-barcode"></i>
+            <div class="status-content">
+                <strong>📷 Modo Scan Ativo</strong>
+                <small>Aponte o leitor para o código de barras</small>
+            </div>
+            <button class="btn-stop-scan" onclick="window.gerenciadorCodigoBarras.desativarModoScan()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        document.body.appendChild(status);
+    }
+
+    // ========================================
+    // 14. REMOVER INDICADOR SCAN
+    // ========================================
+    removerIndicadorScan() {
+        const status = document.getElementById('barcodeReaderStatus');
+        if (status) {
+            status.remove();
+        }
+    }
+
+    // ========================================
+    // 15. MOSTRAR FEEDBACK
+    // ========================================
+    mostrarFeedback(texto, tipo) {
+        if (typeof mostrarMensagem === 'function') {
+            mostrarMensagem(texto, tipo, 2000);
+        }
+    }
+}
+
 
 
 
