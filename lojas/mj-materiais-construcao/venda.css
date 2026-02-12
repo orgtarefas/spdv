@@ -1565,6 +1565,84 @@ body {
 }
 
 
+/* Botão de impressão */
+.btn-print-cart {
+    background: linear-gradient(135deg, #9b59b6, #8e44ad);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-print-cart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(155, 89, 182, 0.3);
+}
+
+.btn-print-cart i {
+    font-size: 16px;
+}
+
+/* Modal de configuração */
+.printer-config {
+    padding: 10px;
+}
+
+.config-group {
+    margin-bottom: 15px;
+}
+
+.config-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: #34495e;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    outline: none;
+}
+
+.btn-test {
+    background: #f39c12;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-test:hover {
+    background: #e67e22;
+}
+
+.info-box {
+    background: #e8f4fd;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
 
 
 
