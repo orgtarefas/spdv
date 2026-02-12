@@ -21,7 +21,7 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 class GerenciadorCodigoBarrasHome {
     
     iniciarEscuta() {
-        console.log('📷 Iniciando sistema de código de barras');
+        console.log('📷 Iniciando sistema de código de barras 1');
         
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
@@ -1700,6 +1700,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
 })();
 
 console.log("✅ Sistema home dinâmico completamente carregado!");
+
 
 
 
