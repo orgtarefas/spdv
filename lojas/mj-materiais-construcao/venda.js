@@ -942,9 +942,10 @@ async function atualizarEstoqueProdutos() {
         for (const item of vendaManager.carrinho) {
             const produto = vendaManager.produtos.find(p => p.id === item.id);
             if (produto) {
-                await lojaServices.atualizarEstoqueProduto(
+                await lojaServices.atualizarEstoque(
                     item.id, 
-                    produto.quantidade - item.quantidade
+                    item.quantidade, 
+                    'saida'  // ou 'entrada' dependendo da implementação
                 );
             }
         }
@@ -1676,6 +1677,7 @@ class ServicosAvancadosPDV {
         mostrarMensagem('Teste de impressão enviado!', 'success');
     }
 }
+
 
 
 
