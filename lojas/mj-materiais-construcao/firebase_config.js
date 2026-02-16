@@ -468,6 +468,38 @@ class LojaManager {
     async criarVenda(dadosVenda) {
         try {
             const resultado = await runTransaction(db, async (transaction) => {
+                // 1️⃣ PRIMEIRO: FAZER TODAS AS LEITURAS
+                const produtosRefs = [];
+                const produtosData = [];
+                
+                for (const item of dadosVenda.itens) {
+                    const produtoRef = doc(db, this.bancoEstoque, item.produto_id);
+                    const produtoDoc = await transaction.get(produtoRef);
+                    
+                    if (!produtoDoc.exists()) {
+                        throw new Error(`Produto ${item.produto_id} não encontrado`);
+                    }
+                    
+                    const produtoData = produtoDoc.data();
+                    
+                    if (produtoData.loja_id !== this.lojaId) {
+                        throw new Error(`Produto não pertence a esta loja`);
+                    }
+                    
+                    const estoqueAtual = produtoData.quantidade || 0;
+                    const quantidadeVenda = item.quantidade || 0;
+                    
+                    if (estoqueAtual < quantidadeVenda) {
+                        throw new Error(`Estoque insuficiente para ${produtoData.nome}`);
+                    }
+                    
+                    produtosRefs.push({
+                        ref: produtoRef,
+                        quantidade: quantidadeVenda
+                    });
+                }
+                
+                // 2️⃣ DEPOIS: FAZER TODAS AS ESCRITAS
                 const vendasRef = collection(db, this.bancoVendas);
                 const novaVendaRef = doc(vendasRef);
                 
@@ -487,29 +519,10 @@ class LojaManager {
                 
                 transaction.set(novaVendaRef, vendaData);
                 
-                for (const item of dadosVenda.itens) {
-                    const produtoRef = doc(db, this.bancoEstoque, item.produto_id);
-                    
-                    const produtoDoc = await transaction.get(produtoRef);
-                    if (!produtoDoc.exists()) {
-                        throw new Error(`Produto ${item.produto_id} não encontrado`);
-                    }
-                    
-                    const produtoData = produtoDoc.data();
-                    
-                    if (produtoData.loja_id !== this.lojaId) {
-                        throw new Error(`Produto não pertence a esta loja`);
-                    }
-                    
-                    const estoqueAtual = produtoData.quantidade || 0;
-                    const quantidadeVenda = item.quantidade || 0;
-                    
-                    if (estoqueAtual < quantidadeVenda) {
-                        throw new Error(`Estoque insuficiente para ${produtoData.nome}`);
-                    }
-                    
-                    transaction.update(produtoRef, {
-                        quantidade: increment(-quantidadeVenda),
+                // Atualizar estoque de todos os produtos
+                for (const { ref, quantidade } of produtosRefs) {
+                    transaction.update(ref, {
+                        quantidade: increment(-quantidade),
                         data_atualizacao: serverTimestamp()
                     });
                 }
@@ -808,3 +821,4 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
+
