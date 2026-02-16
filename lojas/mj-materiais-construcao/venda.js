@@ -914,7 +914,7 @@ async function finalizarVenda() {
             status: 'concluida'
         };
         
-        const resultado = await lojaServices.registrarVenda(vendaData);
+        const resultado = await lojaServices.criarVenda(vendaData);
         
         if (resultado.success) {
             await atualizarEstoqueProdutos();
@@ -1676,5 +1676,6 @@ class ServicosAvancadosPDV {
         mostrarMensagem('Teste de impressão enviado!', 'success');
     }
 }
+
 
 
