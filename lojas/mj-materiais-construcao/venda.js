@@ -498,16 +498,45 @@ async function carregarProdutos() {
 // ============================================
 function exibirProdutos(produtos) {
     const productsGrid = document.getElementById('productsGrid');
-    if (!productsGrid) return;
-    
-    if (!produtos || produtos.length === 0) {
-        document.getElementById('loadingProducts').style.display = 'none';
-        document.getElementById('emptyProducts').style.display = 'flex';
+    if (!productsGrid) {
+        console.warn('Elemento productsGrid não encontrado');
         return;
     }
     
-    document.getElementById('loadingProducts').style.display = 'none';
-    document.getElementById('emptyProducts').style.display = 'none';
+    // Verificar se os elementos existem antes de acessar
+    const loadingProducts = document.getElementById('loadingProducts');
+    const emptyProducts = document.getElementById('emptyProducts');
+    
+    if (!produtos || produtos.length === 0) {
+        // Ocultar loading se existir
+        if (loadingProducts) {
+            loadingProducts.style.display = 'none';
+        }
+        
+        // Mostrar mensagem de vazio se existir
+        if (emptyProducts) {
+            emptyProducts.style.display = 'flex';
+        } else {
+            // Se não existir elemento de vazio, mostrar mensagem na grid
+            productsGrid.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-box-open"></i>
+                    <p>Nenhum produto disponível</p>
+                    <small>Cadastre produtos no estoque</small>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    // Ocultar loading e empty se existirem
+    if (loadingProducts) {
+        loadingProducts.style.display = 'none';
+    }
+    
+    if (emptyProducts) {
+        emptyProducts.style.display = 'none';
+    }
     
     let html = '';
     produtos.forEach(produto => {
@@ -517,32 +546,42 @@ function exibirProdutos(produtos) {
         const imagemURL = obterURLImagem(produto, 'thumb');
         const isPlaceholder = imagemURL.includes('data:image/svg+xml');
         
+        // Formatar quantidade com unidade
+        const quantidadeFormatada = formatarQuantidadeComUnidade(produto);
+        
         html += `
             <div class="product-card ${!temEstoque ? 'disabled' : ''}" 
                  onclick="window.adicionarProdutoCarrinho('${produto.id}')">
                 
                 <div class="product-image">
                     <img src="${imagemURL}" 
-                         alt="${produto.nome}"
+                         alt="${produto.nome ? produto.nome.replace(/['"]/g, '') : 'Produto'}"
                          class="${isPlaceholder ? 'no-image' : 'has-image'}"
+                         loading="lazy"
                          onerror="this.src='${obterImagemPlaceholderBase64()}'; this.classList.add('no-image');">
                 </div>
                 
                 <div class="product-header">
                     <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
-                    <span class="product-stock ${estoqueBaixo ? 'low' : ''}">
-                        ${formatarQuantidadeComUnidade(produto)}
+                    <span class="product-stock ${estoqueBaixo ? 'low' : ''}" 
+                          title="${temEstoque ? 'Em estoque' : 'Sem estoque'}">
+                        <i class="fas ${temEstoque ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                        ${quantidadeFormatada}
                     </span>
                 </div>
                 
-                <div class="product-name">${produto.nome}</div>
+                <div class="product-name" title="${produto.nome || 'Sem nome'}">
+                    ${produto.nome || 'Produto sem nome'}
+                </div>
+                
                 ${produto.categoria ? `<div class="product-category">${produto.categoria}</div>` : ''}
                 
                 <div class="product-footer">
                     <span class="product-price">${precoFormatado}</span>
                     <button class="btn-add-product" 
                             onclick="event.stopPropagation(); window.adicionarProdutoCarrinho('${produto.id}')"
-                            ${!temEstoque ? 'disabled' : ''}>
+                            ${!temEstoque ? 'disabled' : ''}
+                            title="${temEstoque ? 'Adicionar ao carrinho' : 'Produto sem estoque'}">
                         <i class="fas fa-cart-plus"></i>
                     </button>
                 </div>
@@ -551,6 +590,12 @@ function exibirProdutos(produtos) {
     });
     
     productsGrid.innerHTML = html;
+    
+    // Atualizar contador de produtos se o elemento existir
+    const productCount = document.getElementById('productCount');
+    if (productCount) {
+        productCount.textContent = `${produtos.length} produto${produtos.length !== 1 ? 's' : ''}`;
+    }
 }
 
 function atualizarContadorProdutos(total) {
@@ -1677,6 +1722,7 @@ class ServicosAvancadosPDV {
         mostrarMensagem('Teste de impressão enviado!', 'success');
     }
 }
+
 
 
 
