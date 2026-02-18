@@ -1,5 +1,5 @@
-// venda.js - SISTEMA DE VENDAS PDV MULTILOJA COM IMAGENS NO MODAL
-console.log("🛒 Sistema PDV - Página de Vendas");
+// venda.js - SISTEMA DE VENDAS PDV MULTILOJA COM ORÇAMENTOS E VENDAS
+console.log("🛒 Sistema PDV - Página de Vendas com Orçamentos e Vendas");
 
 import { lojaServices } from './firebase_config.js';
 
@@ -14,35 +14,77 @@ let vendaManager = {
     desconto: 0,
     formaPagamento: 'dinheiro',
     isLeitorConectado: false,
-    configImpressora: null
+    configImpressora: null,
+    // Controle de modo
+    modoAtual: 'venda', // 'venda' ou 'orcamento'
+    orcamentoAtual: null,
+    vendaAtual: null,
+    historicoVendas: [],
+    dataInicio: new Date()
 };
 
 // ============================================
-// IMAGEM PLACEHOLDER BASE64 (80x80 otimizada)
+// FUNÇÕES DE FORMATAÇÃO
+// ============================================
+function formatarMoeda(valor) {
+    const numero = parseFloat(valor) || 0;
+    return numero.toLocaleString('pt-BR', {
+        style: 'currency', currency: 'BRL',
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
+}
+
+function formatarDataHora(data) {
+    if (!data) return '';
+    const d = new Date(data);
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR');
+}
+
+function formatarQuantidadeComUnidade(produto) {
+    if (!produto) return '0 UN';
+    
+    const quantidade = produto.quantidade || 0;
+    const unidadeVenda = produto.unidade_venda || produto.unidade || 'UN';
+    const valorUnidade = produto.valor_unidade || produto.peso_por_unidade || 1;
+    const tipoUnidade = produto.tipo_unidade || produto.unidade_peso || '';
+    
+    if (valorUnidade === 1 || !tipoUnidade) {
+        return `${quantidade} ${unidadeVenda}`;
+    }
+    
+    const valorFormatado = valorUnidade % 1 === 0 
+        ? valorUnidade 
+        : valorUnidade.toFixed(1).replace(/\.0$/, '');
+    
+    const abreviacoes = {
+        'unidade': 'unid', 'unid': 'unid',
+        'quilograma': 'kg', 'kg': 'kg',
+        'grama': 'g', 'g': 'g',
+        'litro': 'L', 'l': 'L',
+        'mililitro': 'mL', 'ml': 'mL',
+        'metro': 'm', 'm': 'm'
+    };
+    
+    const unidadeAbreviada = abreviacoes[tipoUnidade.toLowerCase()] || tipoUnidade;
+    return `${quantidade} ${unidadeVenda} - ${valorFormatado}${unidadeAbreviada}`;
+}
+
+// ============================================
+// IMAGEM PLACEHOLDER
 // ============================================
 function obterImagemPlaceholderBase64() {
     return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjZjFmM2Y1Ii8+CjxjaXJjbGUgY3g9IjQwIiBjeT0iMzIiIHI9IjE2IiBmaWxsPSIjZTBlMGUwIi8+CjxwYXRoIGQ9Ik0xMiA2NEwxNiA1MkwyNCA0MEwzMiA0OEw0OCAzMkw2NCA0OEw2OCA2NEgxMloiIGZpbGw9IiNlMGUwZTAiLz4KPHJlY3QgeD0iMjgiIHk9IjU2IiB3aWR0aD0iMjQiIGhlaWdodD0iOCIgZmlsbD0iI2QwZDBkMCIvPgo8dGV4dCB4PSI0MCIgeT0iNzAiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZmlsbD0iIzhhOTRhMCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+U0VNIEZPVE88L3RleHQ+Cjwvc3ZnPg==';
 }
 
-// ============================================
-// OBTER URL DA IMAGEM DO PRODUTO
-// ============================================
 function obterURLImagem(produto, tamanho = 'thumb') {
     if (!produto) return obterImagemPlaceholderBase64();
     
-    // Verificar se tem imagens definidas
-    if (!produto.imagens) {
-        return obterImagemPlaceholderBase64();
-    }
+    if (!produto.imagens) return obterImagemPlaceholderBase64();
     
     const imagens = produto.imagens;
     
-    // Se não tem URL principal, retorna placeholder
-    if (!imagens.principal) {
-        return obterImagemPlaceholderBase64();
-    }
+    if (!imagens.principal) return obterImagemPlaceholderBase64();
     
-    // Verificar se a imagem é um arquivo (File)
     if (imagens.principal instanceof File) {
         try {
             return URL.createObjectURL(imagens.principal);
@@ -51,15 +93,12 @@ function obterURLImagem(produto, tamanho = 'thumb') {
         }
     }
     
-    // Verificar se a URL é válida
     const url = imagens.principal;
     
-    // Se for URL vazia ou string vazia
     if (!url || url === '' || url.includes('sem-foto.png') || url.includes('no-image')) {
         return obterImagemPlaceholderBase64();
     }
     
-    // Escolher tamanho baseado no parâmetro
     try {
         switch(tamanho) {
             case 'thumb':
@@ -83,216 +122,38 @@ function obterURLImagem(produto, tamanho = 'thumb') {
 }
 
 // ============================================
-// RENDERIZAR RESULTADOS DA BUSCA COM IMAGENS
+// CONTROLE DE MODO (VENDA x ORÇAMENTO)
 // ============================================
-function renderizarResultadosBusca(produtos) {
-    const searchResults = document.getElementById('searchResults');
-    if (!searchResults) return;
+function alternarModo(modo) {
+    vendaManager.modoAtual = modo;
     
-    if (!produtos || produtos.length === 0) {
-        searchResults.innerHTML = `
-            <div class="empty-state" style="padding: 40px 20px;">
-                <i class="fas fa-box-open" style="font-size: 3rem; opacity: 0.2;"></i>
-                <p style="margin-top: 15px; color: var(--gray-color);">
-                    Nenhum produto encontrado
-                </p>
-                <small style="color: var(--gray-light);">
-                    Tente outro termo de busca
-                </small>
-            </div>
-        `;
-        return;
+    const btnModoVenda = document.getElementById('btnModoVenda');
+    const btnModoOrcamento = document.getElementById('btnModoOrcamento');
+    const btnFinalizarVenda = document.getElementById('btnFinalizarVenda');
+    const btnGerarOrcamento = document.getElementById('btnGerarOrcamento');
+    
+    if (btnModoVenda) {
+        btnModoVenda.classList.toggle('active', modo === 'venda');
+    }
+    if (btnModoOrcamento) {
+        btnModoOrcamento.classList.toggle('active', modo === 'orcamento');
     }
     
-    let html = '<div class="results-list">';
+    if (btnFinalizarVenda) {
+        btnFinalizarVenda.style.display = modo === 'venda' ? 'flex' : 'none';
+    }
+    if (btnGerarOrcamento) {
+        btnGerarOrcamento.style.display = modo === 'orcamento' ? 'flex' : 'none';
+    }
     
-    produtos.forEach(produto => {
-        const imagemURL = obterURLImagem(produto, 'thumb');
-        const temEstoque = produto.quantidade > 0;
-        const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
-        const precoFormatado = formatarMoeda(produto.preco);
-        const isPlaceholder = imagemURL.includes('data:image/svg+xml');
-        
-        html += `
-            <div class="product-result" data-id="${produto.id}">
-                <!-- CONTAINER DA IMAGEM -->
-                <div class="product-image-container">
-                    <img src="${imagemURL}" 
-                         alt="${produto.nome}"
-                         class="${isPlaceholder ? 'no-image' : ''}"
-                         loading="lazy"
-                         onerror="this.src='${obterImagemPlaceholderBase64()}'; this.classList.add('no-image');">
-                </div>
-                
-                <!-- CONTEÚDO DO PRODUTO -->
-                <div class="product-content">
-                    <div class="product-result-header">
-                        <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
-                        <span class="product-stock ${estoqueBaixo ? 'low' : 'normal'}">
-                            ${formatarQuantidadeComUnidade(produto)}
-                        </span>
-                    </div>
-                    
-                    <div class="product-name" title="${produto.nome}">
-                        ${produto.nome}
-                    </div>
-                    
-                    <div class="product-category">
-                        ${produto.categoria || 'Sem categoria'}
-                    </div>
-                    
-                    <div class="product-details">
-                        <div class="product-price">
-                            <strong>Preço:</strong> ${precoFormatado}
-                        </div>
-                        
-                        <div class="product-actions">
-                            <button class="btn-action btn-info" 
-                                    onclick="window.adicionarProdutoCarrinho('${produto.id}')">
-                                <i class="fas fa-cart-plus"></i> Vender
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
+    // Atualizar título
+    const modoTitle = document.querySelector('.modo-title');
+    if (modoTitle) {
+        modoTitle.textContent = modo === 'venda' ? 'MODO VENDA' : 'MODO ORÇAMENTO';
+    }
     
-    html += '</div>';
-    searchResults.innerHTML = html;
+    limparCarrinho();
 }
-
-// ============================================
-// CONTROLE DO MODAL DE BUSCA
-// ============================================
-function abrirModalBusca() {
-    const modal = document.getElementById('searchModal');
-    if (modal) {
-        modal.style.display = 'flex';
-        
-        setTimeout(() => {
-            const input = document.getElementById('searchProductInput');
-            if (input) {
-                input.value = '';
-                input.focus();
-            }
-        }, 100);
-        
-        renderizarResultadosBusca(vendaManager.produtos);
-    }
-}
-
-function fecharModalBusca() {
-    const modal = document.getElementById('searchModal');
-    if (modal) {
-        modal.style.display = 'none';
-        
-        const input = document.getElementById('searchProductInput');
-        if (input) input.value = '';
-        
-        const searchMain = document.getElementById('searchProduct');
-        if (searchMain) searchMain.focus();
-    }
-}
-
-function configurarModalBusca() {
-    const modal = document.getElementById('searchModal');
-    if (!modal) return;
-    
-    // Botão fechar (X)
-    const closeBtn = document.getElementById('closeSearchModal');
-    if (closeBtn) closeBtn.addEventListener('click', fecharModalBusca);
-    
-    // Botão fechar do footer
-    const closeFooterBtn = document.getElementById('btnCloseSearch');
-    if (closeFooterBtn) closeFooterBtn.addEventListener('click', fecharModalBusca);
-    
-    // Fechar ao clicar fora
-    modal.addEventListener('click', function(e) {
-        if (e.target === this) fecharModalBusca();
-    });
-    
-    // Botão limpar busca
-    const clearBtn = document.getElementById('searchClear');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
-            const input = document.getElementById('searchProductInput');
-            if (input) {
-                input.value = '';
-                input.focus();
-                renderizarResultadosBusca(vendaManager.produtos);
-            }
-        });
-    }
-    
-    // Input de busca
-    const searchInput = document.getElementById('searchProductInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const termo = this.value;
-            if (!termo.trim()) {
-                renderizarResultadosBusca(vendaManager.produtos);
-                return;
-            }
-            
-            const termoLower = termo.toLowerCase();
-            const produtosFiltrados = vendaManager.produtos.filter(produto => 
-                (produto.codigo && produto.codigo.toLowerCase().includes(termoLower)) ||
-                (produto.nome && produto.nome.toLowerCase().includes(termoLower)) ||
-                (produto.categoria && produto.categoria.toLowerCase().includes(termoLower))
-            );
-            
-            renderizarResultadosBusca(produtosFiltrados);
-        });
-    }
-    
-    // Filtros
-    const filterBtns = modal.querySelectorAll('.filter-btn');
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            const filter = this.dataset.filter;
-            let produtosFiltrados = [...vendaManager.produtos];
-            
-            if (filter === 'estoque') {
-                produtosFiltrados = produtosFiltrados.filter(p => p.quantidade > 0);
-            } else if (filter === 'baixo') {
-                produtosFiltrados = produtosFiltrados.filter(p => 
-                    p.quantidade > 0 && p.quantidade <= (p.estoque_minimo || 5)
-                );
-            }
-            
-            const searchInput = document.getElementById('searchProductInput');
-            if (searchInput && searchInput.value.trim()) {
-                const termo = searchInput.value.toLowerCase();
-                produtosFiltrados = produtosFiltrados.filter(p => 
-                    (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
-                    (p.nome && p.nome.toLowerCase().includes(termo)) ||
-                    (p.categoria && p.categoria.toLowerCase().includes(termo))
-                );
-            }
-            
-            renderizarResultadosBusca(produtosFiltrados);
-        });
-    });
-}
-
-// ============================================
-// ADICIONAR PRODUTO AO CARRINHO (GLOBAL)
-// ============================================
-window.adicionarProdutoCarrinho = function(produtoId) {
-    const produto = vendaManager.produtos.find(p => p.id === produtoId);
-    if (produto) {
-        if (produto.quantidade <= 0) {
-            mostrarMensagem('Produto sem estoque disponível', 'warning');
-            return;
-        }
-        abrirModalQuantidade(produto, 1);
-        fecharModalBusca();
-    }
-};
 
 // ============================================
 // INICIALIZAÇÃO
@@ -312,8 +173,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         console.log(`✅ Loja identificada: ${lojaServices.lojaId}`);
         
-        // CRIAR INSTÂNCIA DOS SERVIÇOS AVANÇADOS PRIMEIRO
+        // CRIAR INSTÂNCIA DOS SERVIÇOS AVANÇADOS
         window.servicosAvancados = new ServicosAvancadosPDV(vendaManager);
+        
+        // CRIAR OS BOTÕES DE MODO DINAMICAMENTE
+        criarBotoesModo();
         
         atualizarInterfaceLoja();
         configurarEventos();
@@ -327,7 +191,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         verificarProdutoPreSelecionado();
         
         esconderLoading();
-        console.log("✅ PDV pronto para vendas");
+        console.log("✅ PDV pronto para vendas e orçamentos");
         
     } catch (error) {
         console.error("❌ Erro na inicialização:", error);
@@ -335,6 +199,37 @@ document.addEventListener('DOMContentLoaded', async function() {
         esconderLoading();
     }
 });
+
+// ============================================
+// CRIAR BOTÕES DE MODO
+// ============================================
+function criarBotoesModo() {
+    const paymentSection = document.querySelector('.payment-section');
+    if (!paymentSection) return;
+    
+    const modoHTML = `
+        <div class="modo-container" style="margin-bottom: 15px; background: #f8f9fa; border-radius: 8px; padding: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span class="modo-title" style="font-weight: bold; color: #2c3e50;">MODO VENDA</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="btnModoVenda" class="btn-modo active" data-modo="venda" 
+                        style="flex: 1; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fas fa-cash-register"></i> Venda
+                </button>
+                <button id="btnModoOrcamento" class="btn-modo" data-modo="orcamento"
+                        style="flex: 1; padding: 10px; background: #f39c12; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i class="fas fa-file-invoice"></i> Orçamento
+                </button>
+            </div>
+        </div>
+    `;
+    
+    paymentSection.insertAdjacentHTML('afterbegin', modoHTML);
+    
+    document.getElementById('btnModoVenda')?.addEventListener('click', () => alternarModo('venda'));
+    document.getElementById('btnModoOrcamento')?.addEventListener('click', () => alternarModo('orcamento'));
+}
 
 // ============================================
 // ATUALIZAR INTERFACE DA LOJA
@@ -411,6 +306,23 @@ function configurarEventos() {
             }
         });
         
+        // Enter adiciona ao carrinho
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && this.value.trim()) {
+                const termo = this.value.trim();
+                const produto = vendaManager.produtos.find(p => 
+                    p.codigo === termo || p.codigo_barras === termo
+                );
+                
+                if (produto) {
+                    window.adicionarProdutoCarrinho(produto.id);
+                    this.value = '';
+                } else {
+                    abrirModalBusca();
+                }
+            }
+        });
+        
         // Duplo clique abre modal de busca
         searchInput.addEventListener('dblclick', abrirModalBusca);
     }
@@ -419,6 +331,12 @@ function configurarEventos() {
     const btnScan = document.getElementById('btnScan');
     if (btnScan) {
         btnScan.addEventListener('click', abrirModalBusca);
+    }
+    
+    // Botão consulta rápida
+    const btnConsultaRapida = document.getElementById('btnConsultaRapida');
+    if (btnConsultaRapida) {
+        btnConsultaRapida.addEventListener('click', abrirModalConsultaRapida);
     }
     
     // Botão limpar carrinho
@@ -453,15 +371,65 @@ function configurarEventos() {
         btnFinalizar.addEventListener('click', finalizarVenda);
     }
     
+    // Botão gerar orçamento
+    const btnGerarOrcamento = document.getElementById('btnGerarOrcamento');
+    if (!btnGerarOrcamento) {
+        criarBotaoGerarOrcamento();
+    }
+    
     // Botão cancelar venda
     const btnCancelar = document.getElementById('btnCancelarVenda');
     if (btnCancelar) {
         btnCancelar.addEventListener('click', function() {
             if (vendaManager.carrinho.length > 0) {
-                if (confirm('Cancelar a venda atual?')) limparCarrinho();
+                if (confirm('Cancelar a venda/orçamento atual?')) limparCarrinho();
             }
         });
     }
+    
+    // Botão histórico de vendas
+    const btnHistorico = document.getElementById('btnHistorico');
+    if (!btnHistorico) {
+        criarBotaoHistorico();
+    }
+}
+
+// ============================================
+// CRIAR BOTÃO GERAR ORÇAMENTO
+// ============================================
+function criarBotaoGerarOrcamento() {
+    const paymentActions = document.querySelector('.payment-actions');
+    if (!paymentActions) return;
+    
+    const btnHTML = `
+        <button id="btnGerarOrcamento" class="btn-orcamento" style="display: none;">
+            <i class="fas fa-file-invoice"></i>
+            Gerar Orçamento
+        </button>
+    `;
+    
+    paymentActions.insertAdjacentHTML('afterbegin', btnHTML);
+    
+    document.getElementById('btnGerarOrcamento')?.addEventListener('click', gerarOrcamento);
+}
+
+// ============================================
+// CRIAR BOTÃO HISTÓRICO
+// ============================================
+function criarBotaoHistorico() {
+    const headerRight = document.querySelector('.header-right');
+    if (!headerRight) return;
+    
+    const btnHTML = `
+        <button id="btnHistorico" class="btn-historico" style="margin-right: 10px; background: #3498db; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-history"></i>
+            Histórico
+        </button>
+    `;
+    
+    headerRight.insertAdjacentHTML('afterbegin', btnHTML);
+    
+    document.getElementById('btnHistorico')?.addEventListener('click', abrirModalHistorico);
 }
 
 // ============================================
@@ -498,45 +466,19 @@ async function carregarProdutos() {
 // ============================================
 function exibirProdutos(produtos) {
     const productsGrid = document.getElementById('productsGrid');
-    if (!productsGrid) {
-        console.warn('Elemento productsGrid não encontrado');
-        return;
-    }
+    if (!productsGrid) return;
     
-    // Verificar se os elementos existem antes de acessar
     const loadingProducts = document.getElementById('loadingProducts');
     const emptyProducts = document.getElementById('emptyProducts');
     
     if (!produtos || produtos.length === 0) {
-        // Ocultar loading se existir
-        if (loadingProducts) {
-            loadingProducts.style.display = 'none';
-        }
-        
-        // Mostrar mensagem de vazio se existir
-        if (emptyProducts) {
-            emptyProducts.style.display = 'flex';
-        } else {
-            // Se não existir elemento de vazio, mostrar mensagem na grid
-            productsGrid.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-box-open"></i>
-                    <p>Nenhum produto disponível</p>
-                    <small>Cadastre produtos no estoque</small>
-                </div>
-            `;
-        }
+        if (loadingProducts) loadingProducts.style.display = 'none';
+        if (emptyProducts) emptyProducts.style.display = 'flex';
         return;
     }
     
-    // Ocultar loading e empty se existirem
-    if (loadingProducts) {
-        loadingProducts.style.display = 'none';
-    }
-    
-    if (emptyProducts) {
-        emptyProducts.style.display = 'none';
-    }
+    if (loadingProducts) loadingProducts.style.display = 'none';
+    if (emptyProducts) emptyProducts.style.display = 'none';
     
     let html = '';
     produtos.forEach(produto => {
@@ -545,8 +487,6 @@ function exibirProdutos(produtos) {
         const precoFormatado = formatarMoeda(produto.preco);
         const imagemURL = obterURLImagem(produto, 'thumb');
         const isPlaceholder = imagemURL.includes('data:image/svg+xml');
-        
-        // Formatar quantidade com unidade
         const quantidadeFormatada = formatarQuantidadeComUnidade(produto);
         
         html += `
@@ -591,7 +531,6 @@ function exibirProdutos(produtos) {
     
     productsGrid.innerHTML = html;
     
-    // Atualizar contador de produtos se o elemento existir
     const productCount = document.getElementById('productCount');
     if (productCount) {
         productCount.textContent = `${produtos.length} produto${produtos.length !== 1 ? 's' : ''}`;
@@ -614,10 +553,348 @@ function verificarProdutoPreSelecionado() {
 }
 
 // ============================================
+// MODAL DE CONSULTA RÁPIDA
+// ============================================
+function abrirModalConsultaRapida() {
+    const modalHTML = `
+        <div id="consultaRapidaModal" class="modal modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-search"></i> Consulta Rápida de Preços</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-box" style="margin-bottom: 20px;">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="consultaInput" placeholder="Digite código ou nome do produto..." autofocus>
+                        <button class="search-clear" id="consultaClear">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="consulta-results" id="consultaResults">
+                        <div class="empty-state" style="padding: 30px;">
+                            <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
+                            <p style="margin-top: 15px;">Digite para consultar preços</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnFecharConsulta" class="btn-cancel">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+    
+    const modal = document.getElementById('consultaRapidaModal');
+    const input = document.getElementById('consultaInput');
+    const results = document.getElementById('consultaResults');
+    
+    // Eventos
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    document.getElementById('btnFecharConsulta').addEventListener('click', () => modal.remove());
+    
+    document.getElementById('consultaClear').addEventListener('click', () => {
+        input.value = '';
+        input.focus();
+        results.innerHTML = `
+            <div class="empty-state" style="padding: 30px;">
+                <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
+                <p style="margin-top: 15px;">Digite para consultar preços</p>
+            </div>
+        `;
+    });
+    
+    input.addEventListener('input', function() {
+        const termo = this.value.toLowerCase();
+        
+        if (!termo.trim()) {
+            results.innerHTML = `
+                <div class="empty-state" style="padding: 30px;">
+                    <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
+                    <p style="margin-top: 15px;">Digite para consultar preços</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const produtosFiltrados = vendaManager.produtos.filter(p => 
+            (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
+            (p.nome && p.nome.toLowerCase().includes(termo)) ||
+            (p.categoria && p.categoria.toLowerCase().includes(termo))
+        );
+        
+        if (produtosFiltrados.length === 0) {
+            results.innerHTML = `
+                <div class="empty-state" style="padding: 30px;">
+                    <i class="fas fa-box-open" style="font-size: 3rem; opacity: 0.2;"></i>
+                    <p style="margin-top: 15px;">Nenhum produto encontrado</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div class="consulta-grid">';
+        
+        produtosFiltrados.forEach(p => {
+            const imagemURL = obterURLImagem(p, 'thumb');
+            const isPlaceholder = imagemURL.includes('data:image/svg+xml');
+            
+            html += `
+                <div class="consulta-card">
+                    <div class="consulta-image">
+                        <img src="${imagemURL}" 
+                             alt="${p.nome}"
+                             class="${isPlaceholder ? 'no-image' : ''}"
+                             onerror="this.src='${obterImagemPlaceholderBase64()}';">
+                    </div>
+                    <div class="consulta-info">
+                        <div class="consulta-code">${p.codigo || 'SEM CÓDIGO'}</div>
+                        <div class="consulta-name">${p.nome}</div>
+                        <div class="consulta-price">${formatarMoeda(p.preco)}</div>
+                        <div class="consulta-stock">Estoque: ${formatarQuantidadeComUnidade(p)}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        results.innerHTML = html;
+    });
+    
+    // Fechar ao clicar fora
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) modal.remove();
+    });
+    
+    setTimeout(() => input.focus(), 100);
+    modal.style.display = 'flex';
+}
+
+// ============================================
+// MODAL DE BUSCA DE PRODUTOS
+// ============================================
+function abrirModalBusca() {
+    const modal = document.getElementById('searchModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        
+        setTimeout(() => {
+            const input = document.getElementById('searchProductInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }, 100);
+        
+        renderizarResultadosBusca(vendaManager.produtos);
+    }
+}
+
+function fecharModalBusca() {
+    const modal = document.getElementById('searchModal');
+    if (modal) {
+        modal.style.display = 'none';
+        
+        const input = document.getElementById('searchProductInput');
+        if (input) input.value = '';
+        
+        const searchMain = document.getElementById('searchProduct');
+        if (searchMain) searchMain.focus();
+    }
+}
+
+function renderizarResultadosBusca(produtos) {
+    const searchResults = document.getElementById('searchResults');
+    if (!searchResults) return;
+    
+    if (!produtos || produtos.length === 0) {
+        searchResults.innerHTML = `
+            <div class="empty-state" style="padding: 40px 20px;">
+                <i class="fas fa-box-open" style="font-size: 3rem; opacity: 0.2;"></i>
+                <p style="margin-top: 15px; color: var(--gray-color);">
+                    Nenhum produto encontrado
+                </p>
+                <small style="color: var(--gray-light);">
+                    Tente outro termo de busca
+                </small>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="results-list">';
+    
+    produtos.forEach(produto => {
+        const imagemURL = obterURLImagem(produto, 'thumb');
+        const temEstoque = produto.quantidade > 0;
+        const estoqueBaixo = produto.quantidade <= (produto.estoque_minimo || 5);
+        const precoFormatado = formatarMoeda(produto.preco);
+        const isPlaceholder = imagemURL.includes('data:image/svg+xml');
+        
+        html += `
+            <div class="product-result" data-id="${produto.id}">
+                <div class="product-image-container">
+                    <img src="${imagemURL}" 
+                         alt="${produto.nome}"
+                         class="${isPlaceholder ? 'no-image' : ''}"
+                         loading="lazy"
+                         onerror="this.src='${obterImagemPlaceholderBase64()}'; this.classList.add('no-image');">
+                </div>
+                
+                <div class="product-content">
+                    <div class="product-result-header">
+                        <span class="product-code">${produto.codigo || 'SEM CÓDIGO'}</span>
+                        <span class="product-stock ${estoqueBaixo ? 'low' : 'normal'}">
+                            ${formatarQuantidadeComUnidade(produto)}
+                        </span>
+                    </div>
+                    
+                    <div class="product-name" title="${produto.nome}">
+                        ${produto.nome}
+                    </div>
+                    
+                    <div class="product-category">
+                        ${produto.categoria || 'Sem categoria'}
+                    </div>
+                    
+                    <div class="product-details">
+                        <div class="product-price">
+                            <strong>Preço:</strong> ${precoFormatado}
+                        </div>
+                        
+                        <div class="product-actions">
+                            <button class="btn-action btn-info" 
+                                    onclick="window.adicionarProdutoCarrinho('${produto.id}')">
+                                <i class="fas fa-cart-plus"></i> Vender
+                            </button>
+                            <button class="btn-action btn-secondary" 
+                                    onclick="window.consultarPreco('${produto.id}')">
+                                <i class="fas fa-search"></i> Consultar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    searchResults.innerHTML = html;
+}
+
+window.consultarPreco = function(produtoId) {
+    const produto = vendaManager.produtos.find(p => p.id === produtoId);
+    if (produto) {
+        mostrarMensagem(`${produto.nome}: ${formatarMoeda(produto.preco)}`, 'info', 5000);
+    }
+    fecharModalBusca();
+};
+
+function configurarModalBusca() {
+    const modal = document.getElementById('searchModal');
+    if (!modal) return;
+    
+    const closeBtn = document.getElementById('closeSearchModal');
+    if (closeBtn) closeBtn.addEventListener('click', fecharModalBusca);
+    
+    const closeFooterBtn = document.getElementById('btnCloseSearch');
+    if (closeFooterBtn) closeFooterBtn.addEventListener('click', fecharModalBusca);
+    
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) fecharModalBusca();
+    });
+    
+    const clearBtn = document.getElementById('searchClear');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            const input = document.getElementById('searchProductInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+                renderizarResultadosBusca(vendaManager.produtos);
+            }
+        });
+    }
+    
+    const searchInput = document.getElementById('searchProductInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const termo = this.value;
+            if (!termo.trim()) {
+                renderizarResultadosBusca(vendaManager.produtos);
+                return;
+            }
+            
+            const termoLower = termo.toLowerCase();
+            const produtosFiltrados = vendaManager.produtos.filter(produto => 
+                (produto.codigo && produto.codigo.toLowerCase().includes(termoLower)) ||
+                (produto.nome && produto.nome.toLowerCase().includes(termoLower)) ||
+                (produto.categoria && produto.categoria.toLowerCase().includes(termoLower))
+            );
+            
+            renderizarResultadosBusca(produtosFiltrados);
+        });
+    }
+    
+    const filterBtns = modal.querySelectorAll('.filter-btn');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const filter = this.dataset.filter;
+            let produtosFiltrados = [...vendaManager.produtos];
+            
+            if (filter === 'estoque') {
+                produtosFiltrados = produtosFiltrados.filter(p => p.quantidade > 0);
+            } else if (filter === 'baixo') {
+                produtosFiltrados = produtosFiltrados.filter(p => 
+                    p.quantidade > 0 && p.quantidade <= (p.estoque_minimo || 5)
+                );
+            }
+            
+            const searchInput = document.getElementById('searchProductInput');
+            if (searchInput && searchInput.value.trim()) {
+                const termo = searchInput.value.toLowerCase();
+                produtosFiltrados = produtosFiltrados.filter(p => 
+                    (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
+                    (p.nome && p.nome.toLowerCase().includes(termo)) ||
+                    (p.categoria && p.categoria.toLowerCase().includes(termo))
+                );
+            }
+            
+            renderizarResultadosBusca(produtosFiltrados);
+        });
+    });
+}
+
+// ============================================
+// ADICIONAR PRODUTO AO CARRINHO
+// ============================================
+window.adicionarProdutoCarrinho = function(produtoId) {
+    const produto = vendaManager.produtos.find(p => p.id === produtoId);
+    if (produto) {
+        if (vendaManager.modoAtual === 'venda' && produto.quantidade <= 0) {
+            mostrarMensagem('Produto sem estoque disponível', 'warning');
+            return;
+        }
+        abrirModalQuantidade(produto, 1);
+        fecharModalBusca();
+    }
+};
+
+// ============================================
 // MODAL DE QUANTIDADE
 // ============================================
 function abrirModalQuantidade(produto, quantidadeAtual = 1) {
-    const maxQuantidade = produto.quantidade;
+    const maxQuantidade = vendaManager.modoAtual === 'venda' ? produto.quantidade : 9999;
     
     const modalHTML = `
         <div id="quantidadeModal" class="modal modal-sm">
@@ -630,7 +907,9 @@ function abrirModalQuantidade(produto, quantidadeAtual = 1) {
                     <div class="product-info">
                         <h4>${produto.nome}</h4>
                         <p>Código: ${produto.codigo || 'N/A'}</p>
-                        <p>Estoque: ${produto.quantidade} ${produto.unidade_venda || produto.unidade || 'UN'}</p>
+                        ${vendaManager.modoAtual === 'venda' ? 
+                            `<p>Estoque: ${produto.quantidade} ${produto.unidade_venda || produto.unidade || 'UN'}</p>` : 
+                            '<p>Modo ORÇAMENTO - Estoque não verificado</p>'}
                         <p>Preço: ${formatarMoeda(produto.preco)}</p>
                     </div>
                     
@@ -717,7 +996,7 @@ function adicionarAoCarrinho(produto, quantidade) {
         return;
     }
     
-    if (quantidade > produto.quantidade) {
+    if (vendaManager.modoAtual === 'venda' && quantidade > produto.quantidade) {
         mostrarMensagem(`Quantidade indisponível. Estoque: ${produto.quantidade}`, 'warning');
         return;
     }
@@ -735,7 +1014,9 @@ function adicionarAoCarrinho(produto, quantidade) {
             preco_unitario: produto.preco,
             quantidade: quantidade,
             subtotal: produto.preco * quantidade,
-            unidade: produto.unidade_venda || produto.unidade || 'UN'
+            unidade: produto.unidade_venda || produto.unidade || 'UN',
+            valor_unidade: produto.valor_unidade || produto.peso_por_unidade || 1,
+            tipo_unidade: produto.tipo_unidade || produto.unidade_peso || ''
         });
     }
     
@@ -745,9 +1026,6 @@ function adicionarAoCarrinho(produto, quantidade) {
     mostrarMensagem(`${quantidade}x ${produto.nome} adicionado ao carrinho`, 'success');
 }
 
-// ============================================
-// ATUALIZAR CARRINHO
-// ============================================
 function atualizarCarrinho() {
     const cartItems = document.getElementById('cartItems');
     if (!cartItems) return;
@@ -757,7 +1035,7 @@ function atualizarCarrinho() {
             <div class="empty-cart">
                 <i class="fas fa-shopping-cart"></i>
                 <p>Carrinho vazio</p>
-                <small>Adicione produtos para iniciar a venda</small>
+                <small>Adicione produtos para iniciar a venda/orçamento</small>
             </div>
         `;
         return;
@@ -766,33 +1044,20 @@ function atualizarCarrinho() {
     let html = '';
     
     vendaManager.carrinho.forEach((item, index) => {
-        // Buscar o produto original para pegar o valor fixo da unidade
-        const produtoOriginal = vendaManager.produtos.find(p => p.id === item.id);
+        const valorFormatado = item.valor_unidade % 1 === 0 
+            ? item.valor_unidade 
+            : item.valor_unidade.toFixed(1).replace(/\.0$/, '');
         
-        // Pegar o valor da unidade (175g, 500ml, 1kg, etc)
-        const valorUnidade = produtoOriginal?.valor_unidade || produtoOriginal?.peso_por_unidade || 1;
-        const tipoUnidade = produtoOriginal?.tipo_unidade || produtoOriginal?.unidade_peso || '';
-        const unidadeVenda = item.unidade || 'UN';
-        
-        // Formatar o valor da unidade
-        const valorFormatado = valorUnidade % 1 === 0 
-            ? valorUnidade 
-            : valorUnidade.toFixed(1).replace(/\.0$/, '');
-        
-        // Abreviações
         const abreviacoes = {
             'unidade': 'unid', 'unid': 'unid',
             'quilograma': 'kg', 'kg': 'kg',
             'grama': 'g', 'g': 'g',
             'litro': 'L', 'l': 'L',
             'mililitro': 'mL', 'ml': 'mL',
-            'metro': 'm', 'm': 'm',
-            'centimetro': 'cm', 'cm': 'cm',
-            'metro_quadrado': 'm²', 'm2': 'm²',
-            'metro_cubico': 'm³', 'm3': 'm³'
+            'metro': 'm', 'm': 'm'
         };
         
-        const unidadeAbreviada = abreviacoes[tipoUnidade.toLowerCase()] || tipoUnidade;
+        const unidadeAbreviada = abreviacoes[item.tipo_unidade?.toLowerCase()] || item.tipo_unidade || '';
         
         html += `
             <div class="cart-item">
@@ -800,13 +1065,14 @@ function atualizarCarrinho() {
                     <div class="cart-item-name">${item.nome}</div>
                     <div class="cart-item-details">
                         <span><i class="fas fa-barcode"></i> ${item.codigo || 'N/A'}</span>
-                        <span><i class="fas fa-tag"></i> Preço Individual: ${formatarMoeda(item.preco_unitario)}</span>
-                        <span class="produto-unidade">
-                            <i class="fas fa-weight-hanging"></i> 
-                            ${item.quantidade} ${unidadeVenda} - ${valorFormatado}${unidadeAbreviada}
-                        </span>
+                        <span><i class="fas fa-tag"></i> Preço Unit: ${formatarMoeda(item.preco_unitario)}</span>
+                        ${valorFormatado && unidadeAbreviada ? 
+                            `<span class="produto-unidade">
+                                <i class="fas fa-weight-hanging"></i> 
+                                ${item.quantidade} ${item.unidade} - ${valorFormatado}${unidadeAbreviada}
+                            </span>` : ''}
                         <span class="produto-subtotal">
-                            <i class="fas fa-calculator"></i> Sub Total: ${formatarMoeda(item.subtotal)}
+                            <i class="fas fa-calculator"></i> Subtotal: ${formatarMoeda(item.subtotal)}
                         </span>
                     </div>
                 </div>
@@ -834,7 +1100,6 @@ window.alterarQuantidadeCarrinho = function(index, mudanca) {
     
     const item = vendaManager.carrinho[index];
     const produto = vendaManager.produtos.find(p => p.id === item.id);
-    if (!produto) return;
     
     const novaQuantidade = item.quantidade + mudanca;
     
@@ -843,7 +1108,7 @@ window.alterarQuantidadeCarrinho = function(index, mudanca) {
         return;
     }
     
-    if (novaQuantidade > produto.quantidade) {
+    if (vendaManager.modoAtual === 'venda' && produto && novaQuantidade > produto.quantidade) {
         mostrarMensagem(`Quantidade indisponível. Estoque: ${produto.quantidade}`, 'warning');
         return;
     }
@@ -860,7 +1125,6 @@ window.atualizarQuantidadeCarrinho = function(index, valor) {
     
     const item = vendaManager.carrinho[index];
     const produto = vendaManager.produtos.find(p => p.id === item.id);
-    if (!produto) return;
     
     const novaQuantidade = parseInt(valor) || 1;
     
@@ -869,7 +1133,7 @@ window.atualizarQuantidadeCarrinho = function(index, valor) {
         return;
     }
     
-    if (novaQuantidade > produto.quantidade) {
+    if (vendaManager.modoAtual === 'venda' && produto && novaQuantidade > produto.quantidade) {
         mostrarMensagem(`Quantidade indisponível. Estoque: ${produto.quantidade}`, 'warning');
         vendaManager.carrinho[index].quantidade = 1;
     } else {
@@ -899,6 +1163,8 @@ function limparCarrinho() {
     vendaManager.subtotal = 0;
     vendaManager.total = 0;
     vendaManager.desconto = 0;
+    vendaManager.orcamentoAtual = null;
+    vendaManager.vendaAtual = null;
     
     atualizarCarrinho();
     atualizarTotais();
@@ -920,9 +1186,91 @@ function atualizarTotais() {
     if (totalElement) totalElement.textContent = formatarMoeda(vendaManager.total);
     
     const btnFinalizar = document.getElementById('btnFinalizarVenda');
+    const btnGerarOrcamento = document.getElementById('btnGerarOrcamento');
+    
     if (btnFinalizar) {
         btnFinalizar.disabled = vendaManager.carrinho.length === 0;
     }
+    if (btnGerarOrcamento) {
+        btnGerarOrcamento.disabled = vendaManager.carrinho.length === 0;
+    }
+}
+
+// ============================================
+// GERAR ORÇAMENTO
+// ============================================
+async function gerarOrcamento() {
+    if (vendaManager.carrinho.length === 0) {
+        mostrarMensagem('Adicione produtos ao carrinho primeiro', 'warning');
+        return;
+    }
+    
+    if (!confirm(`Gerar orçamento no valor de ${formatarMoeda(vendaManager.total)}?`)) return;
+    
+    try {
+        mostrarLoading('Gerando orçamento...');
+        
+        const orcamentoData = {
+            numero: gerarNumeroOrcamento(),
+            itens: vendaManager.carrinho.map(item => ({
+                produto_id: item.id,
+                codigo: item.codigo,
+                nome: item.nome,
+                preco_unitario: item.preco_unitario,
+                quantidade: item.quantidade,
+                subtotal: item.subtotal,
+                unidade: item.unidade,
+                valor_unidade: item.valor_unidade,
+                tipo_unidade: item.tipo_unidade
+            })),
+            subtotal: vendaManager.subtotal,
+            desconto: vendaManager.desconto,
+            valor_desconto: vendaManager.subtotal * (vendaManager.desconto / 100),
+            total: vendaManager.total,
+            vendedor_id: lojaServices.usuarioId,
+            vendedor_nome: lojaServices.nomeUsuario,
+            data_criacao: new Date(),
+            data_validade: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // +10 dias
+            status: 'ativo',
+            loja_id: lojaServices.lojaId
+        };
+        
+        // Salvar no localStorage
+        const orcamentos = JSON.parse(localStorage.getItem(`orcamentos_${lojaServices.lojaId}`) || '[]');
+        orcamentos.push(orcamentoData);
+        localStorage.setItem(`orcamentos_${lojaServices.lojaId}`, JSON.stringify(orcamentos));
+        
+        vendaManager.orcamentoAtual = orcamentoData;
+        
+        mostrarMensagem(`Orçamento #${orcamentoData.numero} gerado com sucesso!`, 'success');
+        
+        // Imprimir orçamento
+        await window.servicosAvancados.imprimirOrcamento(
+            orcamentoData,
+            lojaServices
+        );
+        
+        setTimeout(() => {
+            limparCarrinho();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar orçamento:', error);
+        mostrarMensagem('Erro ao gerar orçamento: ' + error.message, 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+function gerarNumeroOrcamento() {
+    const data = new Date();
+    const ano = data.getFullYear().toString().slice(-2);
+    const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+    const dia = data.getDate().toString().padStart(2, '0');
+    const hora = data.getHours().toString().padStart(2, '0');
+    const minuto = data.getMinutes().toString().padStart(2, '0');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `ORC-${ano}${mes}${dia}-${hora}${minuto}-${random}`;
 }
 
 // ============================================
@@ -939,14 +1287,20 @@ async function finalizarVenda() {
     try {
         mostrarLoading('Processando venda...');
         
+        const numeroVenda = gerarNumeroVenda();
+        
         const vendaData = {
+            numero: numeroVenda,
             itens: vendaManager.carrinho.map(item => ({
                 produto_id: item.id,
                 codigo: item.codigo,
                 nome: item.nome,
                 preco_unitario: item.preco_unitario,
                 quantidade: item.quantidade,
-                subtotal: item.subtotal
+                subtotal: item.subtotal,
+                unidade: item.unidade,
+                valor_unidade: item.valor_unidade,
+                tipo_unidade: item.tipo_unidade
             })),
             subtotal: vendaManager.subtotal,
             desconto: vendaManager.desconto,
@@ -956,7 +1310,8 @@ async function finalizarVenda() {
             vendedor_id: lojaServices.usuarioId,
             vendedor_nome: lojaServices.nomeUsuario,
             data_venda: new Date(),
-            status: 'concluida'
+            status: 'concluida',
+            loja_id: lojaServices.lojaId
         };
         
         const resultado = await lojaServices.criarVenda(vendaData);
@@ -964,7 +1319,20 @@ async function finalizarVenda() {
         if (resultado.success) {
             await atualizarEstoqueProdutos();
             
-            mostrarMensagem(`Venda finalizada! Total: ${formatarMoeda(vendaManager.total)}`, 'success');
+            // Salvar no histórico local
+            const vendas = JSON.parse(localStorage.getItem(`vendas_${lojaServices.lojaId}`) || '[]');
+            vendas.push(vendaData);
+            localStorage.setItem(`vendas_${lojaServices.lojaId}`, JSON.stringify(vendas));
+            
+            vendaManager.vendaAtual = vendaData;
+            
+            mostrarMensagem(`Venda #${numeroVenda} finalizada! Total: ${formatarMoeda(vendaManager.total)}`, 'success');
+            
+            // Imprimir nota fiscal
+            await window.servicosAvancados.imprimirNotaFiscalVenda(
+                vendaData,
+                lojaServices
+            );
             
             setTimeout(() => {
                 limparCarrinho();
@@ -982,6 +1350,18 @@ async function finalizarVenda() {
     }
 }
 
+function gerarNumeroVenda() {
+    const data = new Date();
+    const ano = data.getFullYear().toString().slice(-2);
+    const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+    const dia = data.getDate().toString().padStart(2, '0');
+    const hora = data.getHours().toString().padStart(2, '0');
+    const minuto = data.getMinutes().toString().padStart(2, '0');
+    const segundo = data.getSeconds().toString().padStart(2, '0');
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    return `${ano}${mes}${dia}${hora}${minuto}${segundo}${random}`;
+}
+
 async function atualizarEstoqueProdutos() {
     try {
         for (const item of vendaManager.carrinho) {
@@ -990,7 +1370,7 @@ async function atualizarEstoqueProdutos() {
                 await lojaServices.atualizarEstoque(
                     item.id, 
                     item.quantidade, 
-                    'saida'  // ou 'entrada' dependendo da implementação
+                    'saida'
                 );
             }
         }
@@ -1000,6 +1380,228 @@ async function atualizarEstoqueProdutos() {
         throw error;
     }
 }
+
+// ============================================
+// MODAL HISTÓRICO DE VENDAS
+// ============================================
+function abrirModalHistorico() {
+    const modalHTML = `
+        <div id="historicoModal" class="modal modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-history"></i> Histórico de Vendas</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="historico-filtros" style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input type="date" id="filtroData" style="flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px;">
+                        <input type="text" id="filtroNumero" placeholder="Número da venda" style="flex: 2; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px;">
+                        <button id="btnFiltrar" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <button id="btnLimparFiltros" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            <i class="fas fa-times"></i> Limpar
+                        </button>
+                    </div>
+                    
+                    <div class="historico-results" id="historicoResults">
+                        <div class="empty-state" style="padding: 40px;">
+                            <i class="fas fa-shopping-cart" style="font-size: 3rem; opacity: 0.2;"></i>
+                            <p style="margin-top: 15px;">Nenhuma venda encontrada</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="btnFecharHistorico" class="btn-cancel">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer.firstElementChild);
+    
+    const modal = document.getElementById('historicoModal');
+    const filtroData = document.getElementById('filtroData');
+    const filtroNumero = document.getElementById('filtroNumero');
+    const historicoResults = document.getElementById('historicoResults');
+    
+    // Preencher data atual
+    const hoje = new Date().toISOString().split('T')[0];
+    filtroData.value = hoje;
+    
+    // Carregar vendas
+    carregarHistoricoVendas(hoje, '', historicoResults);
+    
+    // Eventos
+    modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+    document.getElementById('btnFecharHistorico').addEventListener('click', () => modal.remove());
+    
+    document.getElementById('btnFiltrar').addEventListener('click', () => {
+        carregarHistoricoVendas(filtroData.value, filtroNumero.value, historicoResults);
+    });
+    
+    document.getElementById('btnLimparFiltros').addEventListener('click', () => {
+        filtroData.value = hoje;
+        filtroNumero.value = '';
+        carregarHistoricoVendas(hoje, '', historicoResults);
+    });
+    
+    // Fechar ao clicar fora
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) modal.remove();
+    });
+    
+    modal.style.display = 'flex';
+}
+
+function carregarHistoricoVendas(data, numero, container) {
+    try {
+        // Buscar do localStorage
+        const vendas = JSON.parse(localStorage.getItem(`vendas_${lojaServices.lojaId}`) || '[]');
+        
+        let vendasFiltradas = vendas;
+        
+        // Filtrar por data
+        if (data) {
+            const dataFiltro = new Date(data).toDateString();
+            vendasFiltradas = vendasFiltradas.filter(v => 
+                new Date(v.data_venda).toDateString() === dataFiltro
+            );
+        }
+        
+        // Filtrar por número
+        if (numero) {
+            vendasFiltradas = vendasFiltradas.filter(v => 
+                v.numero?.toLowerCase().includes(numero.toLowerCase())
+            );
+        }
+        
+        // Ordenar por data (mais recente primeiro)
+        vendasFiltradas.sort((a, b) => new Date(b.data_venda) - new Date(a.data_venda));
+        
+        if (vendasFiltradas.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="padding: 40px;">
+                    <i class="fas fa-shopping-cart" style="font-size: 3rem; opacity: 0.2;"></i>
+                    <p style="margin-top: 15px;">Nenhuma venda encontrada para este período</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '<div class="historico-lista">';
+        
+        vendasFiltradas.forEach(venda => {
+            const dataVenda = new Date(venda.data_venda);
+            const dataFormatada = dataVenda.toLocaleDateString('pt-BR') + ' ' + dataVenda.toLocaleTimeString('pt-BR');
+            
+            html += `
+                <div class="historico-item">
+                    <div class="historico-header">
+                        <div>
+                            <strong>#${venda.numero || 'N/A'}</strong>
+                            <span style="margin-left: 15px; color: #7f8c8d;">${dataFormatada}</span>
+                        </div>
+                        <span class="historico-total">${formatarMoeda(venda.total)}</span>
+                    </div>
+                    
+                    <div class="historico-detalhes">
+                        <div><strong>Vendedor:</strong> ${venda.vendedor_nome || 'N/A'}</div>
+                        <div><strong>Forma pagamento:</strong> ${traduzirFormaPagamento(venda.forma_pagamento)}</div>
+                        <div><strong>Itens:</strong> ${venda.itens?.length || 0}</div>
+                        ${venda.desconto > 0 ? `<div><strong>Desconto:</strong> ${venda.desconto}%</div>` : ''}
+                    </div>
+                    
+                    <div class="historico-acoes">
+                        <button class="btn-historico-print" onclick="window.reimprimirVenda('${venda.numero}')">
+                            <i class="fas fa-print"></i> Reimprimir
+                        </button>
+                        <button class="btn-historico-view" onclick="window.verDetalhesVenda('${venda.numero}')">
+                            <i class="fas fa-eye"></i> Detalhes
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        container.innerHTML = `
+            <div class="empty-state" style="padding: 40px; color: #e74c3c;">
+                <i class="fas fa-exclamation-circle" style="font-size: 3rem;"></i>
+                <p style="margin-top: 15px;">Erro ao carregar histórico</p>
+            </div>
+        `;
+    }
+}
+
+function traduzirFormaPagamento(forma) {
+    const traducoes = {
+        'dinheiro': 'Dinheiro',
+        'cartao_credito': 'Cartão de Crédito',
+        'cartao_debito': 'Cartão de Débito',
+        'pix': 'PIX',
+        'credito_loja': 'Crédito da Loja',
+        'vale': 'Vale'
+    };
+    return traducoes[forma] || forma || 'N/A';
+}
+
+window.reimprimirVenda = async function(numeroVenda) {
+    try {
+        const vendas = JSON.parse(localStorage.getItem(`vendas_${lojaServices.lojaId}`) || '[]');
+        const venda = vendas.find(v => v.numero === numeroVenda);
+        
+        if (venda) {
+            await window.servicosAvancados.imprimirNotaFiscalVenda(
+                venda,
+                lojaServices,
+                true // reimpressão
+            );
+            mostrarMensagem(`Reimpressão da venda #${numeroVenda} enviada!`, 'success');
+        } else {
+            mostrarMensagem('Venda não encontrada', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao reimprimir:', error);
+        mostrarMensagem('Erro ao reimprimir venda', 'error');
+    }
+};
+
+window.verDetalhesVenda = function(numeroVenda) {
+    const vendas = JSON.parse(localStorage.getItem(`vendas_${lojaServices.lojaId}`) || '[]');
+    const venda = vendas.find(v => v.numero === numeroVenda);
+    
+    if (!venda) return;
+    
+    let detalhes = `VENDA #${venda.numero}\n`;
+    detalhes += `Data: ${new Date(venda.data_venda).toLocaleString('pt-BR')}\n`;
+    detalhes += `Vendedor: ${venda.vendedor_nome}\n`;
+    detalhes += `Forma Pagamento: ${traduzirFormaPagamento(venda.forma_pagamento)}\n`;
+    detalhes += `----------------------------------------\n`;
+    detalhes += `ITENS:\n`;
+    
+    venda.itens?.forEach((item, i) => {
+        detalhes += `${i+1}. ${item.nome}\n`;
+        detalhes += `   ${item.quantidade}x ${formatarMoeda(item.preco_unitario)} = ${formatarMoeda(item.subtotal)}\n`;
+    });
+    
+    detalhes += `----------------------------------------\n`;
+    detalhes += `Subtotal: ${formatarMoeda(venda.subtotal)}\n`;
+    if (venda.desconto > 0) {
+        detalhes += `Desconto: ${venda.desconto}%\n`;
+    }
+    detalhes += `TOTAL: ${formatarMoeda(venda.total)}\n`;
+    
+    alert(detalhes);
+};
 
 // ============================================
 // LEITOR DE CÓDIGO DE BARRAS
@@ -1028,34 +1630,8 @@ async function verificarLeitorCodigoBarras() {
 }
 
 // ============================================
-// IMPRESSÃO (BÁSICO)
-// ============================================
-async function carregarConfigImpressora() {
-    try {
-        const configSalva = localStorage.getItem(`impressora_config_${lojaServices.lojaId}`);
-        vendaManager.configImpressora = configSalva ? JSON.parse(configSalva) : null;
-        
-        const btnImprimir = document.getElementById('btnImprimirNota');
-        if (btnImprimir) {
-            btnImprimir.disabled = !vendaManager.configImpressora;
-        }
-    } catch (error) {
-        console.error('❌ Erro ao carregar configuração da impressora:', error);
-        vendaManager.configImpressora = null;
-    }
-}
-
-// ============================================
 // FUNÇÕES UTILITÁRIAS
 // ============================================
-function formatarMoeda(valor) {
-    const numero = parseFloat(valor) || 0;
-    return numero.toLocaleString('pt-BR', {
-        style: 'currency', currency: 'BRL',
-        minimumFractionDigits: 2, maximumFractionDigits: 2
-    });
-}
-
 function mostrarLoading(titulo = 'Carregando...', detalhe = '') {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
@@ -1095,85 +1671,14 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 4000) {
     }, tempo);
 }
 
-console.log("✅ Sistema de vendas PDV com imagens carregado!");
-
-// ============================================
-// FORMATAR QUANTIDADE COM VALOR DA UNIDADE
-// ============================================
-function formatarQuantidadeComUnidade(produto) {
-    if (!produto) return '0 UN';
-    
-    const quantidade = produto.quantidade || 0;
-    const unidadeVenda = produto.unidade_venda || produto.unidade || 'UN';
-    
-    // Verificar se tem valor por unidade (peso, medida, etc)
-    const valorUnidade = produto.valor_unidade || produto.peso_por_unidade || 1;
-    const tipoUnidade = produto.tipo_unidade || produto.unidade_peso || '';
-    
-    // Se o valor da unidade for 1, não precisa exibir (é unidade padrão)
-    if (valorUnidade === 1 || !tipoUnidade) {
-        return `${quantidade} ${unidadeVenda}`;
-    }
-    
-    // Formatar o valor (remover .0 se for inteiro)
-    const valorFormatado = valorUnidade % 1 === 0 
-        ? valorUnidade 
-        : valorUnidade.toFixed(1).replace(/\.0$/, '');
-    
-    // Abreviações comuns
-    const abreviacoes = {
-        'unidade': 'unid',
-        'unid': 'unid',
-        'quilograma': 'kg',
-        'kg': 'kg',
-        'grama': 'g',
-        'g': 'g',
-        'tonelada': 't',
-        'ton': 't',
-        'litro': 'L',
-        'l': 'L',
-        'mililitro': 'mL',
-        'ml': 'mL',
-        'metro': 'm',
-        'm': 'm',
-        'centimetro': 'cm',
-        'cm': 'cm',
-        'metro_quadrado': 'm²',
-        'm2': 'm²',
-        'metro_cubico': 'm³',
-        'm3': 'm³'
-    };
-    
-    const unidadeAbreviada = abreviacoes[tipoUnidade.toLowerCase()] || tipoUnidade;
-    
-    return `${quantidade} ${unidadeVenda} - ${valorFormatado}${unidadeAbreviada}`;
-}
-
 // ============================================
 // CLASSE: ServicosAvancadosPDV
 // ============================================
-// Funcionalidades avançadas para o PDV:
-// - Impressão de notas fiscais
-// - Leitor de código de barras (USB, Bluetooth, Serial)
-// - Configuração de impressora
-// - Modo scan avançado
-// ============================================
-
-// ============================================
-// CLASSE: ServicosAvancadosPDV - APENAS IMPRESSÃO
-// ============================================
-// Funcionalidades APENAS de impressão
-// ============================================
-
 class ServicosAvancadosPDV {
     constructor(vendaManager) {
         this.vendaManager = vendaManager;
         this.configImpressora = null;
     }
-
-    // ========================================
-    // IMPRESSÃO - FUNCIONALIDADE ÚNICA
-    // ========================================
 
     async carregarConfigImpressora(lojaId) {
         try {
@@ -1183,7 +1688,6 @@ class ServicosAvancadosPDV {
                 this.configImpressora = JSON.parse(configSalva);
                 this.vendaManager.configImpressora = this.configImpressora;
             } else {
-                // Configuração padrão
                 this.configImpressora = {
                     tipo: 'sistema',
                     modelo: 'padrao',
@@ -1191,8 +1695,6 @@ class ServicosAvancadosPDV {
                     imprimirLogo: true
                 };
                 this.vendaManager.configImpressora = this.configImpressora;
-                
-                // Salvar configuração padrão
                 localStorage.setItem(`impressora_config_${lojaId}`, JSON.stringify(this.configImpressora));
             }
             
@@ -1214,65 +1716,84 @@ class ServicosAvancadosPDV {
     atualizarBotaoImpressao() {
         const btnImprimir = document.getElementById('btnImprimirNota');
         if (btnImprimir) {
-            // SEMPRE HABILITADO - usa impressora do Windows
             btnImprimir.disabled = false;
             btnImprimir.removeAttribute('disabled');
-            btnImprimir.title = "Imprimir Nota Fiscal (impressora padrão do Windows)";
+            btnImprimir.title = "Imprimir Orçamento (impressora padrão do Windows)";
             btnImprimir.style.opacity = '1';
             btnImprimir.style.pointerEvents = 'auto';
             
-            // Adicionar evento se não existir
             if (!btnImprimir.hasAttribute('data-print-listener')) {
                 btnImprimir.setAttribute('data-print-listener', 'true');
                 btnImprimir.addEventListener('click', async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    await this.imprimirNotaFiscal(
-                        this.vendaManager.carrinho,
-                        this.vendaManager.subtotal,
-                        this.vendaManager.total,
-                        this.vendaManager.desconto,
-                        this.vendaManager.formaPagamento,
-                        lojaServices
-                    );
+                    
+                    if (this.vendaManager.modoAtual === 'orcamento') {
+                        await this.gerarEImprimirOrcamento();
+                    } else {
+                        mostrarMensagem('Mude para modo ORÇAMENTO para imprimir orçamento', 'info');
+                    }
                 });
             }
         }
     }
 
-    async imprimirNotaFiscal(carrinho, subtotal, total, desconto, formaPagamento, lojaServices) {
-        if (!carrinho || carrinho.length === 0) {
-            mostrarMensagem('Adicione produtos ao carrinho para imprimir', 'warning');
+    async gerarEImprimirOrcamento() {
+        if (this.vendaManager.carrinho.length === 0) {
+            mostrarMensagem('Adicione produtos ao carrinho para gerar orçamento', 'warning');
             return;
         }
         
         try {
-            mostrarLoading('Preparando impressão...', 'Gerando nota fiscal...');
+            mostrarLoading('Gerando orçamento...');
             
-            const conteudoNota = this.gerarConteudoNotaFiscal(
-                carrinho, subtotal, total, desconto, formaPagamento, lojaServices
-            );
+            const orcamentoData = {
+                numero: gerarNumeroOrcamento(),
+                itens: this.vendaManager.carrinho.map(item => ({
+                    produto_id: item.id,
+                    codigo: item.codigo,
+                    nome: item.nome,
+                    preco_unitario: item.preco_unitario,
+                    quantidade: item.quantidade,
+                    subtotal: item.subtotal,
+                    unidade: item.unidade,
+                    valor_unidade: item.valor_unidade,
+                    tipo_unidade: item.tipo_unidade
+                })),
+                subtotal: this.vendaManager.subtotal,
+                desconto: this.vendaManager.desconto,
+                valor_desconto: this.vendaManager.subtotal * (this.vendaManager.desconto / 100),
+                total: this.vendaManager.total,
+                vendedor_id: lojaServices.usuarioId,
+                vendedor_nome: lojaServices.nomeUsuario,
+                data_criacao: new Date(),
+                data_validade: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+                status: 'ativo',
+                loja_id: lojaServices.lojaId
+            };
             
-            // Único método de impressão - via navegador
-            this.imprimirNoNavegador(conteudoNota);
+            const orcamentos = JSON.parse(localStorage.getItem(`orcamentos_${lojaServices.lojaId}`) || '[]');
+            orcamentos.push(orcamentoData);
+            localStorage.setItem(`orcamentos_${lojaServices.lojaId}`, JSON.stringify(orcamentos));
+            
+            this.vendaManager.orcamentoAtual = orcamentoData;
+            
+            await this.imprimirOrcamento(orcamentoData, lojaServices);
             
             esconderLoading();
-            mostrarMensagem('Nota fiscal enviada para impressão!', 'success');
-            return { success: true };
+            mostrarMensagem(`Orçamento #${orcamentoData.numero} gerado e impresso!`, 'success');
             
         } catch (error) {
-            console.error('❌ Erro ao imprimir:', error);
+            console.error('❌ Erro ao gerar orçamento:', error);
             esconderLoading();
-            mostrarMensagem('Erro ao imprimir nota fiscal', 'error');
-            return { success: false, error: error.message };
+            mostrarMensagem('Erro ao gerar orçamento', 'error');
         }
     }
 
-    gerarConteudoNotaFiscal(carrinho, subtotal, total, desconto, formaPagamento, lojaServices) {
+    async imprimirOrcamento(orcamento, lojaServices) {
         const config = this.configImpressora || { largura: 48 };
         const largura = config.largura || 48;
         
-        // Dados da loja
         const nomeLoja = lojaServices.dadosLoja?.nome || 
                          lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         
@@ -1280,9 +1801,8 @@ class ServicosAvancadosPDV {
         const endereco = lojaServices.dadosLoja?.endereco || 'Endereço da Loja';
         const telefone = lojaServices.dadosLoja?.telefone || '(00) 0000-0000';
         
-        const dataHora = new Date().toLocaleString('pt-BR');
-        const numeroVenda = this.gerarNumeroVenda();
-        const vendedor = lojaServices.nomeUsuario || 'Vendedor';
+        const dataCriacao = new Date(orcamento.data_criacao).toLocaleString('pt-BR');
+        const dataValidade = new Date(orcamento.data_validade).toLocaleDateString('pt-BR');
         
         let conteudo = '';
         
@@ -1293,11 +1813,12 @@ class ServicosAvancadosPDV {
         conteudo += this.centralizar(endereco, largura) + '\n';
         conteudo += this.centralizar('Tel: ' + telefone, largura) + '\n';
         conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
-        conteudo += this.centralizar('CUPOM NÃO FISCAL', largura) + '\n';
+        conteudo += this.centralizar('ORÇAMENTO', largura) + '\n';
+        conteudo += this.centralizar(`Nº ${orcamento.numero}`, largura) + '\n';
         conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
-        conteudo += `Data: ${dataHora}\n`;
-        conteudo += `Venda: ${numeroVenda}\n`;
-        conteudo += `Vendedor: ${vendedor}\n`;
+        conteudo += `Data: ${dataCriacao}\n`;
+        conteudo += `Vendedor: ${orcamento.vendedor_nome}\n`;
+        conteudo += `VALIDADE: ${dataValidade} (10 dias conforme Lei)\n`;
         conteudo += '-'.repeat(largura) + '\n';
         
         // CABEÇALHO DOS ITENS
@@ -1305,7 +1826,7 @@ class ServicosAvancadosPDV {
         conteudo += '-'.repeat(largura) + '\n';
         
         // ITENS
-        carrinho.forEach((item, index) => {
+        orcamento.itens.forEach((item, index) => {
             const numItem = (index + 1).toString().padStart(2, '0');
             const nome = this.truncarTexto(item.nome, 22);
             const qtd = item.quantidade.toString().padStart(3, ' ');
@@ -1319,29 +1840,21 @@ class ServicosAvancadosPDV {
         // TOTAIS
         conteudo += '-'.repeat(largura) + '\n';
         
-        const subtotalStr = this.formatarMoedaResumida(subtotal).padStart(largura - 10);
+        const subtotalStr = this.formatarMoedaResumida(orcamento.subtotal).padStart(largura - 10);
         conteudo += `Subtotal:${subtotalStr}\n`;
         
-        if (desconto > 0) {
-            const valorDesconto = this.formatarMoedaResumida(subtotal * (desconto / 100)).padStart(largura - 16);
-            conteudo += `Desconto (${desconto}%):${valorDesconto}\n`;
+        if (orcamento.desconto > 0) {
+            const valorDesconto = this.formatarMoedaResumida(orcamento.valor_desconto).padStart(largura - 16);
+            conteudo += `Desconto (${orcamento.desconto}%):${valorDesconto}\n`;
         }
         
-        const totalStr = this.formatarMoedaResumida(total).padStart(largura - 7);
+        const totalStr = this.formatarMoedaResumida(orcamento.total).padStart(largura - 7);
         conteudo += `TOTAL:${totalStr}\n`;
         
-        // FORMA DE PAGAMENTO
-        const formaPagamentoStr = this.traduzirFormaPagamento(formaPagamento);
-        conteudo += `Pagamento: ${formaPagamentoStr}\n`;
-        
-        if (formaPagamento === 'dinheiro') {
-            const troco = this.calcularTroco(total);
-            if (troco > 0) {
-                conteudo += `Troco: ${this.formatarMoedaResumida(troco)}\n`;
-            }
-        }
-        
         // RODAPÉ
+        conteudo += '='.repeat(largura) + '\n';
+        conteudo += this.centralizar('ORÇAMENTO VÁLIDO POR 10 DIAS', largura) + '\n';
+        conteudo += this.centralizar('Lei Federal nº 8.078/90', largura) + '\n';
         conteudo += '='.repeat(largura) + '\n';
         conteudo += this.centralizar('OBRIGADO PELA PREFERÊNCIA!', largura) + '\n';
         conteudo += this.centralizar('VOLTE SEMPRE!', largura) + '\n';
@@ -1351,12 +1864,90 @@ class ServicosAvancadosPDV {
         conteudo += this.centralizar(new Date().toLocaleTimeString('pt-BR'), largura) + '\n';
         conteudo += '\n\n\n\n';
         
-        return conteudo;
+        this.imprimirNoNavegador(conteudo, 'ORÇAMENTO');
     }
 
-    // ========================================
-    // MÉTODOS AUXILIARES DE FORMATAÇÃO
-    // ========================================
+    async imprimirNotaFiscalVenda(venda, lojaServices, isReimpressao = false) {
+        const config = this.configImpressora || { largura: 48 };
+        const largura = config.largura || 48;
+        
+        const nomeLoja = lojaServices.dadosLoja?.nome || 
+                         lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        const cnpj = lojaServices.dadosLoja?.cnpj || '00.000.000/0000-00';
+        const endereco = lojaServices.dadosLoja?.endereco || 'Endereço da Loja';
+        const telefone = lojaServices.dadosLoja?.telefone || '(00) 0000-0000';
+        
+        const dataVenda = new Date(venda.data_venda).toLocaleString('pt-BR');
+        
+        let conteudo = '';
+        
+        // CABEÇALHO
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
+        conteudo += this.centralizar(nomeLoja, largura) + '\n';
+        conteudo += this.centralizar('CNPJ: ' + cnpj, largura) + '\n';
+        conteudo += this.centralizar(endereco, largura) + '\n';
+        conteudo += this.centralizar('Tel: ' + telefone, largura) + '\n';
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
+        conteudo += this.centralizar(isReimpressao ? '2ª VIA - CUPOM NÃO FISCAL' : 'CUPOM NÃO FISCAL', largura) + '\n';
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
+        conteudo += `Data: ${dataVenda}\n`;
+        conteudo += `Venda: ${venda.numero}\n`;
+        conteudo += `Vendedor: ${venda.vendedor_nome}\n`;
+        conteudo += '-'.repeat(largura) + '\n';
+        
+        // CABEÇALHO DOS ITENS
+        conteudo += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
+        conteudo += '-'.repeat(largura) + '\n';
+        
+        // ITENS
+        venda.itens.forEach((item, index) => {
+            const numItem = (index + 1).toString().padStart(2, '0');
+            const nome = this.truncarTexto(item.nome, 22);
+            const qtd = item.quantidade.toString().padStart(3, ' ');
+            const preco = this.formatarMoedaResumida(item.preco_unitario).padStart(8, ' ');
+            const subtotalItem = this.formatarMoedaResumida(item.subtotal).padStart(8, ' ');
+            
+            conteudo += `${numItem} ${nome}\n`;
+            conteudo += `         ${qtd}x ${preco} = ${subtotalItem}\n`;
+        });
+        
+        // TOTAIS
+        conteudo += '-'.repeat(largura) + '\n';
+        
+        const subtotalStr = this.formatarMoedaResumida(venda.subtotal).padStart(largura - 10);
+        conteudo += `Subtotal:${subtotalStr}\n`;
+        
+        if (venda.desconto > 0) {
+            const valorDesconto = this.formatarMoedaResumida(venda.valor_desconto).padStart(largura - 16);
+            conteudo += `Desconto (${venda.desconto}%):${valorDesconto}\n`;
+        }
+        
+        const totalStr = this.formatarMoedaResumida(venda.total).padStart(largura - 7);
+        conteudo += `TOTAL:${totalStr}\n`;
+        
+        // FORMA DE PAGAMENTO
+        const formaPagamentoStr = this.traduzirFormaPagamento(venda.forma_pagamento);
+        conteudo += `Pagamento: ${formaPagamentoStr}\n`;
+        
+        // RODAPÉ
+        conteudo += '='.repeat(largura) + '\n';
+        conteudo += this.centralizar('OBRIGADO PELA PREFERÊNCIA!', largura) + '\n';
+        conteudo += this.centralizar('VOLTE SEMPRE!', largura) + '\n';
+        conteudo += this.centralizar('='.repeat(largura), largura) + '\n';
+        conteudo += '\n';
+        conteudo += this.centralizar(new Date().toLocaleDateString('pt-BR'), largura) + '\n';
+        conteudo += this.centralizar(new Date().toLocaleTimeString('pt-BR'), largura) + '\n';
+        
+        if (isReimpressao) {
+            conteudo += '\n';
+            conteudo += this.centralizar('*** REIMPRESSÃO ***', largura) + '\n';
+        }
+        
+        conteudo += '\n\n\n\n';
+        
+        this.imprimirNoNavegador(conteudo, isReimpressao ? 'REIMPRESSÃO' : 'VENDA');
+    }
 
     centralizar(texto, largura) {
         if (texto.length >= largura) return texto;
@@ -1379,17 +1970,6 @@ class ServicosAvancadosPDV {
         });
     }
 
-    gerarNumeroVenda() {
-        const data = new Date();
-        const ano = data.getFullYear().toString().slice(-2);
-        const mes = (data.getMonth() + 1).toString().padStart(2, '0');
-        const dia = data.getDate().toString().padStart(2, '0');
-        const hora = data.getHours().toString().padStart(2, '0');
-        const minuto = data.getMinutes().toString().padStart(2, '0');
-        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        return `${ano}${mes}${dia}${hora}${minuto}-${random}`;
-    }
-
     traduzirFormaPagamento(forma) {
         const traducoes = {
             'dinheiro': 'DINHEIRO',
@@ -1402,36 +1982,18 @@ class ServicosAvancadosPDV {
         return traducoes[forma] || forma.toUpperCase();
     }
 
-    calcularTroco(total) {
-        // Implementar se necessário
-        return 0;
-    }
-
-    // ========================================
-    // MÉTODO DE IMPRESSÃO PRINCIPAL
-    // ========================================
-
-    imprimirNoNavegador(conteudo) {
-        // Criar janela de impressão
+    imprimirNoNavegador(conteudo, titulo = 'NOTA FISCAL') {
         const printWindow = window.open('', '_blank', 'width=400,height=600');
         
         const estilo = `
             <style>
-                * {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-                
+                * { margin: 0; padding: 0; box-sizing: border-box; }
                 body {
                     font-family: 'Courier New', Courier, monospace;
                     font-size: 12px;
                     line-height: 1.4;
                     background: white;
-                    padding: 0;
-                    margin: 0;
                 }
-                
                 .nota-fiscal {
                     width: 100%;
                     max-width: 300px;
@@ -1441,84 +2003,37 @@ class ServicosAvancadosPDV {
                     word-wrap: break-word;
                     font-family: 'Courier New', Courier, monospace;
                     font-size: 12px;
-                    background: white;
                 }
-                
                 @media print {
-                    body {
-                        background: white;
-                    }
-                    .nota-fiscal {
-                        padding: 5px;
-                        max-width: 100%;
-                    }
-                    .no-print {
-                        display: none !important;
-                    }
+                    body { background: white; }
+                    .nota-fiscal { padding: 5px; max-width: 100%; }
+                    .no-print { display: none !important; }
                 }
-                
                 .print-controls {
-                    position: fixed;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
+                    position: fixed; bottom: 0; left: 0; right: 0;
                     background: linear-gradient(to top, rgba(0,0,0,0.1), transparent);
-                    padding: 20px;
-                    text-align: center;
-                    display: flex;
-                    gap: 10px;
-                    justify-content: center;
-                    backdrop-filter: blur(5px);
+                    padding: 20px; text-align: center; display: flex; gap: 10px;
+                    justify-content: center; backdrop-filter: blur(5px);
                 }
-                
                 .btn-print {
-                    background: #27ae60;
-                    color: white;
-                    border: none;
-                    padding: 12px 30px;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    transition: all 0.3s;
-                    border: 1px solid rgba(255,255,255,0.2);
+                    background: #27ae60; color: white; border: none;
+                    padding: 12px 30px; border-radius: 8px; font-size: 14px;
+                    font-weight: bold; cursor: pointer; display: flex;
+                    align-items: center; gap: 8px; transition: all 0.3s;
                 }
-                
                 .btn-print:hover {
-                    background: #219a52;
-                    transform: translateY(-2px);
+                    background: #219a52; transform: translateY(-2px);
                     box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
                 }
-                
                 .btn-close {
-                    background: #e74c3c;
-                    color: white;
-                    border: none;
-                    padding: 12px 30px;
-                    border-radius: 8px;
-                    font-size: 14px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    transition: all 0.3s;
+                    background: #e74c3c; color: white; border: none;
+                    padding: 12px 30px; border-radius: 8px; font-size: 14px;
+                    font-weight: bold; cursor: pointer; display: flex;
+                    align-items: center; gap: 8px; transition: all 0.3s;
                 }
-                
                 .btn-close:hover {
-                    background: #c0392b;
-                    transform: translateY(-2px);
+                    background: #c0392b; transform: translateY(-2px);
                     box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
-                }
-                
-                .print-header {
-                    text-align: center;
-                    margin-bottom: 10px;
-                    padding-bottom: 10px;
-                    border-bottom: 1px dashed #ccc;
                 }
             </style>
         `;
@@ -1527,7 +2042,7 @@ class ServicosAvancadosPDV {
             <!DOCTYPE html>
             <html>
                 <head>
-                    <title>Nota Fiscal - PDV</title>
+                    <title>${titulo} - PDV</title>
                     ${estilo}
                 </head>
                 <body>
@@ -1541,10 +2056,7 @@ class ServicosAvancadosPDV {
                         </button>
                     </div>
                     <script>
-                        // Auto-imprimir após 500ms
-                        setTimeout(() => {
-                            window.print();
-                        }, 500);
+                        setTimeout(() => { window.print(); }, 500);
                     <\/script>
                 </body>
             </html>
@@ -1553,177 +2065,9 @@ class ServicosAvancadosPDV {
         printWindow.document.close();
     }
 
-    // ========================================
-    // MODAL DE CONFIGURAÇÃO DA IMPRESSORA
-    // ========================================
-
     mostrarModalConfigImpressora() {
-        const modalHTML = `
-            <div id="impressoraConfigModal" class="modal modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-print"></i> Configurar Impressora</h3>
-                        <button class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="printer-config">
-                            <!-- INFORMAÇÃO IMPORTANTE -->
-                            <div class="info-box" style="background: #e8f4fd; border-left: 4px solid #3498db; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                                <div style="display: flex; gap: 15px; align-items: flex-start;">
-                                    <i class="fas fa-info-circle" style="color: #3498db; font-size: 24px;"></i>
-                                    <div>
-                                        <strong style="color: #2c3e50; font-size: 16px;">Impressora do Windows</strong>
-                                        <p style="margin: 8px 0 0 0; color: #34495e;">
-                                            O sistema usará a impressora PADRÃO configurada no Windows.<br>
-                                            Para imprimir, basta clicar no botão "Imprimir" e selecionar sua impressora.
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- CONFIGURAÇÕES -->
-                            <div style="display: grid; gap: 15px;">
-                                <div class="config-group">
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">
-                                        <i class="fas fa-newspaper"></i> Modelo da Nota:
-                                    </label>
-                                    <select id="modeloImpressora" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;">
-                                        <option value="padrao">Padrão (80mm - 48 colunas)</option>
-                                        <option value="pequeno">Pequeno (58mm - 32 colunas)</option>
-                                        <option value="grande">Grande (80mm - com detalhes)</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="config-group">
-                                    <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #2c3e50;">
-                                        <i class="fas fa-arrows-alt-h"></i> Largura da Nota:
-                                    </label>
-                                    <input type="number" id="larguraImpressora" 
-                                           style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px;"
-                                           min="30" max="80" value="48" step="1">
-                                    <small style="display: block; margin-top: 5px; color: #7f8c8d;">
-                                        Número de caracteres por linha (48 = papel 80mm, 32 = papel 58mm)
-                                    </small>
-                                </div>
-                                
-                                <div class="config-options" style="background: #f8f9fa; padding: 15px; border-radius: 6px;">
-                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                        <input type="checkbox" id="imprimirLogo" checked style="width: 18px; height: 18px;">
-                                        <span style="font-weight: 500;">Incluir cabeçalho completo da loja</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- AÇÕES -->
-                            <div style="display: flex; gap: 10px; margin-top: 25px;">
-                                <button id="btnTestImpressora" 
-                                        style="flex: 1; padding: 14px; background: #f39c12; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                    <i class="fas fa-print"></i> Testar Impressão
-                                </button>
-                                <button id="btnSalvarImpressora" 
-                                        style="flex: 1; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                    <i class="fas fa-save"></i> Salvar
-                                </button>
-                                <button id="btnCancelImpressora" 
-                                        style="padding: 14px 20px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Adicionar modal ao DOM
-        const modalContainer = document.createElement('div');
-        modalContainer.innerHTML = modalHTML;
-        document.body.appendChild(modalContainer.firstElementChild);
-        
-        const modal = document.getElementById('impressoraConfigModal');
-        const config = this.configImpressora || {};
-        
-        // Preencher valores atuais
-        if (config.modelo) document.getElementById('modeloImpressora').value = config.modelo;
-        if (config.largura) document.getElementById('larguraImpressora').value = config.largura;
-        
-        const imprimirLogoCheck = document.getElementById('imprimirLogo');
-        if (imprimirLogoCheck) {
-            imprimirLogoCheck.checked = config.imprimirLogo !== false;
-        }
-        
-        // Eventos
-        modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
-        modal.querySelector('#btnCancelImpressora').addEventListener('click', () => modal.remove());
-        
-        modal.querySelector('#btnSalvarImpressora').addEventListener('click', () => {
-            const novaConfig = {
-                tipo: 'sistema',
-                modelo: document.getElementById('modeloImpressora').value,
-                largura: parseInt(document.getElementById('larguraImpressora').value) || 48,
-                imprimirLogo: document.getElementById('imprimirLogo')?.checked || true
-            };
-            
-            this.configImpressora = novaConfig;
-            this.vendaManager.configImpressora = novaConfig;
-            localStorage.setItem(`impressora_config_${lojaServices.lojaId}`, JSON.stringify(novaConfig));
-            
-            this.atualizarBotaoImpressao();
-            mostrarMensagem('Configuração da impressora salva!', 'success');
-            modal.remove();
-        });
-        
-        modal.querySelector('#btnTestImpressora').addEventListener('click', () => {
-            this.testarImpressao();
-        });
-        
-        // Fechar ao clicar fora
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) modal.remove();
-        });
-        
-        modal.style.display = 'flex';
-    }
-
-    // ========================================
-    // TESTE DE IMPRESSÃO
-    // ========================================
-
-    async testarImpressao() {
-        const config = this.configImpressora || { largura: 48 };
-        const largura = config.largura || 48;
-        
-        const conteudoTeste = 
-            '='.repeat(largura) + '\n' +
-            this.centralizar('TESTE DE IMPRESSÃO', largura) + '\n' +
-            '='.repeat(largura) + '\n' +
-            '\n' +
-            this.centralizar('PDV - SISTEMA DE VENDAS', largura) + '\n' +
-            '\n' +
-            '-'.repeat(largura) + '\n' +
-            'Data: ' + new Date().toLocaleString('pt-BR') + '\n' +
-            'Loja: ' + lojaServices.lojaId + '\n' +
-            'Impressora: ' + (this.configImpressora?.modelo || 'Padrão') + '\n' +
-            'Largura: ' + largura + ' colunas\n' +
-            '-'.repeat(largura) + '\n' +
-            '\n' +
-            this.centralizar('✅ IMPRESSÃO OK!', largura) + '\n' +
-            '\n' +
-            'Se você está lendo esta mensagem,\n' +
-            'sua impressora está configurada\n' +
-            'corretamente no Windows!\n' +
-            '\n' +
-            '='.repeat(largura) + '\n' +
-            this.centralizar('FIM DO TESTE', largura) + '\n' +
-            '='.repeat(largura) + '\n' +
-            '\n\n';
-        
-        this.imprimirNoNavegador(conteudoTeste);
-        mostrarMensagem('Teste de impressão enviado!', 'success');
+        // Implementar se necessário
     }
 }
 
-
-
-
-
+console.log("✅ Sistema de vendas PDV com orçamentos e histórico carregado!");
