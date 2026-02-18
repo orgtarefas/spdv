@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPDVI Vendas - Sistema Multi-Lojas</title>
+    <title>SPDVI Vendas - Sistema PDV</title>
     <link rel="stylesheet" href="venda.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -18,7 +18,7 @@
                     Voltar
                 </a>
                 <div class="page-title">
-                    <h1><i class="fas fa-cash-register"></i> SPDVI - Sistema Ponto de Vendas Integrado</h1>
+                    <h1><i class="fas fa-cash-register"></i> PDV - Ponto de Venda</h1>
                     <p class="page-subtitle" id="nomeLoja">Carregando...</p>
                 </div>
             </div>
@@ -37,129 +37,160 @@
 
         <!-- Main Content -->
         <main class="content">
-            <div class="SPDV-container">
-                <!-- Left Panel - Leitor/Scanner -->
-                <div class="SPDV-left">
-                    <!-- Área de Leitura/Código de Barras -->
-                    <div class="scan-section">
-                        <div class="scan-header">
-                            <h3><i class="fas fa-barcode"></i> Leitor de Código de Barras</h3>
+            <div class="pdv-container">
+                <!-- LADO ESQUERDO - ÁREA DE ENTRADA -->
+                <div class="pdv-left">
+                    <!-- Campo de Código de Barras -->
+                    <div class="barcode-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-barcode"></i> Código de Barras</h3>
                             <span class="scan-status" id="scanStatus">
-                                <i class="fas fa-circle" style="color: #27ae60;"></i> Conectado
+                                <i class="fas fa-circle" style="color: #27ae60;"></i> Online
                             </span>
                         </div>
                         
-                        <div class="scan-box">
-                            <div class="input-wrapper scan-input-wrapper">
+                        <div class="barcode-input-group">
+                            <div class="barcode-input-wrapper">
                                 <i class="fas fa-barcode"></i>
-                                <input type="text" id="scanInput" placeholder="Digite ou escaneie o código do produto..." autofocus>
-                                <button class="scan-clear" id="scanClear">
+                                <input type="text" id="barcodeInput" 
+                                       placeholder="Digite ou escaneie o código..." 
+                                       autofocus
+                                       autocomplete="off">
+                                <button class="barcode-clear" id="barcodeClear">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                             
-                            <div class="scan-actions">
-                                <button id="btnScan" class="btn-scan" title="Abrir busca manual">
-                                    <i class="fas fa-search"></i> Buscar
-                                </button>
-                                <button id="btnConsultaRapida" class="btn-consulta" title="Consulta Rápida de Preços">
-                                    <i class="fas fa-search-dollar"></i> Consultar
+                            <!-- Seletor de Quantidade -->
+                            <div class="quantity-selector">
+                                <label for="itemQuantity">Qtd:</label>
+                                <div class="quantity-controls">
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(-1)">−</button>
+                                    <input type="number" id="itemQuantity" value="1" min="1" max="999" step="1">
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(1)">+</button>
+                                </div>
+                            </div>
+                            
+                            <button class="btn-add-barcode" id="btnAddBarcode">
+                                <i class="fas fa-cart-plus"></i>
+                                Adicionar
+                            </button>
+                        </div>
+                        
+                        <!-- Dica Rápida -->
+                        <div class="barcode-tip">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Enter para adicionar | F2 para nova consulta | F4 para desconto</span>
+                        </div>
+                    </div>
+                    
+                    <!-- ÚLTIMO PRODUTO ADICIONADO -->
+                    <div class="last-product-section" id="lastProductSection" style="display: none;">
+                        <div class="section-header">
+                            <h3><i class="fas fa-clock"></i> Último Produto</h3>
+                        </div>
+                        
+                        <div class="last-product-card">
+                            <div class="last-product-image">
+                                <img id="lastProductImage" src="" alt="Produto">
+                            </div>
+                            
+                            <div class="last-product-info">
+                                <div class="last-product-name" id="lastProductName">---</div>
+                                <div class="last-product-code" id="lastProductCode">---</div>
+                                
+                                <div class="last-product-prices">
+                                    <div class="price-box">
+                                        <span class="price-label">Valor Unitário</span>
+                                        <span class="price-value" id="lastProductUnitPrice">R$ 0,00</span>
+                                    </div>
+                                    
+                                    <div class="price-box">
+                                        <span class="price-label">Desconto</span>
+                                        <div class="discount-control">
+                                            <input type="number" id="lastProductDiscount" value="0" min="0" max="100" step="0.1">
+                                            <span>%</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="price-box total-box">
+                                        <span class="price-label">Total do Item</span>
+                                        <span class="price-value total-value" id="lastProductTotal">R$ 0,00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botões de Ação Rápida -->
+                    <div class="quick-actions">
+                        <button class="quick-btn" id="btnConsultaRapida">
+                            <i class="fas fa-search-dollar"></i>
+                            Consultar Preço
+                        </button>
+                        <button class="quick-btn" id="btnBuscaManual">
+                            <i class="fas fa-search"></i>
+                            Buscar Produto
+                        </button>
+                        <button class="quick-btn" id="btnLimparCarrinho">
+                            <i class="fas fa-trash"></i>
+                            Limpar Tudo
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- LADO DIREITO - LISTA DE PRODUTOS -->
+                <div class="pdv-right">
+                    <div class="cart-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-shopping-cart"></i> Itens do Carrinho</h3>
+                            <div class="cart-controls">
+                                <span class="item-count" id="itemCount">0 itens</span>
+                                <button class="btn-clear-cart" id="btnClearCart" title="Limpar carrinho">
+                                    <i class="fas fa-trash-alt"></i>
                                 </button>
                             </div>
                         </div>
                         
-                        <!-- Último código escaneado -->
-                        <div class="last-scanned" id="lastScanned" style="display: none;">
-                            <span>Último: <span id="lastCode"></span></span>
-                            <span class="last-product" id="lastProduct"></span>
-                        </div>
-                        
-                        <!-- Dica rápida -->
-                        <div class="scan-tip">
-                            <i class="fas fa-lightbulb"></i>
-                            <span>Dica: Use Enter para adicionar rapidamente</span>
-                        </div>
-                    </div>
-                    
-                    <!-- LISTA DE PRODUTOS (ESTILO MERCADINHO) -->
-                    <div class="products-list-section">
-                        <div class="section-header">
-                            <h3><i class="fas fa-list"></i> Produtos Adicionados</h3>
-                            <span class="product-count" id="productCount">0 itens</span>
-                        </div>
-                        
-                        <div class="products-list-container" id="productsListContainer">
-                            <!-- Lista de produtos adicionados (estilo mercado) -->
-                            <table class="products-table" id="productsTable">
+                        <!-- LISTA DE PRODUTOS (TABELA) -->
+                        <div class="cart-items-list" id="cartItemsList">
+                            <table class="cart-table">
                                 <thead>
                                     <tr>
+                                        <th>#</th>
                                         <th>Código</th>
                                         <th>Produto</th>
                                         <th>Qtd</th>
-                                        <th>Preço Unit.</th>
+                                        <th>Valor Unit.</th>
+                                        <th>Desc. %</th>
                                         <th>Subtotal</th>
-                                        <th>Ações</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
-                                <tbody id="productsTableBody">
-                                    <!-- Itens serão inseridos aqui via JavaScript -->
+                                <tbody id="cartTableBody">
                                     <tr class="empty-row">
-                                        <td colspan="6">
-                                            <div class="empty-state">
+                                        <td colspan="8">
+                                            <div class="empty-cart">
                                                 <i class="fas fa-shopping-cart"></i>
-                                                <p>Nenhum produto adicionado</p>
-                                                <small>Escaneie ou digite o código do produto</small>
+                                                <p>Carrinho vazio</p>
+                                                <small>Digite ou escaneie um código de barras</small>
                                             </div>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Right Panel - Resumo e Pagamento -->
-                <div class="SPDV-right">
-                    <div class="cart-section">
-                        <div class="section-header">
-                            <h3><i class="fas fa-shopping-cart"></i> Resumo da Venda</h3>
-                            <button id="btnClearCart" class="btn-clear">
-                                <i class="fas fa-trash"></i>
-                                Limpar
-                            </button>
-                        </div>
                         
-                        <!-- Modo (Venda/Orçamento) -->
-                        <div class="modo-container">
-                            <div style="display: flex; gap: 10px;">
-                                <button id="btnModoVenda" class="btn-modo active" data-modo="venda">
-                                    <i class="fas fa-cash-register"></i> Venda
-                                </button>
-                                <button id="btnModoOrcamento" class="btn-modo" data-modo="orcamento">
-                                    <i class="fas fa-file-invoice"></i> Orçamento
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Resumo dos Itens (Versão Compacta) -->
-                        <div class="cart-items-summary" id="cartItemsSummary">
-                            <div class="empty-cart">
-                                <i class="fas fa-shopping-cart"></i>
-                                <p>Carrinho vazio</p>
-                                <small>Escaneie produtos para começar</small>
-                            </div>
-                        </div>
-                        
-                        <!-- Totais -->
+                        <!-- RESUMO DA VENDA -->
                         <div class="cart-summary">
                             <div class="summary-row">
                                 <span>Subtotal:</span>
                                 <span id="subtotal">R$ 0,00</span>
                             </div>
                             <div class="summary-row">
-                                <span>Desconto:</span>
-                                <div class="discount-input">
-                                    <input type="number" id="desconto" value="0" min="0" max="100" step="0.01">
+                                <span>Desconto Total:</span>
+                                <div class="summary-discount">
+                                    <input type="number" id="totalDesconto" value="0" min="0" max="100" step="0.1">
                                     <span>%</span>
                                 </div>
                             </div>
@@ -169,63 +200,44 @@
                             </div>
                         </div>
                         
-                        <!-- Formas de Pagamento -->
+                        <!-- FORMAS DE PAGAMENTO E AÇÕES -->
                         <div class="payment-section">
                             <div class="payment-methods">
                                 <h4>Forma de Pagamento</h4>
                                 <div class="methods-grid">
                                     <label class="method-option">
                                         <input type="radio" name="payment" value="dinheiro" checked>
-                                        <span class="method-icon">
-                                            <i class="fas fa-money-bill-wave"></i>
-                                        </span>
+                                        <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
                                         <span class="method-name">Dinheiro</span>
                                     </label>
-                                    
                                     <label class="method-option">
-                                        <input type="radio" name="payment" value="cartao_debito">
-                                        <span class="method-icon">
-                                            <i class="fas fa-credit-card"></i>
-                                        </span>
-                                        <span class="method-name">Cartão Débito</span>
+                                        <input type="radio" name="payment" value="debito">
+                                        <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                                        <span class="method-name">Débito</span>
                                     </label>
-                                    
                                     <label class="method-option">
-                                        <input type="radio" name="payment" value="cartao_credito">
-                                        <span class="method-icon">
-                                            <i class="fas fa-credit-card"></i>
-                                        </span>
-                                        <span class="method-name">Cartão Crédito</span>
+                                        <input type="radio" name="payment" value="credito">
+                                        <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                                        <span class="method-name">Crédito</span>
                                     </label>
-                                    
                                     <label class="method-option">
                                         <input type="radio" name="payment" value="pix">
-                                        <span class="method-icon">
-                                            <i class="fas fa-qrcode"></i>
-                                        </span>
+                                        <span class="method-icon"><i class="fas fa-qrcode"></i></span>
                                         <span class="method-name">PIX</span>
                                     </label>
                                 </div>
                             </div>
                             
-                            <!-- BOTÕES DE AÇÃO -->
-                            <div class="payment-actions">
-                                <button id="btnGerarOrcamento" class="btn-orcamento" style="display: none;">
-                                    <i class="fas fa-file-invoice"></i>
-                                    Imprimir Orçamento
+                            <div class="action-buttons">
+                                <button class="btn-print" id="btnImprimir">
+                                    <i class="fas fa-print"></i>
+                                    Imprimir
                                 </button>
-                                
-                                <button id="btnFinalizarVenda" class="btn-finalizar" disabled>
+                                <button class="btn-finalize" id="btnFinalizar" disabled>
                                     <i class="fas fa-check-circle"></i>
                                     Finalizar Venda
                                 </button>
-                                
-                                <button id="btnImprimirNota" class="btn-print" style="display: none;">
-                                    <i class="fas fa-print"></i>
-                                    Reimprimir
-                                </button>
-                                
-                                <button id="btnCancelarVenda" class="btn-cancelar">
+                                <button class="btn-cancel" id="btnCancelar">
                                     <i class="fas fa-times-circle"></i>
                                     Cancelar
                                 </button>
@@ -239,120 +251,71 @@
         <!-- Footer -->
         <footer class="main-footer">
             <div class="footer-content">
-                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema Ponto de Vendas Integrado</span> SPDV-I</p>
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema PDV</span></p>
                 <p id="currentDateTime">--:--:--</p>
             </div>
         </footer>
     </div>
 
-    <!-- MODAL DE BUSCA DE PRODUTOS -->
-    <div id="searchModal" class="modal" style="display: none;">
+    <!-- MODAL DE CONSULTA RÁPIDA -->
+    <div id="consultaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-search-dollar"></i> Consulta Rápida</h3>
+                <button class="modal-close" onclick="fecharModal('consultaModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="consultaInput" placeholder="Digite código ou nome do produto...">
+                </div>
+                <div class="consulta-results" id="consultaResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE BUSCA MANUAL -->
+    <div id="buscaModal" class="modal">
         <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3><i class="fas fa-search"></i> Buscar Produtos</h3>
-                <button class="modal-close" id="closeSearchModal">&times;</button>
+                <button class="modal-close" onclick="fecharModal('buscaModal')">&times;</button>
             </div>
-            
             <div class="modal-body">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchProductInput" placeholder="Código, nome ou categoria do produto" autofocus>
-                    <button class="search-clear" id="searchClear">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <input type="text" id="buscaInput" placeholder="Código, nome ou categoria...">
                 </div>
-                
-                <div class="search-results" id="searchResults">
-                    <div class="empty-state" style="padding: 40px 20px;">
-                        <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
-                        <p style="margin-top: 15px;">Digite para buscar produtos</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <button id="btnCloseSearch" class="btn-cancel">
-                    <i class="fas fa-times"></i> Fechar
-                </button>
+                <div class="busca-results" id="buscaResults"></div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL DE CONSULTA RÁPIDA -->
-    <div id="consultaRapidaModal" class="modal" style="display: none;">
-        <div class="modal-content modal-lg">
-            <div class="modal-header">
-                <h3><i class="fas fa-search-dollar"></i> Consulta Rápida de Preços</h3>
-                <button class="modal-close" id="closeConsultaModal">&times;</button>
-            </div>
-            
-            <div class="modal-body">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="consultaInput" placeholder="Digite código ou nome do produto..." autofocus>
-                    <button class="search-clear" id="consultaClear">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div class="consulta-results" id="consultaResults">
-                    <div class="empty-state" style="padding: 40px 20px;">
-                        <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
-                        <p>Digite para consultar preços</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <button id="btnFecharConsulta" class="btn-cancel">
-                    <i class="fas fa-times"></i> Fechar
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL HISTÓRICO DE VENDAS -->
-    <div id="historicoModal" class="modal" style="display: none;">
-        <div class="modal-content modal-lg">
+    <!-- MODAL HISTÓRICO -->
+    <div id="historicoModal" class="modal modal-lg">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-history"></i> Histórico de Vendas</h3>
-                <button class="modal-close" id="closeHistoricoModal">&times;</button>
+                <button class="modal-close" onclick="fecharModal('historicoModal')">&times;</button>
             </div>
-            
             <div class="modal-body">
                 <div class="historico-filtros">
-                    <input type="date" id="filtroData" class="filtro-data">
-                    <input type="text" id="filtroNumero" placeholder="Número da venda" class="filtro-numero">
-                    <button id="btnFiltrar" class="btn-filtrar">
+                    <input type="date" id="filtroData">
+                    <input type="text" id="filtroNumero" placeholder="Número da venda">
+                    <button class="btn-filtrar" onclick="filtrarHistorico()">
                         <i class="fas fa-search"></i> Filtrar
                     </button>
-                    <button id="btnLimparFiltros" class="btn-limpar">
-                        <i class="fas fa-times"></i> Limpar
-                    </button>
                 </div>
-                
-                <div class="historico-results" id="historicoResults">
-                    <div class="empty-state">
-                        <i class="fas fa-shopping-cart" style="font-size: 3rem; opacity: 0.2;"></i>
-                        <p>Nenhuma venda encontrada</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <button id="btnFecharHistorico" class="btn-cancel">
-                    <i class="fas fa-times"></i> Fechar
-                </button>
+                <div class="historico-results" id="historicoResults"></div>
             </div>
         </div>
     </div>
 
-    <!-- Loading Overlay -->
+    <!-- Loading -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
             <div class="loading-spinner"></div>
             <h3>Carregando...</h3>
-            <p id="loadingDetail"></p>
         </div>
     </div>
 
@@ -360,12 +323,10 @@
     <div id="messageAlert" class="message-alert">
         <div class="message-content">
             <i class="message-icon"></i>
-            <div class="message-text"></div>
-            <button class="message-close">&times;</button>
+            <span class="message-text"></span>
         </div>
     </div>
 
-    <!-- Scripts -->
     <script type="module" src="firebase_config.js"></script>
     <script type="module" src="venda.js"></script>
 </body>
