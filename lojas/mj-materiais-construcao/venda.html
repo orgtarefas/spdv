@@ -23,6 +23,9 @@
                 </div>
             </div>
             <div class="header-right">
+                <button id="btnHistorico" class="btn-historico" title="Histórico de Vendas">
+                    <i class="fas fa-history"></i>
+                </button>
                 <div class="user-info">
                     <span id="userName">Carregando...</span>
                     <button id="btnLogout" class="btn-logout">
@@ -35,67 +38,119 @@
         <!-- Main Content -->
         <main class="content">
             <div class="SPDV-container">
-                <!-- Left Panel - Produtos -->
+                <!-- Left Panel - Leitor/Scanner -->
                 <div class="SPDV-left">
-                    <div class="search-section">
-                        <div class="search-box">
-                            <div class="input-wrapper">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="searchProduct" placeholder="Buscar produto por código ou nome..." autofocus>
-                            </div>
-                            <button id="btnScan" class="btn-scan" title="Leitor de código de barras não detectado. Clique para configurar.">
+                    <!-- Área de Leitura/Código de Barras -->
+                    <div class="scan-section">
+                        <div class="scan-header">
+                            <h3><i class="fas fa-barcode"></i> Leitor de Código de Barras</h3>
+                            <span class="scan-status" id="scanStatus">
+                                <i class="fas fa-circle" style="color: #27ae60;"></i> Conectado
+                            </span>
+                        </div>
+                        
+                        <div class="scan-box">
+                            <div class="input-wrapper scan-input-wrapper">
                                 <i class="fas fa-barcode"></i>
-                                Escanear
-                            </button>
-                            <button id="btnConsultaRapida" class="btn-consulta" title="Consulta Rápida de Preços">
-                                <i class="fas fa-search"></i>
-                                Consultar
-                            </button>
+                                <input type="text" id="scanInput" placeholder="Digite ou escaneie o código do produto..." autofocus>
+                                <button class="scan-clear" id="scanClear">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="scan-actions">
+                                <button id="btnScan" class="btn-scan" title="Abrir busca manual">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+                                <button id="btnConsultaRapida" class="btn-consulta" title="Consulta Rápida de Preços">
+                                    <i class="fas fa-search-dollar"></i> Consultar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Último código escaneado -->
+                        <div class="last-scanned" id="lastScanned" style="display: none;">
+                            <span>Último: <span id="lastCode"></span></span>
+                            <span class="last-product" id="lastProduct"></span>
+                        </div>
+                        
+                        <!-- Dica rápida -->
+                        <div class="scan-tip">
+                            <i class="fas fa-lightbulb"></i>
+                            <span>Dica: Use Enter para adicionar rapidamente</span>
                         </div>
                     </div>
-
-                    <div class="products-section">
+                    
+                    <!-- LISTA DE PRODUTOS (ESTILO MERCADINHO) -->
+                    <div class="products-list-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-box"></i> Produtos Disponíveis</h3>
-                            <span class="product-count" id="productCount">0 produtos</span>
+                            <h3><i class="fas fa-list"></i> Produtos Adicionados</h3>
+                            <span class="product-count" id="productCount">0 itens</span>
                         </div>
                         
-                        <div class="products-grid" id="productsGrid">
-                            <!-- Produtos serão carregados aqui -->
-                            <div class="empty-state" id="loadingProducts">
-                                <i class="fas fa-spinner fa-spin"></i>
-                                <p>Carregando produtos...</p>
-                            </div>
-                        </div>
-                        
-                        <div class="empty-state" id="emptyProducts" style="display: none;">
-                            <i class="fas fa-box-open"></i>
-                            <p>Nenhum produto disponível</p>
-                            <small>Cadastre produtos no estoque</small>
+                        <div class="products-list-container" id="productsListContainer">
+                            <!-- Lista de produtos adicionados (estilo mercado) -->
+                            <table class="products-table" id="productsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Produto</th>
+                                        <th>Qtd</th>
+                                        <th>Preço Unit.</th>
+                                        <th>Subtotal</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productsTableBody">
+                                    <!-- Itens serão inseridos aqui via JavaScript -->
+                                    <tr class="empty-row">
+                                        <td colspan="6">
+                                            <div class="empty-state">
+                                                <i class="fas fa-shopping-cart"></i>
+                                                <p>Nenhum produto adicionado</p>
+                                                <small>Escaneie ou digite o código do produto</small>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Panel - Carrinho -->
+                <!-- Right Panel - Resumo e Pagamento -->
                 <div class="SPDV-right">
                     <div class="cart-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-shopping-cart"></i> Carrinho de Vendas</h3>
+                            <h3><i class="fas fa-shopping-cart"></i> Resumo da Venda</h3>
                             <button id="btnClearCart" class="btn-clear">
                                 <i class="fas fa-trash"></i>
                                 Limpar
                             </button>
                         </div>
                         
-                        <div class="cart-items" id="cartItems">
-                            <!-- Itens do carrinho serão exibidos aqui -->
-                            <div class="empty-cart">
-                                <i class="fas fa-shopping-cart"></i>
-                                <p>Carrinho vazio</p>
-                                <small>Adicione produtos para iniciar a venda</small>
+                        <!-- Modo (Venda/Orçamento) -->
+                        <div class="modo-container">
+                            <div style="display: flex; gap: 10px;">
+                                <button id="btnModoVenda" class="btn-modo active" data-modo="venda">
+                                    <i class="fas fa-cash-register"></i> Venda
+                                </button>
+                                <button id="btnModoOrcamento" class="btn-modo" data-modo="orcamento">
+                                    <i class="fas fa-file-invoice"></i> Orçamento
+                                </button>
                             </div>
                         </div>
                         
+                        <!-- Resumo dos Itens (Versão Compacta) -->
+                        <div class="cart-items-summary" id="cartItemsSummary">
+                            <div class="empty-cart">
+                                <i class="fas fa-shopping-cart"></i>
+                                <p>Carrinho vazio</p>
+                                <small>Escaneie produtos para começar</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Totais -->
                         <div class="cart-summary">
                             <div class="summary-row">
                                 <span>Subtotal:</span>
@@ -114,6 +169,7 @@
                             </div>
                         </div>
                         
+                        <!-- Formas de Pagamento -->
                         <div class="payment-section">
                             <div class="payment-methods">
                                 <h4>Forma de Pagamento</h4>
@@ -152,16 +208,21 @@
                                 </div>
                             </div>
                             
-                            <!-- BOTÕES DE AÇÃO e IMPRESSORA -->
+                            <!-- BOTÕES DE AÇÃO -->
                             <div class="payment-actions">
-                                <button id="btnImprimirNota" class="btn-print">
-                                    <i class="fas fa-print"></i>
+                                <button id="btnGerarOrcamento" class="btn-orcamento" style="display: none;">
+                                    <i class="fas fa-file-invoice"></i>
                                     Imprimir Orçamento
                                 </button>
                                 
                                 <button id="btnFinalizarVenda" class="btn-finalizar" disabled>
                                     <i class="fas fa-check-circle"></i>
-                                    Finalizar
+                                    Finalizar Venda
+                                </button>
+                                
+                                <button id="btnImprimirNota" class="btn-print" style="display: none;">
+                                    <i class="fas fa-print"></i>
+                                    Reimprimir
                                 </button>
                                 
                                 <button id="btnCancelarVenda" class="btn-cancelar">
@@ -184,9 +245,7 @@
         </footer>
     </div>
 
-    <!-- ============================================ -->
-    <!-- MODAL DE BUSCA DE PRODUTOS COM IMAGENS      -->
-    <!-- ============================================ -->
+    <!-- MODAL DE BUSCA DE PRODUTOS -->
     <div id="searchModal" class="modal" style="display: none;">
         <div class="modal-content modal-lg">
             <div class="modal-header">
@@ -203,27 +262,85 @@
                     </button>
                 </div>
                 
-                <div class="search-filters">
-                    <button class="filter-btn active" data-filter="all">Todos</button>
-                    <button class="filter-btn" data-filter="estoque">Em estoque</button>
-                    <button class="filter-btn" data-filter="baixo">Baixo estoque</button>
-                </div>
-                
                 <div class="search-results" id="searchResults">
                     <div class="empty-state" style="padding: 40px 20px;">
                         <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
-                        <p style="margin-top: 15px; color: var(--gray-color);">
-                            Digite para buscar produtos
-                        </p>
-                        <small style="color: var(--gray-light);">
-                            Busque por código, nome ou categoria
-                        </small>
+                        <p style="margin-top: 15px;">Digite para buscar produtos</p>
                     </div>
                 </div>
             </div>
             
             <div class="modal-footer">
                 <button id="btnCloseSearch" class="btn-cancel">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONSULTA RÁPIDA -->
+    <div id="consultaRapidaModal" class="modal" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-search-dollar"></i> Consulta Rápida de Preços</h3>
+                <button class="modal-close" id="closeConsultaModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="consultaInput" placeholder="Digite código ou nome do produto..." autofocus>
+                    <button class="search-clear" id="consultaClear">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="consulta-results" id="consultaResults">
+                    <div class="empty-state" style="padding: 40px 20px;">
+                        <i class="fas fa-search" style="font-size: 3rem; opacity: 0.2;"></i>
+                        <p>Digite para consultar preços</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="btnFecharConsulta" class="btn-cancel">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL HISTÓRICO DE VENDAS -->
+    <div id="historicoModal" class="modal" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-history"></i> Histórico de Vendas</h3>
+                <button class="modal-close" id="closeHistoricoModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="historico-filtros">
+                    <input type="date" id="filtroData" class="filtro-data">
+                    <input type="text" id="filtroNumero" placeholder="Número da venda" class="filtro-numero">
+                    <button id="btnFiltrar" class="btn-filtrar">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                    <button id="btnLimparFiltros" class="btn-limpar">
+                        <i class="fas fa-times"></i> Limpar
+                    </button>
+                </div>
+                
+                <div class="historico-results" id="historicoResults">
+                    <div class="empty-state">
+                        <i class="fas fa-shopping-cart" style="font-size: 3rem; opacity: 0.2;"></i>
+                        <p>Nenhuma venda encontrada</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="btnFecharHistorico" class="btn-cancel">
                     <i class="fas fa-times"></i> Fechar
                 </button>
             </div>
@@ -248,11 +365,8 @@
         </div>
     </div>
 
-    <!-- Scripts MÓDULOS -->
+    <!-- Scripts -->
     <script type="module" src="firebase_config.js"></script>
     <script type="module" src="venda.js"></script>
 </body>
 </html>
-
-
-
