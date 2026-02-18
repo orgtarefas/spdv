@@ -1646,3 +1646,300 @@ body {
 
 
 
+
+/* ============================================ */
+/* MODOS (VENDA / ORÇAMENTO) */
+/* ============================================ */
+.modo-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.btn-modo {
+    transition: all 0.3s ease;
+}
+
+.btn-modo.active {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.btn-modo[data-modo="venda"].active {
+    background: #27ae60 !important;
+}
+
+.btn-modo[data-modo="orcamento"].active {
+    background: #f39c12 !important;
+}
+
+/* ============================================ */
+/* CONSULTA RÁPIDA */
+/* ============================================ */
+.consulta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.consulta-card {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+.consulta-card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.consulta-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f5f5f5;
+    flex-shrink: 0;
+}
+
+.consulta-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.consulta-info {
+    flex: 1;
+}
+
+.consulta-code {
+    font-size: 12px;
+    color: #7f8c8d;
+    background: #f0f0f0;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+.consulta-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.consulta-price {
+    font-size: 20px;
+    font-weight: bold;
+    color: #27ae60;
+    margin-bottom: 5px;
+}
+
+.consulta-stock {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+/* ============================================ */
+/* HISTÓRICO DE VENDAS */
+/* ============================================ */
+.historico-lista {
+    max-height: 500px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.historico-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.historico-item:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.historico-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.historico-total {
+    font-size: 18px;
+    font-weight: bold;
+    color: #27ae60;
+}
+
+.historico-detalhes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 15px;
+    font-size: 13px;
+    color: #34495e;
+}
+
+.historico-acoes {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-historico-print {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-historico-print:hover {
+    background: #2980b9;
+}
+
+.btn-historico-view {
+    background: #95a5a6;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.btn-historico-view:hover {
+    background: #7f8c8d;
+}
+
+/* ============================================ */
+/* BOTÃO GERAR ORÇAMENTO */
+/* ============================================ */
+.btn-orcamento {
+    background: #f39c12;
+    color: white;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    flex: 1;
+}
+
+.btn-orcamento:hover:not(:disabled) {
+    background: #e67e22;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+}
+
+.btn-orcamento:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* ============================================ */
+/* AJUSTES NO PAYMENT ACTIONS */
+/* ============================================ */
+.payment-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.payment-actions button {
+    flex: 1;
+    min-width: 120px;
+}
+
+/* ============================================ */
+/* BOTÃO HISTÓRICO */
+/* ============================================ */
+.btn-historico {
+    background: #3498db !important;
+    transition: all 0.3s ease;
+}
+
+.btn-historico:hover {
+    background: #2980b9 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+/* ============================================ */
+/* ANIMAÇÕES */
+/* ============================================ */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cart-item {
+    animation: slideIn 0.3s ease;
+}
+
+.historico-item {
+    animation: slideIn 0.3s ease;
+}
+
+/* ============================================ */
+/* RESPONSIVIDADE */
+/* ============================================ */
+@media (max-width: 768px) {
+    .consulta-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .historico-detalhes {
+        grid-template-columns: 1fr;
+    }
+    
+    .payment-actions {
+        flex-direction: column;
+    }
+    
+    .btn-modo {
+        font-size: 14px;
+        padding: 8px !important;
+    }
+}
