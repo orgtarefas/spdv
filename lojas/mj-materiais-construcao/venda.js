@@ -1,4 +1,4 @@
-// venda.js - Sistema PDV Profissional com Firebase
+// venda.js - Sistema PDV Profissional com Vendas e Orçamentos
 console.log("🚀 Inicializando PDV...");
 
 import { lojaServices } from './firebase_config.js';
@@ -15,13 +15,14 @@ let pdv = {
     ultimoProduto: null,
     lojaId: lojaServices?.lojaId || null,
     ultimaVenda: null,
+    ultimoOrcamento: null,
     vendedorNome: lojaServices?.nomeUsuario || 'Vendedor',
     vendedorId: lojaServices?.usuarioId || null
 };
 
 // ============================================
 // INICIALIZAÇÃO
-//===========================================
+// ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página carregada");
     
@@ -144,6 +145,9 @@ function configurarEventos() {
     document.getElementById('btnImprimirNotaVenda')?.addEventListener('click', function() {
         window.print();
     });
+    
+    // Botão converter orçamento em venda
+    document.getElementById('btnConverterOrcamento')?.addEventListener('click', converterOrcamentoEmVenda);
 }
 
 // ============================================
@@ -588,14 +592,16 @@ async function finalizarVenda() {
     try {
         mostrarLoading('Processando venda...');
         
-        const numeroVenda = gerarNumeroVenda();
+        const numeroVenda = gerarNumeroVenda('V');
         
         const vendaData = {
+            tipo: 'VENDA',
             numero: numeroVenda,
             data: new Date(),
             itens: pdv.carrinho.map(item => ({
                 produto_id: item.id,
                 codigo: item.codigo,
+                codigo_barras: item.codigo_barras,
                 nome: item.nome,
                 preco_unitario: item.preco_unitario,
                 quantidade: item.quantidade,
@@ -608,7 +614,8 @@ async function finalizarVenda() {
             vendedor_id: pdv.vendedorId,
             vendedor_nome: pdv.vendedorNome,
             loja_id: pdv.lojaId,
-            status: 'concluida'
+            status: 'concluida',
+            data_criacao: new Date()
         };
         
         // Salvar no Firebase
@@ -621,27 +628,15 @@ async function finalizarVenda() {
         // Atualizar estoque dos produtos
         await atualizarEstoqueProdutos();
         
-        pdv.ultimaVenda = vendaData;
+        pdv.ultimaVenda = { ...vendaData, id: resultado.id };
         
         mostrarMensagem(`Venda #${numeroVenda} finalizada com sucesso!`, 'success');
         
         // Limpar carrinho
-        pdv.carrinho = [];
-        pdv.ultimoProduto = null;
-        pdv.subtotal = 0;
-        pdv.total = 0;
-        
-        const lastSection = document.getElementById('lastProductSection');
-        if (lastSection) lastSection.style.display = 'none';
-        
-        document.getElementById('btnFinalizar').disabled = true;
-        document.getElementById('btnImprimirOrcamento').disabled = true;
-        
-        atualizarListaCarrinho();
-        atualizarTotais();
+        limparCarrinhoAposFinalizar();
         
         // Mostrar nota fiscal automaticamente
-        mostrarNotaFiscal(vendaData);
+        mostrarNotaFiscalVenda(pdv.ultimaVenda);
         
         // Recarregar produtos para atualizar estoque
         await carregarProdutos();
@@ -652,6 +647,22 @@ async function finalizarVenda() {
     } finally {
         esconderLoading();
     }
+}
+
+function limparCarrinhoAposFinalizar() {
+    pdv.carrinho = [];
+    pdv.ultimoProduto = null;
+    pdv.subtotal = 0;
+    pdv.total = 0;
+    
+    const lastSection = document.getElementById('lastProductSection');
+    if (lastSection) lastSection.style.display = 'none';
+    
+    document.getElementById('btnFinalizar').disabled = true;
+    document.getElementById('btnImprimirOrcamento').disabled = true;
+    
+    atualizarListaCarrinho();
+    atualizarTotais();
 }
 
 async function atualizarEstoqueProdutos() {
@@ -673,7 +684,72 @@ async function atualizarEstoqueProdutos() {
     }
 }
 
-function mostrarNotaFiscal(venda) {
+// ============================================
+// GERAR ORÇAMENTO
+// ============================================
+async function gerarOrcamento() {
+    if (pdv.carrinho.length === 0) {
+        mostrarMensagem('Carrinho vazio', 'warning');
+        return;
+    }
+    
+    try {
+        mostrarLoading('Gerando orçamento...');
+        
+        const numeroOrcamento = gerarNumeroVenda('O');
+        const dataValidade = new Date();
+        dataValidade.setDate(dataValidade.getDate() + 10); // Validade de 10 dias
+        
+        const orcamentoData = {
+            tipo: 'ORCAMENTO',
+            numero: numeroOrcamento,
+            data_criacao: new Date(),
+            data_validade: dataValidade,
+            itens: pdv.carrinho.map(item => ({
+                produto_id: item.id,
+                codigo: item.codigo,
+                codigo_barras: item.codigo_barras,
+                nome: item.nome,
+                preco_unitario: item.preco_unitario,
+                quantidade: item.quantidade,
+                subtotal: item.subtotal,
+                unidade: item.unidade
+            })),
+            subtotal: pdv.subtotal,
+            total: pdv.total,
+            vendedor_id: pdv.vendedorId,
+            vendedor_nome: pdv.vendedorNome,
+            loja_id: pdv.lojaId,
+            status: 'ativo', // ativo, convertido, expirado
+            convertido_em_venda: null // ID da venda quando convertido
+        };
+        
+        // Salvar no Firebase
+        const resultado = await lojaServices.criarOrcamento(orcamentoData);
+        
+        if (!resultado.success) {
+            throw new Error(resultado.error || 'Erro ao salvar orçamento');
+        }
+        
+        pdv.ultimoOrcamento = { ...orcamentoData, id: resultado.id };
+        
+        mostrarMensagem(`Orçamento #${numeroOrcamento} gerado com sucesso!`, 'success');
+        
+        // Mostrar nota do orçamento
+        mostrarNotaOrcamento(pdv.ultimoOrcamento);
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar orçamento:', error);
+        mostrarMensagem(`Erro ao gerar orçamento: ${error.message}`, 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// MOSTRAR NOTA FISCAL DE VENDA
+// ============================================
+function mostrarNotaFiscalVenda(venda) {
     const modal = document.getElementById('notaFiscalModal');
     const conteudo = document.getElementById('notaFiscalConteudo');
     
@@ -681,14 +757,14 @@ function mostrarNotaFiscal(venda) {
     
     // Dados da loja
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
-    const dataVenda = new Date(venda.data).toLocaleString('pt-BR');
+    const dataVenda = new Date(venda.data || venda.data_criacao).toLocaleString('pt-BR');
     
     // Gerar conteúdo da nota
     let nota = '';
     nota += '='.repeat(48) + '\n';
     nota += centralizarTexto(nomeLoja, 48) + '\n';
     nota += '='.repeat(48) + '\n';
-    nota += centralizarTexto('CUPOM NÃO FISCAL', 48) + '\n';
+    nota += centralizarTexto('CUPOM NÃO FISCAL - VENDA', 48) + '\n';
     nota += '='.repeat(48) + '\n';
     nota += `VENDA: ${venda.numero}\n`;
     nota += `DATA: ${dataVenda}\n`;
@@ -716,90 +792,26 @@ function mostrarNotaFiscal(venda) {
     nota += centralizarTexto('VOLTE SEMPRE!', 48) + '\n';
     nota += '='.repeat(48) + '\n';
     
+    // Adicionar botão de reimpressão no modal
+    const modalFooter = modal.querySelector('.modal-footer');
+    if (modalFooter) {
+        modalFooter.innerHTML = `
+            <button class="btn-print" onclick="reimprimirNota('${venda.id}', 'VENDA')">
+                <i class="fas fa-print"></i> Reimprimir
+            </button>
+            <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+        `;
+    }
+    
     conteudo.textContent = nota;
     modal.style.display = 'flex';
 }
 
-function formatarMoedaResumida(valor) {
-    return (parseFloat(valor) || 0).toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    });
-}
-
-function centralizarTexto(texto, largura) {
-    if (texto.length >= largura) return texto;
-    const espacos = Math.floor((largura - texto.length) / 2);
-    return ' '.repeat(espacos) + texto;
-}
-
-function traduzirFormaPagamento(forma) {
-    const traducoes = {
-        'dinheiro': 'DINHEIRO',
-        'debito': 'CARTÃO DÉBITO',
-        'credito': 'CARTÃO CRÉDITO',
-        'pix': 'PIX'
-    };
-    return traducoes[forma] || forma.toUpperCase();
-}
-
 // ============================================
-// GERAR ORÇAMENTO
+// MOSTRAR NOTA DE ORÇAMENTO
 // ============================================
-async function gerarOrcamento() {
-    if (pdv.carrinho.length === 0) {
-        mostrarMensagem('Carrinho vazio', 'warning');
-        return;
-    }
-    
-    try {
-        mostrarLoading('Gerando orçamento...');
-        
-        const numeroOrcamento = 'ORC-' + gerarNumeroVenda();
-        const dataValidade = new Date();
-        dataValidade.setDate(dataValidade.getDate() + 10);
-        
-        const orcamentoData = {
-            numero: numeroOrcamento,
-            data: new Date(),
-            validade: dataValidade,
-            itens: pdv.carrinho.map(item => ({
-                produto_id: item.id,
-                codigo: item.codigo,
-                nome: item.nome,
-                preco_unitario: item.preco_unitario,
-                quantidade: item.quantidade,
-                subtotal: item.subtotal,
-                unidade: item.unidade
-            })),
-            subtotal: pdv.subtotal,
-            total: pdv.total,
-            vendedor_id: pdv.vendedorId,
-            vendedor_nome: pdv.vendedorNome,
-            loja_id: pdv.lojaId,
-            status: 'ativo'
-        };
-        
-        // Salvar no Firebase
-        const resultado = await lojaServices.criarOrcamento(orcamentoData);
-        
-        if (!resultado.success) {
-            throw new Error(resultado.error || 'Erro ao salvar orçamento');
-        }
-        
-        mostrarMensagem(`Orçamento #${numeroOrcamento} gerado com sucesso!`, 'success');
-        
-        // Mostrar nota do orçamento
-        mostrarNotaOrcamento(orcamentoData);
-        
-    } catch (error) {
-        console.error('❌ Erro ao gerar orçamento:', error);
-        mostrarMensagem(`Erro ao gerar orçamento: ${error.message}`, 'error');
-    } finally {
-        esconderLoading();
-    }
-}
-
 function mostrarNotaOrcamento(orcamento) {
     const modal = document.getElementById('notaFiscalModal');
     const conteudo = document.getElementById('notaFiscalConteudo');
@@ -807,8 +819,8 @@ function mostrarNotaOrcamento(orcamento) {
     if (!modal || !conteudo) return;
     
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
-    const dataCriacao = new Date(orcamento.data).toLocaleString('pt-BR');
-    const dataValidade = new Date(orcamento.validade).toLocaleDateString('pt-BR');
+    const dataCriacao = new Date(orcamento.data_criacao).toLocaleString('pt-BR');
+    const dataValidade = new Date(orcamento.data_validade).toLocaleDateString('pt-BR');
     
     let nota = '';
     nota += '='.repeat(48) + '\n';
@@ -842,137 +854,131 @@ function mostrarNotaOrcamento(orcamento) {
     nota += centralizarTexto('Lei Federal nº 8.078/90', 48) + '\n';
     nota += '='.repeat(48) + '\n';
     
+    // Adicionar botão de converter em venda no modal
+    const modalFooter = modal.querySelector('.modal-footer');
+    if (modalFooter) {
+        modalFooter.innerHTML = `
+            <button class="btn-convert" onclick="converterOrcamentoParaVenda('${orcamento.id}')">
+                <i class="fas fa-cash-register"></i> Converter em Venda
+            </button>
+            <button class="btn-print" onclick="reimprimirNota('${orcamento.id}', 'ORCAMENTO')">
+                <i class="fas fa-print"></i> Reimprimir
+            </button>
+            <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+        `;
+    }
+    
     conteudo.textContent = nota;
     modal.style.display = 'flex';
 }
 
 // ============================================
-// CARREGAR PRODUTOS
+// CONVERTER ORÇAMENTO EM VENDA
 // ============================================
-async function carregarProdutos() {
+window.converterOrcamentoParaVenda = async function(orcamentoId) {
     try {
-        const resultado = await lojaServices.buscarProdutosParaVenda();
+        mostrarLoading('Buscando orçamento...');
         
-        if (resultado.success) {
-            pdv.produtos = resultado.data;
-            console.log(`✅ ${pdv.produtos.length} produtos carregados`);
-            
-            // Atualizar modal de consulta se estiver aberto
-            const modalAberto = document.getElementById('consultaPrecoModal')?.style.display === 'flex';
-            if (modalAberto) {
-                const results = document.getElementById('consultaPrecoResults');
-                if (results) {
-                    results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
-                }
+        // Buscar orçamento do Firebase
+        const resultado = await lojaServices.buscarOrcamentoPorId(orcamentoId);
+        
+        if (!resultado.success || !resultado.data) {
+            throw new Error('Orçamento não encontrado');
+        }
+        
+        const orcamento = resultado.data;
+        
+        // Verificar se orçamento ainda é válido
+        const dataValidade = new Date(orcamento.data_validade);
+        const hoje = new Date();
+        
+        if (hoje > dataValidade) {
+            if (!confirm('Este orçamento está vencido. Deseja continuar mesmo assim?')) {
+                fecharModal('notaFiscalModal');
+                return;
             }
-        } else {
-            console.error('❌ Erro ao carregar produtos:', resultado.error);
-            pdv.produtos = [];
-            mostrarMensagem('Erro ao carregar produtos', 'error');
-        }
-    } catch (error) {
-        console.error("❌ Erro ao carregar produtos:", error);
-        pdv.produtos = [];
-        mostrarMensagem('Erro ao carregar produtos', 'error');
-    }
-}
-
-// ============================================
-// HISTÓRICO (BUSCA DO FIREBASE)
-// ============================================
-function abrirHistorico() {
-    const modal = document.getElementById('historicoModal');
-    if (!modal) return;
-    
-    modal.style.display = 'flex';
-    
-    const hoje = new Date().toISOString().split('T')[0];
-    const filtroData = document.getElementById('filtroData');
-    if (filtroData) filtroData.value = hoje;
-    
-    carregarHistoricoFirebase();
-}
-
-async function carregarHistoricoFirebase() {
-    const data = document.getElementById('filtroData')?.value;
-    const numero = document.getElementById('filtroNumero')?.value?.toLowerCase();
-    const results = document.getElementById('historicoResults');
-    
-    if (!results) return;
-    
-    try {
-        mostrarLoading('Buscando histórico...');
-        
-        // Buscar vendas do Firebase
-        const resultado = await lojaServices.buscarVendas({
-            data: data,
-            numero: numero
-        });
-        
-        if (!resultado.success) {
-            throw new Error(resultado.error || 'Erro ao buscar vendas');
         }
         
-        const vendas = resultado.data || [];
+        // Verificar estoque dos produtos
+        const produtosSemEstoque = [];
+        for (const item of orcamento.itens) {
+            const produto = pdv.produtos.find(p => p.id === item.produto_id);
+            if (!produto || produto.quantidade < item.quantidade) {
+                produtosSemEstoque.push(`${item.nome} (disponível: ${produto?.quantidade || 0})`);
+            }
+        }
         
-        if (vendas.length === 0) {
-            results.innerHTML = '<div class="empty-state">Nenhuma venda encontrada</div>';
+        if (produtosSemEstoque.length > 0) {
+            alert(`Produtos com estoque insuficiente:\n${produtosSemEstoque.join('\n')}`);
+            fecharModal('notaFiscalModal');
             return;
         }
         
-        let html = '';
+        // Confirmar conversão
+        if (!confirm(`Converter orçamento ${orcamento.numero} em venda no valor de ${formatarMoeda(orcamento.total)}?`)) {
+            return;
+        }
         
-        vendas.sort((a, b) => new Date(b.data) - new Date(a.data));
+        mostrarLoading('Convertendo orçamento em venda...');
         
-        vendas.forEach(v => {
-            const dataVenda = new Date(v.data).toLocaleString('pt-BR');
-            
-            html += `
-                <div class="historico-item">
-                    <div class="historico-header">
-                        <span><strong>#${v.numero}</strong> - ${dataVenda}</span>
-                        <span class="historico-total">${formatarMoeda(v.total)}</span>
-                    </div>
-                    <div class="historico-detalhes">
-                        <div>Itens: ${v.itens?.length || 0}</div>
-                        <div>Pagamento: ${traduzirFormaPagamento(v.forma_pagamento)}</div>
-                        <div>Vendedor: ${v.vendedor_nome}</div>
-                    </div>
-                    <div class="historico-acoes">
-                        <button class="btn-historico-print" onclick="verNotaVenda('${v.id}')">
-                            <i class="fas fa-eye"></i> Ver Nota
-                        </button>
-                    </div>
-                </div>
-            `;
+        // Criar venda a partir do orçamento
+        const numeroVenda = gerarNumeroVenda('V');
+        
+        const vendaData = {
+            tipo: 'VENDA',
+            numero: numeroVenda,
+            data: new Date(),
+            itens: orcamento.itens,
+            subtotal: orcamento.subtotal,
+            total: orcamento.total,
+            forma_pagamento: 'dinheiro', // Padrão, pode ser alterado
+            vendedor_id: pdv.vendedorId,
+            vendedor_nome: pdv.vendedorNome,
+            loja_id: pdv.lojaId,
+            status: 'concluida',
+            orcamento_origem: orcamentoId,
+            data_criacao: new Date()
+        };
+        
+        // Salvar venda no Firebase
+        const resultadoVenda = await lojaServices.criarVenda(vendaData);
+        
+        if (!resultadoVenda.success) {
+            throw new Error(resultadoVenda.error || 'Erro ao salvar venda');
+        }
+        
+        // Atualizar estoque
+        for (const item of orcamento.itens) {
+            await lojaServices.atualizarEstoque(
+                item.produto_id,
+                item.quantidade,
+                'saida'
+            );
+        }
+        
+        // Marcar orçamento como convertido
+        await lojaServices.atualizarOrcamento(orcamentoId, {
+            status: 'convertido',
+            convertido_em_venda: resultadoVenda.id
         });
         
-        results.innerHTML = html;
+        fecharModal('notaFiscalModal');
+        
+        mostrarMensagem(`Orçamento convertido em venda #${numeroVenda}!`, 'success');
+        
+        // Mostrar nota da venda
+        mostrarNotaFiscalVenda({ ...vendaData, id: resultadoVenda.id });
+        
+        // Recarregar produtos
+        await carregarProdutos();
         
     } catch (error) {
-        console.error('Erro ao carregar histórico:', error);
-        results.innerHTML = '<div class="empty-state error">Erro ao carregar histórico</div>';
+        console.error('❌ Erro ao converter orçamento:', error);
+        mostrarMensagem(`Erro ao converter orçamento: ${error.message}`, 'error');
     } finally {
         esconderLoading();
-    }
-}
-
-window.filtrarHistorico = function() {
-    carregarHistoricoFirebase();
-};
-
-window.verNotaVenda = async function(vendaId) {
-    try {
-        const resultado = await lojaServices.buscarVendaPorId(vendaId);
-        
-        if (resultado.success && resultado.data) {
-            mostrarNotaFiscal(resultado.data);
-        } else {
-            mostrarMensagem('Venda não encontrada', 'error');
-        }
-    } catch (error) {
-        console.error('Erro ao buscar venda:', error);
-        mostrarMensagem('Erro ao buscar venda', 'error');
     }
 };
 
@@ -986,7 +992,14 @@ function formatarMoeda(valor) {
     });
 }
 
-function gerarNumeroVenda() {
+function formatarMoedaResumida(valor) {
+    return (parseFloat(valor) || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+}
+
+function gerarNumeroVenda(prefixo = 'V') {
     const agora = new Date();
     const ano = agora.getFullYear().toString().slice(-2);
     const mes = (agora.getMonth() + 1).toString().padStart(2, '0');
@@ -994,7 +1007,24 @@ function gerarNumeroVenda() {
     const hora = agora.getHours().toString().padStart(2, '0');
     const min = agora.getMinutes().toString().padStart(2, '0');
     const seg = agora.getSeconds().toString().padStart(2, '0');
-    return `${ano}${mes}${dia}${hora}${min}${seg}`;
+    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
+    return `${prefixo}${ano}${mes}${dia}${hora}${min}${seg}${random}`;
+}
+
+function centralizarTexto(texto, largura) {
+    if (texto.length >= largura) return texto;
+    const espacos = Math.floor((largura - texto.length) / 2);
+    return ' '.repeat(espacos) + texto;
+}
+
+function traduzirFormaPagamento(forma) {
+    const traducoes = {
+        'dinheiro': 'DINHEIRO',
+        'debito': 'CARTÃO DÉBITO',
+        'credito': 'CARTÃO CRÉDITO',
+        'pix': 'PIX'
+    };
+    return traducoes[forma] || forma.toUpperCase();
 }
 
 function atualizarInterfaceLoja() {
@@ -1054,6 +1084,182 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 window.fecharModal = function(id) {
     const modal = document.getElementById(id);
     if (modal) modal.style.display = 'none';
+};
+
+// Função global para reimprimir notas
+window.reimprimirNota = async function(id, tipo) {
+    try {
+        if (tipo === 'VENDA') {
+            const resultado = await lojaServices.buscarVendaPorId(id);
+            if (resultado.success && resultado.data) {
+                mostrarNotaFiscalVenda(resultado.data);
+            }
+        } else if (tipo === 'ORCAMENTO') {
+            const resultado = await lojaServices.buscarOrcamentoPorId(id);
+            if (resultado.success && resultado.data) {
+                mostrarNotaOrcamento(resultado.data);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao reimprimir:', error);
+        mostrarMensagem('Erro ao reimprimir nota', 'error');
+    }
+};
+
+// ============================================
+// CARREGAR PRODUTOS
+// ============================================
+async function carregarProdutos() {
+    try {
+        const resultado = await lojaServices.buscarProdutosParaVenda();
+        
+        if (resultado.success) {
+            pdv.produtos = resultado.data;
+            console.log(`✅ ${pdv.produtos.length} produtos carregados`);
+            
+            // Atualizar modal de consulta se estiver aberto
+            const modalAberto = document.getElementById('consultaPrecoModal')?.style.display === 'flex';
+            if (modalAberto) {
+                const results = document.getElementById('consultaPrecoResults');
+                if (results) {
+                    results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+                }
+            }
+        } else {
+            console.error('❌ Erro ao carregar produtos:', resultado.error);
+            pdv.produtos = [];
+            mostrarMensagem('Erro ao carregar produtos', 'error');
+        }
+    } catch (error) {
+        console.error("❌ Erro ao carregar produtos:", error);
+        pdv.produtos = [];
+        mostrarMensagem('Erro ao carregar produtos', 'error');
+    }
+}
+
+// ============================================
+// HISTÓRICO (BUSCA DO FIREBASE)
+// ============================================
+function abrirHistorico() {
+    const modal = document.getElementById('historicoModal');
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    
+    const hoje = new Date().toISOString().split('T')[0];
+    const filtroData = document.getElementById('filtroData');
+    if (filtroData) filtroData.value = hoje;
+    
+    carregarHistoricoFirebase();
+}
+
+async function carregarHistoricoFirebase() {
+    const data = document.getElementById('filtroData')?.value;
+    const numero = document.getElementById('filtroNumero')?.value?.toLowerCase();
+    const results = document.getElementById('historicoResults');
+    
+    if (!results) return;
+    
+    try {
+        mostrarLoading('Buscando histórico...');
+        
+        // Buscar vendas do Firebase
+        const resultadoVendas = await lojaServices.buscarVendas({
+            data: data,
+            numero: numero
+        });
+        
+        // Buscar orçamentos do Firebase
+        const resultadoOrcamentos = await lojaServices.buscarOrcamentos({
+            data: data,
+            numero: numero
+        });
+        
+        const vendas = resultadoVendas.success ? resultadoVendas.data || [] : [];
+        const orcamentos = resultadoOrcamentos.success ? resultadoOrcamentos.data || [] : [];
+        
+        // Combinar e ordenar
+        const todos = [
+            ...vendas.map(v => ({ ...v, tipo_display: 'VENDA' })),
+            ...orcamentos.map(o => ({ ...o, tipo_display: 'ORÇAMENTO' }))
+        ].sort((a, b) => new Date(b.data_criacao || b.data) - new Date(a.data_criacao || a.data));
+        
+        if (todos.length === 0) {
+            results.innerHTML = '<div class="empty-state">Nenhum registro encontrado</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        todos.forEach(item => {
+            const dataItem = new Date(item.data_criacao || item.data).toLocaleString('pt-BR');
+            const tipoClass = item.tipo_display === 'VENDA' ? 'tipo-venda' : 'tipo-orcamento';
+            
+            let statusHtml = '';
+            if (item.tipo_display === 'ORÇAMENTO') {
+                const valido = new Date(item.data_validade) > new Date();
+                statusHtml = `<span class="status-badge ${valido ? 'valido' : 'expirado'}">${valido ? 'Válido' : 'Expirado'}</span>`;
+            }
+            
+            html += `
+                <div class="historico-item ${tipoClass}">
+                    <div class="historico-header">
+                        <div>
+                            <strong>${item.tipo_display} #${item.numero}</strong> - ${dataItem}
+                            ${statusHtml}
+                        </div>
+                        <span class="historico-total">${formatarMoeda(item.total)}</span>
+                    </div>
+                    <div class="historico-detalhes">
+                        <div>Itens: ${item.itens?.length || 0}</div>
+                        ${item.forma_pagamento ? `<div>Pagamento: ${traduzirFormaPagamento(item.forma_pagamento)}</div>` : ''}
+                        <div>Vendedor: ${item.vendedor_nome}</div>
+                        ${item.data_validade ? `<div>Validade: ${new Date(item.data_validade).toLocaleDateString('pt-BR')}</div>` : ''}
+                    </div>
+                    <div class="historico-acoes">
+                        ${item.tipo_display === 'ORÇAMENTO' && item.status === 'ativo' ? 
+                            `<button class="btn-convert" onclick="converterOrcamentoParaVenda('${item.id}')">
+                                <i class="fas fa-cash-register"></i> Converter em Venda
+                            </button>` : ''}
+                        <button class="btn-view" onclick="verNota('${item.id}', '${item.tipo_display}')">
+                            <i class="fas fa-eye"></i> Ver Nota
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        results.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        results.innerHTML = '<div class="empty-state error">Erro ao carregar histórico</div>';
+    } finally {
+        esconderLoading();
+    }
+}
+
+window.filtrarHistorico = function() {
+    carregarHistoricoFirebase();
+};
+
+window.verNota = async function(id, tipo) {
+    try {
+        if (tipo === 'VENDA') {
+            const resultado = await lojaServices.buscarVendaPorId(id);
+            if (resultado.success && resultado.data) {
+                mostrarNotaFiscalVenda(resultado.data);
+            }
+        } else if (tipo === 'ORÇAMENTO') {
+            const resultado = await lojaServices.buscarOrcamentoPorId(id);
+            if (resultado.success && resultado.data) {
+                mostrarNotaOrcamento(resultado.data);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao buscar nota:', error);
+        mostrarMensagem('Erro ao buscar nota', 'error');
+    }
 };
 
 // Fechar modais clicando fora
