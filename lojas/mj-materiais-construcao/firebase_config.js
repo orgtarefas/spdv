@@ -3,7 +3,7 @@ import {
     getFirestore, collection, doc, getDoc, getDocs, 
     setDoc, updateDoc, deleteDoc, query, where, orderBy, 
     onSnapshot, serverTimestamp, increment, runTransaction,
-    limit
+    limit, addDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { imagemServices } from './imagem_api.js';
@@ -465,6 +465,10 @@ class LojaManager {
         }
     }
     
+    // ============================================
+    // MÉTODOS PARA VENDAS
+    // ============================================
+    
     async criarVenda(dadosVenda) {
         try {
             const resultado = await runTransaction(db, async (transaction) => {
@@ -541,39 +545,315 @@ class LojaManager {
     async buscarVendas(limite = 10) {
         try {
             console.log(`📋 Buscando últimas vendas...`);
-            const vendasRef = collection(db, this.bancoVendas);
             
-            const snapshot = await getDocs(vendasRef);
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            if (!this.lojaId) {
+                throw new Error('Loja não identificada');
+            }
+            
+            const vendasRef = collection(db, this.bancoVendas);
+            const q = query(
+                vendasRef,
+                where('loja_id', '==', this.lojaId),
+                orderBy('data_venda', 'desc'),
+                limit(limite)
+            );
+            
+            const snapshot = await getDocs(q);
             
             const vendas = [];
             
             snapshot.forEach(doc => {
-                const data = doc.data();
-                
-                if (data.loja_id === this.lojaId || this.isAdmin) {
-                    vendas.push({
-                        id: doc.id,
-                        ...data
-                    });
-                }
+                vendas.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
             });
             
-            vendas.sort((a, b) => {
-                const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
-                const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
-                return dataB - dataA;
-            });
-            
-            const vendasLimitadas = vendas.slice(0, limite);
-            
-            console.log(`✅ ${vendasLimitadas.length} vendas encontradas`);
-            return { success: true, data: vendasLimitadas };
+            console.log(`✅ ${vendas.length} vendas encontradas`);
+            return { success: true, data: vendas };
             
         } catch (error) {
             console.error('Erro ao buscar vendas:', error);
             return { success: false, error: error.message };
         }
     }
+    
+    async buscarVendasComFiltros(filtros = {}) {
+        try {
+            console.log('🔍 Buscando vendas com filtros...', filtros);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            if (!this.lojaId) {
+                throw new Error('Loja não identificada');
+            }
+            
+            let q = query(
+                collection(db, this.bancoVendas),
+                where('loja_id', '==', this.lojaId),
+                orderBy('data_venda', 'desc')
+            );
+            
+            const snapshot = await getDocs(q);
+            
+            let vendas = [];
+            snapshot.forEach(doc => {
+                vendas.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            // Aplicar filtros adicionais
+            if (filtros.data) {
+                const dataFiltro = new Date(filtros.data);
+                dataFiltro.setHours(0, 0, 0, 0);
+                const dataFim = new Date(filtros.data);
+                dataFim.setHours(23, 59, 59, 999);
+                
+                vendas = vendas.filter(v => {
+                    const dataVenda = v.data_venda?.toDate ? v.data_venda.toDate() : new Date(v.data_criacao);
+                    return dataVenda >= dataFiltro && dataVenda <= dataFim;
+                });
+            }
+            
+            if (filtros.numero) {
+                const numLower = filtros.numero.toLowerCase();
+                vendas = vendas.filter(v => 
+                    v.numero_venda?.toLowerCase().includes(numLower) ||
+                    v.numero?.toLowerCase().includes(numLower)
+                );
+            }
+            
+            return { success: true, data: vendas };
+            
+        } catch (error) {
+            console.error('Erro ao buscar vendas com filtros:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async buscarVendaPorId(vendaId) {
+        try {
+            console.log(`🔍 Buscando venda por ID: ${vendaId}`);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            const vendaRef = doc(db, this.bancoVendas, vendaId);
+            const vendaDoc = await getDoc(vendaRef);
+            
+            if (!vendaDoc.exists()) {
+                return { success: false, error: 'Venda não encontrada' };
+            }
+            
+            const data = vendaDoc.data();
+            
+            if (data.loja_id !== this.lojaId && !this.isAdmin) {
+                return { success: false, error: 'Venda não pertence a esta loja' };
+            }
+            
+            return { 
+                success: true, 
+                data: { id: vendaDoc.id, ...data } 
+            };
+            
+        } catch (error) {
+            console.error('Erro ao buscar venda:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    // ============================================
+    // MÉTODOS PARA ORÇAMENTOS
+    // ============================================
+    
+    async criarOrcamento(orcamentoData) {
+        try {
+            console.log('📝 Criando novo orçamento...', orcamentoData.numero);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            if (!this.lojaId) {
+                throw new Error('Loja não identificada');
+            }
+            
+            // Referência para a coleção de orçamentos
+            const orcamentosRef = collection(db, 'orcamentos');
+            
+            // Adicionar dados da loja e timestamps
+            const orcamentoCompleto = {
+                ...orcamentoData,
+                loja_id: this.lojaId,
+                loja_nome: this.dadosLoja?.nome || this.formatarNomeLoja(this.lojaId),
+                created_at: serverTimestamp(),
+                updated_at: serverTimestamp()
+            };
+            
+            // Salvar no Firebase
+            const docRef = await addDoc(orcamentosRef, orcamentoCompleto);
+            
+            console.log(`✅ Orçamento ${orcamentoData.numero} criado com ID: ${docRef.id}`);
+            
+            return {
+                success: true,
+                id: docRef.id,
+                data: { ...orcamentoCompleto, id: docRef.id }
+            };
+            
+        } catch (error) {
+            console.error('❌ Erro ao criar orçamento:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+    
+    async buscarOrcamentos(filtros = {}) {
+        try {
+            console.log('🔍 Buscando orçamentos...', filtros);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            if (!this.lojaId) {
+                throw new Error('Loja não identificada');
+            }
+            
+            let q = query(
+                collection(db, 'orcamentos'),
+                where('loja_id', '==', this.lojaId),
+                orderBy('created_at', 'desc')
+            );
+            
+            const snapshot = await getDocs(q);
+            
+            let orcamentos = [];
+            snapshot.forEach(doc => {
+                orcamentos.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            // Aplicar filtros adicionais
+            if (filtros.data) {
+                const dataFiltro = new Date(filtros.data);
+                dataFiltro.setHours(0, 0, 0, 0);
+                const dataFim = new Date(filtros.data);
+                dataFim.setHours(23, 59, 59, 999);
+                
+                orcamentos = orcamentos.filter(o => {
+                    const dataCriacao = o.created_at?.toDate ? o.created_at.toDate() : new Date(o.data_criacao);
+                    return dataCriacao >= dataFiltro && dataCriacao <= dataFim;
+                });
+            }
+            
+            if (filtros.numero) {
+                const numLower = filtros.numero.toLowerCase();
+                orcamentos = orcamentos.filter(o => 
+                    o.numero?.toLowerCase().includes(numLower)
+                );
+            }
+            
+            if (filtros.status) {
+                orcamentos = orcamentos.filter(o => o.status === filtros.status);
+            }
+            
+            return { success: true, data: orcamentos };
+            
+        } catch (error) {
+            console.error('Erro ao buscar orçamentos:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async buscarOrcamentoPorId(orcamentoId) {
+        try {
+            console.log(`🔍 Buscando orçamento por ID: ${orcamentoId}`);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            const orcamentoRef = doc(db, 'orcamentos', orcamentoId);
+            const orcamentoDoc = await getDoc(orcamentoRef);
+            
+            if (!orcamentoDoc.exists()) {
+                return { success: false, error: 'Orçamento não encontrado' };
+            }
+            
+            const data = orcamentoDoc.data();
+            
+            if (data.loja_id !== this.lojaId && !this.isAdmin) {
+                return { success: false, error: 'Orçamento não pertence a esta loja' };
+            }
+            
+            return { 
+                success: true, 
+                data: { id: orcamentoDoc.id, ...data } 
+            };
+            
+        } catch (error) {
+            console.error('Erro ao buscar orçamento:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async atualizarOrcamento(orcamentoId, dadosAtualizados) {
+        try {
+            console.log(`📝 Atualizando orçamento: ${orcamentoId}`);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            const orcamentoRef = doc(db, 'orcamentos', orcamentoId);
+            
+            const orcamentoDoc = await getDoc(orcamentoRef);
+            
+            if (!orcamentoDoc.exists()) {
+                throw new Error('Orçamento não encontrado');
+            }
+            
+            const orcamentoData = orcamentoDoc.data();
+            
+            if (orcamentoData.loja_id !== this.lojaId && !this.isAdmin) {
+                throw new Error('Orçamento não pertence a esta loja');
+            }
+            
+            const dadosParaAtualizar = {
+                ...dadosAtualizados,
+                updated_at: serverTimestamp()
+            };
+            
+            await updateDoc(orcamentoRef, dadosParaAtualizar);
+            
+            return { 
+                success: true, 
+                data: { id: orcamentoId, ...dadosParaAtualizar } 
+            };
+            
+        } catch (error) {
+            console.error('Erro ao atualizar orçamento:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    // ============================================
+    // MÉTODOS PARA ESTATÍSTICAS
+    // ============================================
     
     async buscarEstatisticas() {
         try {
@@ -727,6 +1007,12 @@ const lojaServices = {
     excluirProduto: (id) => lojaManager.excluirProduto(id),
     criarVenda: (dados) => lojaManager.criarVenda(dados),
     buscarVendas: (limite) => lojaManager.buscarVendas(limite),
+    buscarVendasComFiltros: (filtros) => lojaManager.buscarVendasComFiltros(filtros),
+    buscarVendaPorId: (id) => lojaManager.buscarVendaPorId(id),
+    criarOrcamento: (dados) => lojaManager.criarOrcamento(dados),
+    buscarOrcamentos: (filtros) => lojaManager.buscarOrcamentos(filtros),
+    buscarOrcamentoPorId: (id) => lojaManager.buscarOrcamentoPorId(id),
+    atualizarOrcamento: (id, dados) => lojaManager.atualizarOrcamento(id, dados),
     buscarEstatisticas: () => lojaManager.buscarEstatisticas(),
     testarConfigImgBB: () => lojaManager.testarConfigImgBB(),
     formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
@@ -803,6 +1089,7 @@ export {
     increment,
     runTransaction,
     limit,
+    addDoc,
     obterURLImagem,
     gerarImagemPlaceholderBase64,
     formatarMoeda,
@@ -821,4 +1108,3 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
-
