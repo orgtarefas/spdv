@@ -44,9 +44,9 @@
                     <div class="barcode-section">
                         <div class="section-header">
                             <h3><i class="fas fa-barcode"></i> Código de Barras</h3>
-                            <span class="scan-status" id="scanStatus">
-                                <i class="fas fa-circle" style="color: #27ae60;"></i> Online
-                            </span>
+                            <button id="btnConsultarPreco" class="btn-consultar">
+                                <i class="fas fa-search-dollar"></i> Consultar Preço
+                            </button>
                         </div>
                         
                         <div class="barcode-input-group">
@@ -76,12 +76,6 @@
                                 Adicionar
                             </button>
                         </div>
-                        
-                        <!-- Dica Rápida -->
-                        <div class="barcode-tip">
-                            <i class="fas fa-lightbulb"></i>
-                            <span>Enter para adicionar | F2 para nova consulta | F4 para desconto</span>
-                        </div>
                     </div>
                     
                     <!-- ÚLTIMO PRODUTO ADICIONADO -->
@@ -105,14 +99,6 @@
                                         <span class="price-value" id="lastProductUnitPrice">R$ 0,00</span>
                                     </div>
                                     
-                                    <div class="price-box">
-                                        <span class="price-label">Desconto</span>
-                                        <div class="discount-control">
-                                            <input type="number" id="lastProductDiscount" value="0" min="0" max="100" step="0.1">
-                                            <span>%</span>
-                                        </div>
-                                    </div>
-                                    
                                     <div class="price-box total-box">
                                         <span class="price-label">Total do Item</span>
                                         <span class="price-value total-value" id="lastProductTotal">R$ 0,00</span>
@@ -120,22 +106,6 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Botões de Ação Rápida -->
-                    <div class="quick-actions">
-                        <button class="quick-btn" id="btnConsultaRapida">
-                            <i class="fas fa-search-dollar"></i>
-                            Consultar Preço
-                        </button>
-                        <button class="quick-btn" id="btnBuscaManual">
-                            <i class="fas fa-search"></i>
-                            Buscar Produto
-                        </button>
-                        <button class="quick-btn" id="btnLimparCarrinho">
-                            <i class="fas fa-trash"></i>
-                            Limpar Tudo
-                        </button>
                     </div>
                 </div>
                 
@@ -146,9 +116,6 @@
                             <h3><i class="fas fa-shopping-cart"></i> Itens do Carrinho</h3>
                             <div class="cart-controls">
                                 <span class="item-count" id="itemCount">0 itens</span>
-                                <button class="btn-clear-cart" id="btnClearCart" title="Limpar carrinho">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
                             </div>
                         </div>
                         
@@ -162,14 +129,13 @@
                                         <th>Produto</th>
                                         <th>Qtd</th>
                                         <th>Valor Unit.</th>
-                                        <th>Desc. %</th>
                                         <th>Subtotal</th>
                                         <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="cartTableBody">
                                     <tr class="empty-row">
-                                        <td colspan="8">
+                                        <td colspan="7">
                                             <div class="empty-cart">
                                                 <i class="fas fa-shopping-cart"></i>
                                                 <p>Carrinho vazio</p>
@@ -186,13 +152,6 @@
                             <div class="summary-row">
                                 <span>Subtotal:</span>
                                 <span id="subtotal">R$ 0,00</span>
-                            </div>
-                            <div class="summary-row">
-                                <span>Desconto Total:</span>
-                                <div class="summary-discount">
-                                    <input type="number" id="totalDesconto" value="0" min="0" max="100" step="0.1">
-                                    <span>%</span>
-                                </div>
                             </div>
                             <div class="summary-row total">
                                 <span>TOTAL:</span>
@@ -229,17 +188,17 @@
                             </div>
                             
                             <div class="action-buttons">
-                                <button class="btn-print" id="btnImprimir">
-                                    <i class="fas fa-print"></i>
-                                    Imprimir
+                                <button class="btn-orcamento" id="btnImprimirOrcamento" disabled>
+                                    <i class="fas fa-file-invoice"></i>
+                                    Imprimir Orçamento
                                 </button>
                                 <button class="btn-finalize" id="btnFinalizar" disabled>
                                     <i class="fas fa-check-circle"></i>
                                     Finalizar Venda
                                 </button>
-                                <button class="btn-cancel" id="btnCancelar">
-                                    <i class="fas fa-times-circle"></i>
-                                    Cancelar
+                                <button class="btn-clear" id="btnLimparCarrinho">
+                                    <i class="fas fa-trash-alt"></i>
+                                    Limpar Carrinho
                                 </button>
                             </div>
                         </div>
@@ -257,36 +216,51 @@
         </footer>
     </div>
 
-    <!-- MODAL DE CONSULTA RÁPIDA -->
-    <div id="consultaModal" class="modal">
+    <!-- MODAL DE CONSULTA DE PREÇO -->
+    <div id="consultaPrecoModal" class="modal modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-search-dollar"></i> Consulta Rápida</h3>
-                <button class="modal-close" onclick="fecharModal('consultaModal')">&times;</button>
+                <h3><i class="fas fa-search-dollar"></i> Consulta de Preços</h3>
+                <button class="modal-close" onclick="fecharModal('consultaPrecoModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="consultaInput" placeholder="Digite código ou nome do produto...">
+                    <input type="text" id="consultaPrecoInput" placeholder="Digite código, nome ou código de barras..." autofocus>
+                    <button class="search-clear" id="consultaPrecoClear">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <div class="consulta-results" id="consultaResults"></div>
+                
+                <div class="consulta-preco-results" id="consultaPrecoResults">
+                    <!-- Todos os produtos serão listados aqui inicialmente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="fecharModal('consultaPrecoModal')">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL DE BUSCA MANUAL -->
-    <div id="buscaModal" class="modal">
-        <div class="modal-content modal-lg">
+    <!-- MODAL DE NOTA FISCAL (APÓS VENDA) -->
+    <div id="notaFiscalModal" class="modal modal-lg">
+        <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-search"></i> Buscar Produtos</h3>
-                <button class="modal-close" onclick="fecharModal('buscaModal')">&times;</button>
+                <h3><i class="fas fa-receipt"></i> Nota Fiscal da Venda</h3>
+                <button class="modal-close" onclick="fecharModal('notaFiscalModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="buscaInput" placeholder="Código, nome ou categoria...">
-                </div>
-                <div class="busca-results" id="buscaResults"></div>
+                <div id="notaFiscalConteudo" class="nota-fiscal-conteudo"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-print" id="btnImprimirNotaVenda">
+                    <i class="fas fa-print"></i> Imprimir Nota
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
             </div>
         </div>
     </div>
