@@ -1,4 +1,4 @@
-// venda.js - Sistema PDV Profissional
+// venda.js - Sistema PDV Profissional com Firebase
 console.log("🚀 Inicializando PDV...");
 
 import { lojaServices } from './firebase_config.js';
@@ -13,27 +13,35 @@ let pdv = {
     total: 0,
     formaPagamento: 'dinheiro',
     ultimoProduto: null,
-    lojaId: lojaServices?.lojaId || 'loja-padrao',
-    ultimaVenda: null
+    lojaId: lojaServices?.lojaId || null,
+    ultimaVenda: null,
+    vendedorNome: lojaServices?.nomeUsuario || 'Vendedor',
+    vendedorId: lojaServices?.usuarioId || null
 };
 
 // ============================================
 // INICIALIZAÇÃO
-// ============================================
+//===========================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página carregada");
     
     try {
-        mostrarLoading();
+        mostrarLoading('Inicializando PDV...');
         
         // Verificar loja
         if (!lojaServices || !lojaServices.lojaId) {
-            mostrarMensagem('Erro ao identificar loja', 'error');
+            console.warn('❌ Loja não identificada');
+            mostrarMensagem('Erro ao identificar a loja. Redirecionando...', 'error');
             setTimeout(() => window.location.href = '../login.html', 2000);
             return;
         }
         
         pdv.lojaId = lojaServices.lojaId;
+        pdv.vendedorNome = lojaServices.nomeUsuario || 'Vendedor';
+        pdv.vendedorId = lojaServices.usuarioId || null;
+        
+        console.log(`✅ Loja identificada: ${pdv.lojaId}`);
+        console.log(`👤 Vendedor: ${pdv.vendedorNome}`);
         
         // Atualizar interface
         atualizarInterfaceLoja();
@@ -44,25 +52,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Carregar produtos
         await carregarProdutos();
         
-        // Inicializar modal de consulta com todos os produtos
-        setTimeout(() => {
-            if (pdv.produtos.length > 0) {
-                const resultsDiv = document.getElementById('consultaPrecoResults');
-                if (resultsDiv) {
-                    resultsDiv.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
-                }
-            }
-        }, 1000);
-        
         // Foco no input
-        document.getElementById('barcodeInput')?.focus();
+        setTimeout(() => {
+            document.getElementById('barcodeInput')?.focus();
+        }, 500);
         
         esconderLoading();
         console.log("✅ PDV pronto!");
         
     } catch (error) {
-        console.error("❌ Erro:", error);
-        mostrarMensagem('Erro ao carregar sistema', 'error');
+        console.error("❌ Erro na inicialização:", error);
+        mostrarMensagem('Erro ao carregar sistema de vendas', 'error');
         esconderLoading();
     }
 });
@@ -171,18 +171,38 @@ function processarCodigo(codigo) {
     // Limpar código
     codigo = codigo.trim();
     
-    // Buscar produto
+    // Buscar produto (por código ou código de barras)
     const produto = pdv.produtos.find(p => 
         p.codigo === codigo || p.codigo_barras === codigo
     );
     
     if (!produto) {
         mostrarMensagem(`Produto não encontrado: ${codigo}`, 'error');
+        
+        // Perguntar se quer buscar manualmente
+        setTimeout(() => {
+            if (confirm('Produto não encontrado. Deseja buscar manualmente?')) {
+                abrirConsultaPreco();
+            }
+        }, 100);
+        
+        return;
+    }
+    
+    // Verificar estoque
+    if (produto.quantidade <= 0) {
+        mostrarMensagem(`Produto ${produto.nome} sem estoque`, 'warning');
         return;
     }
     
     // Pegar quantidade
     const quantidade = parseInt(document.getElementById('itemQuantity').value) || 1;
+    
+    // Verificar se quantidade solicitada é maior que estoque
+    if (quantidade > produto.quantidade) {
+        mostrarMensagem(`Quantidade indisponível. Estoque: ${produto.quantidade}`, 'warning');
+        return;
+    }
     
     // Adicionar ao carrinho
     adicionarAoCarrinho(produto, quantidade);
@@ -203,19 +223,28 @@ function adicionarAoCarrinho(produto, quantidade) {
     const index = pdv.carrinho.findIndex(item => item.id === produto.id);
     
     if (index !== -1) {
+        // Verificar se nova quantidade total excede estoque
+        const novaQuantidade = pdv.carrinho[index].quantidade + quantidade;
+        if (novaQuantidade > produto.quantidade) {
+            mostrarMensagem(`Quantidade total excede estoque. Estoque: ${produto.quantidade}`, 'warning');
+            return;
+        }
+        
         // Atualizar quantidade
-        pdv.carrinho[index].quantidade += quantidade;
-        pdv.carrinho[index].subtotal = pdv.carrinho[index].quantidade * pdv.carrinho[index].preco_unitario;
+        pdv.carrinho[index].quantidade = novaQuantidade;
+        pdv.carrinho[index].subtotal = novaQuantidade * pdv.carrinho[index].preco_unitario;
     } else {
         // Novo item
         const novoItem = {
             id: produto.id,
             codigo: produto.codigo,
+            codigo_barras: produto.codigo_barras,
             nome: produto.nome,
             preco_unitario: produto.preco,
             quantidade: quantidade,
             subtotal: produto.preco * quantidade,
-            imagem: produto.imagens?.principal || null
+            imagem: produto.imagens?.principal || null,
+            unidade: produto.unidade_venda || produto.unidade || 'UN'
         };
         pdv.carrinho.push(novoItem);
         pdv.ultimoProduto = novoItem;
@@ -300,6 +329,13 @@ window.atualizarQuantidadeItem = function(index, valor) {
         return;
     }
     
+    // Verificar estoque
+    const produto = pdv.produtos.find(p => p.id === pdv.carrinho[index].id);
+    if (produto && novaQuantidade > produto.quantidade) {
+        mostrarMensagem(`Quantidade indisponível. Estoque: ${produto.quantidade}`, 'warning');
+        return;
+    }
+    
     pdv.carrinho[index].quantidade = novaQuantidade;
     pdv.carrinho[index].subtotal = novaQuantidade * pdv.carrinho[index].preco_unitario;
     
@@ -327,6 +363,10 @@ window.removerItem = function(index) {
             pdv.ultimoProduto = null;
             document.getElementById('btnFinalizar').disabled = true;
             document.getElementById('btnImprimirOrcamento').disabled = true;
+            
+            // Esconder seção último produto
+            const lastSection = document.getElementById('lastProductSection');
+            if (lastSection) lastSection.style.display = 'none';
         }
         
         atualizarListaCarrinho();
@@ -343,26 +383,34 @@ function atualizarUltimoProduto() {
     const section = document.getElementById('lastProductSection');
     const produto = pdv.ultimoProduto;
     
-    if (!produto) {
-        section.style.display = 'none';
+    if (!produto || !section) {
+        if (section) section.style.display = 'none';
         return;
     }
     
     section.style.display = 'block';
     
-    document.getElementById('lastProductName').textContent = produto.nome;
-    document.getElementById('lastProductCode').textContent = produto.codigo || '---';
+    // Elementos que podem não existir - verificar antes de usar
+    const nameEl = document.getElementById('lastProductName');
+    const codeEl = document.getElementById('lastProductCode');
+    const unitPriceEl = document.getElementById('lastProductUnitPrice');
+    const totalEl = document.getElementById('lastProductTotal');
+    const imgEl = document.getElementById('lastProductImage');
+    
+    if (nameEl) nameEl.textContent = produto.nome;
+    if (codeEl) codeEl.textContent = produto.codigo || '---';
     
     // Imagem
-    const imgElement = document.getElementById('lastProductImage');
-    if (produto.imagem) {
-        imgElement.src = produto.imagem;
-    } else {
-        imgElement.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjMyIiByPSIxNiIgZmlsbD0iI2U3NGMzYyIgb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTEwIDYwTDIwIDQwTDMwIDUwTDQwIDMwTDUwIDUwTDYwIDQwTDcwIDYwSDEwWiIgZmlsbD0iI2U3NGMzYyIgb3BhY2l0eT0iMC4xIi8+PHRleHQgeD0iNDAiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2Yzc1N2QiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNFTSBGT1RPPC90ZXh0Pjwvc3ZnPg==';
+    if (imgEl) {
+        if (produto.imagem) {
+            imgEl.src = produto.imagem;
+        } else {
+            imgEl.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjMyIiByPSIxNiIgZmlsbD0iI2U3NGMzYyIgb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTEwIDYwTDIwIDQwTDMwIDUwTDQwIDMwTDUwIDUwTDYwIDQwTDcwIDYwSDEwWiIgZmlsbD0iI2U3NGMzYyIgb3BhY2l0eT0iMC4xIi8+PHRleHQgeD0iNDAiIHk9IjcwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM2Yzc1N2QiIHRleHQtYW5jaG9yPSJtaWRkbGUiPlNFTSBGT1RPPC90ZXh0Pjwvc3ZnPg==';
+        }
     }
     
-    document.getElementById('lastProductUnitPrice').textContent = formatarMoeda(produto.preco_unitario);
-    document.getElementById('lastProductTotal').textContent = formatarMoeda(produto.subtotal);
+    if (unitPriceEl) unitPriceEl.textContent = formatarMoeda(produto.preco_unitario);
+    if (totalEl) totalEl.textContent = formatarMoeda(produto.subtotal);
 }
 
 // ============================================
@@ -372,8 +420,11 @@ function atualizarTotais() {
     pdv.subtotal = pdv.carrinho.reduce((total, item) => total + item.subtotal, 0);
     pdv.total = pdv.subtotal;
     
-    document.getElementById('subtotal').textContent = formatarMoeda(pdv.subtotal);
-    document.getElementById('total').textContent = formatarMoeda(pdv.total);
+    const subtotalEl = document.getElementById('subtotal');
+    const totalEl = document.getElementById('total');
+    
+    if (subtotalEl) subtotalEl.textContent = formatarMoeda(pdv.subtotal);
+    if (totalEl) totalEl.textContent = formatarMoeda(pdv.total);
 }
 
 // ============================================
@@ -391,15 +442,22 @@ function limparCarrinho() {
         pdv.subtotal = 0;
         pdv.total = 0;
         
-        document.getElementById('lastProductSection').style.display = 'none';
-        document.getElementById('btnFinalizar').disabled = true;
-        document.getElementById('btnImprimirOrcamento').disabled = true;
+        const lastSection = document.getElementById('lastProductSection');
+        if (lastSection) lastSection.style.display = 'none';
+        
+        const btnFinalizar = document.getElementById('btnFinalizar');
+        const btnOrcamento = document.getElementById('btnImprimirOrcamento');
+        
+        if (btnFinalizar) btnFinalizar.disabled = true;
+        if (btnOrcamento) btnOrcamento.disabled = true;
         
         atualizarListaCarrinho();
         atualizarTotais();
         
         mostrarMensagem('Carrinho limpo', 'info');
-        document.getElementById('barcodeInput').focus();
+        
+        const barcodeInput = document.getElementById('barcodeInput');
+        if (barcodeInput) barcodeInput.focus();
     }
 }
 
@@ -427,30 +485,34 @@ function abrirConsultaPreco() {
     }
     
     // Configurar filtro
-    input.oninput = function() {
-        const termo = this.value.toLowerCase().trim();
-        
-        if (!termo) {
-            results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
-            return;
-        }
-        
-        const filtrados = pdv.produtos.filter(p => 
-            (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
-            (p.codigo_barras && p.codigo_barras.toLowerCase().includes(termo)) ||
-            (p.nome && p.nome.toLowerCase().includes(termo)) ||
-            (p.categoria && p.categoria.toLowerCase().includes(termo))
-        );
-        
-        results.innerHTML = gerarListaProdutosConsulta(filtrados);
-    };
+    if (input) {
+        input.oninput = function() {
+            const termo = this.value.toLowerCase().trim();
+            
+            if (!termo) {
+                if (results) results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+                return;
+            }
+            
+            const filtrados = pdv.produtos.filter(p => 
+                (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
+                (p.codigo_barras && p.codigo_barras.toLowerCase().includes(termo)) ||
+                (p.nome && p.nome.toLowerCase().includes(termo)) ||
+                (p.categoria && p.categoria.toLowerCase().includes(termo))
+            );
+            
+            if (results) results.innerHTML = gerarListaProdutosConsulta(filtrados);
+        };
+    }
     
     // Botão limpar
     if (clearBtn) {
         clearBtn.onclick = function() {
-            input.value = '';
-            input.focus();
-            results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            if (results) results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
         };
     }
 }
@@ -468,13 +530,17 @@ function gerarListaProdutosConsulta(produtos) {
     let html = '';
     
     produtos.forEach(p => {
+        const estoqueClass = p.quantidade > 0 ? 'estoque-normal' : 'estoque-zero';
+        const estoqueTexto = p.quantidade > 0 ? `Estoque: ${p.quantidade} ${p.unidade || 'UN'}` : 'SEM ESTOQUE';
+        
         html += `
             <div class="consulta-preco-item" onclick="selecionarProdutoConsulta('${p.id}')">
                 <div class="consulta-preco-info">
                     <div class="consulta-preco-codigo">
-                        Código: ${p.codigo || '---'} | Cód. Barras: ${p.codigo_barras || '---'}
+                        Cód: ${p.codigo || '---'} | ${p.codigo_barras ? `Barras: ${p.codigo_barras}` : ''}
                     </div>
                     <div class="consulta-preco-nome">${p.nome}</div>
+                    <div class="consulta-preco-estoque ${estoqueClass}">${estoqueTexto}</div>
                 </div>
                 <div class="consulta-preco-preco">${formatarMoeda(p.preco)}</div>
             </div>
@@ -487,6 +553,12 @@ function gerarListaProdutosConsulta(produtos) {
 window.selecionarProdutoConsulta = function(id) {
     const produto = pdv.produtos.find(p => p.id === id);
     if (produto) {
+        // Verificar estoque
+        if (produto.quantidade <= 0) {
+            alert(`Produto ${produto.nome} sem estoque disponível!`);
+            return;
+        }
+        
         // Perguntar se quer adicionar ao carrinho
         if (confirm(`Deseja adicionar ${produto.nome} (${formatarMoeda(produto.preco)}) ao carrinho?`)) {
             fecharModal('consultaPrecoModal');
@@ -518,25 +590,40 @@ async function finalizarVenda() {
         
         const numeroVenda = gerarNumeroVenda();
         
-        const venda = {
+        const vendaData = {
             numero: numeroVenda,
             data: new Date(),
-            itens: pdv.carrinho,
+            itens: pdv.carrinho.map(item => ({
+                produto_id: item.id,
+                codigo: item.codigo,
+                nome: item.nome,
+                preco_unitario: item.preco_unitario,
+                quantidade: item.quantidade,
+                subtotal: item.subtotal,
+                unidade: item.unidade
+            })),
             subtotal: pdv.subtotal,
             total: pdv.total,
-            formaPagamento: pdv.formaPagamento,
-            vendedor: lojaServices.nomeUsuario || 'Vendedor',
-            lojaId: pdv.lojaId
+            forma_pagamento: pdv.formaPagamento,
+            vendedor_id: pdv.vendedorId,
+            vendedor_nome: pdv.vendedorNome,
+            loja_id: pdv.lojaId,
+            status: 'concluida'
         };
         
-        // Salvar no localStorage
-        const vendas = JSON.parse(localStorage.getItem(`vendas_${pdv.lojaId}`) || '[]');
-        vendas.push(venda);
-        localStorage.setItem(`vendas_${pdv.lojaId}`, JSON.stringify(vendas));
+        // Salvar no Firebase
+        const resultado = await lojaServices.criarVenda(vendaData);
         
-        pdv.ultimaVenda = venda;
+        if (!resultado.success) {
+            throw new Error(resultado.error || 'Erro ao salvar venda');
+        }
         
-        mostrarMensagem(`Venda #${numeroVenda} finalizada!`, 'success');
+        // Atualizar estoque dos produtos
+        await atualizarEstoqueProdutos();
+        
+        pdv.ultimaVenda = vendaData;
+        
+        mostrarMensagem(`Venda #${numeroVenda} finalizada com sucesso!`, 'success');
         
         // Limpar carrinho
         pdv.carrinho = [];
@@ -544,7 +631,9 @@ async function finalizarVenda() {
         pdv.subtotal = 0;
         pdv.total = 0;
         
-        document.getElementById('lastProductSection').style.display = 'none';
+        const lastSection = document.getElementById('lastProductSection');
+        if (lastSection) lastSection.style.display = 'none';
+        
         document.getElementById('btnFinalizar').disabled = true;
         document.getElementById('btnImprimirOrcamento').disabled = true;
         
@@ -552,13 +641,35 @@ async function finalizarVenda() {
         atualizarTotais();
         
         // Mostrar nota fiscal automaticamente
-        mostrarNotaFiscal(venda);
+        mostrarNotaFiscal(vendaData);
+        
+        // Recarregar produtos para atualizar estoque
+        await carregarProdutos();
         
     } catch (error) {
-        console.error('Erro:', error);
-        mostrarMensagem('Erro ao finalizar venda', 'error');
+        console.error('❌ Erro ao finalizar venda:', error);
+        mostrarMensagem(`Erro ao finalizar venda: ${error.message}`, 'error');
     } finally {
         esconderLoading();
+    }
+}
+
+async function atualizarEstoqueProdutos() {
+    try {
+        for (const item of pdv.carrinho) {
+            const resultado = await lojaServices.atualizarEstoque(
+                item.id,
+                item.quantidade,
+                'saida'
+            );
+            
+            if (!resultado.success) {
+                console.warn(`Aviso ao atualizar estoque de ${item.nome}:`, resultado.error);
+            }
+        }
+    } catch (error) {
+        console.error('❌ Erro ao atualizar estoque:', error);
+        throw error;
     }
 }
 
@@ -568,15 +679,21 @@ function mostrarNotaFiscal(venda) {
     
     if (!modal || !conteudo) return;
     
+    // Dados da loja
+    const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
+    const dataVenda = new Date(venda.data).toLocaleString('pt-BR');
+    
     // Gerar conteúdo da nota
     let nota = '';
     nota += '='.repeat(48) + '\n';
-    nota += centralizarTexto('NOTA FISCAL DE VENDA', 48) + '\n';
+    nota += centralizarTexto(nomeLoja, 48) + '\n';
     nota += '='.repeat(48) + '\n';
-    nota += `Nº: ${venda.numero}\n`;
-    nota += `Data: ${new Date(venda.data).toLocaleString('pt-BR')}\n`;
-    nota += `Vendedor: ${venda.vendedor}\n`;
-    nota += `Forma Pagto: ${traduzirFormaPagamento(venda.formaPagamento)}\n`;
+    nota += centralizarTexto('CUPOM NÃO FISCAL', 48) + '\n';
+    nota += '='.repeat(48) + '\n';
+    nota += `VENDA: ${venda.numero}\n`;
+    nota += `DATA: ${dataVenda}\n`;
+    nota += `VENDEDOR: ${venda.vendedor_nome}\n`;
+    nota += `PAGAMENTO: ${traduzirFormaPagamento(venda.forma_pagamento)}\n`;
     nota += '-'.repeat(48) + '\n';
     nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
     nota += '-'.repeat(48) + '\n';
@@ -592,8 +709,8 @@ function mostrarNotaFiscal(venda) {
     });
     
     nota += '-'.repeat(48) + '\n';
-    nota += `Subtotal: ${formatarMoedaResumida(venda.subtotal).padStart(37)}\n`;
-    nota += `TOTAL: ${formatarMoedaResumida(venda.total).padStart(40)}\n`;
+    nota += `SUBTOTAL:${formatarMoedaResumida(venda.subtotal).padStart(38)}\n`;
+    nota += `TOTAL:${formatarMoedaResumida(venda.total).padStart(41)}\n`;
     nota += '='.repeat(48) + '\n';
     nota += centralizarTexto('OBRIGADO PELA PREFERÊNCIA!', 48) + '\n';
     nota += centralizarTexto('VOLTE SEMPRE!', 48) + '\n';
@@ -618,12 +735,12 @@ function centralizarTexto(texto, largura) {
 
 function traduzirFormaPagamento(forma) {
     const traducoes = {
-        'dinheiro': 'Dinheiro',
-        'debito': 'Cartão Débito',
-        'credito': 'Cartão Crédito',
+        'dinheiro': 'DINHEIRO',
+        'debito': 'CARTÃO DÉBITO',
+        'credito': 'CARTÃO CRÉDITO',
         'pix': 'PIX'
     };
-    return traducoes[forma] || forma;
+    return traducoes[forma] || forma.toUpperCase();
 }
 
 // ============================================
@@ -642,30 +759,42 @@ async function gerarOrcamento() {
         const dataValidade = new Date();
         dataValidade.setDate(dataValidade.getDate() + 10);
         
-        const orcamento = {
+        const orcamentoData = {
             numero: numeroOrcamento,
             data: new Date(),
             validade: dataValidade,
-            itens: pdv.carrinho,
+            itens: pdv.carrinho.map(item => ({
+                produto_id: item.id,
+                codigo: item.codigo,
+                nome: item.nome,
+                preco_unitario: item.preco_unitario,
+                quantidade: item.quantidade,
+                subtotal: item.subtotal,
+                unidade: item.unidade
+            })),
             subtotal: pdv.subtotal,
             total: pdv.total,
-            vendedor: lojaServices.nomeUsuario || 'Vendedor',
-            lojaId: pdv.lojaId
+            vendedor_id: pdv.vendedorId,
+            vendedor_nome: pdv.vendedorNome,
+            loja_id: pdv.lojaId,
+            status: 'ativo'
         };
         
-        // Salvar no localStorage
-        const orcamentos = JSON.parse(localStorage.getItem(`orcamentos_${pdv.lojaId}`) || '[]');
-        orcamentos.push(orcamento);
-        localStorage.setItem(`orcamentos_${pdv.lojaId}`, JSON.stringify(orcamentos));
+        // Salvar no Firebase
+        const resultado = await lojaServices.criarOrcamento(orcamentoData);
         
-        mostrarMensagem(`Orçamento #${numeroOrcamento} gerado!`, 'success');
+        if (!resultado.success) {
+            throw new Error(resultado.error || 'Erro ao salvar orçamento');
+        }
+        
+        mostrarMensagem(`Orçamento #${numeroOrcamento} gerado com sucesso!`, 'success');
         
         // Mostrar nota do orçamento
-        mostrarNotaOrcamento(orcamento);
+        mostrarNotaOrcamento(orcamentoData);
         
     } catch (error) {
-        console.error('Erro:', error);
-        mostrarMensagem('Erro ao gerar orçamento', 'error');
+        console.error('❌ Erro ao gerar orçamento:', error);
+        mostrarMensagem(`Erro ao gerar orçamento: ${error.message}`, 'error');
     } finally {
         esconderLoading();
     }
@@ -677,16 +806,20 @@ function mostrarNotaOrcamento(orcamento) {
     
     if (!modal || !conteudo) return;
     
+    const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
+    const dataCriacao = new Date(orcamento.data).toLocaleString('pt-BR');
     const dataValidade = new Date(orcamento.validade).toLocaleDateString('pt-BR');
     
     let nota = '';
     nota += '='.repeat(48) + '\n';
+    nota += centralizarTexto(nomeLoja, 48) + '\n';
+    nota += '='.repeat(48) + '\n';
     nota += centralizarTexto('ORÇAMENTO', 48) + '\n';
     nota += centralizarTexto(orcamento.numero, 48) + '\n';
     nota += '='.repeat(48) + '\n';
-    nota += `Data: ${new Date(orcamento.data).toLocaleString('pt-BR')}\n`;
-    nota += `Vendedor: ${orcamento.vendedor}\n`;
-    nota += `Validade: ${dataValidade} (10 dias)\n`;
+    nota += `DATA: ${dataCriacao}\n`;
+    nota += `VENDEDOR: ${orcamento.vendedor_nome}\n`;
+    nota += `VALIDADE: ${dataValidade} (10 DIAS)\n`;
     nota += '-'.repeat(48) + '\n';
     nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
     nota += '-'.repeat(48) + '\n';
@@ -702,8 +835,8 @@ function mostrarNotaOrcamento(orcamento) {
     });
     
     nota += '-'.repeat(48) + '\n';
-    nota += `Subtotal: ${formatarMoedaResumida(orcamento.subtotal).padStart(37)}\n`;
-    nota += `TOTAL: ${formatarMoedaResumida(orcamento.total).padStart(40)}\n`;
+    nota += `SUBTOTAL:${formatarMoedaResumida(orcamento.subtotal).padStart(38)}\n`;
+    nota += `TOTAL:${formatarMoedaResumida(orcamento.total).padStart(41)}\n`;
     nota += '='.repeat(48) + '\n';
     nota += centralizarTexto('ORÇAMENTO VÁLIDO POR 10 DIAS', 48) + '\n';
     nota += centralizarTexto('Lei Federal nº 8.078/90', 48) + '\n';
@@ -723,18 +856,29 @@ async function carregarProdutos() {
         if (resultado.success) {
             pdv.produtos = resultado.data;
             console.log(`✅ ${pdv.produtos.length} produtos carregados`);
+            
+            // Atualizar modal de consulta se estiver aberto
+            const modalAberto = document.getElementById('consultaPrecoModal')?.style.display === 'flex';
+            if (modalAberto) {
+                const results = document.getElementById('consultaPrecoResults');
+                if (results) {
+                    results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+                }
+            }
         } else {
-            console.error('Erro ao carregar produtos');
+            console.error('❌ Erro ao carregar produtos:', resultado.error);
             pdv.produtos = [];
+            mostrarMensagem('Erro ao carregar produtos', 'error');
         }
     } catch (error) {
-        console.error('Erro:', error);
+        console.error("❌ Erro ao carregar produtos:", error);
         pdv.produtos = [];
+        mostrarMensagem('Erro ao carregar produtos', 'error');
     }
 }
 
 // ============================================
-// HISTÓRICO
+// HISTÓRICO (BUSCA DO FIREBASE)
 // ============================================
 function abrirHistorico() {
     const modal = document.getElementById('historicoModal');
@@ -743,77 +887,92 @@ function abrirHistorico() {
     modal.style.display = 'flex';
     
     const hoje = new Date().toISOString().split('T')[0];
-    document.getElementById('filtroData').value = hoje;
+    const filtroData = document.getElementById('filtroData');
+    if (filtroData) filtroData.value = hoje;
     
-    carregarHistorico();
+    carregarHistoricoFirebase();
 }
 
-function carregarHistorico() {
+async function carregarHistoricoFirebase() {
     const data = document.getElementById('filtroData')?.value;
     const numero = document.getElementById('filtroNumero')?.value?.toLowerCase();
     const results = document.getElementById('historicoResults');
     
     if (!results) return;
     
-    const vendas = JSON.parse(localStorage.getItem(`vendas_${pdv.lojaId}`) || '[]');
-    
-    let filtradas = vendas;
-    
-    if (data) {
-        filtradas = filtradas.filter(v => 
-            new Date(v.data).toISOString().split('T')[0] === data
-        );
-    }
-    
-    if (numero) {
-        filtradas = filtradas.filter(v => 
-            v.numero?.toLowerCase().includes(numero)
-        );
-    }
-    
-    if (filtradas.length === 0) {
-        results.innerHTML = '<div class="empty-state">Nenhuma venda encontrada</div>';
-        return;
-    }
-    
-    let html = '';
-    
-    filtradas.sort((a, b) => new Date(b.data) - new Date(a.data));
-    
-    filtradas.forEach(v => {
-        html += `
-            <div class="historico-item">
-                <div class="historico-header">
-                    <span><strong>#${v.numero}</strong> - ${new Date(v.data).toLocaleString()}</span>
-                    <span class="historico-total">${formatarMoeda(v.total)}</span>
+    try {
+        mostrarLoading('Buscando histórico...');
+        
+        // Buscar vendas do Firebase
+        const resultado = await lojaServices.buscarVendas({
+            data: data,
+            numero: numero
+        });
+        
+        if (!resultado.success) {
+            throw new Error(resultado.error || 'Erro ao buscar vendas');
+        }
+        
+        const vendas = resultado.data || [];
+        
+        if (vendas.length === 0) {
+            results.innerHTML = '<div class="empty-state">Nenhuma venda encontrada</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        vendas.sort((a, b) => new Date(b.data) - new Date(a.data));
+        
+        vendas.forEach(v => {
+            const dataVenda = new Date(v.data).toLocaleString('pt-BR');
+            
+            html += `
+                <div class="historico-item">
+                    <div class="historico-header">
+                        <span><strong>#${v.numero}</strong> - ${dataVenda}</span>
+                        <span class="historico-total">${formatarMoeda(v.total)}</span>
+                    </div>
+                    <div class="historico-detalhes">
+                        <div>Itens: ${v.itens?.length || 0}</div>
+                        <div>Pagamento: ${traduzirFormaPagamento(v.forma_pagamento)}</div>
+                        <div>Vendedor: ${v.vendedor_nome}</div>
+                    </div>
+                    <div class="historico-acoes">
+                        <button class="btn-historico-print" onclick="verNotaVenda('${v.id}')">
+                            <i class="fas fa-eye"></i> Ver Nota
+                        </button>
+                    </div>
                 </div>
-                <div class="historico-detalhes">
-                    <div>Itens: ${v.itens?.length || 0}</div>
-                    <div>Pagamento: ${traduzirFormaPagamento(v.formaPagamento)}</div>
-                    <div>Vendedor: ${v.vendedor}</div>
-                </div>
-                <div class="historico-acoes">
-                    <button class="btn-historico-print" onclick="verNotaVenda('${v.numero}')">
-                        <i class="fas fa-eye"></i> Ver Nota
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    results.innerHTML = html;
+            `;
+        });
+        
+        results.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        results.innerHTML = '<div class="empty-state error">Erro ao carregar histórico</div>';
+    } finally {
+        esconderLoading();
+    }
 }
 
 window.filtrarHistorico = function() {
-    carregarHistorico();
+    carregarHistoricoFirebase();
 };
 
-window.verNotaVenda = function(numero) {
-    const vendas = JSON.parse(localStorage.getItem(`vendas_${pdv.lojaId}`) || '[]');
-    const venda = vendas.find(v => v.numero === numero);
-    
-    if (venda) {
-        mostrarNotaFiscal(venda);
+window.verNotaVenda = async function(vendaId) {
+    try {
+        const resultado = await lojaServices.buscarVendaPorId(vendaId);
+        
+        if (resultado.success && resultado.data) {
+            mostrarNotaFiscal(resultado.data);
+        } else {
+            mostrarMensagem('Venda não encontrada', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao buscar venda:', error);
+        mostrarMensagem('Erro ao buscar venda', 'error');
     }
 };
 
@@ -840,12 +999,14 @@ function gerarNumeroVenda() {
 
 function atualizarInterfaceLoja() {
     const nomeLoja = pdv.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    document.getElementById('nomeLoja').textContent = nomeLoja;
-    document.getElementById('footerLojaNome').textContent = nomeLoja;
     
-    if (lojaServices.nomeUsuario) {
-        document.getElementById('userName').textContent = lojaServices.nomeUsuario;
-    }
+    const lojaElement = document.getElementById('nomeLoja');
+    const footerLojaElement = document.getElementById('footerLojaNome');
+    const userElement = document.getElementById('userName');
+    
+    if (lojaElement) lojaElement.textContent = nomeLoja;
+    if (footerLojaElement) footerLojaElement.textContent = nomeLoja;
+    if (userElement && pdv.vendedorNome) userElement.textContent = pdv.vendedorNome;
     
     atualizarRelogio();
     setInterval(atualizarRelogio, 1000);
@@ -861,21 +1022,27 @@ function atualizarRelogio() {
 function mostrarLoading(texto = 'Carregando...') {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
-        loading.querySelector('h3').textContent = texto;
+        const h3 = loading.querySelector('h3');
+        if (h3) h3.textContent = texto;
         loading.style.display = 'flex';
     }
 }
 
 function esconderLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) loading.style.display = 'none';
 }
 
 function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     const alert = document.getElementById('messageAlert');
-    if (!alert) return;
+    if (!alert) {
+        console.log(`[${tipo.toUpperCase()}] ${texto}`);
+        return;
+    }
     
     alert.className = `message-alert ${tipo}`;
-    alert.querySelector('.message-text').textContent = texto;
+    const textEl = alert.querySelector('.message-text');
+    if (textEl) textEl.textContent = texto;
     alert.style.display = 'block';
     
     setTimeout(() => {
@@ -885,7 +1052,8 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 
 // Função global para fechar modais
 window.fecharModal = function(id) {
-    document.getElementById(id).style.display = 'none';
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
 };
 
 // Fechar modais clicando fora
