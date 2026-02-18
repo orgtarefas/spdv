@@ -938,3 +938,63 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Estilos para histórico */
+.tipo-venda {
+    border-left: 4px solid #27ae60;
+}
+
+.tipo-orcamento {
+    border-left: 4px solid #f39c12;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 10px;
+}
+
+.status-badge.valido {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.expirado {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.btn-convert {
+    background: #f39c12;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-convert:hover {
+    background: #e67e22;
+}
+
+.btn-view {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-view:hover {
+    background: #2980b9;
+}
