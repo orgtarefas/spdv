@@ -11,10 +11,10 @@ let pdv = {
     carrinho: [],
     subtotal: 0,
     total: 0,
-    descontoTotal: 0,
     formaPagamento: 'dinheiro',
     ultimoProduto: null,
-    lojaId: lojaServices?.lojaId || 'loja-padrao'
+    lojaId: lojaServices?.lojaId || 'loja-padrao',
+    ultimaVenda: null
 };
 
 // ============================================
@@ -43,6 +43,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Carregar produtos
         await carregarProdutos();
+        
+        // Inicializar modal de consulta com todos os produtos
+        setTimeout(() => {
+            if (pdv.produtos.length > 0) {
+                const resultsDiv = document.getElementById('consultaPrecoResults');
+                if (resultsDiv) {
+                    resultsDiv.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+                }
+            }
+        }, 1000);
         
         // Foco no input
         document.getElementById('barcodeInput')?.focus();
@@ -96,59 +106,19 @@ function configurarEventos() {
         }
     });
     
-    // Atalhos de teclado
-    document.addEventListener('keydown', function(e) {
-        // F2 - Consulta rápida
-        if (e.key === 'F2') {
-            e.preventDefault();
-            abrirConsultaRapida();
-        }
-        
-        // F4 - Focar no desconto do último produto
-        if (e.key === 'F4') {
-            e.preventDefault();
-            document.getElementById('lastProductDiscount')?.focus();
-        }
-        
-        // F8 - Finalizar venda
-        if (e.key === 'F8') {
-            e.preventDefault();
-            if (pdv.carrinho.length > 0) {
-                finalizarVenda();
-            }
-        }
-    });
+    // Botão consultar preço
+    document.getElementById('btnConsultarPreco')?.addEventListener('click', abrirConsultaPreco);
     
-    // Botões de ação rápida
-    document.getElementById('btnConsultaRapida')?.addEventListener('click', abrirConsultaRapida);
-    document.getElementById('btnBuscaManual')?.addEventListener('click', abrirBuscaManual);
-    document.getElementById('btnLimparCarrinho')?.addEventListener('click', limparTudo);
-    document.getElementById('btnClearCart')?.addEventListener('click', limparTudo);
-    
-    // Desconto total
-    document.getElementById('totalDesconto')?.addEventListener('change', function() {
-        pdv.descontoTotal = parseFloat(this.value) || 0;
-        atualizarTotais();
-        recalcularTodosItens();
-    });
+    // Botões principais
+    document.getElementById('btnFinalizar')?.addEventListener('click', finalizarVenda);
+    document.getElementById('btnImprimirOrcamento')?.addEventListener('click', gerarOrcamento);
+    document.getElementById('btnLimparCarrinho')?.addEventListener('click', limparCarrinho);
     
     // Forma de pagamento
     document.querySelectorAll('input[name="payment"]').forEach(radio => {
         radio.addEventListener('change', function() {
             pdv.formaPagamento = this.value;
         });
-    });
-    
-    // Botões principais
-    document.getElementById('btnFinalizar')?.addEventListener('click', finalizarVenda);
-    document.getElementById('btnImprimir')?.addEventListener('click', imprimir);
-    document.getElementById('btnCancelar')?.addEventListener('click', cancelarVenda);
-    
-    // Desconto do último produto
-    document.getElementById('lastProductDiscount')?.addEventListener('change', function() {
-        if (pdv.ultimoProduto) {
-            atualizarDescontoUltimoProduto(parseFloat(this.value) || 0);
-        }
     });
     
     // Botão histórico
@@ -169,10 +139,15 @@ function configurarEventos() {
             lojaServices.logout();
         }
     });
+    
+    // Botão imprimir nota da venda
+    document.getElementById('btnImprimirNotaVenda')?.addEventListener('click', function() {
+        window.print();
+    });
 }
 
 // ============================================
-// FUNÇÃO PARA ALTERAR QUANTIDADE (GLOBAL)
+// FUNÇÃO PARA ALTERAR QUANTIDADE
 // ============================================
 window.alterarQuantidade = function(delta) {
     const input = document.getElementById('itemQuantity');
@@ -203,14 +178,6 @@ function processarCodigo(codigo) {
     
     if (!produto) {
         mostrarMensagem(`Produto não encontrado: ${codigo}`, 'error');
-        
-        // Perguntar se quer buscar
-        setTimeout(() => {
-            if (confirm('Produto não encontrado. Deseja buscar manualmente?')) {
-                abrirBuscaManual();
-            }
-        }, 100);
-        
         return;
     }
     
@@ -239,7 +206,6 @@ function adicionarAoCarrinho(produto, quantidade) {
         // Atualizar quantidade
         pdv.carrinho[index].quantidade += quantidade;
         pdv.carrinho[index].subtotal = pdv.carrinho[index].quantidade * pdv.carrinho[index].preco_unitario;
-        pdv.carrinho[index].subtotalComDesconto = pdv.carrinho[index].subtotal * (1 - pdv.carrinho[index].desconto / 100);
     } else {
         // Novo item
         const novoItem = {
@@ -248,9 +214,7 @@ function adicionarAoCarrinho(produto, quantidade) {
             nome: produto.nome,
             preco_unitario: produto.preco,
             quantidade: quantidade,
-            desconto: 0,
             subtotal: produto.preco * quantidade,
-            subtotalComDesconto: produto.preco * quantidade,
             imagem: produto.imagens?.principal || null
         };
         pdv.carrinho.push(novoItem);
@@ -261,6 +225,10 @@ function adicionarAoCarrinho(produto, quantidade) {
     atualizarListaCarrinho();
     atualizarUltimoProduto();
     atualizarTotais();
+    
+    // Habilitar botões
+    document.getElementById('btnFinalizar').disabled = false;
+    document.getElementById('btnImprimirOrcamento').disabled = false;
     
     // Feedback
     mostrarMensagem(`${quantidade}x ${produto.nome} adicionado`, 'success');
@@ -276,7 +244,7 @@ function atualizarListaCarrinho() {
     if (pdv.carrinho.length === 0) {
         tbody.innerHTML = `
             <tr class="empty-row">
-                <td colspan="8">
+                <td colspan="7">
                     <div class="empty-cart">
                         <i class="fas fa-shopping-cart"></i>
                         <p>Carrinho vazio</p>
@@ -303,11 +271,7 @@ function atualizarListaCarrinho() {
                            min="1" max="999" onchange="atualizarQuantidadeItem(${index}, this.value)">
                 </td>
                 <td class="price-cell">${formatarMoeda(item.preco_unitario)}</td>
-                <td>
-                    <input type="number" class="item-discount-input" value="${item.desconto}" 
-                           min="0" max="100" step="0.1" onchange="atualizarDescontoItem(${index}, this.value)">
-                </td>
-                <td class="subtotal-cell">${formatarMoeda(item.subtotalComDesconto || item.subtotal)}</td>
+                <td class="subtotal-cell">${formatarMoeda(item.subtotal)}</td>
                 <td>
                     <button class="btn-remove-item" onclick="removerItem(${index})" title="Remover item">
                         <i class="fas fa-trash"></i>
@@ -338,24 +302,6 @@ window.atualizarQuantidadeItem = function(index, valor) {
     
     pdv.carrinho[index].quantidade = novaQuantidade;
     pdv.carrinho[index].subtotal = novaQuantidade * pdv.carrinho[index].preco_unitario;
-    pdv.carrinho[index].subtotalComDesconto = pdv.carrinho[index].subtotal * (1 - pdv.carrinho[index].desconto / 100);
-    
-    if (index === pdv.carrinho.length - 1) {
-        pdv.ultimoProduto = pdv.carrinho[index];
-        atualizarUltimoProduto();
-    }
-    
-    atualizarListaCarrinho();
-    atualizarTotais();
-};
-
-window.atualizarDescontoItem = function(index, valor) {
-    if (index < 0 || index >= pdv.carrinho.length) return;
-    
-    const desconto = parseFloat(valor) || 0;
-    
-    pdv.carrinho[index].desconto = Math.min(100, Math.max(0, desconto));
-    pdv.carrinho[index].subtotalComDesconto = pdv.carrinho[index].subtotal * (1 - pdv.carrinho[index].desconto / 100);
     
     if (index === pdv.carrinho.length - 1) {
         pdv.ultimoProduto = pdv.carrinho[index];
@@ -379,6 +325,8 @@ window.removerItem = function(index) {
             pdv.ultimoProduto = pdv.carrinho[pdv.carrinho.length - 1];
         } else {
             pdv.ultimoProduto = null;
+            document.getElementById('btnFinalizar').disabled = true;
+            document.getElementById('btnImprimirOrcamento').disabled = true;
         }
         
         atualizarListaCarrinho();
@@ -414,81 +362,38 @@ function atualizarUltimoProduto() {
     }
     
     document.getElementById('lastProductUnitPrice').textContent = formatarMoeda(produto.preco_unitario);
-    document.getElementById('lastProductDiscount').value = produto.desconto || 0;
-    document.getElementById('lastProductTotal').textContent = formatarMoeda(produto.subtotalComDesconto || produto.subtotal);
-}
-
-function atualizarDescontoUltimoProduto(desconto) {
-    if (!pdv.ultimoProduto) return;
-    
-    const index = pdv.carrinho.length - 1;
-    if (index >= 0) {
-        pdv.carrinho[index].desconto = desconto;
-        pdv.carrinho[index].subtotalComDesconto = pdv.carrinho[index].subtotal * (1 - desconto / 100);
-        pdv.ultimoProduto = pdv.carrinho[index];
-        
-        atualizarListaCarrinho();
-        atualizarUltimoProduto();
-        atualizarTotais();
-    }
+    document.getElementById('lastProductTotal').textContent = formatarMoeda(produto.subtotal);
 }
 
 // ============================================
 // ATUALIZAR TOTAIS
 // ============================================
 function atualizarTotais() {
-    // Calcular subtotal (sem descontos individuais)
     pdv.subtotal = pdv.carrinho.reduce((total, item) => total + item.subtotal, 0);
+    pdv.total = pdv.subtotal;
     
-    // Calcular total com descontos individuais
-    let totalComDescontos = pdv.carrinho.reduce((total, item) => {
-        return total + (item.subtotalComDesconto || item.subtotal);
-    }, 0);
-    
-    // Aplicar desconto total
-    const descontoTotalValor = totalComDescontos * (pdv.descontoTotal / 100);
-    pdv.total = totalComDescontos - descontoTotalValor;
-    
-    // Atualizar interface
     document.getElementById('subtotal').textContent = formatarMoeda(pdv.subtotal);
     document.getElementById('total').textContent = formatarMoeda(pdv.total);
-    
-    // Habilitar/desabilitar botão finalizar
-    document.getElementById('btnFinalizar').disabled = pdv.carrinho.length === 0;
 }
 
-function recalcularTodosItens() {
-    pdv.carrinho.forEach(item => {
-        item.subtotalComDesconto = item.subtotal * (1 - item.desconto / 100);
-    });
-    
-    if (pdv.ultimoProduto) {
-        const index = pdv.carrinho.length - 1;
-        if (index >= 0) {
-            pdv.ultimoProduto = pdv.carrinho[index];
-            atualizarUltimoProduto();
-        }
+// ============================================
+// LIMPAR CARRINHO
+// ============================================
+function limparCarrinho() {
+    if (pdv.carrinho.length === 0) {
+        mostrarMensagem('Carrinho já está vazio', 'info');
+        return;
     }
     
-    atualizarListaCarrinho();
-    atualizarTotais();
-}
-
-// ============================================
-// LIMPAR TUDO
-// ============================================
-function limparTudo() {
-    if (pdv.carrinho.length === 0) return;
-    
-    if (confirm('Tem certeza que deseja limpar todo o carrinho?')) {
+    if (confirm('Tem certeza que deseja limpar o carrinho?')) {
         pdv.carrinho = [];
         pdv.ultimoProduto = null;
         pdv.subtotal = 0;
         pdv.total = 0;
-        pdv.descontoTotal = 0;
         
-        document.getElementById('totalDesconto').value = 0;
         document.getElementById('lastProductSection').style.display = 'none';
+        document.getElementById('btnFinalizar').disabled = true;
+        document.getElementById('btnImprimirOrcamento').disabled = true;
         
         atualizarListaCarrinho();
         atualizarTotais();
@@ -497,6 +402,105 @@ function limparTudo() {
         document.getElementById('barcodeInput').focus();
     }
 }
+
+// ============================================
+// CONSULTA DE PREÇO
+// ============================================
+function abrirConsultaPreco() {
+    const modal = document.getElementById('consultaPrecoModal');
+    if (!modal) return;
+    
+    modal.style.display = 'flex';
+    
+    const input = document.getElementById('consultaPrecoInput');
+    const clearBtn = document.getElementById('consultaPrecoClear');
+    const results = document.getElementById('consultaPrecoResults');
+    
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+    
+    // Mostrar todos os produtos inicialmente
+    if (results && pdv.produtos.length > 0) {
+        results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+    }
+    
+    // Configurar filtro
+    input.oninput = function() {
+        const termo = this.value.toLowerCase().trim();
+        
+        if (!termo) {
+            results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+            return;
+        }
+        
+        const filtrados = pdv.produtos.filter(p => 
+            (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
+            (p.codigo_barras && p.codigo_barras.toLowerCase().includes(termo)) ||
+            (p.nome && p.nome.toLowerCase().includes(termo)) ||
+            (p.categoria && p.categoria.toLowerCase().includes(termo))
+        );
+        
+        results.innerHTML = gerarListaProdutosConsulta(filtrados);
+    };
+    
+    // Botão limpar
+    if (clearBtn) {
+        clearBtn.onclick = function() {
+            input.value = '';
+            input.focus();
+            results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
+        };
+    }
+}
+
+function gerarListaProdutosConsulta(produtos) {
+    if (!produtos || produtos.length === 0) {
+        return `
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>Nenhum produto encontrado</p>
+            </div>
+        `;
+    }
+    
+    let html = '';
+    
+    produtos.forEach(p => {
+        html += `
+            <div class="consulta-preco-item" onclick="selecionarProdutoConsulta('${p.id}')">
+                <div class="consulta-preco-info">
+                    <div class="consulta-preco-codigo">
+                        Código: ${p.codigo || '---'} | Cód. Barras: ${p.codigo_barras || '---'}
+                    </div>
+                    <div class="consulta-preco-nome">${p.nome}</div>
+                </div>
+                <div class="consulta-preco-preco">${formatarMoeda(p.preco)}</div>
+            </div>
+        `;
+    });
+    
+    return html;
+}
+
+window.selecionarProdutoConsulta = function(id) {
+    const produto = pdv.produtos.find(p => p.id === id);
+    if (produto) {
+        // Perguntar se quer adicionar ao carrinho
+        if (confirm(`Deseja adicionar ${produto.nome} (${formatarMoeda(produto.preco)}) ao carrinho?`)) {
+            fecharModal('consultaPrecoModal');
+            
+            // Pré-preencher código no input
+            const barcodeInput = document.getElementById('barcodeInput');
+            if (barcodeInput) {
+                barcodeInput.value = produto.codigo || produto.codigo_barras || '';
+                barcodeInput.focus();
+                barcodeInput.select();
+            }
+        }
+    }
+};
 
 // ============================================
 // FINALIZAR VENDA
@@ -512,12 +516,13 @@ async function finalizarVenda() {
     try {
         mostrarLoading('Processando venda...');
         
+        const numeroVenda = gerarNumeroVenda();
+        
         const venda = {
-            numero: gerarNumeroVenda(),
+            numero: numeroVenda,
             data: new Date(),
             itens: pdv.carrinho,
             subtotal: pdv.subtotal,
-            descontoTotal: pdv.descontoTotal,
             total: pdv.total,
             formaPagamento: pdv.formaPagamento,
             vendedor: lojaServices.nomeUsuario || 'Vendedor',
@@ -529,10 +534,25 @@ async function finalizarVenda() {
         vendas.push(venda);
         localStorage.setItem(`vendas_${pdv.lojaId}`, JSON.stringify(vendas));
         
-        mostrarMensagem(`Venda #${venda.numero} finalizada!`, 'success');
+        pdv.ultimaVenda = venda;
+        
+        mostrarMensagem(`Venda #${numeroVenda} finalizada!`, 'success');
         
         // Limpar carrinho
-        limparTudo();
+        pdv.carrinho = [];
+        pdv.ultimoProduto = null;
+        pdv.subtotal = 0;
+        pdv.total = 0;
+        
+        document.getElementById('lastProductSection').style.display = 'none';
+        document.getElementById('btnFinalizar').disabled = true;
+        document.getElementById('btnImprimirOrcamento').disabled = true;
+        
+        atualizarListaCarrinho();
+        atualizarTotais();
+        
+        // Mostrar nota fiscal automaticamente
+        mostrarNotaFiscal(venda);
         
     } catch (error) {
         console.error('Erro:', error);
@@ -542,46 +562,155 @@ async function finalizarVenda() {
     }
 }
 
+function mostrarNotaFiscal(venda) {
+    const modal = document.getElementById('notaFiscalModal');
+    const conteudo = document.getElementById('notaFiscalConteudo');
+    
+    if (!modal || !conteudo) return;
+    
+    // Gerar conteúdo da nota
+    let nota = '';
+    nota += '='.repeat(48) + '\n';
+    nota += centralizarTexto('NOTA FISCAL DE VENDA', 48) + '\n';
+    nota += '='.repeat(48) + '\n';
+    nota += `Nº: ${venda.numero}\n`;
+    nota += `Data: ${new Date(venda.data).toLocaleString('pt-BR')}\n`;
+    nota += `Vendedor: ${venda.vendedor}\n`;
+    nota += `Forma Pagto: ${traduzirFormaPagamento(venda.formaPagamento)}\n`;
+    nota += '-'.repeat(48) + '\n';
+    nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
+    nota += '-'.repeat(48) + '\n';
+    
+    venda.itens.forEach((item, i) => {
+        const num = (i + 1).toString().padStart(2, '0');
+        const nome = item.nome.substring(0, 22).padEnd(22, ' ');
+        const qtd = item.quantidade.toString().padStart(3, ' ');
+        const unit = formatarMoedaResumida(item.preco_unitario).padStart(8, ' ');
+        const total = formatarMoedaResumida(item.subtotal).padStart(8, ' ');
+        
+        nota += `${num} ${nome} ${qtd} ${unit} ${total}\n`;
+    });
+    
+    nota += '-'.repeat(48) + '\n';
+    nota += `Subtotal: ${formatarMoedaResumida(venda.subtotal).padStart(37)}\n`;
+    nota += `TOTAL: ${formatarMoedaResumida(venda.total).padStart(40)}\n`;
+    nota += '='.repeat(48) + '\n';
+    nota += centralizarTexto('OBRIGADO PELA PREFERÊNCIA!', 48) + '\n';
+    nota += centralizarTexto('VOLTE SEMPRE!', 48) + '\n';
+    nota += '='.repeat(48) + '\n';
+    
+    conteudo.textContent = nota;
+    modal.style.display = 'flex';
+}
+
+function formatarMoedaResumida(valor) {
+    return (parseFloat(valor) || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    });
+}
+
+function centralizarTexto(texto, largura) {
+    if (texto.length >= largura) return texto;
+    const espacos = Math.floor((largura - texto.length) / 2);
+    return ' '.repeat(espacos) + texto;
+}
+
+function traduzirFormaPagamento(forma) {
+    const traducoes = {
+        'dinheiro': 'Dinheiro',
+        'debito': 'Cartão Débito',
+        'credito': 'Cartão Crédito',
+        'pix': 'PIX'
+    };
+    return traducoes[forma] || forma;
+}
+
 // ============================================
-// IMPRIMIR
+// GERAR ORÇAMENTO
 // ============================================
-function imprimir() {
+async function gerarOrcamento() {
     if (pdv.carrinho.length === 0) {
         mostrarMensagem('Carrinho vazio', 'warning');
         return;
     }
     
-    // Simples impressão no console
-    console.log('=== CUPOM NÃO FISCAL ===');
-    console.log(`Data: ${new Date().toLocaleString()}`);
-    console.log('-------------------');
-    pdv.carrinho.forEach(item => {
-        console.log(`${item.nome.substring(0, 20)}`);
-        console.log(`  ${item.quantidade}x ${formatarMoeda(item.preco_unitario)} = ${formatarMoeda(item.subtotalComDesconto || item.subtotal)}`);
-    });
-    console.log('-------------------');
-    console.log(`Subtotal: ${formatarMoeda(pdv.subtotal)}`);
-    if (pdv.descontoTotal > 0) {
-        console.log(`Desconto: ${pdv.descontoTotal}%`);
+    try {
+        mostrarLoading('Gerando orçamento...');
+        
+        const numeroOrcamento = 'ORC-' + gerarNumeroVenda();
+        const dataValidade = new Date();
+        dataValidade.setDate(dataValidade.getDate() + 10);
+        
+        const orcamento = {
+            numero: numeroOrcamento,
+            data: new Date(),
+            validade: dataValidade,
+            itens: pdv.carrinho,
+            subtotal: pdv.subtotal,
+            total: pdv.total,
+            vendedor: lojaServices.nomeUsuario || 'Vendedor',
+            lojaId: pdv.lojaId
+        };
+        
+        // Salvar no localStorage
+        const orcamentos = JSON.parse(localStorage.getItem(`orcamentos_${pdv.lojaId}`) || '[]');
+        orcamentos.push(orcamento);
+        localStorage.setItem(`orcamentos_${pdv.lojaId}`, JSON.stringify(orcamentos));
+        
+        mostrarMensagem(`Orçamento #${numeroOrcamento} gerado!`, 'success');
+        
+        // Mostrar nota do orçamento
+        mostrarNotaOrcamento(orcamento);
+        
+    } catch (error) {
+        console.error('Erro:', error);
+        mostrarMensagem('Erro ao gerar orçamento', 'error');
+    } finally {
+        esconderLoading();
     }
-    console.log(`TOTAL: ${formatarMoeda(pdv.total)}`);
-    console.log('===================');
-    
-    mostrarMensagem('Impressão enviada!', 'success');
 }
 
-// ============================================
-// CANCELAR VENDA
-// ============================================
-function cancelarVenda() {
-    if (pdv.carrinho.length === 0) {
-        mostrarMensagem('Nada para cancelar', 'info');
-        return;
-    }
+function mostrarNotaOrcamento(orcamento) {
+    const modal = document.getElementById('notaFiscalModal');
+    const conteudo = document.getElementById('notaFiscalConteudo');
     
-    if (confirm('Cancelar esta venda?')) {
-        limparTudo();
-    }
+    if (!modal || !conteudo) return;
+    
+    const dataValidade = new Date(orcamento.validade).toLocaleDateString('pt-BR');
+    
+    let nota = '';
+    nota += '='.repeat(48) + '\n';
+    nota += centralizarTexto('ORÇAMENTO', 48) + '\n';
+    nota += centralizarTexto(orcamento.numero, 48) + '\n';
+    nota += '='.repeat(48) + '\n';
+    nota += `Data: ${new Date(orcamento.data).toLocaleString('pt-BR')}\n`;
+    nota += `Vendedor: ${orcamento.vendedor}\n`;
+    nota += `Validade: ${dataValidade} (10 dias)\n`;
+    nota += '-'.repeat(48) + '\n';
+    nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
+    nota += '-'.repeat(48) + '\n';
+    
+    orcamento.itens.forEach((item, i) => {
+        const num = (i + 1).toString().padStart(2, '0');
+        const nome = item.nome.substring(0, 22).padEnd(22, ' ');
+        const qtd = item.quantidade.toString().padStart(3, ' ');
+        const unit = formatarMoedaResumida(item.preco_unitario).padStart(8, ' ');
+        const total = formatarMoedaResumida(item.subtotal).padStart(8, ' ');
+        
+        nota += `${num} ${nome} ${qtd} ${unit} ${total}\n`;
+    });
+    
+    nota += '-'.repeat(48) + '\n';
+    nota += `Subtotal: ${formatarMoedaResumida(orcamento.subtotal).padStart(37)}\n`;
+    nota += `TOTAL: ${formatarMoedaResumida(orcamento.total).padStart(40)}\n`;
+    nota += '='.repeat(48) + '\n';
+    nota += centralizarTexto('ORÇAMENTO VÁLIDO POR 10 DIAS', 48) + '\n';
+    nota += centralizarTexto('Lei Federal nº 8.078/90', 48) + '\n';
+    nota += '='.repeat(48) + '\n';
+    
+    conteudo.textContent = nota;
+    modal.style.display = 'flex';
 }
 
 // ============================================
@@ -605,130 +734,8 @@ async function carregarProdutos() {
 }
 
 // ============================================
-// MODAIS
+// HISTÓRICO
 // ============================================
-function abrirConsultaRapida() {
-    const modal = document.getElementById('consultaModal');
-    if (!modal) return;
-    
-    modal.style.display = 'flex';
-    document.getElementById('consultaInput')?.focus();
-    
-    configurarConsultaRapida();
-}
-
-function configurarConsultaRapida() {
-    const input = document.getElementById('consultaInput');
-    const results = document.getElementById('consultaResults');
-    
-    if (!input || !results) return;
-    
-    input.value = '';
-    results.innerHTML = '<div class="empty-state">Digite para consultar</div>';
-    
-    input.oninput = function() {
-        const termo = this.value.toLowerCase();
-        
-        if (!termo) {
-            results.innerHTML = '<div class="empty-state">Digite para consultar</div>';
-            return;
-        }
-        
-        const filtrados = pdv.produtos.filter(p => 
-            (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
-            (p.nome && p.nome.toLowerCase().includes(termo))
-        ).slice(0, 10);
-        
-        if (filtrados.length === 0) {
-            results.innerHTML = '<div class="empty-state">Nenhum produto encontrado</div>';
-            return;
-        }
-        
-        let html = '';
-        filtrados.forEach(p => {
-            html += `
-                <div class="consulta-item" onclick="selecionarProdutoConsulta('${p.id}')">
-                    <div><strong>${p.codigo || '---'}</strong> - ${p.nome}</div>
-                    <div class="consulta-preco">${formatarMoeda(p.preco)}</div>
-                </div>
-            `;
-        });
-        
-        results.innerHTML = html;
-    };
-}
-
-window.selecionarProdutoConsulta = function(id) {
-    const produto = pdv.produtos.find(p => p.id === id);
-    if (produto) {
-        mostrarMensagem(`${produto.nome}: ${formatarMoeda(produto.preco)}`, 'info', 5000);
-        fecharModal('consultaModal');
-    }
-};
-
-function abrirBuscaManual() {
-    const modal = document.getElementById('buscaModal');
-    if (!modal) return;
-    
-    modal.style.display = 'flex';
-    document.getElementById('buscaInput')?.focus();
-    
-    configurarBuscaManual();
-}
-
-function configurarBuscaManual() {
-    const input = document.getElementById('buscaInput');
-    const results = document.getElementById('buscaResults');
-    
-    if (!input || !results) return;
-    
-    input.value = '';
-    results.innerHTML = '<div class="empty-state">Digite para buscar</div>';
-    
-    input.oninput = function() {
-        const termo = this.value.toLowerCase();
-        
-        if (!termo) {
-            results.innerHTML = '<div class="empty-state">Digite para buscar</div>';
-            return;
-        }
-        
-        const filtrados = pdv.produtos.filter(p => 
-            (p.codigo && p.codigo.toLowerCase().includes(termo)) ||
-            (p.nome && p.nome.toLowerCase().includes(termo)) ||
-            (p.categoria && p.categoria.toLowerCase().includes(termo))
-        );
-        
-        if (filtrados.length === 0) {
-            results.innerHTML = '<div class="empty-state">Nenhum produto encontrado</div>';
-            return;
-        }
-        
-        let html = '';
-        filtrados.forEach(p => {
-            html += `
-                <div class="busca-item" onclick="adicionarProdutoBusca('${p.id}')">
-                    <div><strong>${p.codigo || '---'}</strong></div>
-                    <div>${p.nome}</div>
-                    <div class="busca-preco">${formatarMoeda(p.preco)}</div>
-                    <div>Estoque: ${p.quantidade || 0}</div>
-                </div>
-            `;
-        });
-        
-        results.innerHTML = html;
-    };
-}
-
-window.adicionarProdutoBusca = function(id) {
-    const produto = pdv.produtos.find(p => p.id === id);
-    if (produto) {
-        const quantidade = parseInt(document.getElementById('itemQuantity').value) || 1;
-        adicionarAoCarrinho(produto, quantidade);
-        fecharModal('buscaModal');
-    }
-};
-
 function abrirHistorico() {
     const modal = document.getElementById('historicoModal');
     if (!modal) return;
@@ -782,8 +789,13 @@ function carregarHistorico() {
                 </div>
                 <div class="historico-detalhes">
                     <div>Itens: ${v.itens?.length || 0}</div>
-                    <div>Pagamento: ${v.formaPagamento}</div>
+                    <div>Pagamento: ${traduzirFormaPagamento(v.formaPagamento)}</div>
                     <div>Vendedor: ${v.vendedor}</div>
+                </div>
+                <div class="historico-acoes">
+                    <button class="btn-historico-print" onclick="verNotaVenda('${v.numero}')">
+                        <i class="fas fa-eye"></i> Ver Nota
+                    </button>
                 </div>
             </div>
         `;
@@ -794,6 +806,15 @@ function carregarHistorico() {
 
 window.filtrarHistorico = function() {
     carregarHistorico();
+};
+
+window.verNotaVenda = function(numero) {
+    const vendas = JSON.parse(localStorage.getItem(`vendas_${pdv.lojaId}`) || '[]');
+    const venda = vendas.find(v => v.numero === numero);
+    
+    if (venda) {
+        mostrarNotaFiscal(venda);
+    }
 };
 
 // ============================================
