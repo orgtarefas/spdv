@@ -685,7 +685,7 @@ function configurarEventos() {
                 abrirModal('loginModal');
                 return;
             }
-            window.location.href = 'vendas.html';
+            window.location.href = 'venda.html';
         });
     }
     
@@ -1738,6 +1738,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
