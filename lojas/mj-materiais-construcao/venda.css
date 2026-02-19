@@ -2019,3 +2019,19 @@ body.modal-open {
 }
 
 
+
+/* ============================================ */
+/* GARANTIA DE SOBREPOSIÇÃO */
+/* ============================================ */
+#historicoModal .modal-content {
+    z-index: 9999 !important;
+}
+
+#notaFiscalModal .modal-content {
+    z-index: 10001 !important; /* Sempre maior que o histórico */
+}
+
+/* Quando a nota estiver aberta, garantir que fique na frente */
+#notaFiscalModal[style*="display: block"] .modal-content {
+    z-index: 10001 !important;
+}
