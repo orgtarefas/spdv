@@ -8,14 +8,11 @@ import {
     getDocs, 
     getDoc, 
     setDoc,
-    query,
-    where,
-    serverTimestamp,
-    addDoc
+    serverTimestamp
 } from './firebase_config.js';
 
 import { lojaServices } from './firebase_config.js';
-import { getLojaConfig } from './lojas.js';
+import { getLojaConfig } from '/spdv/lojas.js';
 
 // ============================================
 // CONSTANTES GLOBAIS
@@ -200,11 +197,11 @@ function carregarConfigLoja() {
         
         console.log(`📋 Configuração da loja ${lojaId}:`, config);
         
-        // Carregar logo personalizada se existir
+        // Carregar logo personalizada se existir - CAMINHO CORRETO ABSOLUTO
         const logoImg = document.getElementById('lojaLogo');
         if (logoImg) {
-            // Tentar carregar logo específica da loja - CAMINHO CORRETO
-            const logoPath = `../../imagens/${lojaId}/logo.png`;
+            // Tentar carregar logo específica da loja
+            const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
             
             fetch(logoPath, { method: 'HEAD' })
                 .then(response => {
@@ -212,13 +209,27 @@ function carregarConfigLoja() {
                         logoImg.src = logoPath;
                     } else {
                         // Fallback para logo padrão
-                        logoImg.src = '../../imagens/logo.png';
+                        logoImg.src = '/spdv/imagens/logo.png';
                     }
                 })
                 .catch(() => {
                     // Fallback para logo padrão
-                    logoImg.src = '../../imagens/logo.png';
+                    logoImg.src = '/spdv/imagens/logo.png';
                 });
+        }
+        
+        // Atualizar logos do footer também
+        const footerLogo = document.querySelector('.footer-logo');
+        if (footerLogo) {
+            const footerLogoPath = `/spdv/imagens/${lojaId}/logo.png`;
+            
+            fetch(footerLogoPath, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        footerLogo.src = footerLogoPath;
+                    }
+                })
+                .catch(() => {});
         }
         
     } catch (error) {
@@ -1577,4 +1588,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
