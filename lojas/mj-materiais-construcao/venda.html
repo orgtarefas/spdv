@@ -443,11 +443,25 @@
             </div>
             <div class="modal-body">
                 <div class="historico-filtros">
-                    <input type="date" id="filtroData">
-                    <input type="text" id="filtroNumero" placeholder="Número da venda">
-                    <button class="btn-filtrar" onclick="filtrarHistorico()">
-                        <i class="fas fa-search"></i> Filtrar
-                    </button>
+                    <div class="filtros-periodo">
+                        <div class="filtro-group">
+                            <label for="filtroDataInicio">Data Início:</label>
+                            <input type="date" id="filtroDataInicio">
+                        </div>
+                        <div class="filtro-group">
+                            <label for="filtroDataFim">Data Fim:</label>
+                            <input type="date" id="filtroDataFim">
+                        </div>
+                    </div>
+                    <div class="filtros-extras">
+                        <input type="text" id="filtroNumero" placeholder="Número da venda">
+                        <button class="btn-filtrar" onclick="filtrarHistorico()">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <button class="btn-limpar-filtros" onclick="limparFiltrosHistorico()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                    </div>
                 </div>
                 <div class="historico-results" id="historicoResults">
                     <!-- CONTEÚDO DINÂMICO -->
@@ -477,5 +491,6 @@
     <script type="module" src="venda.js"></script>
 </body>
 </html>
+
 
 
