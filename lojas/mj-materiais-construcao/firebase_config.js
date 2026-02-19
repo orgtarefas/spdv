@@ -315,6 +315,51 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
+
+    async atualizarVenda(vendaId, dadosAtualizados) {
+        try {
+            console.log(`📝 Atualizando venda: ${vendaId}`);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            const vendaRef = doc(db, this.bancoVendas, vendaId);
+            
+            // Verificar se existe
+            const vendaDoc = await getDoc(vendaRef);
+            
+            if (!vendaDoc.exists()) {
+                return { success: false, error: 'Venda não encontrada' };
+            }
+            
+            const vendaData = vendaDoc.data();
+            
+            // Verificar permissão
+            if (vendaData.loja_id !== this.lojaId && !this.isAdmin) {
+                throw new Error('Venda não pertence a esta loja');
+            }
+            
+            // Adicionar timestamp de atualização
+            const dadosParaAtualizar = {
+                ...dadosAtualizados,
+                data_atualizacao: serverTimestamp()
+            };
+            
+            await updateDoc(vendaRef, dadosParaAtualizar);
+            
+            console.log(`✅ Venda ${vendaId} atualizada com sucesso`);
+            
+            return { 
+                success: true, 
+                data: { id: vendaId, ...dadosParaAtualizar } 
+            };
+            
+        } catch (error) {
+            console.error('❌ Erro ao atualizar venda:', error);
+            return { success: false, error: error.message };
+        }
+    }
     
     async buscarProdutosParaVenda() {
         try {
@@ -1155,6 +1200,7 @@ const lojaServices = {
     formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
     logout: () => lojaManager.logout(),
     excluirOrcamento: (id) => lojaManager.excluirOrcamento(id),
+    atualizarVenda: (id, dados) => lojaManager.atualizarVenda(id, dados),
     
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
@@ -1247,6 +1293,7 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
+
 
 
 
