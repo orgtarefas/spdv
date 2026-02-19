@@ -302,6 +302,30 @@ function adicionarAoCarrinho(produto, quantidade) {
 }
 
 // ============================================
+// FUNÇÃO AUXILIAR - CPF CLIENTE
+// ============================================
+
+window.mascaraCPF = function(input) {
+    let valor = input.value.replace(/\D/g, '');
+    
+    if (valor.length > 11) {
+        valor = valor.slice(0, 11);
+    }
+    
+    if (valor.length <= 11) {
+        if (valor.length > 9) {
+            valor = valor.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+        } else if (valor.length > 6) {
+            valor = valor.replace(/^(\d{3})(\d{3})(\d{1,3})$/, '$1.$2.$3');
+        } else if (valor.length > 3) {
+            valor = valor.replace(/^(\d{3})(\d{1,3})$/, '$1.$2');
+        }
+    }
+    
+    input.value = valor;
+};
+
+// ============================================
 // SELECIONAR PRODUTO
 // ============================================
 function selecionarProduto(produto) {
@@ -687,6 +711,9 @@ async function finalizarVenda() {
         
         // Calcular total com taxa de entrega
         const totalComEntrega = pdv.total + (pdv.dadosEntrega?.taxaEntrega || 0);
+
+        // Capturar CPF
+        const cpfCliente = document.getElementById('clienteCpf')?.value.replace(/\D/g, '') || '';
         
         const vendaData = {
             tipo: 'VENDA',
@@ -712,6 +739,7 @@ async function finalizarVenda() {
             dados_entrega: pdv.dadosEntrega,
             vendedor_id: pdv.vendedorId,
             vendedor_nome: pdv.vendedorNome,
+            cpf_cliente: cpfCliente || null,
             vendedor_login: pdv.vendedorLogin,
             loja_id: pdv.lojaId,
             status: 'concluida',
@@ -1169,6 +1197,10 @@ function mostrarNotaFiscalVenda(venda) {
     nota += `DATA: ${dataVenda}\n`;
     nota += `VENDEDOR: ${venda.vendedor_nome} (${venda.vendedor_login || 'operador'})\n`;
     nota += `PAGAMENTO: ${traduzirFormaPagamento(venda.forma_pagamento)}\n`;
+
+    if (venda.cpf_cliente) {
+        nota += `CPF: ${venda.cpf_cliente.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}\n`;
+    }
     
     if (venda.tipo_entrega === 'entrega' && venda.dados_entrega) {
         nota += '-'.repeat(48) + '\n';
@@ -1672,3 +1704,4 @@ window.onclick = function(event) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
