@@ -111,16 +111,14 @@ function abrirModal(modalId) {
         content.setAttribute('data-position-set', 'true');
     }
     
-    modal.style.display = 'block';
-    
     // Trazer para frente
-    content.style.zIndex = '10000';
+    const highestZIndex = getHighestZIndex();
+    content.style.zIndex = highestZIndex + 1;
     
-    // Bloquear scroll do body
-    document.body.classList.add('modal-open');
-    document.body.style.overflow = 'hidden';
-    
-    console.log(`✅ Janela ${modalId} aberta`);
+    // Garantir que o modal está visível
+    modal.style.display = 'block';
+        
+    console.log(`✅ Janela ${modalId} aberta com z-index: ${highestZIndex + 1}`);
 }
 
 // ============================================
@@ -131,13 +129,6 @@ window.fecharModal = function(modalId) {
     if (!modal) return;
     
     modal.style.display = 'none';
-    
-    // Liberar scroll
-    const modalsAbertos = document.querySelectorAll('.modal[style*="display: block"]');
-    if (modalsAbertos.length === 0) {
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-    }
     
     console.log(`✅ Janela ${modalId} fechada`);
 };
@@ -1235,21 +1226,22 @@ function mostrarNotaFiscalVenda(venda) {
     
     if (!modal || !conteudo) return;
     
-    // Garantir que a nota fique na frente
+    // Garantir que a nota fique na frente do histórico
     const content = modal.querySelector('.modal-content');
     if (content) {
         const highestZIndex = getHighestZIndex();
         content.style.zIndex = highestZIndex + 1;
     }
     
-    // Dados da loja
+    // Garantir que o modal da nota está visível
+    modal.style.display = 'block';
+    
+    // Resto do código da nota...
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
     const dataVenda = new Date(venda.data || venda.data_criacao).toLocaleString('pt-BR');
     const isExtornada = venda.status === 'extornada';
     
-    // Gerar conteúdo da nota
     let nota = '';
-    
     nota += '='.repeat(48) + '\n';
     nota += centralizarTexto(nomeLoja, 48) + '\n';
     nota += '='.repeat(48) + '\n';
@@ -1348,7 +1340,6 @@ function mostrarNotaFiscalVenda(venda) {
     nota += `SISTEMA PDV v1.0 - ${new Date().toLocaleDateString()}\n`;
     
     conteudo.textContent = nota;
-    abrirModal('notaFiscalModal');
     
     const modalHeader = modal.querySelector('.modal-header h3');
     if (modalHeader) {
@@ -2042,6 +2033,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
