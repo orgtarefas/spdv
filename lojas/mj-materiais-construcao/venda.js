@@ -24,6 +24,72 @@ let pdv = {
 };
 
 // ============================================
+// FUNÇÕES PARA MODAIS (CORRIGIDAS)
+// ============================================
+
+function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) {
+        console.error(`❌ Modal não encontrado: ${modalId}`);
+        return;
+    }
+    
+    // Remover qualquer estilo inline que possa atrapalhar
+    modal.style.removeProperty('align-items');
+    modal.style.removeProperty('justify-content');
+    
+    // Garantir que o modal fique visível
+    modal.style.display = 'flex';
+    
+    // Forçar um pequeno delay para garantir a renderização
+    setTimeout(() => {
+        modal.style.opacity = '1';
+    }, 10);
+    
+    // Bloquear scroll do body
+    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
+}
+
+window.fecharModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    modal.style.display = 'none';
+    modal.style.opacity = '0';
+    
+    // Liberar scroll do body apenas se não houver outros modais abertos
+    const modalsAbertos = document.querySelectorAll('.modal[style*="display: flex"]');
+    if (modalsAbertos.length === 0) {
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+    }
+    
+    // Desativar modo scan se for o modal de consulta
+    if (modalId === 'consultaPrecoModal' && window.gerenciadorCodigoBarrasHome) {
+        window.gerenciadorCodigoBarrasHome.desativarModoScan();
+    }
+};
+
+// Fechar modal clicando fora
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        const modalId = event.target.id;
+        fecharModal(modalId);
+    }
+};
+
+// Fechar modal com tecla ESC
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modals = document.querySelectorAll('.modal[style*="display: flex"]');
+        modals.forEach(modal => {
+            fecharModal(modal.id);
+        });
+    }
+});
+
+// ============================================
 // INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
@@ -32,7 +98,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         mostrarLoading('Inicializando PDV...');
         
-        // Verificar loja
         if (!lojaServices || !lojaServices.lojaId) {
             console.warn('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja. Redirecionando...', 'error');
@@ -49,16 +114,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log(`👤 Vendedor: ${pdv.vendedorNome}`);
         console.log(`🔑 Login: ${pdv.vendedorLogin}`);
         
-        // Atualizar interface
         atualizarInterfaceLoja();
-        
-        // Configurar eventos
         configurarEventos();
-        
-        // Carregar produtos
         await carregarProdutos();
         
-        // Foco no input
         setTimeout(() => {
             document.getElementById('barcodeInput')?.focus();
         }, 500);
@@ -77,7 +136,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 // CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
-    // Input de código de barras
     const barcodeInput = document.getElementById('barcodeInput');
     if (barcodeInput) {
         barcodeInput.addEventListener('keypress', function(e) {
@@ -94,7 +152,6 @@ function configurarEventos() {
         });
     }
     
-    // Botão limpar input
     document.getElementById('barcodeClear')?.addEventListener('click', function() {
         const input = document.getElementById('barcodeInput');
         if (input) {
@@ -104,7 +161,6 @@ function configurarEventos() {
         }
     });
     
-    // Botão adicionar
     document.getElementById('btnAddBarcode')?.addEventListener('click', function() {
         const input = document.getElementById('barcodeInput');
         if (input && input.value.trim()) {
@@ -112,21 +168,13 @@ function configurarEventos() {
         }
     });
     
-    // Botão consultar preço
     document.getElementById('btnConsultarPreco')?.addEventListener('click', abrirConsultaPreco);
-    
-    // Botões principais
     document.getElementById('btnFinalizar')?.addEventListener('click', abrirModalFinalizacao);
     document.getElementById('btnImprimirOrcamento')?.addEventListener('click', gerarOrcamento);
     document.getElementById('btnLimparCarrinho')?.addEventListener('click', limparCarrinho);
-    
-    // Botão recolhimento
     document.getElementById('btnRecolhimento')?.addEventListener('click', abrirModalRecolhimento);
-    
-    // Botão histórico
     document.getElementById('btnHistorico')?.addEventListener('click', abrirHistorico);
     
-    // Botão voltar
     document.getElementById('btnVoltar')?.addEventListener('click', function(e) {
         if (pdv.carrinho.length > 0) {
             if (!confirm('Há itens no carrinho. Deseja realmente voltar?')) {
@@ -135,14 +183,12 @@ function configurarEventos() {
         }
     });
     
-    // Botão logout
     document.getElementById('btnLogout')?.addEventListener('click', function() {
         if (confirm('Tem certeza que deseja sair?')) {
             lojaServices.logout();
         }
     });
     
-    // Eventos do modal de finalização
     document.querySelectorAll('input[name="tipoEntrega"]').forEach(radio => {
         radio.addEventListener('change', function() {
             pdv.tipoEntrega = this.value;
@@ -159,16 +205,9 @@ function configurarEventos() {
         });
     });
     
-    // Botão confirmar venda
     document.getElementById('btnConfirmarVenda')?.addEventListener('click', finalizarVenda);
-    
-    // Botão confirmar recolhimento
     document.getElementById('btnConfirmarRecolhimento')?.addEventListener('click', confirmarRecolhimento);
-    
-    // Botão imprimir nota da venda
-    document.getElementById('btnImprimirNotaVenda')?.addEventListener('click', function() {
-        imprimirNotaFiscal();
-    });
+    document.getElementById('btnImprimirNotaVenda')?.addEventListener('click', imprimirNotaFiscal);
 }
 
 // ============================================
@@ -193,10 +232,8 @@ window.alterarQuantidade = function(delta) {
 function processarCodigo(codigo) {
     if (!codigo) return;
     
-    // Limpar código
     codigo = codigo.trim();
     
-    // Buscar produto (por código ou código de barras)
     const produto = pdv.produtos.find(p => 
         p.codigo === codigo || p.codigo_barras === codigo
     );
@@ -204,7 +241,6 @@ function processarCodigo(codigo) {
     if (!produto) {
         mostrarMensagem(`Produto não encontrado: ${codigo}`, 'error');
         
-        // Perguntar se quer buscar manualmente
         setTimeout(() => {
             if (confirm('Produto não encontrado. Deseja buscar manualmente?')) {
                 abrirConsultaPreco();
@@ -214,29 +250,22 @@ function processarCodigo(codigo) {
         return;
     }
     
-    // Verificar estoque
     if (produto.quantidade <= 0) {
         mostrarMensagem(`Produto ${produto.nome} sem estoque`, 'warning');
         return;
     }
     
-    // Pegar quantidade
     const quantidade = parseInt(document.getElementById('itemQuantity').value) || 1;
     
-    // Verificar se quantidade solicitada é maior que estoque
     if (quantidade > produto.quantidade) {
         mostrarMensagem(`Quantidade indisponível. Estoque: ${produto.quantidade}`, 'warning');
         return;
     }
     
-    // Adicionar ao carrinho
     adicionarAoCarrinho(produto, quantidade);
     
-    // Limpar input
     document.getElementById('barcodeInput').value = '';
     document.getElementById('barcodeClear').style.display = 'none';
-    
-    // Resetar quantidade para 1
     document.getElementById('itemQuantity').value = 1;
 }
 
@@ -244,22 +273,18 @@ function processarCodigo(codigo) {
 // ADICIONAR AO CARRINHO
 // ============================================
 function adicionarAoCarrinho(produto, quantidade) {
-    // Verificar se já existe
     const index = pdv.carrinho.findIndex(item => item.id === produto.id);
     
     if (index !== -1) {
-        // Verificar se nova quantidade total excede estoque
         const novaQuantidade = pdv.carrinho[index].quantidade + quantidade;
         if (novaQuantidade > produto.quantidade) {
             mostrarMensagem(`Quantidade total excede estoque. Estoque: ${produto.quantidade}`, 'warning');
             return;
         }
         
-        // Atualizar quantidade
         pdv.carrinho[index].quantidade = novaQuantidade;
         pdv.carrinho[index].subtotal = novaQuantidade * pdv.carrinho[index].preco_unitario;
         
-        // Calcular desconto se existir
         if (produto.desconto) {
             pdv.carrinho[index].desconto = produto.desconto;
             pdv.carrinho[index].desconto_valor = (produto.preco * produto.desconto / 100) * novaQuantidade;
@@ -268,7 +293,6 @@ function adicionarAoCarrinho(produto, quantidade) {
             pdv.carrinho[index].desconto_valor = 0;
         }
     } else {
-        // Novo item
         const novoItem = {
             id: produto.id,
             codigo: produto.codigo,
@@ -285,26 +309,21 @@ function adicionarAoCarrinho(produto, quantidade) {
         pdv.carrinho.push(novoItem);
     }
     
-    // Selecionar o último produto adicionado
     selecionarProduto(pdv.carrinho[pdv.carrinho.length - 1]);
     
-    // Atualizar interfaces
     atualizarListaCarrinho();
     atualizarUltimoProduto();
     atualizarTotais();
     
-    // Habilitar botões
     document.getElementById('btnFinalizar').disabled = false;
     document.getElementById('btnImprimirOrcamento').disabled = false;
     
-    // Feedback
     mostrarMensagem(`${quantidade}x ${produto.nome} adicionado`, 'success');
 }
 
 // ============================================
 // FUNÇÃO AUXILIAR - CPF CLIENTE
 // ============================================
-
 window.mascaraCPF = function(input) {
     let valor = input.value.replace(/\D/g, '');
     
@@ -333,7 +352,6 @@ function selecionarProduto(produto) {
     
     pdv.produtoSelecionado = produto;
     
-    // Atualizar destaque na tabela
     document.querySelectorAll('.cart-item-row').forEach(row => {
         row.classList.remove('selected');
     });
@@ -343,7 +361,6 @@ function selecionarProduto(produto) {
         linhaSelecionada.classList.add('selected');
     }
     
-    // Atualizar seção do último produto (agora é produto selecionado)
     atualizarUltimoProduto();
 }
 
@@ -400,8 +417,6 @@ function atualizarListaCarrinho() {
     });
     
     tbody.innerHTML = html;
-    
-    // Atualizar contador
     document.getElementById('itemCount').textContent = `${pdv.carrinho.length} itens`;
 }
 
@@ -423,7 +438,6 @@ window.atualizarQuantidadeItem = function(index, valor) {
         return;
     }
     
-    // Verificar estoque
     const produto = pdv.produtos.find(p => p.id === pdv.carrinho[index].id);
     if (produto && novaQuantidade > produto.quantidade) {
         mostrarMensagem(`Quantidade indisponível. Estoque: ${produto.quantidade}`, 'warning');
@@ -433,12 +447,10 @@ window.atualizarQuantidadeItem = function(index, valor) {
     pdv.carrinho[index].quantidade = novaQuantidade;
     pdv.carrinho[index].subtotal = novaQuantidade * pdv.carrinho[index].preco_unitario;
     
-    // Recalcular desconto
     if (pdv.carrinho[index].desconto) {
         pdv.carrinho[index].desconto_valor = (pdv.carrinho[index].preco_unitario * pdv.carrinho[index].desconto / 100) * novaQuantidade;
     }
     
-    // Se o produto selecionado for o que está sendo atualizado, atualizar a seção
     if (pdv.produtoSelecionado?.id === pdv.carrinho[index].id) {
         pdv.produtoSelecionado = pdv.carrinho[index];
         atualizarUltimoProduto();
@@ -456,7 +468,6 @@ window.removerItem = function(index) {
     if (confirm(`Remover ${item.nome} do carrinho?`)) {
         pdv.carrinho.splice(index, 1);
         
-        // Atualizar produto selecionado se necessário
         if (pdv.carrinho.length > 0) {
             if (pdv.produtoSelecionado?.id === item.id) {
                 selecionarProduto(pdv.carrinho[0]);
@@ -466,7 +477,6 @@ window.removerItem = function(index) {
             document.getElementById('btnFinalizar').disabled = true;
             document.getElementById('btnImprimirOrcamento').disabled = true;
             
-            // Esconder seção último produto
             const lastSection = document.getElementById('lastProductSection');
             if (lastSection) lastSection.style.display = 'none';
         }
@@ -479,7 +489,7 @@ window.removerItem = function(index) {
 };
 
 // ============================================
-// ATUALIZAR ÚLTIMO PRODUTO (AGORA É PRODUTO SELECIONADO)
+// ATUALIZAR ÚLTIMO PRODUTO
 // ============================================
 function atualizarUltimoProduto() {
     const section = document.getElementById('lastProductSection');
@@ -492,7 +502,6 @@ function atualizarUltimoProduto() {
     
     section.style.display = 'block';
     
-    // Elementos
     const nameEl = document.getElementById('lastProductName');
     const codeEl = document.getElementById('lastProductCode');
     const unitPriceEl = document.getElementById('lastProductUnitPrice');
@@ -502,7 +511,6 @@ function atualizarUltimoProduto() {
     if (nameEl) nameEl.textContent = produto.nome;
     if (codeEl) codeEl.textContent = produto.codigo || '---';
     
-    // Imagem
     if (imgEl) {
         if (produto.imagem) {
             imgEl.src = produto.imagem;
@@ -513,14 +521,11 @@ function atualizarUltimoProduto() {
     
     if (unitPriceEl) unitPriceEl.textContent = formatarMoeda(produto.preco_unitario);
     
-    // Calcular total com desconto
     const totalComDesconto = produto.subtotal - (produto.desconto_valor || 0);
     if (totalEl) totalEl.textContent = formatarMoeda(totalComDesconto);
     
-    // Adicionar informação de desconto se existir
     const pricesContainer = document.querySelector('.last-product-prices');
     if (pricesContainer) {
-        // Verificar se já existe a caixa de desconto
         let discountBox = document.querySelector('.discount-box');
         if (!discountBox) {
             discountBox = document.createElement('div');
@@ -548,7 +553,6 @@ function atualizarUltimoProduto() {
 function atualizarTotais() {
     pdv.subtotal = pdv.carrinho.reduce((total, item) => total + item.subtotal, 0);
     
-    // Calcular total com descontos
     const totalDescontos = pdv.carrinho.reduce((total, item) => total + (item.desconto_valor || 0), 0);
     pdv.total = pdv.subtotal - totalDescontos;
     
@@ -577,11 +581,8 @@ function limparCarrinho() {
         const lastSection = document.getElementById('lastProductSection');
         if (lastSection) lastSection.style.display = 'none';
         
-        const btnFinalizar = document.getElementById('btnFinalizar');
-        const btnOrcamento = document.getElementById('btnImprimirOrcamento');
-        
-        if (btnFinalizar) btnFinalizar.disabled = true;
-        if (btnOrcamento) btnOrcamento.disabled = true;
+        document.getElementById('btnFinalizar').disabled = true;
+        document.getElementById('btnImprimirOrcamento').disabled = true;
         
         atualizarListaCarrinho();
         atualizarTotais();
@@ -602,15 +603,12 @@ function abrirModalFinalizacao() {
         return;
     }
     
-    const modal = document.getElementById('finalizarVendaModal');
-    if (!modal) return;
+    abrirModal('finalizarVendaModal');
     
-    // Atualizar resumo
     document.getElementById('resumoTotalItens').textContent = pdv.carrinho.length;
     document.getElementById('resumoSubtotal').textContent = formatarMoeda(pdv.subtotal);
     document.getElementById('resumoTotal').textContent = formatarMoeda(pdv.total);
     
-    // Resetar campos
     document.getElementById('clienteNome').value = '';
     document.getElementById('clienteTelefone').value = '';
     document.getElementById('clienteEndereco').value = '';
@@ -619,18 +617,15 @@ function abrirModalFinalizacao() {
     document.getElementById('taxaEntrega').value = 'R$ 0,00';
     document.getElementById('valorRecebido').value = '';
     document.getElementById('valorTroco').value = '';
+    document.getElementById('clienteCpf').value = '';
     
-    // Selecionar opções padrão
     document.querySelector('input[name="tipoEntrega"][value="retirada"]').checked = true;
     document.querySelector('input[name="payment"][value="dinheiro"]').checked = true;
     pdv.tipoEntrega = 'retirada';
     pdv.formaPagamento = 'dinheiro';
     
-    // Mostrar/esconder campos
     document.getElementById('camposEntrega').style.display = 'none';
     document.getElementById('trocoSection').style.display = 'block';
-    
-    modal.style.display = 'flex';
     
     setTimeout(() => {
         document.getElementById('valorRecebido')?.focus();
@@ -658,7 +653,6 @@ window.calcularTroco = function() {
 // FINALIZAR VENDA
 // ============================================
 async function finalizarVenda() {
-    // Validar dados de entrega se necessário
     if (pdv.tipoEntrega === 'entrega') {
         const nome = document.getElementById('clienteNome').value.trim();
         const telefone = document.getElementById('clienteTelefone').value.trim();
@@ -687,7 +681,6 @@ async function finalizarVenda() {
         pdv.dadosEntrega = null;
     }
     
-    // Validar pagamento
     if (pdv.formaPagamento === 'dinheiro') {
         const valorRecebido = parseFloat(
             document.getElementById('valorRecebido').value
@@ -708,11 +701,7 @@ async function finalizarVenda() {
         fecharModal('finalizarVendaModal');
         
         const numeroVenda = gerarNumeroVenda('V');
-        
-        // Calcular total com taxa de entrega
         const totalComEntrega = pdv.total + (pdv.dadosEntrega?.taxaEntrega || 0);
-
-        // Capturar CPF
         const cpfCliente = document.getElementById('clienteCpf')?.value.replace(/\D/g, '') || '';
         
         const vendaData = {
@@ -746,27 +735,20 @@ async function finalizarVenda() {
             data_criacao: new Date()
         };
         
-        // Salvar no Firebase
         const resultado = await lojaServices.criarVenda(vendaData);
         
         if (!resultado.success) {
             throw new Error(resultado.error || 'Erro ao salvar venda');
         }
         
-        // Atualizar estoque dos produtos
         await atualizarEstoqueProdutos();
         
         pdv.ultimaVenda = { ...vendaData, id: resultado.id };
         
         mostrarMensagem(`Venda #${numeroVenda} finalizada com sucesso!`, 'success');
         
-        // Limpar carrinho
         limparCarrinhoAposFinalizar();
-        
-        // Mostrar nota fiscal automaticamente
         mostrarNotaFiscalVenda(pdv.ultimaVenda);
-        
-        // Recarregar produtos para atualizar estoque
         await carregarProdutos();
         
     } catch (error) {
@@ -797,15 +779,11 @@ function limparCarrinhoAposFinalizar() {
 async function atualizarEstoqueProdutos() {
     try {
         for (const item of pdv.carrinho) {
-            const resultado = await lojaServices.atualizarEstoque(
+            await lojaServices.atualizarEstoque(
                 item.id,
                 item.quantidade,
                 'saida'
             );
-            
-            if (!resultado.success) {
-                console.warn(`Aviso ao atualizar estoque de ${item.nome}:`, resultado.error);
-            }
         }
     } catch (error) {
         console.error('❌ Erro ao atualizar estoque:', error);
@@ -827,7 +805,7 @@ async function gerarOrcamento() {
         
         const numeroOrcamento = gerarNumeroVenda('O');
         const dataValidade = new Date();
-        dataValidade.setDate(dataValidade.getDate() + 10); // Validade de 10 dias
+        dataValidade.setDate(dataValidade.getDate() + 10);
         
         const orcamentoData = {
             tipo: 'ORCAMENTO',
@@ -857,7 +835,6 @@ async function gerarOrcamento() {
             convertido_em_venda: null
         };
         
-        // Salvar no Firebase
         const resultado = await lojaServices.criarOrcamento(orcamentoData);
         
         if (!resultado.success) {
@@ -867,8 +844,6 @@ async function gerarOrcamento() {
         pdv.ultimoOrcamento = { ...orcamentoData, id: resultado.id };
         
         mostrarMensagem(`Orçamento #${numeroOrcamento} gerado com sucesso!`, 'success');
-        
-        // Mostrar nota do orçamento
         mostrarNotaOrcamento(pdv.ultimoOrcamento);
         
     } catch (error) {
@@ -883,21 +858,14 @@ async function gerarOrcamento() {
 // ABRIR MODAL DE RECOLHIMENTO
 // ============================================
 function abrirModalRecolhimento() {
-    const modal = document.getElementById('recolhimentoModal');
-    if (!modal) return;
+    abrirModal('recolhimentoModal');
     
-    // Preencher dados automáticos
     document.getElementById('recolhimentoOperador').value = `${pdv.vendedorNome} (${pdv.vendedorLogin})`;
-    document.getElementById('recolhimentoDataHora').value = 
-        new Date().toLocaleString('pt-BR');
-    
-    // Limpar campos
+    document.getElementById('recolhimentoDataHora').value = new Date().toLocaleString('pt-BR');
     document.getElementById('recolhimentoValor').value = '';
     document.getElementById('recolhimentoEnvelope').value = '';
     document.getElementById('recolhimentoObs').value = '';
     document.getElementById('recolhimentoCaixa').value = 'caixa01';
-    
-    modal.style.display = 'flex';
     
     setTimeout(() => {
         document.getElementById('recolhimentoValor')?.focus();
@@ -948,7 +916,6 @@ async function confirmarRecolhimento() {
             data_criacao: new Date()
         };
         
-        // Salvar no Firebase
         const resultado = await lojaServices.criarRecolhimento(recolhimentoData);
         
         if (!resultado.success) {
@@ -957,8 +924,6 @@ async function confirmarRecolhimento() {
         
         mostrarMensagem('Recolhimento registrado com sucesso!', 'success');
         fecharModal('recolhimentoModal');
-        
-        // Imprimir comprovante
         imprimirComprovanteRecolhimento(recolhimentoData);
         
     } catch (error) {
@@ -994,9 +959,7 @@ function imprimirComprovanteRecolhimento(recolhimento) {
                 <h2>COMPROVANTE DE RECOLHIMENTO</h2>
                 <p>${document.getElementById('nomeLoja')?.textContent || 'SUA LOJA'}</p>
             </div>
-            
             <div class="linha"></div>
-            
             <div class="dados">
                 <p><strong>Nº:</strong> ${recolhimento.numero}</p>
                 <p><strong>Data/Hora:</strong> ${new Date(recolhimento.data).toLocaleString('pt-BR')}</p>
@@ -1005,15 +968,11 @@ function imprimirComprovanteRecolhimento(recolhimento) {
                 <p><strong>Nº Envelope:</strong> ${recolhimento.envelope}</p>
                 ${recolhimento.observacao ? `<p><strong>Obs:</strong> ${recolhimento.observacao}</p>` : ''}
             </div>
-            
             <div class="linha"></div>
-            
             <div class="total">
                 VALOR: ${formatarMoeda(recolhimento.valor)}
             </div>
-            
             <div class="linha"></div>
-            
             <div class="assinatura">
                 <p>_________________________________</p>
                 <p>Assinatura do Responsável</p>
@@ -1029,20 +988,17 @@ function imprimirComprovanteRecolhimento(recolhimento) {
 // FUNÇÃO DE IMPRESSÃO
 // ============================================
 function imprimirConteudo(conteudo) {
-    // Tenta usar a impressão do sistema
     const printWindow = window.open('', '_blank');
     if (printWindow) {
         printWindow.document.write(conteudo);
         printWindow.document.close();
         printWindow.focus();
         
-        // Aguarda o carregamento e imprime
         setTimeout(() => {
             printWindow.print();
             printWindow.close();
         }, 500);
     } else {
-        // Se o pop-up foi bloqueado, usa o método alternativo
         const iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         document.body.appendChild(iframe);
@@ -1063,10 +1019,7 @@ function imprimirConteudo(conteudo) {
 // CONSULTA DE PREÇO
 // ============================================
 function abrirConsultaPreco() {
-    const modal = document.getElementById('consultaPrecoModal');
-    if (!modal) return;
-    
-    modal.style.display = 'flex';
+    abrirModal('consultaPrecoModal');
     
     const input = document.getElementById('consultaPrecoInput');
     const clearBtn = document.getElementById('consultaPrecoClear');
@@ -1077,12 +1030,10 @@ function abrirConsultaPreco() {
         input.focus();
     }
     
-    // Mostrar todos os produtos inicialmente
     if (results && pdv.produtos.length > 0) {
         results.innerHTML = gerarListaProdutosConsulta(pdv.produtos);
     }
     
-    // Configurar filtro
     if (input) {
         input.oninput = function() {
             const termo = this.value.toLowerCase().trim();
@@ -1103,7 +1054,6 @@ function abrirConsultaPreco() {
         };
     }
     
-    // Botão limpar
     if (clearBtn) {
         clearBtn.onclick = function() {
             if (input) {
@@ -1152,17 +1102,14 @@ function gerarListaProdutosConsulta(produtos) {
 window.selecionarProdutoConsulta = function(id) {
     const produto = pdv.produtos.find(p => p.id === id);
     if (produto) {
-        // Verificar estoque
         if (produto.quantidade <= 0) {
             alert(`Produto ${produto.nome} sem estoque disponível!`);
             return;
         }
         
-        // Perguntar se quer adicionar ao carrinho
         if (confirm(`Deseja adicionar ${produto.nome} (${formatarMoeda(produto.preco)}) ao carrinho?`)) {
             fecharModal('consultaPrecoModal');
             
-            // Pré-preencher código no input
             const barcodeInput = document.getElementById('barcodeInput');
             if (barcodeInput) {
                 barcodeInput.value = produto.codigo || produto.codigo_barras || '';
@@ -1182,19 +1129,12 @@ function mostrarNotaFiscalVenda(venda) {
     
     if (!modal || !conteudo) return;
     
-    // Dados da loja
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
     const dataVenda = new Date(venda.data || venda.data_criacao).toLocaleString('pt-BR');
-    
-    // Verificar se é venda extornada
     const isExtornada = venda.status === 'extornada';
     
-    // Gerar conteúdo da nota
     let nota = '';
     
-    // ============================================
-    // CABEÇALHO
-    // ============================================
     nota += '='.repeat(48) + '\n';
     nota += centralizarTexto(nomeLoja, 48) + '\n';
     nota += '='.repeat(48) + '\n';
@@ -1207,16 +1147,11 @@ function mostrarNotaFiscalVenda(venda) {
     }
     
     nota += '='.repeat(48) + '\n';
-    
-    // ============================================
-    // INFORMAÇÕES DA VENDA
-    // ============================================
     nota += `VENDA..: ${venda.numero || venda.numero_venda || 'N/A'}\n`;
     nota += `DATA...: ${dataVenda}\n`;
     nota += `VENDEDOR: ${venda.vendedor_nome || venda.vendedor || 'Sistema'} (${venda.vendedor_login || 'operador'})\n`;
     nota += `PGTO...: ${traduzirFormaPagamento(venda.forma_pagamento)}\n`;
 
-    // CPF do cliente (se houver)
     if (venda.cpf_cliente) {
         let cpfFormatado = venda.cpf_cliente;
         if (cpfFormatado.length === 11) {
@@ -1225,7 +1160,6 @@ function mostrarNotaFiscalVenda(venda) {
         nota += `CPF....: ${cpfFormatado}\n`;
     }
     
-    // Informação de extorno (se for o caso)
     if (isExtornada) {
         nota += '-'.repeat(48) + '\n';
         nota += `EXTORNADO EM: ${new Date(venda.data_extorno).toLocaleString('pt-BR')}\n`;
@@ -1235,9 +1169,6 @@ function mostrarNotaFiscalVenda(venda) {
         }
     }
     
-    // ============================================
-    // DADOS DE ENTREGA (se houver)
-    // ============================================
     if (venda.tipo_entrega === 'entrega' && venda.dados_entrega) {
         nota += '-'.repeat(48) + '\n';
         nota += `ENTREGA:\n`;
@@ -1251,9 +1182,6 @@ function mostrarNotaFiscalVenda(venda) {
         }
     }
     
-    // ============================================
-    // TABELA DE ITENS
-    // ============================================
     nota += '-'.repeat(48) + '\n';
     nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     DESC    TOTAL\n';
     nota += '-'.repeat(48) + '\n';
@@ -1265,7 +1193,6 @@ function mostrarNotaFiscalVenda(venda) {
             const qtd = (item.quantidade || 0).toString().padStart(3, ' ');
             const unit = formatarMoedaResumida(item.preco_unitario || 0).padStart(7, ' ');
             
-            // Formatar desconto
             let desc = '     ';
             if (item.desconto && item.desconto > 0) {
                 desc = item.desconto.toString().padStart(3, ' ') + '%';
@@ -1274,7 +1201,6 @@ function mostrarNotaFiscalVenda(venda) {
             }
             desc = desc.padStart(5, ' ');
             
-            // Calcular total com desconto
             const totalItem = (item.subtotal || 0) - (item.desconto_valor || 0);
             const total = formatarMoedaResumida(totalItem).padStart(7, ' ');
             
@@ -1284,9 +1210,6 @@ function mostrarNotaFiscalVenda(venda) {
         nota += 'Nenhum item encontrado\n';
     }
     
-    // ============================================
-    // TOTAIS
-    // ============================================
     nota += '-'.repeat(48) + '\n';
     
     if (venda.total_descontos && venda.total_descontos > 0) {
@@ -1296,9 +1219,6 @@ function mostrarNotaFiscalVenda(venda) {
     nota += `SUBTOTAL.:${formatarMoedaResumida(venda.subtotal || 0).padStart(37)}\n`;
     nota += `TOTAL....:${formatarMoedaResumida(venda.total || 0).padStart(37)}\n`;
     
-    // ============================================
-    // RODAPÉ
-    // ============================================
     nota += '='.repeat(48) + '\n';
     
     if (isExtornada) {
@@ -1310,35 +1230,16 @@ function mostrarNotaFiscalVenda(venda) {
     }
     
     nota += '='.repeat(48) + '\n';
-    
-    // Adicionar informação de sistema
     nota += `SISTEMA PDV v1.0 - ${new Date().toLocaleDateString()}\n`;
     
-    // ============================================
-    // ATUALIZAR MODAL
-    // ============================================
     conteudo.textContent = nota;
-    modal.style.display = 'flex';
+    abrirModal('notaFiscalModal');
     
-    // Atualizar título do modal
     const modalHeader = modal.querySelector('.modal-header h3');
     if (modalHeader) {
         modalHeader.innerHTML = isExtornada ? 
             '<i class="fas fa-undo-alt"></i> Nota Fiscal - Venda Extornada' : 
             '<i class="fas fa-receipt"></i> Nota Fiscal da Venda';
-    }
-    
-    // Atualizar botões do modal
-    const modalFooter = modal.querySelector('.modal-footer');
-    if (modalFooter) {
-        modalFooter.innerHTML = `
-            <button class="btn-print" onclick="imprimirNotaFiscal()">
-                <i class="fas fa-print"></i> Imprimir Nota
-            </button>
-            <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
-                <i class="fas fa-times"></i> Fechar
-            </button>
-        `;
     }
 }
 
@@ -1392,10 +1293,8 @@ function mostrarNotaOrcamento(orcamento) {
     nota += '='.repeat(48) + '\n';
     
     conteudo.textContent = nota;
-    modal.style.display = 'flex';
+    abrirModal('notaFiscalModal');
 }
-
-
 
 // ============================================
 // FUNÇÕES UTILITÁRIAS
@@ -1504,13 +1403,6 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }, tempo);
 }
 
-// Função global para fechar modais
-window.fecharModal = function(id) {
-    const modal = document.getElementById(id);
-    if (modal) modal.style.display = 'none';
-};
-
-// Função global para imprimir nota fiscal
 window.imprimirNotaFiscal = function() {
     const conteudo = document.getElementById('notaFiscalConteudo');
     if (!conteudo) return;
@@ -1544,7 +1436,6 @@ async function carregarProdutos() {
             pdv.produtos = resultado.data;
             console.log(`✅ ${pdv.produtos.length} produtos carregados`);
             
-            // Atualizar modal de consulta se estiver aberto
             const modalAberto = document.getElementById('consultaPrecoModal')?.style.display === 'flex';
             if (modalAberto) {
                 const results = document.getElementById('consultaPrecoResults');
@@ -1568,16 +1459,12 @@ async function carregarProdutos() {
 // HISTÓRICO
 // ============================================
 function abrirHistorico() {
-    const modal = document.getElementById('historicoModal');
-    if (!modal) return;
-    
-    modal.style.display = 'flex';
+    abrirModal('historicoModal');
     
     const hoje = new Date().toISOString().split('T')[0];
     const filtroData = document.getElementById('filtroData');
     if (filtroData) filtroData.value = hoje;
     
-    // Limpar campo de número
     const filtroNumero = document.getElementById('filtroNumero');
     if (filtroNumero) filtroNumero.value = '';
     
@@ -1594,7 +1481,6 @@ async function carregarHistoricoCompleto() {
     try {
         mostrarLoading('Buscando histórico...');
         
-        // Mostrar loading no results
         results.innerHTML = `
             <div class="loading-activity">
                 <div class="spinner"></div>
@@ -1602,13 +1488,11 @@ async function carregarHistoricoCompleto() {
             </div>
         `;
         
-        // Buscar TODAS as vendas (sem filtros complexos)
         const resultadoVendas = await lojaServices.buscarVendasComFiltros({
             data: data,
             numero: numero
         });
         
-        // Buscar orçamentos
         const resultadoOrcamentos = await lojaServices.buscarOrcamentos({
             data: data,
             numero: numero
@@ -1620,7 +1504,6 @@ async function carregarHistoricoCompleto() {
         console.log('📊 Vendas encontradas no histórico:', vendas.length);
         console.log('📊 Orçamentos encontrados no histórico:', orcamentos.length);
         
-        // Se não tem vendas nem orçamentos
         if (vendas.length === 0 && orcamentos.length === 0) {
             results.innerHTML = `
                 <div class="empty-state">
@@ -1633,7 +1516,6 @@ async function carregarHistoricoCompleto() {
             return;
         }
         
-        // Combinar e ordenar
         const todos = [
             ...vendas.map(v => ({ 
                 ...v, 
@@ -1693,7 +1575,6 @@ async function carregarHistoricoCompleto() {
                         <div><i class="fas fa-user"></i> Vendedor: ${item.vendedor_nome || item.vendedor || 'Sistema'}</div>
                         ${item.data_validade ? `<div><i class="fas fa-calendar"></i> Validade: ${new Date(item.data_validade).toLocaleDateString('pt-BR')}</div>` : ''}
                         
-                        <!-- MOSTRAR INFORMAÇÃO DE EXTORNO SE HOUVER -->
                         ${item.status === 'extornada' ? `
                             <div class="extorno-info">
                                 <i class="fas fa-undo-alt"></i> EXTORNADA em ${new Date(item.data_extorno).toLocaleString('pt-BR')}
@@ -1712,7 +1593,6 @@ async function carregarHistoricoCompleto() {
                                 <i class="fas fa-trash-alt"></i> Excluir
                             </button>` : ''}
                         
-                        <!-- BOTÃO DE EXTORNO APENAS PARA VENDAS NÃO EXTORNADAS -->
                         ${item.tipo_display === 'VENDA' && item.status !== 'extornada' ? 
                             `<button class="btn-extornar" onclick="extornarVenda('${item.id}', '${item.numero_exibicao}')">
                                 <i class="fas fa-undo-alt"></i> Extornar
@@ -1742,96 +1622,9 @@ async function carregarHistoricoCompleto() {
     }
 }
 
-// Substituir a função filtrarHistorico
 window.filtrarHistorico = function() {
     carregarHistoricoCompleto();
 };
-
-async function carregarHistoricoFirebase() {
-    const data = document.getElementById('filtroData')?.value;
-    const numero = document.getElementById('filtroNumero')?.value?.toLowerCase();
-    const results = document.getElementById('historicoResults');
-    
-    if (!results) return;
-    
-    try {
-        mostrarLoading('Buscando histórico...');
-        
-        // Buscar vendas do Firebase
-        const resultadoVendas = await lojaServices.buscarVendas({
-            data: data,
-            numero: numero
-        });
-        
-        // Buscar orçamentos do Firebase
-        const resultadoOrcamentos = await lojaServices.buscarOrcamentos({
-            data: data,
-            numero: numero
-        });
-        
-        const vendas = resultadoVendas.success ? resultadoVendas.data || [] : [];
-        const orcamentos = resultadoOrcamentos.success ? resultadoOrcamentos.data || [] : [];
-        
-        // Combinar e ordenar
-        const todos = [
-            ...vendas.map(v => ({ ...v, tipo_display: 'VENDA' })),
-            ...orcamentos.map(o => ({ ...o, tipo_display: 'ORÇAMENTO' }))
-        ].sort((a, b) => new Date(b.data_criacao || b.data) - new Date(a.data_criacao || a.data));
-        
-        if (todos.length === 0) {
-            results.innerHTML = '<div class="empty-state">Nenhum registro encontrado</div>';
-            return;
-        }
-        
-        let html = '';
-        
-        todos.forEach(item => {
-            const dataItem = new Date(item.data_criacao || item.data).toLocaleString('pt-BR');
-            const tipoClass = item.tipo_display === 'VENDA' ? 'tipo-venda' : 'tipo-orcamento';
-            
-            let statusHtml = '';
-            if (item.tipo_display === 'ORÇAMENTO') {
-                const valido = new Date(item.data_validade) > new Date();
-                statusHtml = `<span class="status-badge ${valido ? 'valido' : 'expirado'}">${valido ? 'Válido' : 'Expirado'}</span>`;
-            }
-            
-            html += `
-                <div class="historico-item ${tipoClass}">
-                    <div class="historico-header">
-                        <div>
-                            <strong>${item.tipo_display} #${item.numero}</strong> - ${dataItem}
-                            ${statusHtml}
-                        </div>
-                        <span class="historico-total">${formatarMoeda(item.total)}</span>
-                    </div>
-                    <div class="historico-detalhes">
-                        <div>Itens: ${item.itens?.length || 0}</div>
-                        ${item.forma_pagamento ? `<div>Pagamento: ${traduzirFormaPagamento(item.forma_pagamento)}</div>` : ''}
-                        <div>Vendedor: ${item.vendedor_nome} (${item.vendedor_login || 'operador'})</div>
-                        ${item.data_validade ? `<div>Validade: ${new Date(item.data_validade).toLocaleDateString('pt-BR')}</div>` : ''}
-                    </div>
-                    <div class="historico-acoes">
-                        ${item.tipo_display === 'ORÇAMENTO' && item.status === 'ativo' ? 
-                            `<button class="btn-convert" onclick="converterOrcamentoParaVenda('${item.id}')">
-                                <i class="fas fa-cash-register"></i> Converter em Venda
-                            </button>` : ''}
-                        <button class="btn-view" onclick="verNota('${item.id}', '${item.tipo_display}')">
-                            <i class="fas fa-eye"></i> Ver Nota
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        results.innerHTML = html;
-        
-    } catch (error) {
-        console.error('Erro ao carregar histórico:', error);
-        results.innerHTML = '<div class="empty-state error">Erro ao carregar histórico</div>';
-    } finally {
-        esconderLoading();
-    }
-}
 
 window.verNota = async function(id, tipo) {
     try {
@@ -1853,16 +1646,14 @@ window.verNota = async function(id, tipo) {
 };
 
 // ============================================
-// CONVERTER ORÇAMENTO EM VENDA (AGORA CARREGA NO CARRINHO)
+// CONVERTER ORÇAMENTO EM VENDA
 // ============================================
 window.converterOrcamentoParaVenda = async function(orcamentoId) {
     try {
         mostrarLoading('Buscando orçamento...');
         
-        // Fechar modal do histórico se estiver aberto
         fecharModal('historicoModal');
         
-        // Buscar orçamento do Firebase
         const resultado = await lojaServices.buscarOrcamentoPorId(orcamentoId);
         
         if (!resultado.success || !resultado.data) {
@@ -1871,14 +1662,12 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
         
         const orcamento = resultado.data;
         
-        // Verificar se orçamento já foi convertido
         if (orcamento.status === 'convertido') {
             alert('Este orçamento já foi convertido em venda anteriormente!');
             fecharModal('notaFiscalModal');
             return;
         }
         
-        // Verificar se orçamento ainda é válido (10 dias)
         const dataValidade = orcamento.data_validade?.toDate ? 
             orcamento.data_validade.toDate() : 
             new Date(orcamento.data_validade || 0);
@@ -1891,7 +1680,6 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
             }
         }
         
-        // Verificar estoque dos produtos
         const produtosSemEstoque = [];
         for (const item of orcamento.itens) {
             const produto = pdv.produtos.find(p => p.id === item.produto_id);
@@ -1905,17 +1693,14 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
             return;
         }
         
-        // Confirmar conversão
         if (!confirm(`🔄 Converter orçamento ${orcamento.numero} em venda?\n\nValor: ${formatarMoeda(orcamento.total)}\nItens: ${orcamento.itens.length}\n\nOs itens serão carregados no carrinho para finalização.`)) {
             return;
         }
         
         mostrarLoading('Carregando itens do orçamento...');
         
-        // LIMPAR CARRINHO ATUAL
         pdv.carrinho = [];
         
-        // ADICIONAR ITENS DO ORÇAMENTO AO CARRINHO
         for (const item of orcamento.itens) {
             const produto = pdv.produtos.find(p => p.id === item.produto_id);
             
@@ -1938,29 +1723,23 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
             }
         }
         
-        // Selecionar último produto
         if (pdv.carrinho.length > 0) {
             pdv.produtoSelecionado = pdv.carrinho[pdv.carrinho.length - 1];
         }
         
-        // Atualizar interfaces
         atualizarListaCarrinho();
         atualizarUltimoProduto();
         atualizarTotais();
         
-        // Habilitar botões
         document.getElementById('btnFinalizar').disabled = false;
         document.getElementById('btnImprimirOrcamento').disabled = false;
         
-        // Mostrar seção do último produto
         document.getElementById('lastProductSection').style.display = 'block';
         
-        // Fechar modal da nota se estiver aberto
         fecharModal('notaFiscalModal');
         
         mostrarMensagem(`✅ Orçamento #${orcamento.numero} carregado no carrinho!`, 'success');
         
-        // EXCLUIR O ORÇAMENTO DA BASE (dar baixa)
         await excluirOrcamentoAposConversao(orcamentoId);
         
     } catch (error) {
@@ -1971,14 +1750,10 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
     }
 };
 
-// ============================================
-// EXCLUIR ORÇAMENTO APÓS CONVERSÃO
-// ============================================
 async function excluirOrcamentoAposConversao(orcamentoId) {
     try {
         console.log(`🗑️ Excluindo orçamento ${orcamentoId} da base...`);
         
-        // Excluir do Firebase
         const resultado = await lojaServices.excluirOrcamento(orcamentoId);
         
         if (resultado.success) {
@@ -1992,20 +1767,17 @@ async function excluirOrcamentoAposConversao(orcamentoId) {
     }
 }
 
-
 // ============================================
 // EXCLUIR ORÇAMENTO DO HISTÓRICO
 // ============================================
 window.excluirOrcamento = async function(orcamentoId, orcamentoNumero) {
     try {
-        // Confirmar exclusão
         if (!confirm(`🗑️ Tem certeza que deseja EXCLUIR permanentemente o orçamento #${orcamentoNumero}?\n\nEsta ação não pode ser desfeita!`)) {
             return;
         }
         
         mostrarLoading('Excluindo orçamento...');
         
-        // Excluir do Firebase
         const resultado = await lojaServices.excluirOrcamento(orcamentoId);
         
         if (!resultado.success) {
@@ -2014,7 +1786,6 @@ window.excluirOrcamento = async function(orcamentoId, orcamentoNumero) {
         
         mostrarMensagem(`✅ Orçamento #${orcamentoNumero} excluído com sucesso!`, 'success');
         
-        // Recarregar o histórico
         setTimeout(() => {
             carregarHistoricoCompleto();
         }, 500);
@@ -2027,25 +1798,23 @@ window.excluirOrcamento = async function(orcamentoId, orcamentoNumero) {
     }
 };
 
-
 // ============================================
-// EXTORNAR VENDA (CANCELAR E DEVOLVER AO ESTOQUE)
+// EXTORNAR VENDA
 // ============================================
 window.extornarVenda = async function(vendaId, vendaNumero) {
     try {
-        // Confirmar extorno
-        if (!confirm(`⚠️ EXTORNAR VENDA #${vendaNumero}?\n\nTem certeza que deseja cancelar esta venda?\n\n- Os produtos serão devolvidos ao estoque\n- A venda ficará marcada como EXTORNADA no histórico\n\nEsta ação pode ser desfeita?`)) {
+        if (!confirm(`⚠️ EXTORNAR VENDA #${vendaNumero}?\n\nTem certeza que deseja cancelar esta venda?\n\n- Os produtos serão devolvidos ao estoque\n- A venda ficará marcada como EXTORNADA no histórico\n\nEsta ação NÃO pode ser desfeita!`)) {
             return;
         }
         
-        // Confirmação adicional para evitar acidentes
-        if (!confirm(`🔄 CONFIRMAR EXTORNO?\n\nDigite "EXTORNAR" para confirmar:`)) {
+        const confirmacao = prompt('Digite "EXTORNAR" para confirmar o cancelamento:');
+        if (confirmacao !== 'EXTORNAR') {
+            mostrarMensagem('Operação cancelada', 'info');
             return;
         }
         
         mostrarLoading('Processando extorno da venda...');
         
-        // Buscar dados da venda
         const resultado = await lojaServices.buscarVendaPorId(vendaId);
         
         if (!resultado.success || !resultado.data) {
@@ -2054,26 +1823,19 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
         
         const venda = resultado.data;
         
-        // Verificar se a venda já foi extornada
         if (venda.status === 'extornada') {
             alert('Esta venda já foi extornada anteriormente!');
             return;
         }
         
-        // DEVOLVER PRODUTOS AO ESTOQUE
         for (const item of venda.itens) {
-            const resultadoEstoque = await lojaServices.atualizarEstoque(
+            await lojaServices.atualizarEstoque(
                 item.produto_id,
                 item.quantidade,
-                'entrada' // Devolver ao estoque
+                'entrada'
             );
-            
-            if (!resultadoEstoque.success) {
-                console.warn(`⚠️ Aviso ao devolver ${item.nome}:`, resultadoEstoque.error);
-            }
         }
         
-        // ATUALIZAR STATUS DA VENDA PARA EXTORNADA
         const dadosAtualizados = {
             status: 'extornada',
             data_extorno: new Date(),
@@ -2091,12 +1853,10 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
         
         mostrarMensagem(`✅ Venda #${vendaNumero} extornada com sucesso!\nProdutos devolvidos ao estoque.`, 'success');
         
-        // Recarregar o histórico
         setTimeout(() => {
             carregarHistoricoCompleto();
         }, 500);
         
-        // Recarregar produtos para atualizar estoque na interface
         await carregarProdutos();
         
     } catch (error) {
@@ -2107,19 +1867,4 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
     }
 };
 
-// ============================================
-
-// Fechar modais clicando fora
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-};
-
 console.log("✅ PDV carregado com sucesso!");
-
-
-
-
-
-
