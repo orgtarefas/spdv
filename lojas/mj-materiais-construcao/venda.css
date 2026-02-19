@@ -2035,3 +2035,36 @@ body.modal-open {
 #notaFiscalModal[style*="display: block"] .modal-content {
     z-index: 10001 !important;
 }
+
+/* ============================================ */
+/* FORÇAR SOBREPOSIÇÃO - PRIORIDADE MÁXIMA */
+/* ============================================ */
+
+/* Histórico - z-index padrão */
+#historicoModal .modal-content {
+    z-index: 10000 !important;
+}
+
+/* Nota Fiscal - sempre na frente */
+#notaFiscalModal .modal-content {
+    z-index: 20000 !important;
+}
+
+/* Garantir que quando a nota estiver aberta, ela fique na frente */
+#notaFiscalModal[style*="display: block"] .modal-content {
+    z-index: 20000 !important;
+}
+
+/* Qualquer outro modal */
+.modal-content {
+    position: relative;
+}
+
+/* Override para garantir */
+.modal[style*="display: block"] .modal-content {
+    z-index: auto;
+}
+
+#notaFiscalModal[style*="display: block"] .modal-content {
+    z-index: 20000 !important;
+}
