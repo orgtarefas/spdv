@@ -27,6 +27,9 @@ let pdv = {
 // FUNÇÕES PARA MODAIS (CORRIGIDAS)
 // ============================================
 
+// ============================================
+// FUNÇÃO PARA ABRIR MODAL (VERSÃO DEFINITIVA)
+// ============================================
 function abrirModal(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) {
@@ -35,20 +38,23 @@ function abrirModal(modalId) {
     }
     
     // Remover qualquer estilo inline que possa atrapalhar
-    modal.style.removeProperty('align-items');
-    modal.style.removeProperty('justify-content');
+    modal.removeAttribute('style');
     
-    // Garantir que o modal fique visível
+    // Garantir que o modal fique visível e centralizado
     modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
     
-    // Forçar um pequeno delay para garantir a renderização
-    setTimeout(() => {
-        modal.style.opacity = '1';
-    }, 10);
+    // Forçar reflow para garantir
+    void modal.offsetHeight;
     
     // Bloquear scroll do body
     document.body.classList.add('modal-open');
     document.body.style.overflow = 'hidden';
+    
+    console.log(`✅ Modal ${modalId} aberto`);
 }
 
 window.fecharModal = function(modalId) {
@@ -1868,3 +1874,4 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
