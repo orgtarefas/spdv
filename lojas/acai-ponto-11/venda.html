@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPDVI Vendas - Sistema PDV</title>
+    <link rel="stylesheet" href="venda.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <a href="home.html" class="btn-back" id="btnVoltar">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+                <div class="page-title">
+                    <h1><i class="fas fa-cash-register"></i> PDV - Ponto de Venda</h1>
+                    <p class="page-subtitle" id="nomeLoja">Carregando...</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="btnHistorico" class="btn-historico" title="Histórico de Vendas">
+                    <i class="fas fa-history"></i>
+                </button>
+                <div class="user-info">
+                    <span id="userName">Carregando...</span>
+                    <button id="btnLogout" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="pdv-container">
+                <!-- LADO ESQUERDO - ÁREA DE ENTRADA (AUMENTADO) -->
+                <div class="pdv-left">
+                    <!-- Campo de Código de Barras -->
+                    <div class="barcode-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-barcode"></i> Código de Barras</h3>
+                            <button id="btnConsultarPreco" class="btn-consultar">
+                                <i class="fas fa-search-dollar"></i> Consultar Preço
+                            </button>
+                        </div>
+                        
+                        <div class="barcode-input-group">
+                            <div class="barcode-input-wrapper">
+                                <i class="fas fa-barcode"></i>
+                                <input type="text" id="barcodeInput" 
+                                       placeholder="Digite ou escaneie o código..." 
+                                       autofocus
+                                       autocomplete="off">
+                                <button class="barcode-clear" id="barcodeClear">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Seletor de Quantidade -->
+                            <div class="quantity-selector">
+                                <label for="itemQuantity">Qtd:</label>
+                                <div class="quantity-controls">
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(-1)">−</button>
+                                    <input type="number" id="itemQuantity" value="1" min="1" max="999" step="1">
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(1)">+</button>
+                                </div>
+                            </div>
+                            
+                            <button class="btn-add-barcode" id="btnAddBarcode">
+                                <i class="fas fa-cart-plus"></i>
+                                Adicionar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- ÚLTIMO PRODUTO ADICIONADO -->
+                    <div class="last-product-section" id="lastProductSection" style="display: none;">
+                        <div class="section-header">
+                            <h3><i class="fas fa-clock"></i> Último Produto</h3>
+                        </div>
+                        
+                        <div class="last-product-card">
+                            <div class="last-product-image">
+                                <img id="lastProductImage" src="" alt="Produto">
+                            </div>
+                            
+                            <div class="last-product-info">
+                                <div class="last-product-name" id="lastProductName">---</div>
+                                <div class="last-product-code" id="lastProductCode">---</div>
+                                
+                                <div class="last-product-prices">
+                                    <div class="price-box">
+                                        <span class="price-label">Valor Unitário</span>
+                                        <span class="price-value" id="lastProductUnitPrice">R$ 0,00</span>
+                                    </div>
+                                    
+                                    <div class="price-box total-box">
+                                        <span class="price-label">Total do Item</span>
+                                        <span class="price-value total-value" id="lastProductTotal">R$ 0,00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOTÕES INFERIORES (Limpar Carrinho e Finalizar Venda) -->
+                    <div class="action-buttons-bottom">
+                        <button class="btn-clear" id="btnLimparCarrinho">
+                            <i class="fas fa-trash-alt"></i>
+                            Limpar Carrinho
+                        </button>
+                        <button class="btn-finalize" id="btnFinalizar" disabled>
+                            <i class="fas fa-check-circle"></i>
+                            Finalizar Venda
+                        </button>
+                    </div>
+
+                    <!-- BOTÕES SUPERIORES (Imprimir Orçamento e Recolhimento) -->
+                    <div class="action-buttons-top">
+                        <button class="btn-orcamento" id="btnImprimirOrcamento" disabled>
+                            <i class="fas fa-file-invoice"></i>
+                            Imprimir Orçamento
+                        </button>
+                        <button class="btn-caixa" id="btnRecolhimento">
+                            <i class="fas fa-cash-register"></i>
+                            Recolhimento de Caixa
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- LADO DIREITO - LISTA DE PRODUTOS -->
+                <div class="pdv-right">
+                    <div class="cart-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-shopping-cart"></i> Itens do Carrinho</h3>
+                            <div class="cart-controls">
+                                <span class="item-count" id="itemCount">0 itens</span>
+                            </div>
+                        </div>
+                        
+                        <!-- LISTA DE PRODUTOS (TABELA) -->
+                        <div class="cart-items-list" id="cartItemsList">
+                            <table class="cart-table">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Código</th>
+                                        <th>Produto</th>
+                                        <th>Qtd</th>
+                                        <th>Valor Unit.</th>
+                                        <th>Desconto</th>
+                                        <th>Subtotal</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cartTableBody">
+                                    <tr class="empty-row">
+                                        <td colspan="8">
+                                            <div class="empty-cart">
+                                                <i class="fas fa-shopping-cart"></i>
+                                                <p>Carrinho vazio</p>
+                                                <small>Digite ou escaneie um código de barras</small>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- RESUMO DA VENDA -->
+                        <div class="cart-summary">
+                            <div class="summary-row">
+                                <span>Subtotal:</span>
+                                <span id="subtotal">R$ 0,00</span>
+                            </div>
+                            <div class="summary-row total">
+                                <span>TOTAL:</span>
+                                <span id="total">R$ 0,00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema PDV</span></p>
+                <p id="currentDateTime">--:--:--</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL DE CONSULTA DE PREÇO -->
+    <div id="consultaPrecoModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-search-dollar"></i> Consulta de Preços</h3>
+                <button class="modal-close" onclick="fecharModal('consultaPrecoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="consultaPrecoInput" placeholder="Digite código, nome ou código de barras..." autofocus>
+                    <button class="search-clear" id="consultaPrecoClear">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="consulta-preco-results" id="consultaPrecoResults">
+                    <!-- Todos os produtos serão listados aqui inicialmente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="fecharModal('consultaPrecoModal')">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE FINALIZAÇÃO DE VENDA -->
+    <div id="finalizarVendaModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Finalizar Venda</h3>
+                <button class="modal-close" onclick="fecharModal('finalizarVendaModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- RESUMO DA VENDA -->
+                <div class="venda-resumo">
+                    <h4>Resumo da Venda</h4>
+                    <div class="resumo-linha">
+                        <span>Total de Itens:</span>
+                        <span id="resumoTotalItens">0</span>
+                    </div>
+                    <div class="resumo-linha">
+                        <span>Subtotal:</span>
+                        <span id="resumoSubtotal">R$ 0,00</span>
+                    </div>
+                    <div class="resumo-linha total">
+                        <span>TOTAL:</span>
+                        <span id="resumoTotal">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- OPÇÕES DE ENTREGA -->
+                <div class="entrega-section">
+                    <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
+                    <div class="entrega-opcoes">
+                        <label class="entrega-option">
+                            <input type="radio" name="tipoEntrega" value="retirada" checked>
+                            <span class="entrega-icon"><i class="fas fa-store"></i></span>
+                            <span class="entrega-nome">Retirada na loja</span>
+                        </label>
+                        <label class="entrega-option">
+                            <input type="radio" name="tipoEntrega" value="entrega">
+                            <span class="entrega-icon"><i class="fas fa-home"></i></span>
+                            <span class="entrega-nome">Receber em casa</span>
+                        </label>
+                    </div>
+
+                    <!-- CAMPOS DE ENTREGA (inicialmente ocultos) -->
+                    <div id="camposEntrega" style="display: none;">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Nome do Cliente *</label>
+                            <input type="text" id="clienteNome" placeholder="Nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> Telefone *</label>
+                            <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
+                            <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="clienteCidade" placeholder="Cidade">
+                            </div>
+                            <div class="form-group">
+                                <label>CEP</label>
+                                <input type="text" id="clienteCep" placeholder="00000-000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
+                            <input type="text" id="taxaEntrega" value="R$ 0,00" onkeyup="mascaraMoeda(this)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CAMPO CPF DO CLIENTE (sempre visível) -->
+                <div class="form-group" style="margin-top: 15px;">
+                    <label><i class="fas fa-id-card"></i> CPF do Cliente (opcional)</label>
+                    <input type="text" id="clienteCpf" placeholder="000.000.000-00" onkeyup="mascaraCPF(this)">
+                    <small style="color: var(--gray-dark);">Digite apenas números</small>
+                </div>
+
+                <!-- FORMAS DE PAGAMENTO -->
+                <div class="payment-section">
+                    <h4><i class="fas fa-credit-card"></i> Forma de Pagamento</h4>
+                    <div class="methods-grid">
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="dinheiro" checked>
+                            <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
+                            <span class="method-name">Dinheiro</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="pix">
+                            <span class="method-icon"><i class="fas fa-qrcode"></i></span>
+                            <span class="method-name">PIX</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="debito">
+                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                            <span class="method-name">Débito</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="credito">
+                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                            <span class="method-name">Crédito</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="ticket">
+                            <span class="method-icon"><i class="fas fa-ticket-alt"></i></span>
+                            <span class="method-name">Ticket</span>
+                        </label>
+                    </div>
+
+                    <!-- TROCO (apenas para dinheiro) -->
+                    <div id="trocoSection" style="display: none; margin-top: 15px;">
+                        <div class="form-group">
+                            <label><i class="fas fa-calculator"></i> Valor Recebido</label>
+                            <input type="text" id="valorRecebido" placeholder="R$ 0,00" onkeyup="calcularTroco()">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-exchange-alt"></i> Troco</label>
+                            <input type="text" id="valorTroco" placeholder="R$ 0,00" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-confirm" id="btnConfirmarVenda">
+                    <i class="fas fa-check"></i> Confirmar Venda
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('finalizarVendaModal')">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE RECOLHIMENTO DE CAIXA -->
+    <div id="recolhimentoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cash-register"></i> Recolhimento de Caixa</h3>
+                <button class="modal-close" onclick="fecharModal('recolhimentoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Login Operador</label>
+                    <input type="text" id="recolhimentoOperador" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Data/Hora</label>
+                    <input type="text" id="recolhimentoDataHora" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-cash-register"></i> Caixa *</label>
+                    <select id="recolhimentoCaixa">
+                        <option value="caixa01">Caixa 01</option>
+                        <option value="caixa02">Caixa 02</option>
+                        <option value="caixa03">Caixa 03</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill"></i> Valor do Recolhimento *</label>
+                    <input type="text" id="recolhimentoValor" placeholder="R$ 0,00" 
+                           onkeyup="mascaraMoeda(this)" autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> N° Envelope *</label>
+                    <input type="text" id="recolhimentoEnvelope" placeholder="Digite ou escaneie o número do envelope">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Observação</label>
+                    <textarea id="recolhimentoObs" rows="2" placeholder="Observação (opcional)"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-confirm" id="btnConfirmarRecolhimento">
+                    <i class="fas fa-check"></i> Confirmar Recolhimento
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('recolhimentoModal')">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE NOTA FISCAL (APÓS VENDA) -->
+    <div id="notaFiscalModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-receipt"></i> Nota Fiscal da Venda</h3>
+                <button class="modal-close" onclick="fecharModal('notaFiscalModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="notaFiscalConteudo" class="nota-fiscal-conteudo"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-print" onclick="imprimirNotaFiscal()">
+                    <i class="fas fa-print"></i> Imprimir Nota
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL HISTÓRICO -->
+    <div id="historicoModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-history"></i> Histórico de Vendas</h3>
+                <button class="modal-close" onclick="fecharModal('historicoModal')">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="historico-filtros">
+                    <div class="filtros-periodo">
+                        <div class="filtro-group">
+                            <label for="filtroDataInicio">Data Início:</label>
+                            <input type="date" id="filtroDataInicio">
+                        </div>
+                        <div class="filtro-group">
+                            <label for="filtroDataFim">Data Fim:</label>
+                            <input type="date" id="filtroDataFim">
+                        </div>
+                    </div>
+                    <div class="filtros-extras">
+                        <input type="text" id="filtroNumero" placeholder="Número da venda">
+                        <button class="btn-filtrar" onclick="filtrarHistorico()">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <button class="btn-limpar-filtros" onclick="limparFiltrosHistorico()">
+                            <i class="fas fa-eraser"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+                <div class="historico-results" id="historicoResults">
+                    <!-- CONTEÚDO DINÂMICO -->
+                </div>
+            </div>
+        </div>
+    </div>
+        
+    <!-- Loading -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <span class="message-text"></span>
+        </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <script type="module" src="firebase_config.js"></script>
+    <script type="module" src="venda.js"></script>
+</body>
+</html>
+
+
+
