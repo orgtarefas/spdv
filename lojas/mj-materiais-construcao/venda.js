@@ -170,6 +170,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         atualizarInterfaceLoja();
         configurarEventos();
         await carregarProdutos();
+
+        // Inicializar modais como arrastáveis
+        setTimeout(() => {
+            tornarModalArrastavel('consultaPrecoModal');
+            tornarModalArrastavel('finalizarVendaModal');
+            tornarModalArrastavel('historicoModal');
+            tornarModalArrastavel('notaFiscalModal');
+            tornarModalArrastavel('recolhimentoModal');
+        }, 1000);
         
         setTimeout(() => {
             document.getElementById('barcodeInput')?.focus();
@@ -1921,5 +1930,6 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
