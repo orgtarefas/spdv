@@ -156,18 +156,18 @@
             </div>
         </div>
 
-        <!-- Modal de Login -->
+        <!-- Modal de Login do Cliente -->
         <div id="loginModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3><i class="fas fa-sign-in-alt"></i> Entrar na Loja</h3>
+                    <h3><i class="fas fa-sign-in-alt"></i> Login do Cliente</h3>
                     <button class="modal-close" onclick="fecharModal('loginModal')">&times;</button>
                 </div>
                 <div class="modal-body">
                     <div class="login-form">
                         <div class="form-group">
-                            <label><i class="fas fa-user"></i> Usuário</label>
-                            <input type="text" id="loginUsuario" placeholder="Digite seu usuário">
+                            <label><i class="fas fa-user"></i> Login</label>
+                            <input type="text" id="loginUsuario" placeholder="Digite seu login">
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-lock"></i> Senha</label>
@@ -175,14 +175,90 @@
                         </div>
                         <div class="login-options">
                             <label class="checkbox-label">
-                                <input type="checkbox" id="loginLembrar"> Lembrar acesso
+                                <input type="checkbox" id="loginLembrar"> Lembrar login
                             </label>
-                            <a href="#" class="forgot-password">Esqueci a senha</a>
+                            <a href="#" class="forgot-password" id="forgotPasswordCliente">Esqueci a senha</a>
                         </div>
                         <button class="btn-login-confirm" id="btnConfirmarLogin">
                             <i class="fas fa-sign-in-alt"></i> Entrar
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Cadastro de Cliente -->
+        <div id="cadastroModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus"></i> Cadastro de Cliente</h3>
+                    <button class="modal-close" onclick="fecharModal('cadastroModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="cadastro-form">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Nome Completo *</label>
+                            <input type="text" id="cadastroNome" placeholder="Digite seu nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> E-mail *</label>
+                            <input type="email" id="cadastroEmail" placeholder="Digite seu e-mail">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> Telefone *</label>
+                            <input type="text" id="cadastroTelefone" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-id-card"></i> CPF *</label>
+                            <input type="text" id="cadastroCpf" placeholder="000.000.000-00">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Login *</label>
+                            <input type="text" id="cadastroLogin" placeholder="Escolha um login">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Senha *</label>
+                            <input type="password" id="cadastroSenha" placeholder="Crie uma senha">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Confirmar Senha *</label>
+                            <input type="password" id="cadastroConfirmarSenha" placeholder="Confirme sua senha">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Endereço</label>
+                            <input type="text" id="cadastroEndereco" placeholder="Rua, número, bairro">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-city"></i> Cidade</label>
+                            <input type="text" id="cadastroCidade" placeholder="Cidade">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-pin"></i> CEP</label>
+                            <input type="text" id="cadastroCep" placeholder="00000-000">
+                        </div>
+                        <div class="form-group terms">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="cadastroTermos"> 
+                                <span>Li e aceito os <a href="#" id="termosLink">termos de uso</a></span>
+                            </label>
+                        </div>
+                        <button class="btn-cadastro-confirm" id="btnConfirmarCadastro">
+                            <i class="fas fa-check"></i> Cadastrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Produto Detalhado -->
+        <div id="produtoModal" class="modal">
+            <div class="modal-content modal-lg">
+                <div class="modal-header">
+                    <h3><i class="fas fa-box"></i> Detalhes do Produto</h3>
+                    <button class="modal-close" onclick="fecharModal('produtoModal')">&times;</button>
+                </div>
+                <div class="modal-body" id="produtoModalBody">
+                    <!-- Conteúdo carregado dinamicamente -->
                 </div>
             </div>
         </div>
@@ -196,8 +272,8 @@
                 </div>
                 <div class="footer-section">
                     <h4>Atendimento</h4>
-                    <p><i class="fas fa-phone"></i> (11) 9999-9999</p>
-                    <p><i class="fas fa-envelope"></i> atendimento@loja.com.br</p>
+                    <p><i class="fas fa-phone"></i> <span id="lojaTelefone">(11) 9999-9999</span></p>
+                    <p><i class="fas fa-envelope"></i> <span id="lojaEmail">atendimento@loja.com.br</span></p>
                 </div>
                 <div class="footer-section">
                     <h4>Formas de Pagamento</h4>
@@ -207,7 +283,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 <span id="lojaNomeCopyright">SPDVI</span> - Todos os direitos reservados</p>
+                <p>&copy; 2026 <span id="lojaNomeCopyright">SPDVI</span> - Todos os direitos reservados</p>
                 <p id="connectionStatus"><i class="fas fa-circle"></i> <span id="statusText">Conectado</span></p>
             </div>
         </footer>
@@ -217,7 +293,7 @@
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
             <div class="loading-spinner"></div>
-            <h3>Carregando...</h3>
+            <h3 id="loadingMessage">Carregando...</h3>
         </div>
     </div>
 
@@ -230,7 +306,6 @@
         <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
     </div>
 
-    <script type="module" src="firebase_config.js"></script>
     <script type="module" src="clientes.js"></script>
 </body>
 </html>
