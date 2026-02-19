@@ -1644,32 +1644,257 @@ body.modal-open {
 .historico-item[data-status="extornada"] .historico-total {
     color: #e67e22;
 }
-
-/* Ajuste no container de ações */
+/* ============================================ */
+/* BOTÕES DO HISTÓRICO - LARGURAS FIXAS */
+/* ============================================ */
 .historico-acoes {
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
-    margin-top: 10px;
+    margin-top: 12px;
+    justify-content: flex-start;
 }
 
 .historico-acoes button {
-    flex: 1;
-    min-width: 90px;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    font-size: 11px;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
 }
 
+/* LARGURAS FIXAS PARA CADA TIPO DE BOTÃO */
+.btn-convert {
+    background: var(--warning);
+    color: var(--white);
+    width: 100px; /* Largura fixa */
+    min-width: 100px;
+}
+
+.btn-delete {
+    background: var(--danger);
+    color: var(--white);
+    width: 80px; /* Largura fixa */
+    min-width: 80px;
+}
+
+.btn-extornar {
+    background: #e67e22;
+    color: var(--white);
+    width: 90px; /* Largura fixa */
+    min-width: 90px;
+}
+
+.btn-view {
+    background: var(--secondary);
+    color: var(--white);
+    width: 90px; /* Largura fixa */
+    min-width: 90px;
+}
+
+/* HOVER EFFECTS */
+.btn-convert:hover {
+    background: #e67e22;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(243, 156, 18, 0.3);
+}
+
+.btn-delete:hover {
+    background: #c0392b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+}
+
+.btn-extornar:hover {
+    background: #d35400;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(230, 126, 34, 0.3);
+}
+
+.btn-view:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+}
+
+/* Quando tem apenas 2 botões */
+.historico-acoes:has(.btn-view):has(.btn-extornar) button {
+    width: 110px;
+}
+
+/* Quando tem apenas 1 botão */
+.historico-acoes:has(button:only-child) button {
+    width: 120px;
+}
+
+/* Responsividade */
 @media (max-width: 768px) {
     .historico-acoes {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
     }
     
     .historico-acoes button {
-        width: 100%;
+        flex: 1;
+        min-width: 0;
+        width: auto;
+        padding: 8px 12px;
+    }
+    
+    .btn-convert,
+    .btn-delete,
+    .btn-extornar,
+    .btn-view {
+        width: auto;
+        min-width: 0;
     }
 }
 
+/* Ajuste no container do histórico */
+.historico-item {
+    padding: 16px;
+    border: 1px solid var(--light);
+    border-radius: var(--border-radius);
+    margin-bottom: 12px;
+    background: var(--white);
+    transition: var(--transition);
+}
+
+.historico-item:hover {
+    box-shadow: var(--shadow-hover);
+    border-color: var(--gray-light);
+}
+
+.historico-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.historico-header strong {
+    font-size: 14px;
+    color: var(--dark);
+}
+
+.historico-total {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--primary);
+    background: var(--light);
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.historico-detalhes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px 15px;
+    font-size: 12px;
+    color: var(--gray-dark);
+    margin-bottom: 12px;
+    background: var(--light);
+    padding: 10px;
+    border-radius: var(--border-radius);
+}
+
+.historico-detalhes div {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.historico-detalhes i {
+    width: 16px;
+    color: var(--primary);
+    font-size: 12px;
+}
+
+/* Badge de status */
+.status-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.valido {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.expirado {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Informação de extorno */
+.extorno-info {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #fff3e0;
+    border-left: 3px solid #e67e22;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #e67e22;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.extorno-info i {
+    font-size: 12px;
+    color: #e67e22;
+}
+
+/* Item de histórico com status extornado */
+.historico-item[data-status="extornada"] {
+    border-left: 4px solid #e67e22;
+    background: #fffaf0;
+}
+
+.historico-item[data-status="extornada"] .historico-total {
+    background: #ffe4cc;
+    color: #e67e22;
+}
+
+/* Período resumo */
+.periodo-resumo {
+    background: var(--primary);
+    color: var(--white);
+    padding: 12px 16px;
+    border-radius: var(--border-radius);
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.periodo-resumo span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.periodo-resumo i {
+    font-size: 14px;
+    opacity: 0.9;
+}
 
 /* ============================================ */
 /* CONSULTA PREÇO 
@@ -1792,4 +2017,5 @@ body.modal-open {
     border-radius: 10px;
     margin-top: 4px;
 }
+
 
