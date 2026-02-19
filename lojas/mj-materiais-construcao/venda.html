@@ -38,7 +38,7 @@
         <!-- Main Content -->
         <main class="content">
             <div class="pdv-container">
-                <!-- LADO ESQUERDO - ÁREA DE ENTRADA -->
+                <!-- LADO ESQUERDO - ÁREA DE ENTRADA (AUMENTADO) -->
                 <div class="pdv-left">
                     <!-- Campo de Código de Barras -->
                     <div class="barcode-section">
@@ -107,6 +107,30 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- BOTÕES INFERIORES (Limpar Carrinho e Finalizar Venda) -->
+                    <div class="action-buttons-bottom">
+                        <button class="btn-clear" id="btnLimparCarrinho">
+                            <i class="fas fa-trash-alt"></i>
+                            Limpar Carrinho
+                        </button>
+                        <button class="btn-finalize" id="btnFinalizar" disabled>
+                            <i class="fas fa-check-circle"></i>
+                            Finalizar Venda
+                        </button>
+                    </div>
+
+                    <!-- BOTÕES SUPERIORES (Imprimir Orçamento e Recolhimento) -->
+                    <div class="action-buttons-top">
+                        <button class="btn-orcamento" id="btnImprimirOrcamento" disabled>
+                            <i class="fas fa-file-invoice"></i>
+                            Imprimir Orçamento
+                        </button>
+                        <button class="btn-caixa" id="btnRecolhimento">
+                            <i class="fas fa-cash-register"></i>
+                            Recolhimento de Caixa
+                        </button>
+                    </div>
                 </div>
                 
                 <!-- LADO DIREITO - LISTA DE PRODUTOS -->
@@ -158,50 +182,6 @@
                                 <span id="total">R$ 0,00</span>
                             </div>
                         </div>
-                        
-                        <!-- FORMAS DE PAGAMENTO E AÇÕES -->
-                        <div class="payment-section">
-                            <div class="payment-methods">
-                                <h4>Forma de Pagamento</h4>
-                                <div class="methods-grid">
-                                    <label class="method-option">
-                                        <input type="radio" name="payment" value="dinheiro" checked>
-                                        <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
-                                        <span class="method-name">Dinheiro</span>
-                                    </label>
-                                    <label class="method-option">
-                                        <input type="radio" name="payment" value="debito">
-                                        <span class="method-icon"><i class="fas fa-credit-card"></i></span>
-                                        <span class="method-name">Débito</span>
-                                    </label>
-                                    <label class="method-option">
-                                        <input type="radio" name="payment" value="credito">
-                                        <span class="method-icon"><i class="fas fa-credit-card"></i></span>
-                                        <span class="method-name">Crédito</span>
-                                    </label>
-                                    <label class="method-option">
-                                        <input type="radio" name="payment" value="pix">
-                                        <span class="method-icon"><i class="fas fa-qrcode"></i></span>
-                                        <span class="method-name">PIX</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="action-buttons">
-                                <button class="btn-orcamento" id="btnImprimirOrcamento" disabled>
-                                    <i class="fas fa-file-invoice"></i>
-                                    Imprimir Orçamento
-                                </button>
-                                <button class="btn-finalize" id="btnFinalizar" disabled>
-                                    <i class="fas fa-check-circle"></i>
-                                    Finalizar Venda
-                                </button>
-                                <button class="btn-clear" id="btnLimparCarrinho">
-                                    <i class="fas fa-trash-alt"></i>
-                                    Limpar Carrinho
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -239,6 +219,187 @@
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="fecharModal('consultaPrecoModal')">
                     <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE FINALIZAÇÃO DE VENDA -->
+    <div id="finalizarVendaModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Finalizar Venda</h3>
+                <button class="modal-close" onclick="fecharModal('finalizarVendaModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- RESUMO DA VENDA -->
+                <div class="venda-resumo">
+                    <h4>Resumo da Venda</h4>
+                    <div class="resumo-linha">
+                        <span>Total de Itens:</span>
+                        <span id="resumoTotalItens">0</span>
+                    </div>
+                    <div class="resumo-linha">
+                        <span>Subtotal:</span>
+                        <span id="resumoSubtotal">R$ 0,00</span>
+                    </div>
+                    <div class="resumo-linha total">
+                        <span>TOTAL:</span>
+                        <span id="resumoTotal">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- OPÇÕES DE ENTREGA -->
+                <div class="entrega-section">
+                    <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
+                    <div class="entrega-opcoes">
+                        <label class="entrega-option">
+                            <input type="radio" name="tipoEntrega" value="retirada" checked>
+                            <span class="entrega-icon"><i class="fas fa-store"></i></span>
+                            <span class="entrega-nome">Retirada na loja</span>
+                        </label>
+                        <label class="entrega-option">
+                            <input type="radio" name="tipoEntrega" value="entrega">
+                            <span class="entrega-icon"><i class="fas fa-home"></i></span>
+                            <span class="entrega-nome">Receber em casa</span>
+                        </label>
+                    </div>
+
+                    <!-- CAMPOS DE ENTREGA (inicialmente ocultos) -->
+                    <div id="camposEntrega" style="display: none;">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Nome do Cliente *</label>
+                            <input type="text" id="clienteNome" placeholder="Nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> Telefone *</label>
+                            <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
+                            <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="clienteCidade" placeholder="Cidade">
+                            </div>
+                            <div class="form-group">
+                                <label>CEP</label>
+                                <input type="text" id="clienteCep" placeholder="00000-000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
+                            <input type="text" id="taxaEntrega" value="R$ 0,00" onkeyup="mascaraMoeda(this)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORMAS DE PAGAMENTO -->
+                <div class="payment-section">
+                    <h4><i class="fas fa-credit-card"></i> Forma de Pagamento</h4>
+                    <div class="methods-grid">
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="dinheiro" checked>
+                            <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
+                            <span class="method-name">Dinheiro</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="pix">
+                            <span class="method-icon"><i class="fas fa-qrcode"></i></span>
+                            <span class="method-name">PIX</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="debito">
+                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                            <span class="method-name">Débito</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="credito">
+                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                            <span class="method-name">Crédito</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="ticket">
+                            <span class="method-icon"><i class="fas fa-ticket-alt"></i></span>
+                            <span class="method-name">Ticket</span>
+                        </label>
+                    </div>
+
+                    <!-- TROCO (apenas para dinheiro) -->
+                    <div id="trocoSection" style="display: none; margin-top: 15px;">
+                        <div class="form-group">
+                            <label><i class="fas fa-calculator"></i> Valor Recebido</label>
+                            <input type="text" id="valorRecebido" placeholder="R$ 0,00" onkeyup="calcularTroco()">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-exchange-alt"></i> Troco</label>
+                            <input type="text" id="valorTroco" placeholder="R$ 0,00" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-confirm" id="btnConfirmarVenda">
+                    <i class="fas fa-check"></i> Confirmar Venda
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('finalizarVendaModal')">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE RECOLHIMENTO DE CAIXA -->
+    <div id="recolhimentoModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-cash-register"></i> Recolhimento de Caixa</h3>
+                <button class="modal-close" onclick="fecharModal('recolhimentoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Login Operador</label>
+                    <input type="text" id="recolhimentoOperador" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Data/Hora</label>
+                    <input type="text" id="recolhimentoDataHora" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-cash-register"></i> Caixa *</label>
+                    <select id="recolhimentoCaixa">
+                        <option value="caixa01">Caixa 01</option>
+                        <option value="caixa02">Caixa 02</option>
+                        <option value="caixa03">Caixa 03</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill"></i> Valor do Recolhimento *</label>
+                    <input type="text" id="recolhimentoValor" placeholder="R$ 0,00" 
+                           onkeyup="mascaraMoeda(this)" autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> N° Envelope *</label>
+                    <input type="text" id="recolhimentoEnvelope" placeholder="Digite ou escaneie o número do envelope">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Observação</label>
+                    <textarea id="recolhimentoObs" rows="2" placeholder="Observação (opcional)"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-confirm" id="btnConfirmarRecolhimento">
+                    <i class="fas fa-check"></i> Confirmar Recolhimento
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('recolhimentoModal')">
+                    <i class="fas fa-times"></i> Cancelar
                 </button>
             </div>
         </div>
