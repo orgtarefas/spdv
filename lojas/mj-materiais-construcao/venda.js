@@ -1320,7 +1320,7 @@ function mostrarNotaFiscalVenda(venda) {
     }
     
     nota += '-'.repeat(48) + '\n';
-    nota += 'COD       DESCRIÇÃO       QTD  UNIT  DESC% TOTAL\n';
+    nota += 'COD       DESCRIÇÃO     QTD  UNIT  DESC%   TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     if (venda.itens && venda.itens.length > 0) {
@@ -1329,7 +1329,7 @@ function mostrarNotaFiscalVenda(venda) {
             const codigo = (item.codigo || item.codigo_barras || '---').substring(0, 9).padEnd(9, ' ');
             
             // Descrição do produto
-            const nome = (item.nome || 'Produto').substring(0, 13).padEnd(13, ' ');
+            const nome = (item.nome || 'Produto').substring(0, 12).padEnd(12, ' ');
             
             // Quantidade
             const qtd = (item.quantidade || 0).toString().padStart(3, ' ');
@@ -1421,7 +1421,7 @@ function mostrarNotaOrcamento(orcamento) {
     nota += `VENDEDOR: ${orcamento.vendedor_nome} (${orcamento.vendedor_login || 'operador'})\n`;
     nota += `VALIDADE: ${dataValidade} (10 DIAS)\n`;
     nota += '-'.repeat(48) + '\n';
-    nota += 'COD       DESCRIÇÃO       QTD  UNIT  DESC% TOTAL\n';
+    nota += 'COD       DESCRIÇÃO     QTD  UNIT  DESC%   TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     orcamento.itens.forEach((item, i) => {
@@ -1429,7 +1429,7 @@ function mostrarNotaOrcamento(orcamento) {
         const codigo = (item.codigo || item.codigo_barras || '---').substring(0, 9).padEnd(9, ' ');
         
         // Descrição do produto
-        const nome = item.nome.substring(0, 13).padEnd(13, ' ');
+        const nome = item.nome.substring(0, 12).padEnd(12, ' ');
         
         // Quantidade
         const qtd = item.quantidade.toString().padStart(3, ' ');
@@ -2106,6 +2106,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
