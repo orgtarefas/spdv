@@ -1210,7 +1210,24 @@ window.selecionarProdutoConsulta = function(id) {
 };
 
 // ============================================
-// MOSTRAR NOTA FISCAL DE VENDA
+// FUNÇÃO PARA OBTER O MAIOR Z-INDEX
+// ============================================
+function getHighestZIndex() {
+    let highest = 9999;
+    const modals = document.querySelectorAll('.modal-content');
+    
+    modals.forEach(modal => {
+        const zIndex = parseInt(window.getComputedStyle(modal).zIndex);
+        if (!isNaN(zIndex) && zIndex > highest) {
+            highest = zIndex;
+        }
+    });
+    
+    return highest;
+}
+
+// ============================================
+// MOSTRAR NOTA FISCAL DE VENDA (COM Z-INDEX GARANTIDO)
 // ============================================
 function mostrarNotaFiscalVenda(venda) {
     const modal = document.getElementById('notaFiscalModal');
@@ -1218,10 +1235,19 @@ function mostrarNotaFiscalVenda(venda) {
     
     if (!modal || !conteudo) return;
     
+    // Garantir que a nota fique na frente
+    const content = modal.querySelector('.modal-content');
+    if (content) {
+        const highestZIndex = getHighestZIndex();
+        content.style.zIndex = highestZIndex + 1;
+    }
+    
+    // Dados da loja
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
     const dataVenda = new Date(venda.data || venda.data_criacao).toLocaleString('pt-BR');
     const isExtornada = venda.status === 'extornada';
     
+    // Gerar conteúdo da nota
     let nota = '';
     
     nota += '='.repeat(48) + '\n';
@@ -1768,19 +1794,29 @@ window.filtrarHistorico = function() {
     carregarHistoricoCompleto();
 };
 
+// ============================================
+// VER NOTA (COM FECHAMENTO DO HISTÓRICO)
+// ============================================
 window.verNota = async function(id, tipo) {
     try {
-        if (tipo === 'VENDA') {
-            const resultado = await lojaServices.buscarVendaPorId(id);
-            if (resultado.success && resultado.data) {
-                mostrarNotaFiscalVenda(resultado.data);
+        // Fechar o modal de histórico PRIMEIRO
+        fecharModal('historicoModal');
+        
+        // Pequeno delay para garantir que fechou
+        setTimeout(async () => {
+            if (tipo === 'VENDA') {
+                const resultado = await lojaServices.buscarVendaPorId(id);
+                if (resultado.success && resultado.data) {
+                    mostrarNotaFiscalVenda(resultado.data);
+                }
+            } else if (tipo === 'ORÇAMENTO') {
+                const resultado = await lojaServices.buscarOrcamentoPorId(id);
+                if (resultado.success && resultado.data) {
+                    mostrarNotaOrcamento(resultado.data);
+                }
             }
-        } else if (tipo === 'ORÇAMENTO') {
-            const resultado = await lojaServices.buscarOrcamentoPorId(id);
-            if (resultado.success && resultado.data) {
-                mostrarNotaOrcamento(resultado.data);
-            }
-        }
+        }, 100);
+        
     } catch (error) {
         console.error('Erro ao buscar nota:', error);
         mostrarMensagem('Erro ao buscar nota', 'error');
@@ -2010,6 +2046,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
