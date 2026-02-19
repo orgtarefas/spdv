@@ -24,6 +24,35 @@ let pdv = {
 };
 
 // ============================================
+// FUNÇÃO PARA GARANTIR QUE NOTA FIQUE NA FRENTE
+// ============================================
+function garantirNotaNaFrente() {
+    const notaModal = document.getElementById('notaFiscalModal');
+    const historicoModal = document.getElementById('historicoModal');
+    
+    if (!notaModal) return;
+    
+    // Se o histórico estiver aberto, forçar ele para trás
+    if (historicoModal && historicoModal.style.display === 'block') {
+        const historicoContent = historicoModal.querySelector('.modal-content');
+        if (historicoContent) {
+            historicoContent.style.zIndex = '10000';
+        }
+    }
+    
+    // Colocar a nota na frente
+    const notaContent = notaModal.querySelector('.modal-content');
+    if (notaContent) {
+        notaContent.style.zIndex = '20000';
+    }
+    
+    // Forçar a nota para a frente também no DOM
+    if (notaModal.parentNode) {
+        notaModal.parentNode.appendChild(notaModal);
+    }
+}
+
+// ============================================
 // FUNÇÃO PARA TORNAR MODAIS ARRASTÁVEIS
 // ============================================
 function tornarModalArrastavel(modalId) {
@@ -90,7 +119,6 @@ function tornarModalArrastavel(modalId) {
     });
 }
 
-
 // ============================================
 // FUNÇÃO PARA ABRIR MODAL (COM CONTROLE DE Z-INDEX)
 // ============================================
@@ -113,8 +141,7 @@ function abrirModal(modalId) {
     
     // Verificar se é a nota fiscal - se for, vai ganhar z-index maior
     if (modalId === 'notaFiscalModal') {
-        // A nota fiscal terá seu z-index definido na função específica
-        // Não fazemos nada aqui para não interferir
+        garantirNotaNaFrente();
     } else {
         // Para outros modais, usar z-index normal
         const highestZIndex = getHighestZIndex();
@@ -1206,16 +1233,15 @@ window.selecionarProdutoConsulta = function(id) {
 };
 
 // ============================================
-// FUNÇÃO PARA OBTER O MAIOR Z-INDEX (IGNORANDO O PRÓPRIO MODAL)
+// FUNÇÃO PARA OBTER O MAIOR Z-INDEX
 // ============================================
 function getHighestZIndex(excludeModalId = null) {
     let highest = 9999;
     const modals = document.querySelectorAll('.modal-content');
     
     modals.forEach(modal => {
-        // Se for para excluir um modal específico (como o que vai ganhar z-index maior)
         if (excludeModalId && modal.closest('.modal')?.id === excludeModalId) {
-            return; // Pula este modal
+            return;
         }
         
         const zIndex = parseInt(window.getComputedStyle(modal).zIndex);
@@ -1228,7 +1254,7 @@ function getHighestZIndex(excludeModalId = null) {
 }
 
 // ============================================
-// MOSTRAR NOTA FISCAL DE VENDA (COM Z-INDEX FORÇADO)
+// MOSTRAR NOTA FISCAL DE VENDA
 // ============================================
 function mostrarNotaFiscalVenda(venda) {
     const modal = document.getElementById('notaFiscalModal');
@@ -1236,24 +1262,11 @@ function mostrarNotaFiscalVenda(venda) {
     
     if (!modal || !conteudo) return;
     
-    // REBAIXAR HISTÓRICO PROPOSITALMENTE
-    const historicoModal = document.getElementById('historicoModal');
-    if (historicoModal) {
-        const historicoContent = historicoModal.querySelector('.modal-content');
-        if (historicoContent) {
-            historicoContent.style.zIndex = '10000';
-        }
-    }
-    
-    // COLOCAR NOTA NA FRENTE
-    const content = modal.querySelector('.modal-content');
-    if (content) {
-        content.style.zIndex = '20000';
-    }
+    // Garantir que a nota fique na frente
+    garantirNotaNaFrente();
     
     modal.style.display = 'block';
     
-    // Resto do código da nota (igual ao que você já tem)
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
     const dataVenda = new Date(venda.data || venda.data_criacao).toLocaleString('pt-BR');
     const isExtornada = venda.status === 'extornada';
@@ -1375,6 +1388,11 @@ function mostrarNotaOrcamento(orcamento) {
     
     if (!modal || !conteudo) return;
     
+    // Garantir que a nota fique na frente
+    garantirNotaNaFrente();
+    
+    modal.style.display = 'block';
+    
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
     const dataCriacao = new Date(orcamento.data_criacao).toLocaleString('pt-BR');
     const dataValidade = new Date(orcamento.data_validade).toLocaleDateString('pt-BR');
@@ -1416,7 +1434,6 @@ function mostrarNotaOrcamento(orcamento) {
     nota += '='.repeat(48) + '\n';
     
     conteudo.textContent = nota;
-    abrirModal('notaFiscalModal');
 }
 
 // ============================================
@@ -1803,7 +1820,7 @@ window.filtrarHistorico = function() {
 };
 
 // ============================================
-// VER NOTA (FORÇA NOTA NA FRENTE)
+// VER NOTA (VERSÃO CORRIGIDA)
 // ============================================
 window.verNota = async function(id, tipo) {
     try {
@@ -1819,24 +1836,9 @@ window.verNota = async function(id, tipo) {
             }
         }
         
-        // FORÇAR NOTA NA FRENTE
+        // Garantir que a nota fique na frente
         setTimeout(() => {
-            const notaModal = document.getElementById('notaFiscalModal');
-            const historicoModal = document.getElementById('historicoModal');
-            
-            if (notaModal) {
-                const notaContent = notaModal.querySelector('.modal-content');
-                if (notaContent) {
-                    notaContent.style.zIndex = '20000';
-                }
-            }
-            
-            if (historicoModal) {
-                const historicoContent = historicoModal.querySelector('.modal-content');
-                if (historicoContent) {
-                    historicoContent.style.zIndex = '10000';
-                }
-            }
+            garantirNotaNaFrente();
         }, 100);
         
     } catch (error) {
@@ -2068,13 +2070,3 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
-
-
-
-
-
-
-
-
-
-
