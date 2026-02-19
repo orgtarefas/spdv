@@ -13,12 +13,13 @@ let pdv = {
     total: 0,
     formaPagamento: 'dinheiro',
     tipoEntrega: 'retirada',
-    ultimoProduto: null,
+    produtoSelecionado: null,
     lojaId: lojaServices?.lojaId || null,
     ultimaVenda: null,
     ultimoOrcamento: null,
     vendedorNome: lojaServices?.nomeUsuario || 'Vendedor',
     vendedorId: lojaServices?.usuarioId || null,
+    vendedorLogin: lojaServices?.loginUsuario || 'operador',
     dadosEntrega: null
 };
 
@@ -42,9 +43,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         pdv.lojaId = lojaServices.lojaId;
         pdv.vendedorNome = lojaServices.nomeUsuario || 'Vendedor';
         pdv.vendedorId = lojaServices.usuarioId || null;
+        pdv.vendedorLogin = lojaServices.loginUsuario || 'operador';
         
         console.log(`✅ Loja identificada: ${pdv.lojaId}`);
         console.log(`👤 Vendedor: ${pdv.vendedorNome}`);
+        console.log(`🔑 Login: ${pdv.vendedorLogin}`);
         
         // Atualizar interface
         atualizarInterfaceLoja();
@@ -161,6 +164,11 @@ function configurarEventos() {
     
     // Botão confirmar recolhimento
     document.getElementById('btnConfirmarRecolhimento')?.addEventListener('click', confirmarRecolhimento);
+    
+    // Botão imprimir nota da venda
+    document.getElementById('btnImprimirNotaVenda')?.addEventListener('click', function() {
+        imprimirNotaFiscal();
+    });
 }
 
 // ============================================
@@ -250,6 +258,15 @@ function adicionarAoCarrinho(produto, quantidade) {
         // Atualizar quantidade
         pdv.carrinho[index].quantidade = novaQuantidade;
         pdv.carrinho[index].subtotal = novaQuantidade * pdv.carrinho[index].preco_unitario;
+        
+        // Calcular desconto se existir
+        if (produto.desconto) {
+            pdv.carrinho[index].desconto = produto.desconto;
+            pdv.carrinho[index].desconto_valor = (produto.preco * produto.desconto / 100) * novaQuantidade;
+        } else {
+            pdv.carrinho[index].desconto = 0;
+            pdv.carrinho[index].desconto_valor = 0;
+        }
     } else {
         // Novo item
         const novoItem = {
@@ -261,11 +278,15 @@ function adicionarAoCarrinho(produto, quantidade) {
             quantidade: quantidade,
             subtotal: produto.preco * quantidade,
             imagem: produto.imagens?.principal || null,
-            unidade: produto.unidade_venda || produto.unidade || 'UN'
+            unidade: produto.unidade_venda || produto.unidade || 'UN',
+            desconto: produto.desconto || 0,
+            desconto_valor: produto.desconto ? (produto.preco * produto.desconto / 100) * quantidade : 0
         };
         pdv.carrinho.push(novoItem);
-        pdv.ultimoProduto = novoItem;
     }
+    
+    // Selecionar o último produto adicionado
+    selecionarProduto(pdv.carrinho[pdv.carrinho.length - 1]);
     
     // Atualizar interfaces
     atualizarListaCarrinho();
@@ -281,6 +302,28 @@ function adicionarAoCarrinho(produto, quantidade) {
 }
 
 // ============================================
+// SELECIONAR PRODUTO
+// ============================================
+function selecionarProduto(produto) {
+    if (!produto) return;
+    
+    pdv.produtoSelecionado = produto;
+    
+    // Atualizar destaque na tabela
+    document.querySelectorAll('.cart-item-row').forEach(row => {
+        row.classList.remove('selected');
+    });
+    
+    const linhaSelecionada = document.querySelector(`.cart-item-row[data-index="${pdv.carrinho.findIndex(p => p.id === produto.id)}"]`);
+    if (linhaSelecionada) {
+        linhaSelecionada.classList.add('selected');
+    }
+    
+    // Atualizar seção do último produto (agora é produto selecionado)
+    atualizarUltimoProduto();
+}
+
+// ============================================
 // ATUALIZAR LISTA DO CARRINHO
 // ============================================
 function atualizarListaCarrinho() {
@@ -290,7 +333,7 @@ function atualizarListaCarrinho() {
     if (pdv.carrinho.length === 0) {
         tbody.innerHTML = `
             <tr class="empty-row">
-                <td colspan="7">
+                <td colspan="8">
                     <div class="empty-cart">
                         <i class="fas fa-shopping-cart"></i>
                         <p>Carrinho vazio</p>
@@ -306,18 +349,23 @@ function atualizarListaCarrinho() {
     
     pdv.carrinho.forEach((item, index) => {
         const numItem = (index + 1).toString().padStart(2, '0');
+        const selectedClass = pdv.produtoSelecionado?.id === item.id ? 'selected' : '';
+        const desconto = item.desconto || 0;
+        const descontoValor = item.desconto_valor || 0;
         
         html += `
-            <tr class="cart-item-row" data-index="${index}">
+            <tr class="cart-item-row ${selectedClass}" data-index="${index}" onclick="selecionarProdutoPorIndex(${index})">
                 <td>${numItem}</td>
                 <td>${item.codigo || '---'}</td>
                 <td>${item.nome}</td>
                 <td>
                     <input type="number" class="qty-input" value="${item.quantidade}" 
-                           min="1" max="999" onchange="atualizarQuantidadeItem(${index}, this.value)">
+                           min="1" max="999" onchange="atualizarQuantidadeItem(${index}, this.value)" 
+                           onclick="event.stopPropagation()">
                 </td>
                 <td class="price-cell">${formatarMoeda(item.preco_unitario)}</td>
-                <td class="subtotal-cell">${formatarMoeda(item.subtotal)}</td>
+                <td class="discount-cell">${desconto > 0 ? desconto + '%' : 'R$ 0,00'}</td>
+                <td class="subtotal-cell">${formatarMoeda(item.subtotal - descontoValor)}</td>
                 <td>
                     <button class="btn-remove-item" onclick="removerItem(${index})" title="Remover item">
                         <i class="fas fa-trash"></i>
@@ -336,6 +384,11 @@ function atualizarListaCarrinho() {
 // ============================================
 // FUNÇÕES GLOBAIS PARA MANIPULAÇÃO DE ITENS
 // ============================================
+window.selecionarProdutoPorIndex = function(index) {
+    if (index < 0 || index >= pdv.carrinho.length) return;
+    selecionarProduto(pdv.carrinho[index]);
+};
+
 window.atualizarQuantidadeItem = function(index, valor) {
     if (index < 0 || index >= pdv.carrinho.length) return;
     
@@ -356,8 +409,14 @@ window.atualizarQuantidadeItem = function(index, valor) {
     pdv.carrinho[index].quantidade = novaQuantidade;
     pdv.carrinho[index].subtotal = novaQuantidade * pdv.carrinho[index].preco_unitario;
     
-    if (index === pdv.carrinho.length - 1) {
-        pdv.ultimoProduto = pdv.carrinho[index];
+    // Recalcular desconto
+    if (pdv.carrinho[index].desconto) {
+        pdv.carrinho[index].desconto_valor = (pdv.carrinho[index].preco_unitario * pdv.carrinho[index].desconto / 100) * novaQuantidade;
+    }
+    
+    // Se o produto selecionado for o que está sendo atualizado, atualizar a seção
+    if (pdv.produtoSelecionado?.id === pdv.carrinho[index].id) {
+        pdv.produtoSelecionado = pdv.carrinho[index];
         atualizarUltimoProduto();
     }
     
@@ -373,11 +432,13 @@ window.removerItem = function(index) {
     if (confirm(`Remover ${item.nome} do carrinho?`)) {
         pdv.carrinho.splice(index, 1);
         
-        // Atualizar último produto se necessário
+        // Atualizar produto selecionado se necessário
         if (pdv.carrinho.length > 0) {
-            pdv.ultimoProduto = pdv.carrinho[pdv.carrinho.length - 1];
+            if (pdv.produtoSelecionado?.id === item.id) {
+                selecionarProduto(pdv.carrinho[0]);
+            }
         } else {
-            pdv.ultimoProduto = null;
+            pdv.produtoSelecionado = null;
             document.getElementById('btnFinalizar').disabled = true;
             document.getElementById('btnImprimirOrcamento').disabled = true;
             
@@ -394,11 +455,11 @@ window.removerItem = function(index) {
 };
 
 // ============================================
-// ATUALIZAR ÚLTIMO PRODUTO
+// ATUALIZAR ÚLTIMO PRODUTO (AGORA É PRODUTO SELECIONADO)
 // ============================================
 function atualizarUltimoProduto() {
     const section = document.getElementById('lastProductSection');
-    const produto = pdv.ultimoProduto;
+    const produto = pdv.produtoSelecionado;
     
     if (!produto || !section) {
         if (section) section.style.display = 'none';
@@ -407,7 +468,7 @@ function atualizarUltimoProduto() {
     
     section.style.display = 'block';
     
-    // Elementos que podem não existir - verificar antes de usar
+    // Elementos
     const nameEl = document.getElementById('lastProductName');
     const codeEl = document.getElementById('lastProductCode');
     const unitPriceEl = document.getElementById('lastProductUnitPrice');
@@ -427,7 +488,34 @@ function atualizarUltimoProduto() {
     }
     
     if (unitPriceEl) unitPriceEl.textContent = formatarMoeda(produto.preco_unitario);
-    if (totalEl) totalEl.textContent = formatarMoeda(produto.subtotal);
+    
+    // Calcular total com desconto
+    const totalComDesconto = produto.subtotal - (produto.desconto_valor || 0);
+    if (totalEl) totalEl.textContent = formatarMoeda(totalComDesconto);
+    
+    // Adicionar informação de desconto se existir
+    const pricesContainer = document.querySelector('.last-product-prices');
+    if (pricesContainer) {
+        // Verificar se já existe a caixa de desconto
+        let discountBox = document.querySelector('.discount-box');
+        if (!discountBox) {
+            discountBox = document.createElement('div');
+            discountBox.className = 'price-box discount-box';
+            pricesContainer.appendChild(discountBox);
+        }
+        
+        if (produto.desconto > 0) {
+            discountBox.innerHTML = `
+                <span class="price-label">Desconto</span>
+                <span class="discount-value">${produto.desconto}%</span>
+            `;
+        } else {
+            discountBox.innerHTML = `
+                <span class="price-label">Desconto</span>
+                <span class="discount-value">R$ 0,00</span>
+            `;
+        }
+    }
 }
 
 // ============================================
@@ -435,7 +523,10 @@ function atualizarUltimoProduto() {
 // ============================================
 function atualizarTotais() {
     pdv.subtotal = pdv.carrinho.reduce((total, item) => total + item.subtotal, 0);
-    pdv.total = pdv.subtotal;
+    
+    // Calcular total com descontos
+    const totalDescontos = pdv.carrinho.reduce((total, item) => total + (item.desconto_valor || 0), 0);
+    pdv.total = pdv.subtotal - totalDescontos;
     
     const subtotalEl = document.getElementById('subtotal');
     const totalEl = document.getElementById('total');
@@ -455,7 +546,7 @@ function limparCarrinho() {
     
     if (confirm('Tem certeza que deseja limpar o carrinho?')) {
         pdv.carrinho = [];
-        pdv.ultimoProduto = null;
+        pdv.produtoSelecionado = null;
         pdv.subtotal = 0;
         pdv.total = 0;
         
@@ -609,15 +700,19 @@ async function finalizarVenda() {
                 preco_unitario: item.preco_unitario,
                 quantidade: item.quantidade,
                 subtotal: item.subtotal,
+                desconto: item.desconto || 0,
+                desconto_valor: item.desconto_valor || 0,
                 unidade: item.unidade
             })),
             subtotal: pdv.subtotal,
             total: totalComEntrega,
+            total_descontos: pdv.carrinho.reduce((acc, item) => acc + (item.desconto_valor || 0), 0),
             forma_pagamento: pdv.formaPagamento,
             tipo_entrega: pdv.tipoEntrega,
             dados_entrega: pdv.dadosEntrega,
             vendedor_id: pdv.vendedorId,
             vendedor_nome: pdv.vendedorNome,
+            vendedor_login: pdv.vendedorLogin,
             loja_id: pdv.lojaId,
             status: 'concluida',
             data_criacao: new Date()
@@ -656,7 +751,7 @@ async function finalizarVenda() {
 
 function limparCarrinhoAposFinalizar() {
     pdv.carrinho = [];
-    pdv.ultimoProduto = null;
+    pdv.produtoSelecionado = null;
     pdv.subtotal = 0;
     pdv.total = 0;
     pdv.dadosEntrega = null;
@@ -719,12 +814,16 @@ async function gerarOrcamento() {
                 preco_unitario: item.preco_unitario,
                 quantidade: item.quantidade,
                 subtotal: item.subtotal,
+                desconto: item.desconto || 0,
+                desconto_valor: item.desconto_valor || 0,
                 unidade: item.unidade
             })),
             subtotal: pdv.subtotal,
             total: pdv.total,
+            total_descontos: pdv.carrinho.reduce((acc, item) => acc + (item.desconto_valor || 0), 0),
             vendedor_id: pdv.vendedorId,
             vendedor_nome: pdv.vendedorNome,
+            vendedor_login: pdv.vendedorLogin,
             loja_id: pdv.lojaId,
             status: 'ativo',
             convertido_em_venda: null
@@ -760,7 +859,7 @@ function abrirModalRecolhimento() {
     if (!modal) return;
     
     // Preencher dados automáticos
-    document.getElementById('recolhimentoOperador').value = pdv.vendedorNome;
+    document.getElementById('recolhimentoOperador').value = `${pdv.vendedorNome} (${pdv.vendedorLogin})`;
     document.getElementById('recolhimentoDataHora').value = 
         new Date().toLocaleString('pt-BR');
     
@@ -816,6 +915,7 @@ async function confirmarRecolhimento() {
             observacao: observacao,
             operador_id: pdv.vendedorId,
             operador_nome: pdv.vendedorNome,
+            operador_login: pdv.vendedorLogin,
             loja_id: pdv.lojaId,
             data_criacao: new Date()
         };
@@ -845,23 +945,18 @@ async function confirmarRecolhimento() {
 // IMPRIMIR COMPROVANTE DE RECOLHIMENTO
 // ============================================
 function imprimirComprovanteRecolhimento(recolhimento) {
-    const win = window.open('', '_blank');
-    if (!win) {
-        alert('Permita pop-ups para imprimir o comprovante');
-        return;
-    }
-    
     const conteudo = `
         <html>
         <head>
             <title>Comprovante de Recolhimento</title>
             <style>
-                body { font-family: 'Courier New', monospace; padding: 20px; }
+                body { font-family: 'Courier New', monospace; padding: 20px; font-size: 12px; }
                 .header { text-align: center; margin-bottom: 20px; }
+                .header h2 { font-size: 16px; margin-bottom: 5px; }
                 .linha { border-top: 1px dashed #000; margin: 10px 0; }
                 .dados { margin: 15px 0; }
                 .dados p { margin: 5px 0; }
-                .total { font-size: 18px; font-weight: bold; text-align: center; margin: 15px 0; }
+                .total { font-size: 16px; font-weight: bold; text-align: center; margin: 15px 0; }
                 .assinatura { margin-top: 30px; text-align: center; }
                 .assinatura hr { width: 200px; margin: 5px auto; }
             </style>
@@ -877,7 +972,7 @@ function imprimirComprovanteRecolhimento(recolhimento) {
             <div class="dados">
                 <p><strong>Nº:</strong> ${recolhimento.numero}</p>
                 <p><strong>Data/Hora:</strong> ${new Date(recolhimento.data).toLocaleString('pt-BR')}</p>
-                <p><strong>Operador:</strong> ${recolhimento.operador_nome}</p>
+                <p><strong>Operador:</strong> ${recolhimento.operador_nome} (${recolhimento.operador_login})</p>
                 <p><strong>Caixa:</strong> ${recolhimento.caixa}</p>
                 <p><strong>Nº Envelope:</strong> ${recolhimento.envelope}</p>
                 ${recolhimento.observacao ? `<p><strong>Obs:</strong> ${recolhimento.observacao}</p>` : ''}
@@ -895,16 +990,45 @@ function imprimirComprovanteRecolhimento(recolhimento) {
                 <p>_________________________________</p>
                 <p>Assinatura do Responsável</p>
             </div>
-            
-            <script>
-                window.onload = function() { window.print(); }
-            <\/script>
         </body>
         </html>
     `;
     
-    win.document.write(conteudo);
-    win.document.close();
+    imprimirConteudo(conteudo);
+}
+
+// ============================================
+// FUNÇÃO DE IMPRESSÃO
+// ============================================
+function imprimirConteudo(conteudo) {
+    // Tenta usar a impressão do sistema
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+        printWindow.document.write(conteudo);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Aguarda o carregamento e imprime
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    } else {
+        // Se o pop-up foi bloqueado, usa o método alternativo
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        
+        iframe.contentDocument.write(conteudo);
+        iframe.contentDocument.close();
+        
+        setTimeout(() => {
+            iframe.contentWindow.print();
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 1000);
+        }, 500);
+    }
 }
 
 // ============================================
@@ -978,6 +1102,7 @@ function gerarListaProdutosConsulta(produtos) {
     produtos.forEach(p => {
         const estoqueClass = p.quantidade > 0 ? 'estoque-normal' : 'estoque-zero';
         const estoqueTexto = p.quantidade > 0 ? `Estoque: ${p.quantidade} ${p.unidade || 'UN'}` : 'SEM ESTOQUE';
+        const descontoTexto = p.desconto ? ` | Desconto: ${p.desconto}%` : '';
         
         html += `
             <div class="consulta-preco-item" onclick="selecionarProdutoConsulta('${p.id}')">
@@ -986,7 +1111,7 @@ function gerarListaProdutosConsulta(produtos) {
                         Cód: ${p.codigo || '---'} | ${p.codigo_barras ? `Barras: ${p.codigo_barras}` : ''}
                     </div>
                     <div class="consulta-preco-nome">${p.nome}</div>
-                    <div class="consulta-preco-estoque ${estoqueClass}">${estoqueTexto}</div>
+                    <div class="consulta-preco-estoque ${estoqueClass}">${estoqueTexto}${descontoTexto}</div>
                 </div>
                 <div class="consulta-preco-preco">${formatarMoeda(p.preco)}</div>
             </div>
@@ -1042,7 +1167,7 @@ function mostrarNotaFiscalVenda(venda) {
     nota += '='.repeat(48) + '\n';
     nota += `VENDA: ${venda.numero}\n`;
     nota += `DATA: ${dataVenda}\n`;
-    nota += `VENDEDOR: ${venda.vendedor_nome}\n`;
+    nota += `VENDEDOR: ${venda.vendedor_nome} (${venda.vendedor_login || 'operador'})\n`;
     nota += `PAGAMENTO: ${traduzirFormaPagamento(venda.forma_pagamento)}\n`;
     
     if (venda.tipo_entrega === 'entrega' && venda.dados_entrega) {
@@ -1057,20 +1182,24 @@ function mostrarNotaFiscalVenda(venda) {
     }
     
     nota += '-'.repeat(48) + '\n';
-    nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
+    nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     DESC    TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     venda.itens.forEach((item, i) => {
         const num = (i + 1).toString().padStart(2, '0');
-        const nome = item.nome.substring(0, 22).padEnd(22, ' ');
+        const nome = item.nome.substring(0, 20).padEnd(20, ' ');
         const qtd = item.quantidade.toString().padStart(3, ' ');
-        const unit = formatarMoedaResumida(item.preco_unitario).padStart(8, ' ');
-        const total = formatarMoedaResumida(item.subtotal).padStart(8, ' ');
+        const unit = formatarMoedaResumida(item.preco_unitario).padStart(7, ' ');
+        const desc = item.desconto ? item.desconto.toString().padStart(3, ' ') + '%' : '     ';
+        const total = formatarMoedaResumida(item.subtotal - (item.desconto_valor || 0)).padStart(7, ' ');
         
-        nota += `${num} ${nome} ${qtd} ${unit} ${total}\n`;
+        nota += `${num} ${nome} ${qtd} ${unit} ${desc} ${total}\n`;
     });
     
     nota += '-'.repeat(48) + '\n';
+    if (venda.total_descontos > 0) {
+        nota += `DESCONTOS:${formatarMoedaResumida(venda.total_descontos).padStart(37)}\n`;
+    }
     nota += `SUBTOTAL:${formatarMoedaResumida(venda.subtotal).padStart(38)}\n`;
     nota += `TOTAL:${formatarMoedaResumida(venda.total).padStart(41)}\n`;
     nota += '='.repeat(48) + '\n';
@@ -1103,23 +1232,27 @@ function mostrarNotaOrcamento(orcamento) {
     nota += centralizarTexto(orcamento.numero, 48) + '\n';
     nota += '='.repeat(48) + '\n';
     nota += `DATA: ${dataCriacao}\n`;
-    nota += `VENDEDOR: ${orcamento.vendedor_nome}\n`;
+    nota += `VENDEDOR: ${orcamento.vendedor_nome} (${orcamento.vendedor_login || 'operador'})\n`;
     nota += `VALIDADE: ${dataValidade} (10 DIAS)\n`;
     nota += '-'.repeat(48) + '\n';
-    nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     TOTAL\n';
+    nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     DESC    TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     orcamento.itens.forEach((item, i) => {
         const num = (i + 1).toString().padStart(2, '0');
-        const nome = item.nome.substring(0, 22).padEnd(22, ' ');
+        const nome = item.nome.substring(0, 20).padEnd(20, ' ');
         const qtd = item.quantidade.toString().padStart(3, ' ');
-        const unit = formatarMoedaResumida(item.preco_unitario).padStart(8, ' ');
-        const total = formatarMoedaResumida(item.subtotal).padStart(8, ' ');
+        const unit = formatarMoedaResumida(item.preco_unitario).padStart(7, ' ');
+        const desc = item.desconto ? item.desconto.toString().padStart(3, ' ') + '%' : '     ';
+        const total = formatarMoedaResumida(item.subtotal - (item.desconto_valor || 0)).padStart(7, ' ');
         
-        nota += `${num} ${nome} ${qtd} ${unit} ${total}\n`;
+        nota += `${num} ${nome} ${qtd} ${unit} ${desc} ${total}\n`;
     });
     
     nota += '-'.repeat(48) + '\n';
+    if (orcamento.total_descontos > 0) {
+        nota += `DESCONTOS:${formatarMoedaResumida(orcamento.total_descontos).padStart(37)}\n`;
+    }
     nota += `SUBTOTAL:${formatarMoedaResumida(orcamento.subtotal).padStart(38)}\n`;
     nota += `TOTAL:${formatarMoedaResumida(orcamento.total).padStart(41)}\n`;
     nota += '='.repeat(48) + '\n';
@@ -1144,7 +1277,9 @@ function formatarMoeda(valor) {
 function formatarMoedaResumida(valor) {
     return (parseFloat(valor) || 0).toLocaleString('pt-BR', {
         style: 'currency',
-        currency: 'BRL'
+        currency: 'BRL',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     });
 }
 
@@ -1192,7 +1327,7 @@ function atualizarInterfaceLoja() {
     
     if (lojaElement) lojaElement.textContent = nomeLoja;
     if (footerLojaElement) footerLojaElement.textContent = nomeLoja;
-    if (userElement && pdv.vendedorNome) userElement.textContent = pdv.vendedorNome;
+    if (userElement && pdv.vendedorNome) userElement.textContent = `${pdv.vendedorNome} (${pdv.vendedorLogin})`;
     
     atualizarRelogio();
     setInterval(atualizarRelogio, 1000);
@@ -1240,6 +1375,29 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 window.fecharModal = function(id) {
     const modal = document.getElementById(id);
     if (modal) modal.style.display = 'none';
+};
+
+// Função global para imprimir nota fiscal
+window.imprimirNotaFiscal = function() {
+    const conteudo = document.getElementById('notaFiscalConteudo');
+    if (!conteudo) return;
+    
+    const html = `
+        <html>
+        <head>
+            <title>Nota Fiscal</title>
+            <style>
+                body { font-family: 'Courier New', monospace; padding: 20px; font-size: 12px; }
+                pre { margin: 0; }
+            </style>
+        </head>
+        <body>
+            <pre>${conteudo.textContent}</pre>
+        </body>
+        </html>
+    `;
+    
+    imprimirConteudo(html);
 };
 
 // ============================================
@@ -1349,7 +1507,7 @@ async function carregarHistoricoFirebase() {
                     <div class="historico-detalhes">
                         <div>Itens: ${item.itens?.length || 0}</div>
                         ${item.forma_pagamento ? `<div>Pagamento: ${traduzirFormaPagamento(item.forma_pagamento)}</div>` : ''}
-                        <div>Vendedor: ${item.vendedor_nome}</div>
+                        <div>Vendedor: ${item.vendedor_nome} (${item.vendedor_login || 'operador'})</div>
                         ${item.data_validade ? `<div>Validade: ${new Date(item.data_validade).toLocaleDateString('pt-BR')}</div>` : ''}
                     </div>
                     <div class="historico-acoes">
@@ -1454,9 +1612,12 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
             itens: orcamento.itens,
             subtotal: orcamento.subtotal,
             total: orcamento.total,
+            total_descontos: orcamento.total_descontos || 0,
             forma_pagamento: 'dinheiro',
+            tipo_entrega: 'retirada',
             vendedor_id: pdv.vendedorId,
             vendedor_nome: pdv.vendedorNome,
+            vendedor_login: pdv.vendedorLogin,
             loja_id: pdv.lojaId,
             status: 'concluida',
             orcamento_origem: orcamentoId,
