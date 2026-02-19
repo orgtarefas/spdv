@@ -12,12 +12,15 @@ import {
 } from './firebase_config.js';
 
 import { lojaServices } from './firebase_config.js';
-import { getLojaConfig } from '/spdv/lojas.js';
+import { getLojaConfig } from '../../../lojas.js';
 
 // ============================================
 // CONSTANTES GLOBAIS
 // ============================================
 const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSI4MCIgcj0iNDAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTUwIDE1MEw4MCAxMDBMMTEwIDEzMEwxNDAgODBMMTcwIDEzMEwyMDAgMTUwSDUwWiIgZmlsbD0iI2U3NGMzYyIgZmlsbC1vcGFjaXR5PSIwLjEiLz48dGV4dCB4PSIxMDAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TRU0gRk9UTzwvdGV4dD48L3N2Zz4=";
+
+// Placeholder de logo em SVG (caso a imagem não exista)
+const LOGO_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E";
 
 let produtos = [];
 let categorias = [];
@@ -25,6 +28,85 @@ let carrinho = [];
 let clienteLogado = false;
 let dadosCliente = null;
 let swiperInstance = null;
+let lojaIdAtual = null;
+
+// ============================================
+// FUNÇÃO PARA EXTRAIR LOJA ID DA URL
+// ============================================
+function extrairLojaIdDaURL() {
+    const pathname = window.location.pathname;
+    console.log('📌 Pathname atual:', pathname);
+    
+    // Padrão: /spdv/lojas/[loja-id]/clientes.html
+    const match = pathname.match(/\/spdv\/lojas\/([^\/]+)\//);
+    if (match && match[1]) {
+        lojaIdAtual = match[1];
+        console.log(`✅ Loja ID extraída da URL: ${lojaIdAtual}`);
+        return lojaIdAtual;
+    }
+    
+    // Fallback: usar o lojaServices se disponível
+    if (lojaServices && lojaServices.lojaId) {
+        lojaIdAtual = lojaServices.lojaId;
+        console.log(`✅ Loja ID do lojaServices: ${lojaIdAtual}`);
+        return lojaIdAtual;
+    }
+    
+    console.warn('⚠️ Não foi possível extrair loja ID da URL');
+    return null;
+}
+
+// ============================================
+// FUNÇÃO PARA OBTER CAMINHO DA LOGO
+// ============================================
+function getCaminhoLogo(lojaId) {
+    if (!lojaId) return LOGO_PLACEHOLDER;
+    return `/spdv/imagens/${lojaId}/logo.png`;
+}
+
+// ============================================
+// FUNÇÃO PARA CARREGAR LOGO DA LOJA
+// ============================================
+function carregarLogoLoja() {
+    const logoImg = document.getElementById('lojaLogo');
+    if (!logoImg) return;
+    
+    const lojaId = lojaIdAtual || extrairLojaIdDaURL();
+    
+    if (!lojaId) {
+        logoImg.src = LOGO_PLACEHOLDER;
+        return;
+    }
+    
+    const logoPath = getCaminhoLogo(lojaId);
+    console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
+    
+    // Tentar carregar a imagem
+    fetch(logoPath, { method: 'HEAD' })
+        .then(response => {
+            if (response.ok) {
+                logoImg.src = logoPath;
+                console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
+            } else {
+                console.log(`ℹ️ Logo não encontrada em ${logoPath}, usando placeholder`);
+                logoImg.src = LOGO_PLACEHOLDER;
+            }
+        })
+        .catch(() => {
+            console.log(`ℹ️ Erro ao carregar logo, usando placeholder`);
+            logoImg.src = LOGO_PLACEHOLDER;
+        });
+    
+    // Também atualizar logo do footer
+    const footerLogo = document.querySelector('.footer-logo');
+    if (footerLogo) {
+        footerLogo.src = logoPath;
+        footerLogo.onerror = () => {
+            footerLogo.src = LOGO_PLACEHOLDER;
+        };
+    }
+}
+
 
 // ============================================
 // CLASSE: GerenciadorCodigoBarrasClientes
@@ -141,16 +223,28 @@ document.addEventListener('DOMContentLoaded', async function() {
     mostrarLoading('Carregando loja...');
     
     try {
+        // Extrair loja ID da URL primeiro
+        extrairLojaIdDaURL();
+        
         if (!lojaServices || !lojaServices.lojaId) {
-            console.warn('❌ Loja não identificada');
-            mostrarMensagem('Erro ao identificar a loja', 'error');
-            setTimeout(() => {
-                window.location.href = '../../login.html';
-            }, 2000);
-            return;
+            console.warn('❌ Loja não identificada no lojaServices');
+            
+            // Se não temos lojaServices, mas temos da URL, continuamos mesmo assim
+            if (!lojaIdAtual) {
+                mostrarMensagem('Erro ao identificar a loja', 'error');
+                setTimeout(() => {
+                    window.location.href = '../../../login.html';
+                }, 2000);
+                return;
+            }
+            
+            console.log(`✅ Usando loja ID da URL: ${lojaIdAtual}`);
+        } else {
+            console.log(`✅ Loja identificada no lojaServices: ${lojaServices.lojaId}`);
         }
         
-        console.log(`✅ Loja identificada: ${lojaServices.lojaId}`);
+        // Carregar logo da loja
+        carregarLogoLoja();
         
         // Carregar configuração da loja
         carregarConfigLoja();
@@ -187,50 +281,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
+
 // ============================================
 // CARREGAR CONFIGURAÇÃO DA LOJA
 // ============================================
 function carregarConfigLoja() {
     try {
-        const lojaId = lojaServices.lojaId;
+        const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+        
+        if (!lojaId) {
+            console.warn('⚠️ ID da loja não disponível para carregar configuração');
+            return;
+        }
+        
         const config = getLojaConfig(lojaId);
-        
         console.log(`📋 Configuração da loja ${lojaId}:`, config);
-        
-        // Carregar logo personalizada se existir - CAMINHO CORRETO ABSOLUTO
-        const logoImg = document.getElementById('lojaLogo');
-        if (logoImg) {
-            // Tentar carregar logo específica da loja
-            const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
-            
-            fetch(logoPath, { method: 'HEAD' })
-                .then(response => {
-                    if (response.ok) {
-                        logoImg.src = logoPath;
-                    } else {
-                        // Fallback para logo padrão
-                        logoImg.src = '/spdv/imagens/logo.png';
-                    }
-                })
-                .catch(() => {
-                    // Fallback para logo padrão
-                    logoImg.src = '/spdv/imagens/logo.png';
-                });
-        }
-        
-        // Atualizar logos do footer também
-        const footerLogo = document.querySelector('.footer-logo');
-        if (footerLogo) {
-            const footerLogoPath = `/spdv/imagens/${lojaId}/logo.png`;
-            
-            fetch(footerLogoPath, { method: 'HEAD' })
-                .then(response => {
-                    if (response.ok) {
-                        footerLogo.src = footerLogoPath;
-                    }
-                })
-                .catch(() => {});
-        }
         
     } catch (error) {
         console.error('❌ Erro ao carregar config da loja:', error);
@@ -1588,5 +1653,6 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
