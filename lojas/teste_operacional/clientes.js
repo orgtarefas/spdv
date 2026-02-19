@@ -57,6 +57,89 @@ function extrairLojaIdDaURL() {
 }
 
 // ============================================
+// FUNÇÃO PARA CARREGAR NOME DA LOJA DO LOJAS.JS
+// ============================================
+function carregarNomeLoja() {
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    
+    if (!lojaId) {
+        console.warn('⚠️ ID da loja não disponível para carregar nome');
+        return;
+    }
+    
+    try {
+        // Importar a configuração da loja do lojas.js
+        import('/spdv/lojas.js').then(module => {
+            const config = module.getLojaConfig(lojaId);
+            
+            // Nome da loja (usando o ID formatado como fallback)
+            let nomeLoja = 'Sistema Ponto de Vendas Integrado';
+            
+            // Mapeamento de nomes das lojas (você pode expandir isso)
+            const nomesLojas = {
+                'mj-materiais-construcao': 'MJ Materiais de Construção',
+                'acai-ponto-11': 'Açaí Ponto 11',
+                'template-exibicao': 'Template de Demonstração',
+                'teste_operacional': 'Teste Operacional'
+            };
+            
+            // Se tiver configuração da loja, usar o nome dela
+            if (config) {
+                // Se o config tiver um nome, usar ele
+                nomeLoja = config.nome || nomesLojas[lojaId] || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            } else {
+                // Usar o mapeamento ou formatar o ID
+                nomeLoja = nomesLojas[lojaId] || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            }
+            
+            console.log(`🏪 Nome da loja carregado: ${nomeLoja}`);
+            
+            // Atualizar todos os elementos com o nome da loja
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeBemVindo',
+                'lojaNomeFooter',
+                'lojaNomeCopyright'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) {
+                    elemento.textContent = nomeLoja;
+                }
+            });
+            
+            // Atualizar título da página
+            document.title = `${nomeLoja} - Loja Online`;
+            
+        }).catch(error => {
+            console.error('❌ Erro ao carregar lojas.js:', error);
+            
+            // Fallback: formatar o ID da loja
+            const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeFooter',
+                'lojaNomeCopyright'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) {
+                    elemento.textContent = nomeFallback;
+                }
+            });
+            
+            document.title = `${nomeFallback} - Loja Online`;
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar nome da loja:', error);
+    }
+}
+
+// ============================================
 // FUNÇÃO PARA OBTER CAMINHO DA LOGO
 // ============================================
 function getCaminhoLogo(lojaId) {
@@ -229,7 +312,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!lojaServices || !lojaServices.lojaId) {
             console.warn('❌ Loja não identificada no lojaServices');
             
-            // Se não temos lojaServices, mas temos da URL, continuamos mesmo assim
             if (!lojaIdAtual) {
                 mostrarMensagem('Erro ao identificar a loja', 'error');
                 setTimeout(() => {
@@ -242,6 +324,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         } else {
             console.log(`✅ Loja identificada no lojaServices: ${lojaServices.lojaId}`);
         }
+        
+        // Carregar nome da loja do lojas.js
+        carregarNomeLoja();  // <-- NOVA LINHA
         
         // Carregar logo da loja
         carregarLogoLoja();
@@ -257,7 +342,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Verificar se já está logado
         await verificarSessaoCliente();
         
-        // Atualizar interface com dados da loja
+        // Atualizar interface com dados da loja do Firebase (fallback)
         await atualizarInterfaceLoja();
         
         // Configurar eventos
@@ -1653,7 +1738,6 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
-
 
 
 
