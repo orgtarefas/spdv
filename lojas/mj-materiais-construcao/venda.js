@@ -1127,6 +1127,9 @@ function abrirConsultaPreco() {
     }
 }
 
+// ============================================
+// GERAR LISTA DE PRODUTOS PARA CONSULTA (COM IMGBB)
+// ============================================
 function gerarListaProdutosConsulta(produtos) {
     if (!produtos || produtos.length === 0) {
         return `
@@ -1137,27 +1140,51 @@ function gerarListaProdutosConsulta(produtos) {
         `;
     }
     
-    let html = '';
+    let html = '<div class="consulta-preco-grid">';
     
     produtos.forEach(p => {
         const estoqueClass = p.quantidade > 0 ? 'estoque-normal' : 'estoque-zero';
         const estoqueTexto = p.quantidade > 0 ? `Estoque: ${p.quantidade} ${p.unidade || 'UN'}` : 'SEM ESTOQUE';
-        const descontoTexto = p.desconto ? ` | Desconto: ${p.desconto}%` : '';
+        const descontoTexto = p.desconto ? `<span class="produto-desconto">${p.desconto}% OFF</span>` : '';
+        
+        // 🔥 BUSCAR IMAGEM DO IMGBB CORRETAMENTE 🔥
+        let imagemUrl = null;
+        
+        // Verificar diferentes lugares onde a imagem pode estar
+        if (p.imagens) {
+            // Estrutura completa do ImgBB
+            imagemUrl = p.imagens.thumbnail || p.imagens.medium || p.imagens.principal || p.imagens.url;
+        }
+        
+        // Se não encontrou, verificar campos diretos
+        if (!imagemUrl) {
+            imagemUrl = p.imagem_thumbnail || p.imagem_url || p.imagem;
+        }
+        
+        // Placeholder em Base64 para quando não há imagem
+        const placeholderBase64 = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSI4MCIgcj0iNDAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTUwIDE1MEw4MCAxMDBMMTEwIDEzMEwxNDAgODBMMTcwIDEzMEwyMDAgMTUwSDUwWiIgZmlsbD0iI2U3NGMzYyIgZmlsbC1vcGFjaXR5PSIwLjEiLz48dGV4dCB4PSIxMDAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TRU0gRk9UTzwvdGV4dD48L3N2Zz4=';
         
         html += `
-            <div class="consulta-preco-item" onclick="selecionarProdutoConsulta('${p.id}')">
-                <div class="consulta-preco-info">
-                    <div class="consulta-preco-codigo">
-                        Cód: ${p.codigo || '---'} | ${p.codigo_barras ? `Barras: ${p.codigo_barras}` : ''}
-                    </div>
-                    <div class="consulta-preco-nome">${p.nome}</div>
-                    <div class="consulta-preco-estoque ${estoqueClass}">${estoqueTexto}${descontoTexto}</div>
+            <div class="consulta-preco-card" onclick="selecionarProdutoConsulta('${p.id}')">
+                <div class="consulta-preco-imagem">
+                    <img src="${imagemUrl || placeholderBase64}" 
+                         alt="${p.nome || 'Produto'}"
+                         loading="lazy"
+                         onerror="this.src='${placeholderBase64}'">
                 </div>
-                <div class="consulta-preco-preco">${formatarMoeda(p.preco)}</div>
+                <div class="consulta-preco-info">
+                    <div class="consulta-preco-codigo">${p.codigo || '---'}</div>
+                    <div class="consulta-preco-nome">${p.nome || 'Produto sem nome'}</div>
+                    <div class="consulta-preco-categoria">${p.categoria || 'Sem categoria'}</div>
+                    <div class="consulta-preco-preco">${formatarMoeda(p.preco || 0)}</div>
+                    <div class="consulta-preco-estoque ${estoqueClass}">${estoqueTexto}</div>
+                    ${descontoTexto}
+                </div>
             </div>
         `;
     });
     
+    html += '</div>';
     return html;
 }
 
@@ -1930,6 +1957,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
