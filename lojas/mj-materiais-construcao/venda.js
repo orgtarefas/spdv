@@ -1320,7 +1320,7 @@ function mostrarNotaFiscalVenda(venda) {
     }
     
     nota += '-'.repeat(48) + '\n';
-    nota += 'ITEM  DESCRIÇÃO       QTD    UNIT     DESC    TOTAL\n';
+    nota += 'ITEM  DESCRIÇÃO          QTD  UNIT  DESC TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     if (venda.itens && venda.itens.length > 0) {
@@ -1408,7 +1408,7 @@ function mostrarNotaOrcamento(orcamento) {
     nota += `VENDEDOR: ${orcamento.vendedor_nome} (${orcamento.vendedor_login || 'operador'})\n`;
     nota += `VALIDADE: ${dataValidade} (10 DIAS)\n`;
     nota += '-'.repeat(48) + '\n';
-    nota += 'ITEM  DESCRIÇÃO     QTD    UNIT   DESC  TOTAL\n';
+    nota += 'ITEM  DESCRIÇÃO          QTD  UNIT  DESC TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     orcamento.itens.forEach((item, i) => {
@@ -2070,4 +2070,5 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
