@@ -1320,28 +1320,40 @@ function mostrarNotaFiscalVenda(venda) {
     }
     
     nota += '-'.repeat(48) + '\n';
-    nota += 'ITEM  DESCRIÇÃO          QTD  UNIT  DESC TOTAL\n';
+    nota += 'COD       DESCRIÇÃO                QTD    UNIT   DESC%   TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     if (venda.itens && venda.itens.length > 0) {
         venda.itens.forEach((item, i) => {
-            const num = (i + 1).toString().padStart(2, '0');
+            // Código do produto (9 caracteres)
+            const codigo = (item.codigo || item.codigo_barras || '---').substring(0, 9).padEnd(9, ' ');
+            
+            // Descrição do produto
             const nome = (item.nome || 'Produto').substring(0, 20).padEnd(20, ' ');
+            
+            // Quantidade
             const qtd = (item.quantidade || 0).toString().padStart(3, ' ');
+            
+            // Valor unitário
             const unit = formatarMoedaResumida(item.preco_unitario || 0).padStart(7, ' ');
             
-            let desc = '     ';
+            // Desconto em porcentagem - sem casas decimais quando for inteiro
+            let descontoPorcentagem = '0';
             if (item.desconto && item.desconto > 0) {
-                desc = item.desconto.toString().padStart(3, ' ') + '%';
-            } else if (item.desconto_valor && item.desconto_valor > 0) {
-                desc = 'VALOR';
+                // Verificar se é número inteiro
+                if (Number.isInteger(item.desconto)) {
+                    descontoPorcentagem = item.desconto.toString();
+                } else {
+                    descontoPorcentagem = item.desconto.toFixed(2).replace('.', ',');
+                }
             }
-            desc = desc.padStart(5, ' ');
+            descontoPorcentagem = descontoPorcentagem.padStart(5, ' ');
             
+            // Total do item
             const totalItem = (item.subtotal || 0) - (item.desconto_valor || 0);
             const total = formatarMoedaResumida(totalItem).padStart(7, ' ');
             
-            nota += `${num} ${nome} ${qtd} ${unit} ${desc} ${total}\n`;
+            nota += `${codigo} ${nome} ${qtd} ${unit} ${descontoPorcentagem} ${total}\n`;
         });
     } else {
         nota += 'Nenhum item encontrado\n';
@@ -1349,12 +1361,13 @@ function mostrarNotaFiscalVenda(venda) {
     
     nota += '-'.repeat(48) + '\n';
     
-    if (venda.total_descontos && venda.total_descontos > 0) {
-        nota += `DESCONTOS:${formatarMoedaResumida(venda.total_descontos).padStart(37)}\n`;
-    }
+    // Calcular desconto total
+    const descontoTotal = venda.total_descontos || 0;
+    const descontoTotalFormatado = formatarMoedaResumida(descontoTotal);
     
-    nota += `SUBTOTAL.:${formatarMoedaResumida(venda.subtotal || 0).padStart(37)}\n`;
-    nota += `TOTAL....:${formatarMoedaResumida(venda.total || 0).padStart(37)}\n`;
+    nota += `DESCONTO TOTAL:${descontoTotalFormatado.padStart(33)}\n`;
+    nota += `SUBTOTAL......:${formatarMoedaResumida(venda.subtotal || 0).padStart(33)}\n`;
+    nota += `TOTAL.........:${formatarMoedaResumida(venda.total || 0).padStart(33)}\n`;
     
     nota += '='.repeat(48) + '\n';
     
@@ -1408,26 +1421,49 @@ function mostrarNotaOrcamento(orcamento) {
     nota += `VENDEDOR: ${orcamento.vendedor_nome} (${orcamento.vendedor_login || 'operador'})\n`;
     nota += `VALIDADE: ${dataValidade} (10 DIAS)\n`;
     nota += '-'.repeat(48) + '\n';
-    nota += 'ITEM  DESCRIÇÃO          QTD  UNIT  DESC TOTAL\n';
+    nota += 'COD       DESCRIÇÃO                QTD    UNIT   DESC%   TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
     orcamento.itens.forEach((item, i) => {
-        const num = (i + 1).toString().padStart(2, '0');
+        // Código do produto (9 caracteres)
+        const codigo = (item.codigo || item.codigo_barras || '---').substring(0, 9).padEnd(9, ' ');
+        
+        // Descrição do produto
         const nome = item.nome.substring(0, 20).padEnd(20, ' ');
+        
+        // Quantidade
         const qtd = item.quantidade.toString().padStart(3, ' ');
+        
+        // Valor unitário
         const unit = formatarMoedaResumida(item.preco_unitario).padStart(7, ' ');
-        const desc = item.desconto ? item.desconto.toString().padStart(3, ' ') + '%' : '     ';
+        
+        // Desconto em porcentagem - sem casas decimais quando for inteiro
+        let descontoPorcentagem = '0';
+        if (item.desconto && item.desconto > 0) {
+            // Verificar se é número inteiro
+            if (Number.isInteger(item.desconto)) {
+                descontoPorcentagem = item.desconto.toString();
+            } else {
+                descontoPorcentagem = item.desconto.toFixed(2).replace('.', ',');
+            }
+        }
+        descontoPorcentagem = descontoPorcentagem.padStart(5, ' ');
+        
+        // Total do item
         const total = formatarMoedaResumida(item.subtotal - (item.desconto_valor || 0)).padStart(7, ' ');
         
-        nota += `${num} ${nome} ${qtd} ${unit} ${desc} ${total}\n`;
+        nota += `${codigo} ${nome} ${qtd} ${unit} ${descontoPorcentagem} ${total}\n`;
     });
     
     nota += '-'.repeat(48) + '\n';
-    if (orcamento.total_descontos > 0) {
-        nota += `DESCONTOS:${formatarMoedaResumida(orcamento.total_descontos).padStart(37)}\n`;
-    }
-    nota += `SUBTOTAL:${formatarMoedaResumida(orcamento.subtotal).padStart(38)}\n`;
-    nota += `TOTAL:${formatarMoedaResumida(orcamento.total).padStart(41)}\n`;
+    
+    // Calcular desconto total
+    const descontoTotal = orcamento.total_descontos || 0;
+    const descontoTotalFormatado = formatarMoedaResumida(descontoTotal);
+    
+    nota += `DESCONTO TOTAL:${descontoTotalFormatado.padStart(33)}\n`;
+    nota += `SUBTOTAL......:${formatarMoedaResumida(orcamento.subtotal).padStart(33)}\n`;
+    nota += `TOTAL.........:${formatarMoedaResumida(orcamento.total).padStart(33)}\n`;
     nota += '='.repeat(48) + '\n';
     nota += centralizarTexto('ORÇAMENTO VÁLIDO POR 10 DIAS', 48) + '\n';
     nota += centralizarTexto('Lei Federal nº 8.078/90', 48) + '\n';
@@ -2070,5 +2106,6 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
