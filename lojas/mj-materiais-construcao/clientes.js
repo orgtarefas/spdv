@@ -15,6 +15,7 @@ import {
 } from './firebase_config.js';
 
 import { lojaServices } from './firebase_config.js';
+import { getLojaConfig } from './lojas.js';
 
 // ============================================
 // CONSTANTES GLOBAIS
@@ -26,6 +27,7 @@ let categorias = [];
 let carrinho = [];
 let clienteLogado = false;
 let dadosCliente = null;
+let swiperInstance = null;
 
 // ============================================
 // CLASSE: GerenciadorCodigoBarrasClientes
@@ -153,6 +155,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         console.log(`✅ Loja identificada: ${lojaServices.lojaId}`);
         
+        // Carregar configuração da loja
+        carregarConfigLoja();
+        
         // Inicializar gerenciador de código de barras
         gerenciadorCodigoBarrasClientes = new GerenciadorCodigoBarrasClientes();
         window.gerenciadorCodigoBarrasClientes = gerenciadorCodigoBarrasClientes;
@@ -186,6 +191,40 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // ============================================
+// CARREGAR CONFIGURAÇÃO DA LOJA
+// ============================================
+function carregarConfigLoja() {
+    try {
+        const lojaId = lojaServices.lojaId;
+        const config = getLojaConfig(lojaId);
+        
+        console.log(`📋 Configuração da loja ${lojaId}:`, config);
+        
+        // Carregar logo personalizada se existir
+        const logoImg = document.getElementById('lojaLogo');
+        if (logoImg) {
+            // Tentar carregar logo específica da loja
+            const logoPath = `imagens/${lojaId}/logo.png`;
+            
+            fetch(logoPath, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        logoImg.src = logoPath;
+                    } else {
+                        logoImg.src = 'imagens/logo.png'; // Logo padrão
+                    }
+                })
+                .catch(() => {
+                    logoImg.src = 'imagens/logo.png'; // Logo padrão
+                });
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar config da loja:', error);
+    }
+}
+
+// ============================================
 // VERIFICAR SESSÃO DO CLIENTE NO FIREBASE
 // ============================================
 async function verificarSessaoCliente() {
@@ -194,9 +233,6 @@ async function verificarSessaoCliente() {
     if (sessao) {
         try {
             const dados = JSON.parse(sessao);
-            
-            // Verificar se a sessão ainda é válida (opcional)
-            // Poderia verificar no Firebase se o cliente ainda está ativo
             
             clienteLogado = true;
             dadosCliente = dados;
@@ -244,7 +280,7 @@ async function validarLoginCliente(login, senha) {
         // Referência para a subcoleção clientes
         const clientesRef = collection(db, "logins", lojaServices.lojaId, "clientes");
         
-        // Buscar todos os clientes (ou usar query se possível)
+        // Buscar todos os clientes
         const clientesSnapshot = await getDocs(clientesRef);
         
         let clienteEncontrado = null;
@@ -346,6 +382,21 @@ async function cadastrarCliente(dados) {
             
             if (cpfExiste) {
                 return { success: false, message: "Este CPF já está cadastrado" };
+            }
+        }
+        
+        // Verificar se email já existe
+        if (dados.email) {
+            let emailExiste = false;
+            clientesSnapshot.forEach((doc) => {
+                const dadosCliente = doc.data();
+                if (dadosCliente.email === dados.email) {
+                    emailExiste = true;
+                }
+            });
+            
+            if (emailExiste) {
+                return { success: false, message: "Este e-mail já está cadastrado" };
             }
         }
         
@@ -483,6 +534,26 @@ function configurarEventos() {
         });
     }
     
+    // Botões do carrossel
+    const prevBtn = document.getElementById('carouselPrev');
+    const nextBtn = document.getElementById('carouselNext');
+    
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+            if (swiperInstance) {
+                swiperInstance.slidePrev();
+            }
+        });
+    }
+    
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+            if (swiperInstance) {
+                swiperInstance.slideNext();
+            }
+        });
+    }
+    
     // Confirmar Login
     const btnConfirmarLogin = document.getElementById('btnConfirmarLogin');
     if (btnConfirmarLogin) {
@@ -508,27 +579,23 @@ function configurarEventos() {
         });
     }
     
-    // Link para cadastro (pode ser adicionado no modal de login)
-    const linkCadastro = document.getElementById('linkCadastro');
-    if (!linkCadastro) {
-        // Adicionar link de cadastro no modal de login
-        const loginForm = document.querySelector('.login-form');
-        if (loginForm) {
-            const cadastroLink = document.createElement('div');
-            cadastroLink.className = 'cadastro-link';
-            cadastroLink.innerHTML = `
-                <p>Não tem uma conta? 
-                    <a href="#" id="btnIrCadastro">Cadastre-se</a>
-                </p>
-            `;
-            loginForm.appendChild(cadastroLink);
-            
-            document.getElementById('btnIrCadastro').addEventListener('click', (e) => {
-                e.preventDefault();
-                fecharModal('loginModal');
-                abrirModal('cadastroModal');
-            });
-        }
+    // Link para cadastro
+    const loginForm = document.querySelector('.login-form');
+    if (loginForm) {
+        const cadastroLink = document.createElement('div');
+        cadastroLink.className = 'cadastro-link';
+        cadastroLink.innerHTML = `
+            <p>Não tem uma conta? 
+                <a href="#" id="btnIrCadastro">Cadastre-se</a>
+            </p>
+        `;
+        loginForm.appendChild(cadastroLink);
+        
+        document.getElementById('btnIrCadastro').addEventListener('click', (e) => {
+            e.preventDefault();
+            fecharModal('loginModal');
+            abrirModal('cadastroModal');
+        });
     }
     
     // Botão Confirmar Cadastro
@@ -586,6 +653,13 @@ function configurarEventos() {
                     window.gerenciadorCodigoBarrasClientes.desativarModoScan();
                 }
             }
+        }
+    });
+    
+    // Evento de redimensionamento para atualizar o carrossel
+    window.addEventListener('resize', () => {
+        if (swiperInstance) {
+            swiperInstance.update();
         }
     });
     
@@ -914,7 +988,7 @@ async function carregarProdutos() {
 }
 
 // ============================================
-// CARREGAR CATEGORIAS
+// CARREGAR CATEGORIAS (com "Todos" como primeira)
 // ============================================
 async function carregarCategorias() {
     try {
@@ -929,7 +1003,7 @@ async function carregarCategorias() {
             categoriasList = resultado.data;
         }
         
-        // Adicionar categorias padrão se não houver
+        // Adicionar categorias dos produtos se não houver
         if (categoriasList.length === 0 && produtos.length > 0) {
             const categoriasSet = new Set();
             produtos.forEach(p => {
@@ -945,8 +1019,24 @@ async function carregarCategorias() {
         
         categorias = categoriasList;
         
-        // Renderizar categorias
+        // Renderizar categorias com "Todos" como primeiro
         let html = '';
+        
+        // Card "Todos" - mostra todos os produtos
+        const totalProdutos = produtos.length;
+        html += `
+            <div class="categoria-card" onclick="filtrarPorCategoria('todos')">
+                <div class="categoria-icon">
+                    <i class="fas fa-th-large"></i>
+                </div>
+                <div class="categoria-info">
+                    <h4>Todos</h4>
+                    <p>${totalProdutos} produto${totalProdutos !== 1 ? 's' : ''}</p>
+                </div>
+            </div>
+        `;
+        
+        // Cards das categorias específicas
         categoriasList.forEach(categoria => {
             const count = produtos.filter(p => p.categoria === categoria).length;
             html += `
@@ -970,57 +1060,100 @@ async function carregarCategorias() {
 }
 
 // ============================================
-// CARREGAR PRODUTOS EM DESTAQUE
+// CARREGAR PRODUTOS EM DESTAQUE (CARROSSEL)
 // ============================================
 async function carregarProdutosDestaque() {
-    const featuredProducts = document.getElementById('featuredProducts');
-    if (!featuredProducts) return;
+    const featuredContainer = document.getElementById('featuredProducts');
+    if (!featuredContainer) return;
     
-    // Pegar primeiros 8 produtos como destaque
-    const destaques = produtos.slice(0, 8);
+    // Mostrar todos os produtos, não apenas os primeiros
+    const todosProdutos = produtos;
     
-    if (destaques.length === 0) {
-        featuredProducts.innerHTML = `
-            <div class="empty-products">
-                <i class="fas fa-box-open"></i>
-                <p>Nenhum produto disponível</p>
+    if (todosProdutos.length === 0) {
+        featuredContainer.innerHTML = `
+            <div class="swiper-slide">
+                <div class="empty-products">
+                    <i class="fas fa-box-open"></i>
+                    <p>Nenhum produto disponível</p>
+                </div>
             </div>
         `;
         return;
     }
     
-    let html = '';
-    destaques.forEach(produto => {
+    let slidesHtml = '';
+    todosProdutos.forEach(produto => {
         const imagem = produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = (produto.quantidade || 0) > 0;
         
-        html += `
-            <div class="product-card" onclick="verProdutoDetalhe('${produto.id}')">
-                <div class="product-image">
-                    <img src="${imagem}" alt="${produto.nome}" loading="lazy" onerror="this.src='${IMAGEM_PADRAO_BASE64}'">
-                    ${!temEstoque ? '<span class="product-badge out">ESGOTADO</span>' : ''}
-                </div>
-                <div class="product-info">
-                    <h3 class="product-title">${produto.nome}</h3>
-                    <p class="product-category">${produto.categoria || 'Sem categoria'}</p>
-                    <div class="product-price">
-                        <span class="current-price">${precoFormatado}</span>
+        slidesHtml += `
+            <div class="swiper-slide">
+                <div class="product-card" onclick="verProdutoDetalhe('${produto.id}')">
+                    <div class="product-image">
+                        <img src="${imagem}" alt="${produto.nome}" loading="lazy" onerror="this.src='${IMAGEM_PADRAO_BASE64}'">
+                        ${!temEstoque ? '<span class="product-badge out">ESGOTADO</span>' : ''}
                     </div>
-                    <div class="product-actions">
-                        <button class="btn-view" onclick="event.stopPropagation(); verProdutoDetalhe('${produto.id}')">
-                            <i class="fas fa-eye"></i> Ver
-                        </button>
-                        <button class="btn-add-cart" onclick="event.stopPropagation(); adicionarAoCarrinho('${produto.id}')" ${!temEstoque ? 'disabled' : ''}>
-                            <i class="fas fa-cart-plus"></i>
-                        </button>
+                    <div class="product-info">
+                        <h3 class="product-title">${produto.nome}</h3>
+                        <p class="product-category">${produto.categoria || 'Sem categoria'}</p>
+                        <div class="product-price">
+                            <span class="current-price">${precoFormatado}</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-view" onclick="event.stopPropagation(); verProdutoDetalhe('${produto.id}')">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                            <button class="btn-add-cart" onclick="event.stopPropagation(); adicionarAoCarrinho('${produto.id}')" ${!temEstoque ? 'disabled' : ''}>
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     });
     
-    featuredProducts.innerHTML = html;
+    featuredContainer.innerHTML = slidesHtml;
+    
+    // Inicializar o Swiper após os slides serem adicionados
+    setTimeout(() => {
+        if (swiperInstance) {
+            swiperInstance.destroy(true, true);
+        }
+        
+        swiperInstance = new Swiper('.featured-swiper', {
+            slidesPerView: 1,
+            spaceBetween: 10,
+            loop: todosProdutos.length > 1,
+            autoplay: {
+                delay: 3000,
+                disableOnInteraction: false,
+            },
+            breakpoints: {
+                480: {
+                    slidesPerView: 2,
+                    spaceBetween: 15,
+                },
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 20,
+                },
+                1024: {
+                    slidesPerView: 4,
+                    spaceBetween: 20,
+                },
+                1440: {
+                    slidesPerView: 5,
+                    spaceBetween: 25,
+                }
+            },
+            navigation: {
+                prevEl: '#carouselPrev',
+                nextEl: '#carouselNext',
+            },
+        });
+    }, 100);
 }
 
 // ============================================
@@ -1135,60 +1268,140 @@ function carregarCarrinhoStorage() {
 // ============================================
 window.filtrarPorCategoria = function(categoria) {
     console.log(`Filtrando por categoria: ${categoria}`);
-    // Implementar filtro por categoria
-    const produtosFiltrados = produtos.filter(p => p.categoria === categoria);
-    exibirProdutosFiltrados(produtosFiltrados, `Categoria: ${categoria}`);
+    
+    let produtosFiltrados;
+    
+    if (categoria === 'todos') {
+        produtosFiltrados = produtos;
+        exibirProdutosFiltrados(produtosFiltrados, 'Todos os Produtos');
+    } else {
+        produtosFiltrados = produtos.filter(p => p.categoria === categoria);
+        exibirProdutosFiltrados(produtosFiltrados, `Categoria: ${categoria}`);
+    }
 };
+
+// ============================================
+// FILTRAR PRODUTOS POR BUSCA
+// ============================================
+function filtrarProdutosPorBusca(termo) {
+    const termoLimpo = termo.toLowerCase().trim();
+    
+    if (!termoLimpo) {
+        carregarProdutosDestaque();
+        return;
+    }
+    
+    const resultados = produtos.filter(produto => {
+        const nome = (produto.nome || '').toLowerCase();
+        const codigo = (produto.codigo || '').toLowerCase();
+        const categoria = (produto.categoria || '').toLowerCase();
+        const codigoBarras = (produto.codigo_barras || '').toLowerCase();
+        
+        return nome.includes(termoLimpo) || 
+               codigo.includes(termoLimpo) || 
+               categoria.includes(termoLimpo) ||
+               codigoBarras.includes(termoLimpo);
+    });
+    
+    exibirProdutosFiltrados(resultados, `Resultados para: "${termo}"`);
+}
 
 // ============================================
 // EXIBIR PRODUTOS FILTRADOS
 // ============================================
 function exibirProdutosFiltrados(produtosFiltrados, titulo) {
-    const featuredProducts = document.getElementById('featuredProducts');
-    if (!featuredProducts) return;
+    const featuredContainer = document.getElementById('featuredProducts');
+    if (!featuredContainer) return;
+    
+    // Atualizar título (opcional)
+    const tituloElement = document.querySelector('.featured-products h2');
+    if (tituloElement) {
+        tituloElement.innerHTML = `<i class="fas fa-search"></i> ${titulo}`;
+    }
     
     if (produtosFiltrados.length === 0) {
-        featuredProducts.innerHTML = `
-            <div class="empty-products">
-                <i class="fas fa-box-open"></i>
-                <p>Nenhum produto encontrado</p>
+        featuredContainer.innerHTML = `
+            <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                    <div class="empty-products">
+                        <i class="fas fa-box-open"></i>
+                        <p>Nenhum produto encontrado</p>
+                    </div>
+                </div>
             </div>
         `;
         return;
     }
     
-    let html = '';
+    let slidesHtml = '';
     produtosFiltrados.forEach(produto => {
         const imagem = produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64;
         const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = (produto.quantidade || 0) > 0;
         
-        html += `
-            <div class="product-card" onclick="verProdutoDetalhe('${produto.id}')">
-                <div class="product-image">
-                    <img src="${imagem}" alt="${produto.nome}" loading="lazy" onerror="this.src='${IMAGEM_PADRAO_BASE64}'">
-                    ${!temEstoque ? '<span class="product-badge out">ESGOTADO</span>' : ''}
-                </div>
-                <div class="product-info">
-                    <h3 class="product-title">${produto.nome}</h3>
-                    <p class="product-category">${produto.categoria || 'Sem categoria'}</p>
-                    <div class="product-price">
-                        <span class="current-price">${precoFormatado}</span>
+        slidesHtml += `
+            <div class="swiper-slide">
+                <div class="product-card" onclick="verProdutoDetalhe('${produto.id}')">
+                    <div class="product-image">
+                        <img src="${imagem}" alt="${produto.nome}" loading="lazy" onerror="this.src='${IMAGEM_PADRAO_BASE64}'">
+                        ${!temEstoque ? '<span class="product-badge out">ESGOTADO</span>' : ''}
                     </div>
-                    <div class="product-actions">
-                        <button class="btn-view" onclick="event.stopPropagation(); verProdutoDetalhe('${produto.id}')">
-                            <i class="fas fa-eye"></i> Ver
-                        </button>
-                        <button class="btn-add-cart" onclick="event.stopPropagation(); adicionarAoCarrinho('${produto.id}')" ${!temEstoque ? 'disabled' : ''}>
-                            <i class="fas fa-cart-plus"></i>
-                        </button>
+                    <div class="product-info">
+                        <h3 class="product-title">${produto.nome}</h3>
+                        <p class="product-category">${produto.categoria || 'Sem categoria'}</p>
+                        <div class="product-price">
+                            <span class="current-price">${precoFormatado}</span>
+                        </div>
+                        <div class="product-actions">
+                            <button class="btn-view" onclick="event.stopPropagation(); verProdutoDetalhe('${produto.id}')">
+                                <i class="fas fa-eye"></i> Ver
+                            </button>
+                            <button class="btn-add-cart" onclick="event.stopPropagation(); adicionarAoCarrinho('${produto.id}')" ${!temEstoque ? 'disabled' : ''}>
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     });
     
-    featuredProducts.innerHTML = html;
+    featuredContainer.innerHTML = slidesHtml;
+    
+    // Atualizar o swiper
+    setTimeout(() => {
+        if (swiperInstance) {
+            swiperInstance.destroy(true, true);
+        }
+        
+        swiperInstance = new Swiper('.featured-swiper', {
+            slidesPerView: 1,
+            spaceBetween: 10,
+            loop: produtosFiltrados.length > 1,
+            breakpoints: {
+                480: {
+                    slidesPerView: 2,
+                    spaceBetween: 15,
+                },
+                768: {
+                    slidesPerView: 3,
+                    spaceBetween: 20,
+                },
+                1024: {
+                    slidesPerView: 4,
+                    spaceBetween: 20,
+                },
+                1440: {
+                    slidesPerView: 5,
+                    spaceBetween: 25,
+                }
+            },
+            navigation: {
+                prevEl: '#carouselPrev',
+                nextEl: '#carouselNext',
+            },
+        });
+    }, 100);
 }
 
 // ============================================
