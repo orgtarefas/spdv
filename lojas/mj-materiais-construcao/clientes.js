@@ -203,19 +203,21 @@ function carregarConfigLoja() {
         // Carregar logo personalizada se existir
         const logoImg = document.getElementById('lojaLogo');
         if (logoImg) {
-            // Tentar carregar logo específica da loja
-            const logoPath = `imagens/${lojaId}/logo.png`;
+            // Tentar carregar logo específica da loja - CAMINHO CORRETO
+            const logoPath = `../../imagens/${lojaId}/logo.png`;
             
             fetch(logoPath, { method: 'HEAD' })
                 .then(response => {
                     if (response.ok) {
                         logoImg.src = logoPath;
                     } else {
-                        logoImg.src = 'imagens/logo.png'; // Logo padrão
+                        // Fallback para logo padrão
+                        logoImg.src = '../../imagens/logo.png';
                     }
                 })
                 .catch(() => {
-                    logoImg.src = 'imagens/logo.png'; // Logo padrão
+                    // Fallback para logo padrão
+                    logoImg.src = '../../imagens/logo.png';
                 });
         }
         
@@ -1575,3 +1577,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
