@@ -12,7 +12,7 @@ import {
 } from './firebase_config.js';
 
 import { lojaServices } from './firebase_config.js';
-import { getLojaConfig } from '../../../lojas.js';
+import { getLojaConfig } from '/spdv/lojas.js';
 
 // ============================================
 // CONSTANTES GLOBAIS
@@ -1653,6 +1653,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
