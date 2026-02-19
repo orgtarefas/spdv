@@ -1254,17 +1254,54 @@ body.modal-open {
 }
 
 /* Histórico */
+/* ============================================ */
+/* FILTROS DE PERÍODO NO HISTÓRICO */
+/* ============================================ */
 .historico-filtros {
-    display: flex;
-    gap: 10px;
+    background: var(--light);
+    padding: 16px;
+    border-radius: var(--border-radius);
     margin-bottom: 20px;
 }
 
-.historico-filtros input {
+.filtros-periodo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.filtro-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filtro-group label {
+    font-size: 12px;
+    color: var(--gray-dark);
+    font-weight: 500;
+}
+
+.filtro-group input {
+    padding: 8px 12px;
+    border: 1px solid var(--gray-light);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+}
+
+.filtros-extras {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filtros-extras input {
     flex: 1;
     padding: 10px;
     border: 1px solid var(--gray-light);
     border-radius: var(--border-radius);
+    font-size: 14px;
 }
 
 .btn-filtrar {
@@ -1278,10 +1315,44 @@ body.modal-open {
     align-items: center;
     gap: 8px;
     transition: var(--transition);
+    white-space: nowrap;
 }
 
 .btn-filtrar:hover {
     background: #2980b9;
+}
+
+.btn-limpar-filtros {
+    background: var(--gray);
+    color: var(--white);
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.btn-limpar-filtros:hover {
+    background: var(--gray-dark);
+}
+
+@media (max-width: 768px) {
+    .filtros-periodo {
+        grid-template-columns: 1fr;
+    }
+    
+    .filtros-extras {
+        flex-direction: column;
+    }
+    
+    .filtros-extras input,
+    .filtros-extras button {
+        width: 100%;
+    }
 }
 
 .historico-item {
@@ -1721,3 +1792,4 @@ body.modal-open {
     border-radius: 10px;
     margin-top: 4px;
 }
+
