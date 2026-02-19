@@ -1679,7 +1679,6 @@ async function carregarHistoricoCompleto() {
             }
         
             html += `
-            html += `
                 <div class="historico-item ${tipoClass}" data-status="${item.status || 'concluida'}">
                     <div class="historico-header">
                         <div>
@@ -2118,6 +2117,7 @@ window.onclick = function(event) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
