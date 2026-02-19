@@ -1397,3 +1397,49 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Loading para histórico */
+.loading-activity {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--white);
+    border-radius: var(--border-radius);
+}
+
+.loading-activity .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--light);
+    border-top: 3px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    color: var(--gray-dark);
+}
+
+.empty-state i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+    color: var(--gray);
+}
+
+.empty-state.error {
+    color: var(--danger);
+}
+
+.empty-state.error i {
+    color: var(--danger);
+}
