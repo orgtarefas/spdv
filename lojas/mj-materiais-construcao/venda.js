@@ -1731,9 +1731,15 @@ window.verNota = async function(id, tipo) {
     }
 };
 
+// ============================================
+// CONVERTER ORÇAMENTO EM VENDA (AGORA CARREGA NO CARRINHO)
+// ============================================
 window.converterOrcamentoParaVenda = async function(orcamentoId) {
     try {
         mostrarLoading('Buscando orçamento...');
+        
+        // Fechar modal do histórico se estiver aberto
+        fecharModal('historicoModal');
         
         // Buscar orçamento do Firebase
         const resultado = await lojaServices.buscarOrcamentoPorId(orcamentoId);
@@ -1744,13 +1750,22 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
         
         const orcamento = resultado.data;
         
-        // Verificar se orçamento ainda é válido
-        const dataValidade = new Date(orcamento.data_validade);
+        // Verificar se orçamento já foi convertido
+        if (orcamento.status === 'convertido') {
+            alert('Este orçamento já foi convertido em venda anteriormente!');
+            fecharModal('notaFiscalModal');
+            return;
+        }
+        
+        // Verificar se orçamento ainda é válido (10 dias)
+        const dataValidade = orcamento.data_validade?.toDate ? 
+            orcamento.data_validade.toDate() : 
+            new Date(orcamento.data_validade || 0);
+        
         const hoje = new Date();
         
         if (hoje > dataValidade) {
-            if (!confirm('Este orçamento está vencido. Deseja continuar mesmo assim?')) {
-                fecharModal('notaFiscalModal');
+            if (!confirm('⚠️ Este orçamento está VENCIDO! Deseja continuar mesmo assim?')) {
                 return;
             }
         }
@@ -1765,71 +1780,67 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
         }
         
         if (produtosSemEstoque.length > 0) {
-            alert(`Produtos com estoque insuficiente:\n${produtosSemEstoque.join('\n')}`);
-            fecharModal('notaFiscalModal');
+            alert(`❌ Produtos com estoque insuficiente:\n${produtosSemEstoque.join('\n')}`);
             return;
         }
         
         // Confirmar conversão
-        if (!confirm(`Converter orçamento ${orcamento.numero} em venda no valor de ${formatarMoeda(orcamento.total)}?`)) {
+        if (!confirm(`🔄 Converter orçamento ${orcamento.numero} em venda?\n\nValor: ${formatarMoeda(orcamento.total)}\nItens: ${orcamento.itens.length}\n\nOs itens serão carregados no carrinho para finalização.`)) {
             return;
         }
         
-        mostrarLoading('Convertendo orçamento em venda...');
+        mostrarLoading('Carregando itens do orçamento...');
         
-        // Criar venda a partir do orçamento
-        const numeroVenda = gerarNumeroVenda('V');
+        // LIMPAR CARRINHO ATUAL
+        pdv.carrinho = [];
         
-        const vendaData = {
-            tipo: 'VENDA',
-            numero: numeroVenda,
-            data: new Date(),
-            itens: orcamento.itens,
-            subtotal: orcamento.subtotal,
-            total: orcamento.total,
-            total_descontos: orcamento.total_descontos || 0,
-            forma_pagamento: 'dinheiro',
-            tipo_entrega: 'retirada',
-            vendedor_id: pdv.vendedorId,
-            vendedor_nome: pdv.vendedorNome,
-            vendedor_login: pdv.vendedorLogin,
-            loja_id: pdv.lojaId,
-            status: 'concluida',
-            orcamento_origem: orcamentoId,
-            data_criacao: new Date()
-        };
-        
-        // Salvar venda no Firebase
-        const resultadoVenda = await lojaServices.criarVenda(vendaData);
-        
-        if (!resultadoVenda.success) {
-            throw new Error(resultadoVenda.error || 'Erro ao salvar venda');
-        }
-        
-        // Atualizar estoque
+        // ADICIONAR ITENS DO ORÇAMENTO AO CARRINHO
         for (const item of orcamento.itens) {
-            await lojaServices.atualizarEstoque(
-                item.produto_id,
-                item.quantidade,
-                'saida'
-            );
+            const produto = pdv.produtos.find(p => p.id === item.produto_id);
+            
+            if (produto) {
+                const novoItem = {
+                    id: produto.id,
+                    codigo: produto.codigo,
+                    codigo_barras: produto.codigo_barras,
+                    nome: produto.nome,
+                    preco_unitario: produto.preco,
+                    quantidade: item.quantidade,
+                    subtotal: produto.preco * item.quantidade,
+                    imagem: produto.imagens?.principal || null,
+                    unidade: produto.unidade_venda || produto.unidade || 'UN',
+                    desconto: item.desconto || 0,
+                    desconto_valor: item.desconto ? (produto.preco * item.desconto / 100) * item.quantidade : 0
+                };
+                
+                pdv.carrinho.push(novoItem);
+            }
         }
         
-        // Marcar orçamento como convertido
-        await lojaServices.atualizarOrcamento(orcamentoId, {
-            status: 'convertido',
-            convertido_em_venda: resultadoVenda.id
-        });
+        // Selecionar último produto
+        if (pdv.carrinho.length > 0) {
+            pdv.produtoSelecionado = pdv.carrinho[pdv.carrinho.length - 1];
+        }
         
+        // Atualizar interfaces
+        atualizarListaCarrinho();
+        atualizarUltimoProduto();
+        atualizarTotais();
+        
+        // Habilitar botões
+        document.getElementById('btnFinalizar').disabled = false;
+        document.getElementById('btnImprimirOrcamento').disabled = false;
+        
+        // Mostrar seção do último produto
+        document.getElementById('lastProductSection').style.display = 'block';
+        
+        // Fechar modal da nota se estiver aberto
         fecharModal('notaFiscalModal');
         
-        mostrarMensagem(`Orçamento convertido em venda #${numeroVenda}!`, 'success');
+        mostrarMensagem(`✅ Orçamento #${orcamento.numero} carregado no carrinho!`, 'success');
         
-        // Mostrar nota da venda
-        mostrarNotaFiscalVenda({ ...vendaData, id: resultadoVenda.id });
-        
-        // Recarregar produtos
-        await carregarProdutos();
+        // EXCLUIR O ORÇAMENTO DA BASE (dar baixa)
+        await excluirOrcamentoAposConversao(orcamentoId);
         
     } catch (error) {
         console.error('❌ Erro ao converter orçamento:', error);
@@ -1839,6 +1850,29 @@ window.converterOrcamentoParaVenda = async function(orcamentoId) {
     }
 };
 
+// ============================================
+// EXCLUIR ORÇAMENTO APÓS CONVERSÃO
+// ============================================
+async function excluirOrcamentoAposConversao(orcamentoId) {
+    try {
+        console.log(`🗑️ Excluindo orçamento ${orcamentoId} da base...`);
+        
+        // Excluir do Firebase
+        const resultado = await lojaServices.excluirOrcamento(orcamentoId);
+        
+        if (resultado.success) {
+            console.log(`✅ Orçamento ${orcamentoId} excluído com sucesso!`);
+        } else {
+            console.warn(`⚠️ Não foi possível excluir o orçamento:`, resultado.error);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir orçamento:', error);
+    }
+}
+// ============================================
+
+
 // Fechar modais clicando fora
 window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
@@ -1847,5 +1881,6 @@ window.onclick = function(event) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
