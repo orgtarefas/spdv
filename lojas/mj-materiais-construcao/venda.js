@@ -1545,14 +1545,25 @@ async function carregarProdutos() {
 }
 
 // ============================================
-// HISTÓRICO
+// HISTÓRICO COM FILTRO POR PERÍODO
 // ============================================
 function abrirHistorico() {
     abrirModal('historicoModal');
     
-    const hoje = new Date().toISOString().split('T')[0];
-    const filtroData = document.getElementById('filtroData');
-    if (filtroData) filtroData.value = hoje;
+    // Configurar datas padrão (hoje e 1 mês atrás)
+    const hoje = new Date();
+    const umMesAtras = new Date();
+    umMesAtras.setMonth(umMesAtras.getMonth() - 1);
+    
+    // Formatar para YYYY-MM-DD
+    const hojeStr = hoje.toISOString().split('T')[0];
+    const umMesAtrasStr = umMesAtras.toISOString().split('T')[0];
+    
+    const filtroDataInicio = document.getElementById('filtroDataInicio');
+    const filtroDataFim = document.getElementById('filtroDataFim');
+    
+    if (filtroDataInicio) filtroDataInicio.value = umMesAtrasStr;
+    if (filtroDataFim) filtroDataFim.value = hojeStr;
     
     const filtroNumero = document.getElementById('filtroNumero');
     if (filtroNumero) filtroNumero.value = '';
@@ -1560,8 +1571,27 @@ function abrirHistorico() {
     carregarHistoricoCompleto();
 }
 
+// ============================================
+// LIMPAR FILTROS DO HISTÓRICO
+// ============================================
+window.limparFiltrosHistorico = function() {
+    const hoje = new Date();
+    const umMesAtras = new Date();
+    umMesAtras.setMonth(umMesAtras.getMonth() - 1);
+    
+    document.getElementById('filtroDataInicio').value = umMesAtras.toISOString().split('T')[0];
+    document.getElementById('filtroDataFim').value = hoje.toISOString().split('T')[0];
+    document.getElementById('filtroNumero').value = '';
+    
+    carregarHistoricoCompleto();
+};
+
+// ============================================
+// CARREGAR HISTÓRICO COMPLETO COM FILTRO POR PERÍODO
+// ============================================
 async function carregarHistoricoCompleto() {
-    const data = document.getElementById('filtroData')?.value;
+    const dataInicio = document.getElementById('filtroDataInicio')?.value;
+    const dataFim = document.getElementById('filtroDataFim')?.value;
     const numero = document.getElementById('filtroNumero')?.value?.toLowerCase();
     const results = document.getElementById('historicoResults');
     
@@ -1577,34 +1607,39 @@ async function carregarHistoricoCompleto() {
             </div>
         `;
         
+        // Buscar vendas
         const resultadoVendas = await lojaServices.buscarVendasComFiltros({
-            data: data,
+            dataInicio: dataInicio,
+            dataFim: dataFim,
             numero: numero
         });
         
+        // Buscar orçamentos
         const resultadoOrcamentos = await lojaServices.buscarOrcamentos({
-            data: data,
+            dataInicio: dataInicio,
+            dataFim: dataFim,
             numero: numero
         });
         
         const vendas = resultadoVendas.success ? resultadoVendas.data || [] : [];
         const orcamentos = resultadoOrcamentos.success ? resultadoOrcamentos.data || [] : [];
         
-        console.log('📊 Vendas encontradas no histórico:', vendas.length);
-        console.log('📊 Orçamentos encontrados no histórico:', orcamentos.length);
+        console.log('📊 Vendas encontradas:', vendas.length);
+        console.log('📊 Orçamentos encontrados:', orcamentos.length);
         
         if (vendas.length === 0 && orcamentos.length === 0) {
             results.innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-history"></i>
                     <p>Nenhum registro encontrado</p>
-                    <small>Tente outro filtro ou realize vendas para ver o histórico</small>
+                    <small>Tente outro período ou realize vendas para ver o histórico</small>
                 </div>
             `;
             esconderLoading();
             return;
         }
         
+        // Combinar e ordenar
         const todos = [
             ...vendas.map(v => ({ 
                 ...v, 
@@ -1625,8 +1660,13 @@ async function carregarHistoricoCompleto() {
         });
         
         let html = '';
+        let totalVendas = 0;
+        let totalOrcamentos = 0;
         
         todos.forEach(item => {
+            if (item.tipo_display === 'VENDA') totalVendas++;
+            else totalOrcamentos++;
+            
             let dataItem;
             try {
                 dataItem = item.data_exibicao?.toDate ? 
@@ -1695,7 +1735,17 @@ async function carregarHistoricoCompleto() {
             `;
         });
         
-        results.innerHTML = html;
+        // Adicionar resumo do período
+        const resumoPeriodo = `
+            <div class="periodo-resumo">
+                <span><i class="fas fa-calendar"></i> Período: ${new Date(dataInicio).toLocaleDateString('pt-BR')} a ${new Date(dataFim).toLocaleDateString('pt-BR')}</span>
+                <span><i class="fas fa-shopping-cart"></i> Vendas: ${totalVendas}</span>
+                <span><i class="fas fa-file-invoice"></i> Orçamentos: ${totalOrcamentos}</span>
+                <span><i class="fas fa-dollar-sign"></i> Total: ${formatarMoeda(todos.reduce((acc, item) => acc + (item.total || 0), 0))}</span>
+            </div>
+        `;
+        
+        results.innerHTML = resumoPeriodo + html;
         
     } catch (error) {
         console.error('❌ Erro ao carregar histórico:', error);
@@ -1711,6 +1761,9 @@ async function carregarHistoricoCompleto() {
     }
 }
 
+// ============================================
+// FILTRAR HISTÓRICO
+// ============================================
 window.filtrarHistorico = function() {
     carregarHistoricoCompleto();
 };
@@ -1957,6 +2010,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
