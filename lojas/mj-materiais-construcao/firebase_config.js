@@ -605,20 +605,39 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            // Buscar todas as vendas
+            // Buscar TODAS as vendas da coleção específica da loja
             const vendasRef = collection(db, this.bancoVendas);
             const snapshot = await getDocs(vendasRef);
             
             let vendas = [];
             snapshot.forEach(doc => {
+                const data = doc.data();
+                
+                // Log para debug
+                console.log('📦 Documento encontrado:', doc.id, {
+                    numero: data.numero_venda || data.numero,
+                    loja_id: data.loja_id,
+                    total: data.total,
+                    data: data.data_venda
+                });
+                
                 vendas.push({
                     id: doc.id,
-                    ...doc.data()
+                    ...data
                 });
             });
             
-            // Filtrar por loja_id
-            vendas = vendas.filter(v => v.loja_id === this.lojaId);
+            // Filtrar por loja_id (se existir nos dados)
+            if (this.lojaId) {
+                vendas = vendas.filter(v => {
+                    // Se tem loja_id nos dados, usa ele
+                    if (v.loja_id) {
+                        return v.loja_id === this.lojaId;
+                    }
+                    // Se não tem loja_id, considera da loja atual (dados antigos)
+                    return true;
+                });
+            }
             
             // Aplicar filtro por data
             if (filtros.data) {
@@ -628,7 +647,9 @@ class LojaManager {
                 dataFim.setHours(23, 59, 59, 999);
                 
                 vendas = vendas.filter(v => {
-                    const dataVenda = v.data_venda?.toDate ? v.data_venda.toDate() : new Date(v.data_criacao);
+                    const dataVenda = v.data_venda?.toDate ? 
+                        v.data_venda.toDate() : 
+                        (v.data_criacao?.toDate ? v.data_criacao.toDate() : new Date(v.timestamp || 0));
                     return dataVenda >= dataFiltro && dataVenda <= dataFim;
                 });
             }
@@ -637,22 +658,28 @@ class LojaManager {
             if (filtros.numero) {
                 const numLower = filtros.numero.toLowerCase();
                 vendas = vendas.filter(v => 
-                    v.numero_venda?.toLowerCase().includes(numLower) ||
-                    v.numero?.toLowerCase().includes(numLower)
+                    (v.numero_venda?.toLowerCase().includes(numLower)) ||
+                    (v.numero?.toLowerCase().includes(numLower)) ||
+                    (v.id?.toLowerCase().includes(numLower))
                 );
             }
             
             // Ordenar por data (mais recentes primeiro)
             vendas.sort((a, b) => {
-                const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
-                const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
+                const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : 
+                             (a.data_criacao?.toDate ? a.data_criacao.toDate() : 
+                             new Date(a.timestamp || 0));
+                const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : 
+                             (b.data_criacao?.toDate ? b.data_criacao.toDate() : 
+                             new Date(b.timestamp || 0));
                 return dataB - dataA;
             });
             
+            console.log(`✅ ${vendas.length} vendas encontradas com filtros`);
             return { success: true, data: vendas };
             
         } catch (error) {
-            console.error('Erro ao buscar vendas com filtros:', error);
+            console.error('❌ Erro ao buscar vendas com filtros:', error);
             return { success: false, error: error.message };
         }
     }
@@ -1182,3 +1209,4 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
+
