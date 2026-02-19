@@ -71,40 +71,40 @@ function carregarLogoLoja() {
     const logoImg = document.getElementById('lojaLogo');
     if (!logoImg) return;
     
-    const lojaId = lojaIdAtual || extrairLojaIdDaURL();
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     
     if (!lojaId) {
+        console.log('ℹ️ Usando logo placeholder (loja não identificada)');
         logoImg.src = LOGO_PLACEHOLDER;
         return;
     }
     
-    const logoPath = getCaminhoLogo(lojaId);
+    // Caminho correto: /spdv/imagens/[loja-id]/logo.png
+    // Exemplo: /spdv/imagens/mj-materiais-construcao/logo.png
+    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
     console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
     
-    // Tentar carregar a imagem
-    fetch(logoPath, { method: 'HEAD' })
-        .then(response => {
-            if (response.ok) {
-                logoImg.src = logoPath;
-                console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
-            } else {
-                console.log(`ℹ️ Logo não encontrada em ${logoPath}, usando placeholder`);
-                logoImg.src = LOGO_PLACEHOLDER;
-            }
-        })
-        .catch(() => {
-            console.log(`ℹ️ Erro ao carregar logo, usando placeholder`);
-            logoImg.src = LOGO_PLACEHOLDER;
-        });
+    // Criar um novo objeto Image para testar se a imagem existe
+    const testImg = new Image();
+    testImg.onload = function() {
+        console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
+        logoImg.src = logoPath;
+        
+        // Atualizar logo do footer também
+        const footerLogo = document.querySelector('.footer-logo');
+        if (footerLogo) footerLogo.src = logoPath;
+    };
     
-    // Também atualizar logo do footer
-    const footerLogo = document.querySelector('.footer-logo');
-    if (footerLogo) {
-        footerLogo.src = logoPath;
-        footerLogo.onerror = () => {
-            footerLogo.src = LOGO_PLACEHOLDER;
-        };
-    }
+    testImg.onerror = function() {
+        console.log(`ℹ️ Logo não encontrada em ${logoPath}, usando placeholder`);
+        logoImg.src = LOGO_PLACEHOLDER;
+        
+        // Footer também usa placeholder
+        const footerLogo = document.querySelector('.footer-logo');
+        if (footerLogo) footerLogo.src = LOGO_PLACEHOLDER;
+    };
+    
+    testImg.src = logoPath;
 }
 
 
@@ -1653,6 +1653,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
