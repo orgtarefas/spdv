@@ -1476,8 +1476,155 @@ function abrirHistorico() {
     const filtroData = document.getElementById('filtroData');
     if (filtroData) filtroData.value = hoje;
     
-    carregarHistoricoFirebase();
+    // Limpar campo de número
+    const filtroNumero = document.getElementById('filtroNumero');
+    if (filtroNumero) filtroNumero.value = '';
+    
+    carregarHistoricoCompleto();
 }
+
+async function carregarHistoricoCompleto() {
+    const data = document.getElementById('filtroData')?.value;
+    const numero = document.getElementById('filtroNumero')?.value?.toLowerCase();
+    const results = document.getElementById('historicoResults');
+    
+    if (!results) return;
+    
+    try {
+        mostrarLoading('Buscando histórico...');
+        
+        // Mostrar loading no results
+        results.innerHTML = `
+            <div class="loading-activity">
+                <div class="spinner"></div>
+                <p>Carregando histórico...</p>
+            </div>
+        `;
+        
+        // Buscar TODAS as vendas (sem filtros complexos)
+        const resultadoVendas = await lojaServices.buscarVendasComFiltros({
+            data: data,
+            numero: numero
+        });
+        
+        // Buscar orçamentos
+        const resultadoOrcamentos = await lojaServices.buscarOrcamentos({
+            data: data,
+            numero: numero
+        });
+        
+        const vendas = resultadoVendas.success ? resultadoVendas.data || [] : [];
+        const orcamentos = resultadoOrcamentos.success ? resultadoOrcamentos.data || [] : [];
+        
+        console.log('📊 Vendas encontradas no histórico:', vendas.length);
+        console.log('📊 Orçamentos encontrados no histórico:', orcamentos.length);
+        
+        // Se não tem vendas nem orçamentos
+        if (vendas.length === 0 && orcamentos.length === 0) {
+            results.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <p>Nenhum registro encontrado</p>
+                    <small>Tente outro filtro ou realize vendas para ver o histórico</small>
+                </div>
+            `;
+            esconderLoading();
+            return;
+        }
+        
+        // Combinar e ordenar
+        const todos = [
+            ...vendas.map(v => ({ 
+                ...v, 
+                tipo_display: 'VENDA',
+                data_exibicao: v.data_venda || v.data_criacao,
+                numero_exibicao: v.numero_venda || v.numero || v.id
+            })),
+            ...orcamentos.map(o => ({ 
+                ...o, 
+                tipo_display: 'ORÇAMENTO',
+                data_exibicao: o.created_at || o.data_criacao,
+                numero_exibicao: o.numero || o.id
+            }))
+        ].sort((a, b) => {
+            const dataA = a.data_exibicao?.toDate ? a.data_exibicao.toDate() : new Date(a.data_exibicao || 0);
+            const dataB = b.data_exibicao?.toDate ? b.data_exibicao.toDate() : new Date(b.data_exibicao || 0);
+            return dataB - dataA;
+        });
+        
+        let html = '';
+        
+        todos.forEach(item => {
+            let dataItem;
+            try {
+                dataItem = item.data_exibicao?.toDate ? 
+                    item.data_exibicao.toDate() : 
+                    new Date(item.data_exibicao || item.data_criacao || Date.now());
+            } catch (e) {
+                dataItem = new Date();
+            }
+            
+            const dataFormatada = dataItem.toLocaleDateString('pt-BR');
+            const horaFormatada = dataItem.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            const tipoClass = item.tipo_display === 'VENDA' ? 'tipo-venda' : 'tipo-orcamento';
+            
+            let statusHtml = '';
+            if (item.tipo_display === 'ORÇAMENTO') {
+                const valido = item.data_validade?.toDate ? 
+                    item.data_validade.toDate() > new Date() : 
+                    new Date(item.data_validade || 0) > new Date();
+                statusHtml = `<span class="status-badge ${valido ? 'valido' : 'expirado'}">${valido ? 'Válido' : 'Expirado'}</span>`;
+            }
+            
+            html += `
+                <div class="historico-item ${tipoClass}">
+                    <div class="historico-header">
+                        <div>
+                            <strong>${item.tipo_display} #${item.numero_exibicao}</strong> - ${dataFormatada} ${horaFormatada}
+                            ${statusHtml}
+                        </div>
+                        <span class="historico-total">${formatarMoeda(item.total || 0)}</span>
+                    </div>
+                    <div class="historico-detalhes">
+                        <div><i class="fas fa-boxes"></i> Itens: ${item.itens?.length || 0}</div>
+                        ${item.forma_pagamento ? `<div><i class="fas fa-credit-card"></i> Pagamento: ${traduzirFormaPagamento(item.forma_pagamento)}</div>` : ''}
+                        <div><i class="fas fa-user"></i> Vendedor: ${item.vendedor_nome || item.vendedor || 'Sistema'}</div>
+                        ${item.data_validade ? `<div><i class="fas fa-calendar"></i> Validade: ${new Date(item.data_validade).toLocaleDateString('pt-BR')}</div>` : ''}
+                    </div>
+                    <div class="historico-acoes">
+                        ${item.tipo_display === 'ORÇAMENTO' && item.status === 'ativo' ? 
+                            `<button class="btn-convert" onclick="converterOrcamentoParaVenda('${item.id}')">
+                                <i class="fas fa-cash-register"></i> Converter em Venda
+                            </button>` : ''}
+                        <button class="btn-view" onclick="verNota('${item.id}', '${item.tipo_display}')">
+                            <i class="fas fa-eye"></i> Ver Nota
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        results.innerHTML = html;
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar histórico:', error);
+        results.innerHTML = `
+            <div class="empty-state error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Erro ao carregar histórico</p>
+                <small>${error.message}</small>
+            </div>
+        `;
+    } finally {
+        esconderLoading();
+    }
+}
+
+// Substituir a função filtrarHistorico
+window.filtrarHistorico = function() {
+    carregarHistoricoCompleto();
+};
 
 async function carregarHistoricoFirebase() {
     const data = document.getElementById('filtroData')?.value;
@@ -1564,10 +1711,6 @@ async function carregarHistoricoFirebase() {
         esconderLoading();
     }
 }
-
-window.filtrarHistorico = function() {
-    carregarHistoricoFirebase();
-};
 
 window.verNota = async function(id, tipo) {
     try {
@@ -1704,4 +1847,5 @@ window.onclick = function(event) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
