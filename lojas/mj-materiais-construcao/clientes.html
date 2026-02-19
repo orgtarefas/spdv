@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPDVI - Produtos para Clientes</title>
+    <link rel="stylesheet" href="clientes.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-store"></i>
+                    <div>
+                        <h1 id="lojaNomeHeader">Sistema Ponto de Vendas Integrado</h1>
+                        <p class="subtitle">Loja Online</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="userName">Visitante</span>
+                    <button id="btnLogout" class="btn-logout" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
+                    </button>
+                    <button id="btnLogin" class="btn-login">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Entrar
+                    </button>
+                </div>
+                <div class="header-info">
+                    <span id="lojaLocal"></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Barra de Pesquisa e Carrinho -->
+        <div class="search-bar-container">
+            <div class="search-wrapper">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchProductInput" placeholder="O que você está procurando?" autocomplete="off">
+                <button class="btn-scan" id="btnScanCode" title="Ler código de barras">
+                    <i class="fas fa-barcode"></i>
+                </button>
+                <button class="btn-cart-header" id="btnGoToCart">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="cart-badge" id="cartBadge">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Categorias -->
+        <div class="categories-section">
+            <h2><i class="fas fa-tags"></i> Categorias</h2>
+            <div class="categories-grid" id="categoriesGrid">
+                <!-- Categorias serão carregadas via JS -->
+                <div class="loading-categories">
+                    <div class="spinner"></div>
+                    <p>Carregando categorias...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Produtos em Destaque -->
+        <div class="featured-products">
+            <h2><i class="fas fa-star"></i> Produtos em Destaque</h2>
+            <div class="products-grid" id="featuredProducts">
+                <!-- Produtos serão carregados via JS -->
+                <div class="loading-products">
+                    <div class="spinner"></div>
+                    <p>Carregando produtos...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Consulta Rápida -->
+        <div id="quickSearchModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>
+                        <i class="fas fa-search"></i> 
+                        Consulta Rápida
+                    </h3>
+                    <button class="modal-close" title="Fechar (ESC)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <!-- SEARCH BOX COM BOTÕES -->
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon"></i>
+                        
+                        <input 
+                            type="text" 
+                            id="searchProductInputModal" 
+                            placeholder="Código, nome ou categoria do produto" 
+                            autocomplete="off" 
+                            spellcheck="false"
+                        >
+                        
+                        <!-- BOTÃO LIMPAR (X) -->
+                        <button class="search-clear" id="searchClearModal" title="Limpar busca">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        
+                        <!-- BOTÃO SCAN -->
+                        <button class="btn-scan" id="btnScanCodeModal" title="Ler código de barras">
+                            <i class="fas fa-barcode"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- FILTROS RÁPIDOS -->
+                    <div class="search-filters">
+                        <button class="filter-btn active" data-filter="all">
+                            <i class="fas fa-list"></i> Todos
+                        </button>
+                        <button class="filter-btn" data-filter="estoque">
+                            <i class="fas fa-check-circle"></i> Em estoque
+                        </button>
+                        <button class="filter-btn" data-filter="destaque">
+                            <i class="fas fa-star"></i> Destaques
+                        </button>
+                    </div>
+                    
+                    <!-- DICA DE ATALHO -->
+                    <div class="search-tip">
+                        <i class="fas fa-lightbulb"></i>
+                        Dica: Use o leitor de código de barras ou digite o código manualmente
+                        <span class="shortcut">Ctrl+K</span>
+                    </div>
+                    
+                    <!-- RESULTADOS DA BUSCA -->
+                    <div class="search-results" id="searchResultsModal">
+                        <div class="empty-results">
+                            <i class="fas fa-search"></i>
+                            <p>Digite para buscar um produto</p>
+                            <small>Busque por código, nome, categoria ou use o leitor de código de barras</small>
+                        </div>
+                    </div>
+
+                    <!-- INDICADOR DE SCAN ATIVO -->
+                    <div id="scanIndicatorModal" class="scan-indicator" style="display: none;">
+                        <i class="fas fa-barcode fa-spin"></i>
+                        <span>Modo scan ativo - Aponte o leitor para o código de barras</span>
+                        <button class="btn-stop-scan" onclick="window.gerenciadorCodigoBarrasClientes?.desativarModoScan()">
+                            <i class="fas fa-stop"></i> Parar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Login -->
+        <div id="loginModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-sign-in-alt"></i> Entrar na Loja</h3>
+                    <button class="modal-close" onclick="fecharModal('loginModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="login-form">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Usuário</label>
+                            <input type="text" id="loginUsuario" placeholder="Digite seu usuário">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Senha</label>
+                            <input type="password" id="loginSenha" placeholder="Digite sua senha">
+                        </div>
+                        <div class="login-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="loginLembrar"> Lembrar acesso
+                            </label>
+                            <a href="#" class="forgot-password">Esqueci a senha</a>
+                        </div>
+                        <button class="btn-login-confirm" id="btnConfirmarLogin">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4><i class="fas fa-store"></i> <span id="lojaNomeFooter">Sistema PDV</span></h4>
+                    <p>Seu parceiro de compras online</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Atendimento</h4>
+                    <p><i class="fas fa-phone"></i> (11) 9999-9999</p>
+                    <p><i class="fas fa-envelope"></i> atendimento@loja.com.br</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Formas de Pagamento</h4>
+                    <p><i class="fas fa-credit-card"></i> Cartão de Crédito</p>
+                    <p><i class="fas fa-barcode"></i> Boleto</p>
+                    <p><i class="fas fa-qrcode"></i> PIX</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 <span id="lojaNomeCopyright">SPDVI</span> - Todos os direitos reservados</p>
+                <p id="connectionStatus"><i class="fas fa-circle"></i> <span id="statusText">Conectado</span></p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <span class="message-text"></span>
+        </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <script type="module" src="firebase_config.js"></script>
+    <script type="module" src="clientes.js"></script>
+</body>
+</html>
