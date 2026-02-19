@@ -115,6 +115,10 @@ class LojaManager {
         return this.usuario?.nome || this.usuario?.login || 'Usuário';
     }
     
+    get loginUsuario() {
+        return this.usuario?.login || 'operador';
+    }
+    
     get perfil() {
         return this.usuario?.perfil || 'usuario';
     }
@@ -515,6 +519,7 @@ class LojaManager {
                     loja_nome: this.dadosLoja?.nome || this.formatarNomeLoja(this.lojaId),
                     vendedor_id: this.usuario?.id,
                     vendedor_nome: this.nomeUsuario,
+                    vendedor_login: this.loginUsuario,
                     status: 'concluida',
                     data_venda: serverTimestamp(),
                     data_criacao: serverTimestamp(),
@@ -554,24 +559,30 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
+            // Buscar todas as vendas e filtrar manualmente (SEM ÍNDICE)
             const vendasRef = collection(db, this.bancoVendas);
-            const q = query(
-                vendasRef,
-                where('loja_id', '==', this.lojaId),
-                orderBy('data_venda', 'desc'),
-                limit(limite)
-            );
+            const snapshot = await getDocs(vendasRef);
             
-            const snapshot = await getDocs(q);
-            
-            const vendas = [];
-            
+            let vendas = [];
             snapshot.forEach(doc => {
                 vendas.push({
                     id: doc.id,
                     ...doc.data()
                 });
             });
+            
+            // Filtrar por loja_id manualmente
+            vendas = vendas.filter(v => v.loja_id === this.lojaId);
+            
+            // Ordenar por data_venda manualmente (mais recentes primeiro)
+            vendas.sort((a, b) => {
+                const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
+                const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
+                return dataB - dataA;
+            });
+            
+            // Aplicar limite
+            vendas = vendas.slice(0, limite);
             
             console.log(`✅ ${vendas.length} vendas encontradas`);
             return { success: true, data: vendas };
@@ -594,13 +605,9 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            let q = query(
-                collection(db, this.bancoVendas),
-                where('loja_id', '==', this.lojaId),
-                orderBy('data_venda', 'desc')
-            );
-            
-            const snapshot = await getDocs(q);
+            // Buscar todas as vendas
+            const vendasRef = collection(db, this.bancoVendas);
+            const snapshot = await getDocs(vendasRef);
             
             let vendas = [];
             snapshot.forEach(doc => {
@@ -610,7 +617,10 @@ class LojaManager {
                 });
             });
             
-            // Aplicar filtros adicionais
+            // Filtrar por loja_id
+            vendas = vendas.filter(v => v.loja_id === this.lojaId);
+            
+            // Aplicar filtro por data
             if (filtros.data) {
                 const dataFiltro = new Date(filtros.data);
                 dataFiltro.setHours(0, 0, 0, 0);
@@ -623,6 +633,7 @@ class LojaManager {
                 });
             }
             
+            // Aplicar filtro por número
             if (filtros.numero) {
                 const numLower = filtros.numero.toLowerCase();
                 vendas = vendas.filter(v => 
@@ -630,6 +641,13 @@ class LojaManager {
                     v.numero?.toLowerCase().includes(numLower)
                 );
             }
+            
+            // Ordenar por data (mais recentes primeiro)
+            vendas.sort((a, b) => {
+                const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
+                const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
+                return dataB - dataA;
+            });
             
             return { success: true, data: vendas };
             
@@ -672,7 +690,7 @@ class LojaManager {
     }
     
     // ============================================
-    // MÉTODOS PARA ORÇAMENTOS
+    // MÉTODOS PARA ORÇAMENTOS (SEM ÍNDICES)
     // ============================================
     
     async criarOrcamento(orcamentoData) {
@@ -731,13 +749,9 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            let q = query(
-                collection(db, 'orcamentos'),
-                where('loja_id', '==', this.lojaId),
-                orderBy('created_at', 'desc')
-            );
-            
-            const snapshot = await getDocs(q);
+            // Buscar TODOS os orçamentos (SEM where com orderBy para evitar índice)
+            const orcamentosRef = collection(db, 'orcamentos');
+            const snapshot = await getDocs(orcamentosRef);
             
             let orcamentos = [];
             snapshot.forEach(doc => {
@@ -746,6 +760,9 @@ class LojaManager {
                     ...doc.data()
                 });
             });
+            
+            // Filtrar por loja_id manualmente
+            orcamentos = orcamentos.filter(o => o.loja_id === this.lojaId);
             
             // Aplicar filtros adicionais
             if (filtros.data) {
@@ -771,6 +788,14 @@ class LojaManager {
                 orcamentos = orcamentos.filter(o => o.status === filtros.status);
             }
             
+            // Ordenar por data de criação (mais recentes primeiro)
+            orcamentos.sort((a, b) => {
+                const dataA = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.data_criacao || 0);
+                const dataB = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.data_criacao || 0);
+                return dataB - dataA;
+            });
+            
+            console.log(`✅ ${orcamentos.length} orçamentos encontrados`);
             return { success: true, data: orcamentos };
             
         } catch (error) {
@@ -848,6 +873,53 @@ class LojaManager {
         } catch (error) {
             console.error('Erro ao atualizar orçamento:', error);
             return { success: false, error: error.message };
+        }
+    }
+    
+    // ============================================
+    // MÉTODOS PARA RECOLHIMENTOS
+    // ============================================
+    
+    async criarRecolhimento(recolhimentoData) {
+        try {
+            console.log('💰 Registrando recolhimento...', recolhimentoData.numero);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            if (!this.lojaId) {
+                throw new Error('Loja não identificada');
+            }
+            
+            // Referência para a coleção de recolhimentos
+            const recolhimentosRef = collection(db, 'recolhimentos');
+            
+            // Adicionar dados da loja e timestamps
+            const recolhimentoCompleto = {
+                ...recolhimentoData,
+                loja_id: this.lojaId,
+                loja_nome: this.dadosLoja?.nome || this.formatarNomeLoja(this.lojaId),
+                created_at: serverTimestamp()
+            };
+            
+            // Salvar no Firebase
+            const docRef = await addDoc(recolhimentosRef, recolhimentoCompleto);
+            
+            console.log(`✅ Recolhimento ${recolhimentoData.numero} criado com ID: ${docRef.id}`);
+            
+            return {
+                success: true,
+                id: docRef.id,
+                data: { ...recolhimentoCompleto, id: docRef.id }
+            };
+            
+        } catch (error) {
+            console.error('❌ Erro ao criar recolhimento:', error);
+            return {
+                success: false,
+                error: error.message
+            };
         }
     }
     
@@ -1013,6 +1085,7 @@ const lojaServices = {
     buscarOrcamentos: (filtros) => lojaManager.buscarOrcamentos(filtros),
     buscarOrcamentoPorId: (id) => lojaManager.buscarOrcamentoPorId(id),
     atualizarOrcamento: (id, dados) => lojaManager.atualizarOrcamento(id, dados),
+    criarRecolhimento: (dados) => lojaManager.criarRecolhimento(dados),
     buscarEstatisticas: () => lojaManager.buscarEstatisticas(),
     testarConfigImgBB: () => lojaManager.testarConfigImgBB(),
     formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
@@ -1021,6 +1094,7 @@ const lojaServices = {
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
     get nomeUsuario() { return lojaManager.nomeUsuario; },
+    get loginUsuario() { return lojaManager.loginUsuario; },
     get perfil() { return lojaManager.perfil; },
     get isAdmin() { return lojaManager.isAdmin; },
     get isLogged() { return lojaManager.isLogged; },
