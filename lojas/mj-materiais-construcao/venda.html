@@ -153,13 +153,14 @@
                                         <th>Produto</th>
                                         <th>Qtd</th>
                                         <th>Valor Unit.</th>
+                                        <th>Desconto</th>
                                         <th>Subtotal</th>
                                         <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="cartTableBody">
                                     <tr class="empty-row">
-                                        <td colspan="7">
+                                        <td colspan="8">
                                             <div class="empty-cart">
                                                 <i class="fas fa-shopping-cart"></i>
                                                 <p>Carrinho vazio</p>
@@ -296,7 +297,7 @@
                     </div>
                 </div>
 
-                <!-- CAMPO CPF CLIENTE(sempre visível) -->
+                <!-- CAMPO CPF DO CLIENTE (sempre visível) -->
                 <div class="form-group" style="margin-top: 15px;">
                     <label><i class="fas fa-id-card"></i> CPF do Cliente (opcional)</label>
                     <input type="text" id="clienteCpf" placeholder="000.000.000-00" onkeyup="mascaraCPF(this)">
@@ -360,7 +361,7 @@
 
     <!-- MODAL DE RECOLHIMENTO DE CAIXA -->
     <div id="recolhimentoModal" class="modal">
-        <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-cash-register"></i> Recolhimento de Caixa</h3>
                 <button class="modal-close" onclick="fecharModal('recolhimentoModal')">&times;</button>
@@ -423,7 +424,7 @@
                 <div id="notaFiscalConteudo" class="nota-fiscal-conteudo"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn-print" id="btnImprimirNotaVenda">
+                <button class="btn-print" onclick="imprimirNotaFiscal()">
                     <i class="fas fa-print"></i> Imprimir Nota
                 </button>
                 <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
@@ -467,11 +468,10 @@
             <i class="message-icon"></i>
             <span class="message-text"></span>
         </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
     </div>
 
     <script type="module" src="firebase_config.js"></script>
     <script type="module" src="venda.js"></script>
 </body>
 </html>
-
-
