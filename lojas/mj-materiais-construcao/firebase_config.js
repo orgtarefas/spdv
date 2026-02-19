@@ -1117,6 +1117,7 @@ const lojaServices = {
     testarConfigImgBB: () => lojaManager.testarConfigImgBB(),
     formatarMoeda: (valor) => lojaManager.formatarMoeda(valor),
     logout: () => lojaManager.logout(),
+    excluirOrcamento: (id) => lojaManager.excluirOrcamento(id),
     
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
@@ -1209,4 +1210,5 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
+
 
