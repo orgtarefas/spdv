@@ -92,7 +92,7 @@ function tornarModalArrastavel(modalId) {
 
 
 // ============================================
-// FUNÇÃO PARA ABRIR MODAL
+// FUNÇÃO PARA ABRIR MODAL (COM CONTROLE DE Z-INDEX)
 // ============================================
 function abrirModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -111,14 +111,19 @@ function abrirModal(modalId) {
         content.setAttribute('data-position-set', 'true');
     }
     
-    // Trazer para frente
-    const highestZIndex = getHighestZIndex();
-    content.style.zIndex = highestZIndex + 1;
+    // Verificar se é a nota fiscal - se for, vai ganhar z-index maior
+    if (modalId === 'notaFiscalModal') {
+        // A nota fiscal terá seu z-index definido na função específica
+        // Não fazemos nada aqui para não interferir
+    } else {
+        // Para outros modais, usar z-index normal
+        const highestZIndex = getHighestZIndex();
+        content.style.zIndex = (highestZIndex + 1).toString();
+    }
     
-    // Garantir que o modal está visível
     modal.style.display = 'block';
-        
-    console.log(`✅ Janela ${modalId} aberta com z-index: ${highestZIndex + 1}`);
+    
+    console.log(`✅ Janela ${modalId} aberta`);
 }
 
 // ============================================
@@ -1201,13 +1206,18 @@ window.selecionarProdutoConsulta = function(id) {
 };
 
 // ============================================
-// FUNÇÃO PARA OBTER O MAIOR Z-INDEX
+// FUNÇÃO PARA OBTER O MAIOR Z-INDEX (IGNORANDO O PRÓPRIO MODAL)
 // ============================================
-function getHighestZIndex() {
+function getHighestZIndex(excludeModalId = null) {
     let highest = 9999;
     const modals = document.querySelectorAll('.modal-content');
     
     modals.forEach(modal => {
+        // Se for para excluir um modal específico (como o que vai ganhar z-index maior)
+        if (excludeModalId && modal.closest('.modal')?.id === excludeModalId) {
+            return; // Pula este modal
+        }
+        
         const zIndex = parseInt(window.getComputedStyle(modal).zIndex);
         if (!isNaN(zIndex) && zIndex > highest) {
             highest = zIndex;
@@ -1218,7 +1228,7 @@ function getHighestZIndex() {
 }
 
 // ============================================
-// MOSTRAR NOTA FISCAL DE VENDA (COM Z-INDEX GARANTIDO)
+// MOSTRAR NOTA FISCAL DE VENDA (COM Z-INDEX MAIOR QUE TUDO)
 // ============================================
 function mostrarNotaFiscalVenda(venda) {
     const modal = document.getElementById('notaFiscalModal');
@@ -1226,17 +1236,31 @@ function mostrarNotaFiscalVenda(venda) {
     
     if (!modal || !conteudo) return;
     
-    // Garantir que a nota fique na frente do histórico
-    const content = modal.querySelector('.modal-content');
-    if (content) {
-        const highestZIndex = getHighestZIndex();
-        content.style.zIndex = highestZIndex + 1;
-    }
-    
-    // Garantir que o modal da nota está visível
+    // Primeiro, garantir que o modal da nota está visível
     modal.style.display = 'block';
     
-    // Resto do código da nota...
+    const content = modal.querySelector('.modal-content');
+    if (content) {
+        // Obter o maior z-index EXCLUINDO a própria nota
+        const highestZIndex = getHighestZIndex('notaFiscalModal');
+        
+        // A nota vai ter z-index MAIOR que todos os outros
+        content.style.zIndex = (highestZIndex + 2).toString();
+        
+        console.log(`📊 Z-index da nota: ${content.style.zIndex}`);
+        console.log(`📊 Maior z-index dos outros: ${highestZIndex}`);
+    }
+    
+    // Opcional: rebaixar o histórico propositalmente
+    const historicoModal = document.getElementById('historicoModal');
+    if (historicoModal) {
+        const historicoContent = historicoModal.querySelector('.modal-content');
+        if (historicoContent && parseInt(historicoContent.style.zIndex) > 9999) {
+            historicoContent.style.zIndex = '9999';
+        }
+    }
+    
+    // Resto do código da nota (igual ao que você já tem)
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
     const dataVenda = new Date(venda.data || venda.data_criacao).toLocaleString('pt-BR');
     const isExtornada = venda.status === 'extornada';
@@ -2033,6 +2057,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
