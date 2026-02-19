@@ -722,63 +722,64 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.3);
     z-index: 9999;
-    align-items: center;
-    justify-content: center;
 }
 
 .modal[style*="display: flex"] {
-    display: flex !important;
+    display: block !important;
 }
 
 .modal-content {
     background: var(--white);
     border-radius: 12px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 90vh;
+    width: 600px;
+    max-width: 90vw;
+    max-height: 80vh;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    position: relative;
-    animation: modalFadeIn 0.3s ease;
-    margin: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: none;
+    resize: both;
+    min-width: 400px;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
 }
 
-@keyframes modalFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modal-lg {
-    max-width: 900px;
+.modal-content.moving {
+    opacity: 0.8;
+    transition: none;
+    cursor: grabbing;
 }
 
 .modal-header {
-    padding: 20px;
+    padding: 15px 20px;
     border-bottom: 1px solid var(--light);
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: var(--primary);
     color: var(--white);
-    position: sticky;
-    top: 0;
-    z-index: 10;
+    cursor: grab;
+    user-select: none;
+    position: relative;
+}
+
+.modal-header:active {
+    cursor: grabbing;
 }
 
 .modal-header h3 {
-    font-size: 18px;
+    font-size: 16px;
     display: flex;
     align-items: center;
     gap: 8px;
     margin: 0;
+    pointer-events: none;
 }
 
 .modal-header h3 i {
@@ -792,13 +793,16 @@ body {
     cursor: pointer;
     color: var(--white);
     transition: var(--transition);
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     line-height: 1;
+    z-index: 10;
+    position: relative;
+    pointer-events: auto;
 }
 
 .modal-close:hover {
@@ -809,7 +813,8 @@ body {
 .modal-body {
     padding: 20px;
     overflow-y: auto;
-    max-height: calc(90vh - 130px);
+    flex: 1;
+    background: var(--white);
 }
 
 .modal-footer {
@@ -819,26 +824,50 @@ body {
     justify-content: flex-end;
     gap: 10px;
     background: var(--light);
-    position: sticky;
-    bottom: 0;
-    z-index: 10;
 }
 
-/* Garantir que o modal fique sobre tudo e centralizado */
-body.modal-open {
-    overflow: hidden;
+/* Tamanhos específicos para cada modal */
+#consultaPrecoModal .modal-content {
+    width: 800px;
+    height: 600px;
 }
 
-/* Responsividade para modais */
+#finalizarVendaModal .modal-content {
+    width: 700px;
+    height: 650px;
+}
+
+#historicoModal .modal-content {
+    width: 800px;
+    height: 600px;
+}
+
+#notaFiscalModal .modal-content {
+    width: 500px;
+    height: 600px;
+}
+
+#recolhimentoModal .modal-content {
+    width: 450px;
+    height: auto;
+    min-height: auto;
+}
+
+/* Responsividade */
 @media (max-width: 768px) {
     .modal-content {
-        width: 95%;
-        max-height: 95vh;
+        width: 95vw !important;
+        height: auto !important;
+        max-height: 90vh;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
-    
-    .modal-lg {
-        width: 95%;
-    }
+}
+
+/* Garantir que o fundo escuro não atrapalhe */
+body.modal-open {
+    overflow: hidden;
 }
 
 /* ============================================ */
@@ -1569,5 +1598,6 @@ body.modal-open {
         width: 100%;
     }
 }
+
 
 
