@@ -1443,3 +1443,77 @@ body {
 .empty-state.error i {
     color: var(--danger);
 }
+
+/* Botão de extornar */
+.btn-extornar {
+    background: #e67e22;
+    color: var(--white);
+    border: none;
+    padding: 5px 10px;
+    border-radius: var(--border-radius);
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: var(--transition);
+}
+
+.btn-extornar:hover {
+    background: #d35400;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(230, 126, 34, 0.3);
+}
+
+/* Informação de extorno */
+.extorno-info {
+    margin-top: 8px;
+    padding: 4px 8px;
+    background: #fff3e0;
+    border-left: 3px solid #e67e22;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #e67e22;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.extorno-info i {
+    font-size: 12px;
+}
+
+/* Item de histórico com status extornado */
+.historico-item[data-status="extornada"] {
+    border-left: 4px solid #e67e22;
+    opacity: 0.8;
+}
+
+.historico-item[data-status="extornada"] .historico-total {
+    color: #e67e22;
+}
+
+/* Ajuste no container de ações */
+.historico-acoes {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.historico-acoes button {
+    flex: 1;
+    min-width: 90px;
+    justify-content: center;
+    font-size: 11px;
+}
+
+@media (max-width: 768px) {
+    .historico-acoes {
+        flex-direction: column;
+    }
+    
+    .historico-acoes button {
+        width: 100%;
+    }
+}
