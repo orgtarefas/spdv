@@ -24,11 +24,75 @@ let pdv = {
 };
 
 // ============================================
-// FUNÇÕES PARA MODAIS (CORRIGIDAS)
+// FUNÇÃO PARA TORNAR MODAIS ARRASTÁVEIS
 // ============================================
+function tornarModalArrastavel(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    const header = modal.querySelector('.modal-header');
+    const content = modal.querySelector('.modal-content');
+    
+    if (!header || !content) return;
+    
+    let isDragging = false;
+    let offsetX, offsetY;
+    
+    header.addEventListener('mousedown', (e) => {
+        // Não arrastar se clicou no botão fechar
+        if (e.target.classList.contains('modal-close') || 
+            e.target.closest('.modal-close')) {
+            return;
+        }
+        
+        e.preventDefault();
+        
+        // Posição atual do mouse
+        const rect = content.getBoundingClientRect();
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+        
+        isDragging = true;
+        content.classList.add('moving');
+        
+        // Trazer para frente
+        content.style.zIndex = '10000';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        
+        // Calcular nova posição
+        let newX = e.clientX - offsetX;
+        let newY = e.clientY - offsetY;
+        
+        // Limitar para não sair da tela
+        const maxX = window.innerWidth - content.offsetWidth;
+        const maxY = window.innerHeight - content.offsetHeight;
+        
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(0, Math.min(newY, maxY));
+        
+        // Aplicar nova posição
+        content.style.left = newX + 'px';
+        content.style.top = newY + 'px';
+        content.style.transform = 'none';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        if (isDragging) {
+            isDragging = false;
+            content.classList.remove('moving');
+            content.style.zIndex = '';
+        }
+    });
+}
+
 
 // ============================================
-// FUNÇÃO PARA ABRIR MODAL (VERSÃO DEFINITIVA)
+// FUNÇÃO PARA ABRIR MODAL
 // ============================================
 function abrirModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -37,63 +101,46 @@ function abrirModal(modalId) {
         return;
     }
     
-    // Remover qualquer estilo inline que possa atrapalhar
-    modal.removeAttribute('style');
+    const content = modal.querySelector('.modal-content');
     
-    // Garantir que o modal fique visível e centralizado
-    modal.style.display = 'flex';
-    modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
-    modal.style.opacity = '1';
-    modal.style.pointerEvents = 'auto';
+    // Resetar posição para o centro na primeira abertura
+    if (!content.hasAttribute('data-position-set')) {
+        content.style.left = '50%';
+        content.style.top = '50%';
+        content.style.transform = 'translate(-50%, -50%)';
+        content.setAttribute('data-position-set', 'true');
+    }
     
-    // Forçar reflow para garantir
-    void modal.offsetHeight;
+    modal.style.display = 'block';
+    
+    // Trazer para frente
+    content.style.zIndex = '10000';
     
     // Bloquear scroll do body
     document.body.classList.add('modal-open');
     document.body.style.overflow = 'hidden';
     
-    console.log(`✅ Modal ${modalId} aberto`);
+    console.log(`✅ Janela ${modalId} aberta`);
 }
 
+// ============================================
+// FUNÇÃO PARA FECHAR MODAL
+// ============================================
 window.fecharModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
     
     modal.style.display = 'none';
-    modal.style.opacity = '0';
     
-    // Liberar scroll do body apenas se não houver outros modais abertos
-    const modalsAbertos = document.querySelectorAll('.modal[style*="display: flex"]');
+    // Liberar scroll
+    const modalsAbertos = document.querySelectorAll('.modal[style*="display: block"]');
     if (modalsAbertos.length === 0) {
         document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
     }
     
-    // Desativar modo scan se for o modal de consulta
-    if (modalId === 'consultaPrecoModal' && window.gerenciadorCodigoBarrasHome) {
-        window.gerenciadorCodigoBarrasHome.desativarModoScan();
-    }
+    console.log(`✅ Janela ${modalId} fechada`);
 };
-
-// Fechar modal clicando fora
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        const modalId = event.target.id;
-        fecharModal(modalId);
-    }
-};
-
-// Fechar modal com tecla ESC
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        const modals = document.querySelectorAll('.modal[style*="display: flex"]');
-        modals.forEach(modal => {
-            fecharModal(modal.id);
-        });
-    }
-});
 
 // ============================================
 // INICIALIZAÇÃO
@@ -1874,4 +1921,5 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
