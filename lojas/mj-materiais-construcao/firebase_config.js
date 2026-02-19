@@ -717,7 +717,7 @@ class LojaManager {
     }
     
     // ============================================
-    // MÉTODOS PARA ORÇAMENTOS (SEM ÍNDICES)
+    // MÉTODOS PARA ORÇAMENTOS
     // ============================================
     
     async criarOrcamento(orcamentoData) {
@@ -902,6 +902,43 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
+
+    async excluirOrcamento(orcamentoId) {
+        try {
+            console.log(`🗑️ Excluindo orçamento: ${orcamentoId}`);
+            
+            if (!db) {
+                throw new Error('Banco de dados não inicializado');
+            }
+            
+            const orcamentoRef = doc(db, 'orcamentos', orcamentoId);
+            
+            // Verificar se existe
+            const orcamentoDoc = await getDoc(orcamentoRef);
+            
+            if (!orcamentoDoc.exists()) {
+                return { success: false, error: 'Orçamento não encontrado' };
+            }
+            
+            const orcamentoData = orcamentoDoc.data();
+            
+            // Verificar permissão (opcional)
+            if (orcamentoData.loja_id !== this.lojaId && !this.isAdmin) {
+                throw new Error('Orçamento não pertence a esta loja');
+            }
+            
+            // EXCLUIR definitivamente
+            await deleteDoc(orcamentoRef);
+            
+            console.log(`✅ Orçamento ${orcamentoId} excluído permanentemente`);
+            
+            return { success: true };
+            
+        } catch (error) {
+            console.error('❌ Erro ao excluir orçamento:', error);
+            return { success: false, error: error.message };
+        }
+    } 
     
     // ============================================
     // MÉTODOS PARA RECOLHIMENTOS
@@ -1210,5 +1247,6 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
+
 
 
