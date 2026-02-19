@@ -1228,7 +1228,7 @@ function getHighestZIndex(excludeModalId = null) {
 }
 
 // ============================================
-// MOSTRAR NOTA FISCAL DE VENDA (COM Z-INDEX MAIOR QUE TUDO)
+// MOSTRAR NOTA FISCAL DE VENDA (COM Z-INDEX FORÇADO)
 // ============================================
 function mostrarNotaFiscalVenda(venda) {
     const modal = document.getElementById('notaFiscalModal');
@@ -1236,29 +1236,22 @@ function mostrarNotaFiscalVenda(venda) {
     
     if (!modal || !conteudo) return;
     
-    // Primeiro, garantir que o modal da nota está visível
-    modal.style.display = 'block';
-    
-    const content = modal.querySelector('.modal-content');
-    if (content) {
-        // Obter o maior z-index EXCLUINDO a própria nota
-        const highestZIndex = getHighestZIndex('notaFiscalModal');
-        
-        // A nota vai ter z-index MAIOR que todos os outros
-        content.style.zIndex = (highestZIndex + 2).toString();
-        
-        console.log(`📊 Z-index da nota: ${content.style.zIndex}`);
-        console.log(`📊 Maior z-index dos outros: ${highestZIndex}`);
-    }
-    
-    // Opcional: rebaixar o histórico propositalmente
+    // REBAIXAR HISTÓRICO PROPOSITALMENTE
     const historicoModal = document.getElementById('historicoModal');
     if (historicoModal) {
         const historicoContent = historicoModal.querySelector('.modal-content');
-        if (historicoContent && parseInt(historicoContent.style.zIndex) > 9999) {
-            historicoContent.style.zIndex = '9999';
+        if (historicoContent) {
+            historicoContent.style.zIndex = '10000';
         }
     }
+    
+    // COLOCAR NOTA NA FRENTE
+    const content = modal.querySelector('.modal-content');
+    if (content) {
+        content.style.zIndex = '20000';
+    }
+    
+    modal.style.display = 'block';
     
     // Resto do código da nota (igual ao que você já tem)
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
@@ -1810,12 +1803,10 @@ window.filtrarHistorico = function() {
 };
 
 // ============================================
-// VER NOTA
+// VER NOTA (FORÇA NOTA NA FRENTE)
 // ============================================
 window.verNota = async function(id, tipo) {
     try {
-        // NÃO FECHA O HISTÓRICO - apenas traz a nota para frente
-        
         if (tipo === 'VENDA') {
             const resultado = await lojaServices.buscarVendaPorId(id);
             if (resultado.success && resultado.data) {
@@ -1827,6 +1818,26 @@ window.verNota = async function(id, tipo) {
                 mostrarNotaOrcamento(resultado.data);
             }
         }
+        
+        // FORÇAR NOTA NA FRENTE
+        setTimeout(() => {
+            const notaModal = document.getElementById('notaFiscalModal');
+            const historicoModal = document.getElementById('historicoModal');
+            
+            if (notaModal) {
+                const notaContent = notaModal.querySelector('.modal-content');
+                if (notaContent) {
+                    notaContent.style.zIndex = '20000';
+                }
+            }
+            
+            if (historicoModal) {
+                const historicoContent = historicoModal.querySelector('.modal-content');
+                if (historicoContent) {
+                    historicoContent.style.zIndex = '10000';
+                }
+            }
+        }, 100);
         
     } catch (error) {
         console.error('Erro ao buscar nota:', error);
@@ -2057,6 +2068,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
