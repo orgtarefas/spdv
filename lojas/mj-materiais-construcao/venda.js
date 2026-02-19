@@ -1186,61 +1186,160 @@ function mostrarNotaFiscalVenda(venda) {
     const nomeLoja = document.getElementById('nomeLoja')?.textContent || 'SUA LOJA';
     const dataVenda = new Date(venda.data || venda.data_criacao).toLocaleString('pt-BR');
     
+    // Verificar se é venda extornada
+    const isExtornada = venda.status === 'extornada';
+    
     // Gerar conteúdo da nota
     let nota = '';
+    
+    // ============================================
+    // CABEÇALHO
+    // ============================================
     nota += '='.repeat(48) + '\n';
     nota += centralizarTexto(nomeLoja, 48) + '\n';
     nota += '='.repeat(48) + '\n';
-    nota += centralizarTexto('CUPOM NÃO FISCAL - VENDA', 48) + '\n';
-    nota += '='.repeat(48) + '\n';
-    nota += `VENDA: ${venda.numero}\n`;
-    nota += `DATA: ${dataVenda}\n`;
-    nota += `VENDEDOR: ${venda.vendedor_nome} (${venda.vendedor_login || 'operador'})\n`;
-    nota += `PAGAMENTO: ${traduzirFormaPagamento(venda.forma_pagamento)}\n`;
-
-    if (venda.cpf_cliente) {
-        nota += `CPF: ${venda.cpf_cliente.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}\n`;
+    
+    if (isExtornada) {
+        nota += centralizarTexto('*** VENDA EXTORNADA ***', 48) + '\n';
+        nota += centralizarTexto('DOCUMENTO CANCELADO', 48) + '\n';
+    } else {
+        nota += centralizarTexto('CUPOM NÃO FISCAL - VENDA', 48) + '\n';
     }
     
+    nota += '='.repeat(48) + '\n';
+    
+    // ============================================
+    // INFORMAÇÕES DA VENDA
+    // ============================================
+    nota += `VENDA..: ${venda.numero || venda.numero_venda || 'N/A'}\n`;
+    nota += `DATA...: ${dataVenda}\n`;
+    nota += `VENDEDOR: ${venda.vendedor_nome || venda.vendedor || 'Sistema'} (${venda.vendedor_login || 'operador'})\n`;
+    nota += `PGTO...: ${traduzirFormaPagamento(venda.forma_pagamento)}\n`;
+
+    // CPF do cliente (se houver)
+    if (venda.cpf_cliente) {
+        let cpfFormatado = venda.cpf_cliente;
+        if (cpfFormatado.length === 11) {
+            cpfFormatado = cpfFormatado.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+        nota += `CPF....: ${cpfFormatado}\n`;
+    }
+    
+    // Informação de extorno (se for o caso)
+    if (isExtornada) {
+        nota += '-'.repeat(48) + '\n';
+        nota += `EXTORNADO EM: ${new Date(venda.data_extorno).toLocaleString('pt-BR')}\n`;
+        nota += `EXTORNADO POR: ${venda.extornado_por || 'Sistema'}\n`;
+        if (venda.motivo_extorno) {
+            nota += `MOTIVO: ${venda.motivo_extorno}\n`;
+        }
+    }
+    
+    // ============================================
+    // DADOS DE ENTREGA (se houver)
+    // ============================================
     if (venda.tipo_entrega === 'entrega' && venda.dados_entrega) {
         nota += '-'.repeat(48) + '\n';
         nota += `ENTREGA:\n`;
         nota += `Cliente: ${venda.dados_entrega.nome}\n`;
-        nota += `Tel: ${venda.dados_entrega.telefone}\n`;
-        nota += `End: ${venda.dados_entrega.endereco}\n`;
+        nota += `Tel....: ${venda.dados_entrega.telefone}\n`;
+        nota += `End....: ${venda.dados_entrega.endereco}\n`;
+        if (venda.dados_entrega.cidade) nota += `Cidade.: ${venda.dados_entrega.cidade}\n`;
+        if (venda.dados_entrega.cep) nota += `CEP....: ${venda.dados_entrega.cep}\n`;
         if (venda.dados_entrega.taxaEntrega > 0) {
             nota += `Taxa Entrega: ${formatarMoedaResumida(venda.dados_entrega.taxaEntrega)}\n`;
         }
     }
     
+    // ============================================
+    // TABELA DE ITENS
+    // ============================================
     nota += '-'.repeat(48) + '\n';
     nota += 'ITEM  DESCRIÇÃO                QTD    UNIT     DESC    TOTAL\n';
     nota += '-'.repeat(48) + '\n';
     
-    venda.itens.forEach((item, i) => {
-        const num = (i + 1).toString().padStart(2, '0');
-        const nome = item.nome.substring(0, 20).padEnd(20, ' ');
-        const qtd = item.quantidade.toString().padStart(3, ' ');
-        const unit = formatarMoedaResumida(item.preco_unitario).padStart(7, ' ');
-        const desc = item.desconto ? item.desconto.toString().padStart(3, ' ') + '%' : '     ';
-        const total = formatarMoedaResumida(item.subtotal - (item.desconto_valor || 0)).padStart(7, ' ');
-        
-        nota += `${num} ${nome} ${qtd} ${unit} ${desc} ${total}\n`;
-    });
+    if (venda.itens && venda.itens.length > 0) {
+        venda.itens.forEach((item, i) => {
+            const num = (i + 1).toString().padStart(2, '0');
+            const nome = (item.nome || 'Produto').substring(0, 20).padEnd(20, ' ');
+            const qtd = (item.quantidade || 0).toString().padStart(3, ' ');
+            const unit = formatarMoedaResumida(item.preco_unitario || 0).padStart(7, ' ');
+            
+            // Formatar desconto
+            let desc = '     ';
+            if (item.desconto && item.desconto > 0) {
+                desc = item.desconto.toString().padStart(3, ' ') + '%';
+            } else if (item.desconto_valor && item.desconto_valor > 0) {
+                desc = 'VALOR';
+            }
+            desc = desc.padStart(5, ' ');
+            
+            // Calcular total com desconto
+            const totalItem = (item.subtotal || 0) - (item.desconto_valor || 0);
+            const total = formatarMoedaResumida(totalItem).padStart(7, ' ');
+            
+            nota += `${num} ${nome} ${qtd} ${unit} ${desc} ${total}\n`;
+        });
+    } else {
+        nota += 'Nenhum item encontrado\n';
+    }
     
+    // ============================================
+    // TOTAIS
+    // ============================================
     nota += '-'.repeat(48) + '\n';
-    if (venda.total_descontos > 0) {
+    
+    if (venda.total_descontos && venda.total_descontos > 0) {
         nota += `DESCONTOS:${formatarMoedaResumida(venda.total_descontos).padStart(37)}\n`;
     }
-    nota += `SUBTOTAL:${formatarMoedaResumida(venda.subtotal).padStart(38)}\n`;
-    nota += `TOTAL:${formatarMoedaResumida(venda.total).padStart(41)}\n`;
-    nota += '='.repeat(48) + '\n';
-    nota += centralizarTexto('OBRIGADO PELA PREFERÊNCIA!', 48) + '\n';
-    nota += centralizarTexto('VOLTE SEMPRE!', 48) + '\n';
+    
+    nota += `SUBTOTAL.:${formatarMoedaResumida(venda.subtotal || 0).padStart(37)}\n`;
+    nota += `TOTAL....:${formatarMoedaResumida(venda.total || 0).padStart(37)}\n`;
+    
+    // ============================================
+    // RODAPÉ
+    // ============================================
     nota += '='.repeat(48) + '\n';
     
+    if (isExtornada) {
+        nota += centralizarTexto('*** DOCUMENTO CANCELADO ***', 48) + '\n';
+        nota += centralizarTexto('SEM VALOR FISCAL', 48) + '\n';
+    } else {
+        nota += centralizarTexto('OBRIGADO PELA PREFERÊNCIA!', 48) + '\n';
+        nota += centralizarTexto('VOLTE SEMPRE!', 48) + '\n';
+    }
+    
+    nota += '='.repeat(48) + '\n';
+    
+    // Adicionar informação de sistema
+    nota += `SISTEMA PDV v1.0 - ${new Date().toLocaleDateString()}\n`;
+    
+    // ============================================
+    // ATUALIZAR MODAL
+    // ============================================
     conteudo.textContent = nota;
     modal.style.display = 'flex';
+    
+    // Atualizar título do modal
+    const modalHeader = modal.querySelector('.modal-header h3');
+    if (modalHeader) {
+        modalHeader.innerHTML = isExtornada ? 
+            '<i class="fas fa-undo-alt"></i> Nota Fiscal - Venda Extornada' : 
+            '<i class="fas fa-receipt"></i> Nota Fiscal da Venda';
+    }
+    
+    // Atualizar botões do modal
+    const modalFooter = modal.querySelector('.modal-footer');
+    if (modalFooter) {
+        modalFooter.innerHTML = `
+            <button class="btn-print" onclick="imprimirNotaFiscal()">
+                <i class="fas fa-print"></i> Imprimir Nota
+            </button>
+            <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
+                <i class="fas fa-times"></i> Fechar
+            </button>
+        `;
+    }
 }
 
 // ============================================
@@ -1296,6 +1395,8 @@ function mostrarNotaOrcamento(orcamento) {
     modal.style.display = 'flex';
 }
 
+
+
 // ============================================
 // FUNÇÕES UTILITÁRIAS
 // ============================================
@@ -1312,7 +1413,7 @@ function formatarMoedaResumida(valor) {
         currency: 'BRL',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    });
+    }).replace('R$', '').trim();
 }
 
 window.mascaraMoeda = function(input) {
@@ -1578,7 +1679,8 @@ async function carregarHistoricoCompleto() {
             }
         
             html += `
-                <div class="historico-item ${tipoClass}">
+            html += `
+                <div class="historico-item ${tipoClass}" data-status="${item.status || 'concluida'}">
                     <div class="historico-header">
                         <div>
                             <strong>${item.tipo_display} #${item.numero_exibicao}</strong> - ${dataFormatada} ${horaFormatada}
@@ -1591,17 +1693,30 @@ async function carregarHistoricoCompleto() {
                         ${item.forma_pagamento ? `<div><i class="fas fa-credit-card"></i> Pagamento: ${traduzirFormaPagamento(item.forma_pagamento)}</div>` : ''}
                         <div><i class="fas fa-user"></i> Vendedor: ${item.vendedor_nome || item.vendedor || 'Sistema'}</div>
                         ${item.data_validade ? `<div><i class="fas fa-calendar"></i> Validade: ${new Date(item.data_validade).toLocaleDateString('pt-BR')}</div>` : ''}
+                        
+                        <!-- MOSTRAR INFORMAÇÃO DE EXTORNO SE HOUVER -->
+                        ${item.status === 'extornada' ? `
+                            <div class="extorno-info">
+                                <i class="fas fa-undo-alt"></i> EXTORNADA em ${new Date(item.data_extorno).toLocaleString('pt-BR')}
+                                por ${item.extornado_por || 'Sistema'}
+                            </div>
+                        ` : ''}
                     </div>
                     <div class="historico-acoes">
                         ${item.tipo_display === 'ORÇAMENTO' && item.status === 'ativo' ? 
                             `<button class="btn-convert" onclick="converterOrcamentoParaVenda('${item.id}')">
-                                <i class="fas fa-cash-register"></i> Converter em Venda
+                                <i class="fas fa-cash-register"></i> Converter
                             </button>` : ''}
                         
-                        <!-- BOTÃO DE EXCLUIR PARA ORÇAMENTOS (sempre visível) -->
                         ${item.tipo_display === 'ORÇAMENTO' ? 
                             `<button class="btn-delete" onclick="excluirOrcamento('${item.id}', '${item.numero_exibicao}')">
                                 <i class="fas fa-trash-alt"></i> Excluir
+                            </button>` : ''}
+                        
+                        <!-- BOTÃO DE EXTORNO APENAS PARA VENDAS NÃO EXTORNADAS -->
+                        ${item.tipo_display === 'VENDA' && item.status !== 'extornada' ? 
+                            `<button class="btn-extornar" onclick="extornarVenda('${item.id}', '${item.numero_exibicao}')">
+                                <i class="fas fa-undo-alt"></i> Extornar
                             </button>` : ''}
                         
                         <button class="btn-view" onclick="verNota('${item.id}', '${item.tipo_display}')">
@@ -1912,6 +2027,87 @@ window.excluirOrcamento = async function(orcamentoId, orcamentoNumero) {
         esconderLoading();
     }
 };
+
+
+// ============================================
+// EXTORNAR VENDA (CANCELAR E DEVOLVER AO ESTOQUE)
+// ============================================
+window.extornarVenda = async function(vendaId, vendaNumero) {
+    try {
+        // Confirmar extorno
+        if (!confirm(`⚠️ EXTORNAR VENDA #${vendaNumero}?\n\nTem certeza que deseja cancelar esta venda?\n\n- Os produtos serão devolvidos ao estoque\n- A venda ficará marcada como EXTORNADA no histórico\n\nEsta ação pode ser desfeita?`)) {
+            return;
+        }
+        
+        // Confirmação adicional para evitar acidentes
+        if (!confirm(`🔄 CONFIRMAR EXTORNO?\n\nDigite "EXTORNAR" para confirmar:`)) {
+            return;
+        }
+        
+        mostrarLoading('Processando extorno da venda...');
+        
+        // Buscar dados da venda
+        const resultado = await lojaServices.buscarVendaPorId(vendaId);
+        
+        if (!resultado.success || !resultado.data) {
+            throw new Error('Venda não encontrada');
+        }
+        
+        const venda = resultado.data;
+        
+        // Verificar se a venda já foi extornada
+        if (venda.status === 'extornada') {
+            alert('Esta venda já foi extornada anteriormente!');
+            return;
+        }
+        
+        // DEVOLVER PRODUTOS AO ESTOQUE
+        for (const item of venda.itens) {
+            const resultadoEstoque = await lojaServices.atualizarEstoque(
+                item.produto_id,
+                item.quantidade,
+                'entrada' // Devolver ao estoque
+            );
+            
+            if (!resultadoEstoque.success) {
+                console.warn(`⚠️ Aviso ao devolver ${item.nome}:`, resultadoEstoque.error);
+            }
+        }
+        
+        // ATUALIZAR STATUS DA VENDA PARA EXTORNADA
+        const dadosAtualizados = {
+            status: 'extornada',
+            data_extorno: new Date(),
+            extornado_por: pdv.vendedorNome,
+            extornado_por_id: pdv.vendedorId,
+            extornado_por_login: pdv.vendedorLogin,
+            motivo_extorno: 'Cancelamento pelo operador'
+        };
+        
+        const resultadoUpdate = await lojaServices.atualizarVenda(vendaId, dadosAtualizados);
+        
+        if (!resultadoUpdate.success) {
+            throw new Error(resultadoUpdate.error || 'Erro ao atualizar status da venda');
+        }
+        
+        mostrarMensagem(`✅ Venda #${vendaNumero} extornada com sucesso!\nProdutos devolvidos ao estoque.`, 'success');
+        
+        // Recarregar o histórico
+        setTimeout(() => {
+            carregarHistoricoCompleto();
+        }, 500);
+        
+        // Recarregar produtos para atualizar estoque na interface
+        await carregarProdutos();
+        
+    } catch (error) {
+        console.error('❌ Erro ao extornar venda:', error);
+        mostrarMensagem(`Erro ao extornar venda: ${error.message}`, 'error');
+    } finally {
+        esconderLoading();
+    }
+};
+
 // ============================================
 
 // Fechar modais clicando fora
@@ -1922,6 +2118,7 @@ window.onclick = function(event) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
