@@ -1576,7 +1576,7 @@ async function carregarHistoricoCompleto() {
                     new Date(item.data_validade || 0) > new Date();
                 statusHtml = `<span class="status-badge ${valido ? 'valido' : 'expirado'}">${valido ? 'Válido' : 'Expirado'}</span>`;
             }
-            
+        
             html += `
                 <div class="historico-item ${tipoClass}">
                     <div class="historico-header">
@@ -1597,6 +1597,13 @@ async function carregarHistoricoCompleto() {
                             `<button class="btn-convert" onclick="converterOrcamentoParaVenda('${item.id}')">
                                 <i class="fas fa-cash-register"></i> Converter em Venda
                             </button>` : ''}
+                        
+                        <!-- BOTÃO DE EXCLUIR PARA ORÇAMENTOS (sempre visível) -->
+                        ${item.tipo_display === 'ORÇAMENTO' ? 
+                            `<button class="btn-delete" onclick="excluirOrcamento('${item.id}', '${item.numero_exibicao}')">
+                                <i class="fas fa-trash-alt"></i> Excluir
+                            </button>` : ''}
+                        
                         <button class="btn-view" onclick="verNota('${item.id}', '${item.tipo_display}')">
                             <i class="fas fa-eye"></i> Ver Nota
                         </button>
@@ -1870,8 +1877,42 @@ async function excluirOrcamentoAposConversao(orcamentoId) {
         console.error('❌ Erro ao excluir orçamento:', error);
     }
 }
-// ============================================
 
+
+// ============================================
+// EXCLUIR ORÇAMENTO DO HISTÓRICO
+// ============================================
+window.excluirOrcamento = async function(orcamentoId, orcamentoNumero) {
+    try {
+        // Confirmar exclusão
+        if (!confirm(`🗑️ Tem certeza que deseja EXCLUIR permanentemente o orçamento #${orcamentoNumero}?\n\nEsta ação não pode ser desfeita!`)) {
+            return;
+        }
+        
+        mostrarLoading('Excluindo orçamento...');
+        
+        // Excluir do Firebase
+        const resultado = await lojaServices.excluirOrcamento(orcamentoId);
+        
+        if (!resultado.success) {
+            throw new Error(resultado.error || 'Erro ao excluir orçamento');
+        }
+        
+        mostrarMensagem(`✅ Orçamento #${orcamentoNumero} excluído com sucesso!`, 'success');
+        
+        // Recarregar o histórico
+        setTimeout(() => {
+            carregarHistoricoCompleto();
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir orçamento:', error);
+        mostrarMensagem(`Erro ao excluir orçamento: ${error.message}`, 'error');
+    } finally {
+        esconderLoading();
+    }
+};
+// ============================================
 
 // Fechar modais clicando fora
 window.onclick = function(event) {
@@ -1881,6 +1922,7 @@ window.onclick = function(event) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
