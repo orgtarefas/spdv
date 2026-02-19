@@ -1795,27 +1795,23 @@ window.filtrarHistorico = function() {
 };
 
 // ============================================
-// VER NOTA (COM FECHAMENTO DO HISTÓRICO)
+// VER NOTA
 // ============================================
 window.verNota = async function(id, tipo) {
     try {
-        // Fechar o modal de histórico PRIMEIRO
-        fecharModal('historicoModal');
+        // NÃO FECHA O HISTÓRICO - apenas traz a nota para frente
         
-        // Pequeno delay para garantir que fechou
-        setTimeout(async () => {
-            if (tipo === 'VENDA') {
-                const resultado = await lojaServices.buscarVendaPorId(id);
-                if (resultado.success && resultado.data) {
-                    mostrarNotaFiscalVenda(resultado.data);
-                }
-            } else if (tipo === 'ORÇAMENTO') {
-                const resultado = await lojaServices.buscarOrcamentoPorId(id);
-                if (resultado.success && resultado.data) {
-                    mostrarNotaOrcamento(resultado.data);
-                }
+        if (tipo === 'VENDA') {
+            const resultado = await lojaServices.buscarVendaPorId(id);
+            if (resultado.success && resultado.data) {
+                mostrarNotaFiscalVenda(resultado.data);
             }
-        }, 100);
+        } else if (tipo === 'ORÇAMENTO') {
+            const resultado = await lojaServices.buscarOrcamentoPorId(id);
+            if (resultado.success && resultado.data) {
+                mostrarNotaOrcamento(resultado.data);
+            }
+        }
         
     } catch (error) {
         console.error('Erro ao buscar nota:', error);
@@ -2046,6 +2042,7 @@ window.extornarVenda = async function(vendaId, vendaNumero) {
 };
 
 console.log("✅ PDV carregado com sucesso!");
+
 
 
 
