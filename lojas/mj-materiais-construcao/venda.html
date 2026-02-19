@@ -439,7 +439,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-history"></i> Histórico de Vendas</h3>
-                <button class="modal-close" onclick="fecharModal('historicoModal')">&times;</button>
+                <button class="modal-close" onclick="fecharModal('historicoModal')">×</button>
             </div>
             <div class="modal-body">
                 <div class="historico-filtros">
@@ -449,11 +449,17 @@
                         <i class="fas fa-search"></i> Filtrar
                     </button>
                 </div>
-                <div class="historico-results" id="historicoResults"></div>
+                <div class="historico-results" id="historicoResults">
+                    <!-- CONTEÚDO SERÁ PREENCHIDO DINAMICAMENTE PELO JAVASCRIPT -->
+                    <div class="empty-state">
+                        <i class="fas fa-history"></i>
+                        <p>Carregando histórico...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
+        
     <!-- Loading -->
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
@@ -475,3 +481,4 @@
     <script type="module" src="venda.js"></script>
 </body>
 </html>
+
