@@ -1263,12 +1263,12 @@ body {
 }
 
 /* ====================================
-   FOOTER - CORRIGIDO (IMAGENS PRESERVADAS)
+   FOOTER - CONTATOS CORRIGIDO
    ==================================== */
 .main-footer {
     background: linear-gradient(135deg, #2c3e50, #1a1a1a);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 1rem 1rem 0.5rem;
+    padding: 0.8rem 1rem 0.5rem;
     margin-top: auto;
     width: 100%;
     color: #ffffff;
@@ -1276,10 +1276,10 @@ body {
 
 .footer-content {
     width: 100%;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1.5fr 1fr 0.8fr;
     gap: 1rem;
     align-items: center;
 }
@@ -1295,21 +1295,21 @@ body {
 
 .contact-grid {
     display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
+    flex-direction: column;  /* Mantém vertical */
+    gap: 0.2rem;  /* Espaço reduzido entre os itens */
 }
 
 .contact-link {
     text-decoration: none;
     color: inherit;
-    display: inline-block;
+    display: block;
 }
 
 .contact-item {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.2rem 0;
+    padding: 0.1rem 0;
     transition: all 0.2s ease;
     color: #ffffff;
 }
@@ -1326,19 +1326,39 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    background: transparent !important; /* Remove qualquer fundo */
 }
 
 .contact-icon img {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     object-fit: contain;
-    display: block; /* Garante que a imagem se comporte como bloco */
-    max-width: 100%;
-    max-height: 100%;
-    filter: none !important; /* Remove qualquer filtro de cor */
-    opacity: 1 !important; /* Garante opacidade total */
-    background: transparent !important; /* Remove fundo */
+    display: block;
+}
+
+.contact-content {
+    display: flex;
+    align-items: center;  /* Alinha verticalmente */
+    gap: 0.3rem;
+    flex-wrap: wrap;  /* Permite quebra se necessário */
+}
+
+.contact-label {
+    font-size: 0.75rem;
+    color: #a0a0a0;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.contact-label::after {
+    content: ':';  /* Adiciona os dois pontos */
+    margin-left: 0.1rem;
+}
+
+.contact-value {
+    font-size: 0.8rem;
+    color: #ffffff;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 /* Coluna Centro - Endereço */
@@ -1354,13 +1374,12 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.3rem 0.5rem;
+    padding: 0.2rem 0.5rem;
     border-radius: 20px;
     transition: all 0.2s ease;
     text-decoration: none;
     color: inherit;
     cursor: pointer;
-    max-width: 100%;
     background: rgba(255, 255, 255, 0.05);
 }
 
@@ -1376,7 +1395,6 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    background: transparent !important;
 }
 
 .address-icon img {
@@ -1384,15 +1402,11 @@ body {
     height: 16px;
     object-fit: contain;
     display: block;
-    max-width: 100%;
-    max-height: 100%;
-    filter: none !important;
-    opacity: 1 !important;
-    background: transparent !important;
 }
 
 .address-content {
-    min-width: 0;
+    display: flex;
+    align-items: center;
 }
 
 .address-label {
@@ -1406,8 +1420,7 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 280px;
-    opacity: 0.9;
+    max-width: 250px;
 }
 
 /* Coluna Direita - Chat */
@@ -1423,7 +1436,7 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 1rem;
+    padding: 0.3rem 0.8rem;
     border-radius: 30px;
     background: linear-gradient(135deg, #00a86b, #0056b3);
     color: white;
@@ -1445,58 +1458,58 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: transparent !important;
 }
 
 .chat-icon img {
-    width: 14px;
-    height: 14px;
-    object-fit: contain;
-    display: block;
-    max-width: 100%;
-    max-height: 100%;
-    filter: none !important; /* Remove filtro branco */
-    opacity: 1 !important;
-    background: transparent !important;
-}
-
-/* Loading states */
-.loading-contacts,
-.loading-address {
-    padding: 0;
-}
-
-.spinner-small {
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top: 2px solid #00a86b;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+    object-fit: contain;
+    display: block;
 }
 
-.no-contacts,
-.no-address {
+.chat-text {
     font-size: 0.8rem;
-    color: #a0a0a0;
-    font-style: italic;
+    font-weight: 500;
 }
 
-/* ====================================
-   COPYRIGHT
-   ==================================== */
+/* Copyright */
 .footer-copyright {
     width: 100%;
     text-align: center;
-    padding: 0.75rem 0 0.25rem;
-    margin-top: 0.5rem;
+    padding: 0.5rem 0 0.2rem;
+    margin-top: 0.3rem;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-copyright p {
     margin: 0;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 400;
     color: #a0a0a0;
     letter-spacing: 0.5px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .footer-contacts {
+        text-align: center;
+    }
+    
+    .contact-item {
+        justify-content: center;
+    }
+    
+    .footer-address {
+        text-align: center;
+    }
+    
+    .footer-chat {
+        text-align: center;
+    }
 }
