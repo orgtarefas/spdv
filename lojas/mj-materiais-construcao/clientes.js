@@ -58,7 +58,69 @@ function extrairLojaIdDaURL() {
     return null;
 }
 
+// ============================================
+// FUNÇÃO PARA OBTER PLACEHOLDER
+// ============================================
+function getPlaceholderIcon() {
+    return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E";
+}
 
+// ============================================
+// FUNÇÃO PARA ABRIR MODAL (CORRIGIDA)
+// ============================================
+function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+        // Garantir que o estilo display não interfira
+        modal.style.display = '';
+        console.log(`✅ Modal ${modalId} aberto`);
+    } else {
+        console.error(`❌ Modal ${modalId} não encontrado`);
+    }
+}
+
+// ============================================
+// FUNÇÃO PARA FECHAR MODAL (CORRIGIDA)
+// ============================================
+window.fecharModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        // Garantir que o estilo display não interfira
+        modal.style.display = '';
+        console.log(`✅ Modal ${modalId} fechado`);
+        
+        // Se for o modal de consulta, desativar scan
+        if (modalId === 'quickSearchModal' && window.gerenciadorCodigoBarrasClientes) {
+            window.gerenciadorCodigoBarrasClientes.desativarModoScan();
+        }
+    }
+};
+
+// ============================================
+// FUNÇÃO PARA ABRIR MODAL DE CONSULTA (CORRIGIDA)
+// ============================================
+function abrirModalConsulta() {
+    const modal = document.getElementById('quickSearchModal');
+    const searchInput = document.getElementById('searchProductInputModal');
+    
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = '';
+        
+        if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+        }
+        
+        // Mostrar todos os produtos
+        exibirTodosProdutosNoModal();
+        console.log('✅ Modal de consulta aberto');
+    } else {
+        console.error('❌ Modal de consulta não encontrado');
+    }
+}
 
 // ============================================
 // FUNÇÃO PARA OBTER CAMINHO DA LOGO
@@ -76,7 +138,7 @@ function renderizarChat() {
     if (!footerChat) return;
     
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;  // CORRIGIDO: voltando a ter /spdv
+    const basePath = `/spdv/imagens/${lojaId}/`;
     const placeholder = getPlaceholderIcon();
     
     footerChat.innerHTML = `
@@ -153,8 +215,7 @@ function carregarLogoLoja() {
         return;
     }
     
-    // Caminho correto: /spdv/imagens/[loja-id]/logo.png
-    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;  // CORRIGIDO: voltando a ter /spdv
+    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
     console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
     
     const testImg = new Image();
@@ -162,7 +223,6 @@ function carregarLogoLoja() {
         console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
         logoImg.src = logoPath;
         
-        // Atualizar logo do footer também
         const footerLogo = document.getElementById('footerLogo');
         if (footerLogo) footerLogo.src = logoPath;
     };
@@ -178,7 +238,6 @@ function carregarLogoLoja() {
     testImg.src = logoPath;
 }
 
-
 // ============================================
 // CLASSE: GerenciadorCodigoBarrasClientes
 // ============================================
@@ -189,7 +248,6 @@ class GerenciadorCodigoBarrasClientes {
         const searchInput = document.getElementById('searchProductInput');
         if (!searchInput) return;
         
-        // Controle de digitação
         searchInput.addEventListener('keydown', (e) => {
             if (e.key >= '0' && e.key <= '9') {
                 if (searchInput.value.length === 13) {
@@ -198,7 +256,6 @@ class GerenciadorCodigoBarrasClientes {
             }
         });
         
-        // Input handler
         searchInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
             
@@ -206,13 +263,11 @@ class GerenciadorCodigoBarrasClientes {
                 this.value = this.value.slice(0, 13);
             }
             
-            // Se tem 13 dígitos, busca automaticamente
             if (this.value.length === 13) {
                 console.log('🎯 13 dígitos! Buscando produto...');
                 buscarProdutoPorCodigo(this.value);
             }
             
-            // Busca normal enquanto digita
             if (this.value.length > 2) {
                 filtrarProdutosPorBusca(this.value);
             } else if (this.value.length === 0) {
@@ -220,7 +275,6 @@ class GerenciadorCodigoBarrasClientes {
             }
         });
         
-        // Paste handler
         searchInput.addEventListener('paste', (e) => {
             e.preventDefault();
             const texto = e.clipboardData.getData('text');
@@ -246,7 +300,7 @@ class GerenciadorCodigoBarrasClientes {
         const modal = document.getElementById('quickSearchModal');
         const searchInput = document.getElementById('searchProductInputModal');
         
-        if (!modal || modal.style.display !== 'flex' || !searchInput) {
+        if (!modal || !modal.classList.contains('active') || !searchInput) {
             mostrarMensagem('📷 Abra a consulta rápida para ler códigos', 'info', 3000);
             return;
         }
@@ -294,10 +348,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     mostrarLoading('Carregando loja...');
     
     try {
-        // 1. Extrair loja ID da URL
         extrairLojaIdDaURL();
         
-        // 2. Verificar se temos o ID da loja
         const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
         
         if (!lojaId) {
@@ -311,32 +363,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         console.log(`✅ Loja identificada: ${lojaId}`);
         
-        // 3. CARREGAR DADOS DA LOJA DO FIREBASE (ÚNICA FONTE DE VERDADE)
         await carregarDadosLojaFirebase();
-        
-        // 4. Carregar logo da loja
         carregarLogoLoja();
-        
-        // 5. Carregar configuração técnica do lojas.js (banco_estoque, imgbb_key, etc)
         carregarConfigLoja();
         
-        // 6. Inicializar gerenciador de código de barras
         gerenciadorCodigoBarrasClientes = new GerenciadorCodigoBarrasClientes();
         window.gerenciadorCodigoBarrasClientes = gerenciadorCodigoBarrasClientes;
         gerenciadorCodigoBarrasClientes.iniciarEscuta();
         
-        // 7. Verificar se cliente já está logado
         await verificarSessaoCliente();
-        
-        // 8. Configurar eventos da interface
         configurarEventos();
         
-        // 9. Carregar produtos e categorias
         await carregarProdutos();
         await carregarCategorias();
         await carregarProdutosDestaque();
         
-        // 10. Carregar carrinho do sessionStorage
         carregarCarrinhoStorage();
         
         esconderLoading();
@@ -348,7 +389,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         esconderLoading();
     }
 });
-
 
 // ============================================
 // CARREGAR CONFIGURAÇÃO DA LOJA
@@ -371,7 +411,7 @@ function carregarConfigLoja() {
 }
 
 // ============================================
-// VERIFICAR SESSÃO DO CLIENTE NO FIREBASE
+// VERIFICAR SESSÃO DO CLIENTE
 // ============================================
 async function verificarSessaoCliente() {
     const sessao = sessionStorage.getItem('cliente_logado');
@@ -383,7 +423,6 @@ async function verificarSessaoCliente() {
             clienteLogado = true;
             dadosCliente = dados;
             
-            // Atualizar interface
             const userName = document.getElementById('userName');
             const btnLogout = document.getElementById('btnLogout');
             const btnLogin = document.getElementById('btnLogin');
@@ -412,10 +451,7 @@ async function validarLoginCliente(login, senha) {
             throw new Error('Banco de dados não inicializado');
         }
         
-        // Referência para o documento da loja na coleção logins
         const loginLojaRef = doc(db, "logins", lojaServices.lojaId);
-        
-        // Verificar se o documento da loja existe
         const loginLojaDoc = await getDoc(loginLojaRef);
         
         if (!loginLojaDoc.exists()) {
@@ -423,10 +459,7 @@ async function validarLoginCliente(login, senha) {
             return { success: false, message: "Loja não configurada para clientes" };
         }
         
-        // Referência para a subcoleção clientes
         const clientesRef = collection(db, "logins", lojaServices.lojaId, "clientes");
-        
-        // Buscar todos os clientes
         const clientesSnapshot = await getDocs(clientesRef);
         
         let clienteEncontrado = null;
@@ -445,21 +478,16 @@ async function validarLoginCliente(login, senha) {
             return { success: false, message: "Login ou senha incorretos" };
         }
         
-        console.log(`✅ Cliente encontrado:`, clienteEncontrado);
-        
-        // Verificar se o cliente está ativo
         if (clienteEncontrado.ativo === false) {
             console.log(`❌ Cliente inativo: ${login}`);
             return { success: false, message: "Cliente inativo. Entre em contato com a loja." };
         }
         
-        // Verificar senha
         if (clienteEncontrado.senha !== senha) {
             console.log(`❌ Senha incorreta para: ${login}`);
             return { success: false, message: "Login ou senha incorretos" };
         }
         
-        // Login bem-sucedido
         const dadosCliente = {
             id: clienteId,
             login: clienteEncontrado.login,
@@ -498,10 +526,7 @@ async function cadastrarCliente(dados) {
             throw new Error('Banco de dados não inicializado');
         }
         
-        // Referência para a subcoleção clientes
         const clientesRef = collection(db, "logins", lojaServices.lojaId, "clientes");
-        
-        // Verificar se login já existe
         const clientesSnapshot = await getDocs(clientesRef);
         let loginExiste = false;
         
@@ -516,7 +541,6 @@ async function cadastrarCliente(dados) {
             return { success: false, message: "Este login já está em uso" };
         }
         
-        // Verificar se CPF já existe
         if (dados.cpf) {
             let cpfExiste = false;
             clientesSnapshot.forEach((doc) => {
@@ -531,7 +555,6 @@ async function cadastrarCliente(dados) {
             }
         }
         
-        // Verificar se email já existe
         if (dados.email) {
             let emailExiste = false;
             clientesSnapshot.forEach((doc) => {
@@ -546,7 +569,6 @@ async function cadastrarCliente(dados) {
             }
         }
         
-        // Criar novo documento com ID automático
         const novoClienteRef = doc(clientesRef);
         
         const dadosCliente = {
@@ -555,7 +577,7 @@ async function cadastrarCliente(dados) {
             ativo: true,
             data_cadastro: serverTimestamp(),
             data_atualizacao: serverTimestamp(),
-            data_validade: new Date('2030-12-31'), // Data padrão
+            data_validade: new Date('2030-12-31'),
             perfil: 'cliente'
         };
         
@@ -577,15 +599,12 @@ async function cadastrarCliente(dados) {
     }
 }
 
-
-
 // ============================================
 // CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
     console.log("⚙️ Configurando eventos...");
     
-    // Botão Login
     const btnLogin = document.getElementById('btnLogin');
     if (btnLogin) {
         btnLogin.addEventListener('click', () => {
@@ -593,7 +612,6 @@ function configurarEventos() {
         });
     }
     
-    // Botão Logout
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
         btnLogout.addEventListener('click', () => {
@@ -613,7 +631,6 @@ function configurarEventos() {
         });
     }
     
-    // Botão Ir para Carrinho
     const btnGoToCart = document.getElementById('btnGoToCart');
     if (btnGoToCart) {
         btnGoToCart.addEventListener('click', () => {
@@ -626,7 +643,6 @@ function configurarEventos() {
         });
     }
     
-    // Botão Consulta Rápida (ícone de scan no header)
     const btnScanCode = document.getElementById('btnScanCode');
     if (btnScanCode) {
         btnScanCode.addEventListener('click', () => {
@@ -634,7 +650,6 @@ function configurarEventos() {
         });
     }
     
-    // Botões do carrossel
     const prevBtn = document.getElementById('carouselPrev');
     const nextBtn = document.getElementById('carouselNext');
     
@@ -654,13 +669,11 @@ function configurarEventos() {
         });
     }
     
-    // Confirmar Login
     const btnConfirmarLogin = document.getElementById('btnConfirmarLogin');
     if (btnConfirmarLogin) {
         btnConfirmarLogin.addEventListener('click', fazerLoginCliente);
     }
     
-    // Enter no campo de senha do login
     const loginSenha = document.getElementById('loginSenha');
     if (loginSenha) {
         loginSenha.addEventListener('keypress', (e) => {
@@ -670,7 +683,6 @@ function configurarEventos() {
         });
     }
     
-    // Link "Esqueci a senha"
     const forgotPassword = document.getElementById('forgotPasswordCliente');
     if (forgotPassword) {
         forgotPassword.addEventListener('click', (e) => {
@@ -679,7 +691,6 @@ function configurarEventos() {
         });
     }
     
-    // Link para cadastro
     const loginForm = document.querySelector('.login-form');
     if (loginForm) {
         const cadastroLink = document.createElement('div');
@@ -698,13 +709,11 @@ function configurarEventos() {
         });
     }
     
-    // Botão Confirmar Cadastro
     const btnConfirmarCadastro = document.getElementById('btnConfirmarCadastro');
     if (btnConfirmarCadastro) {
         btnConfirmarCadastro.addEventListener('click', fazerCadastroCliente);
     }
     
-    // Máscaras para campos de cadastro
     const cadastroTelefone = document.getElementById('cadastroTelefone');
     if (cadastroTelefone) {
         cadastroTelefone.addEventListener('input', function() {
@@ -735,10 +744,8 @@ function configurarEventos() {
         });
     }
     
-    // Modal de Consulta Rápida
     configurarModalConsulta();
     
-    // Atalhos de teclado
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
@@ -747,16 +754,12 @@ function configurarEventos() {
         
         if (e.key === 'Escape') {
             const modal = document.getElementById('quickSearchModal');
-            if (modal && modal.style.display === 'flex') {
-                modal.style.display = 'none';
-                if (window.gerenciadorCodigoBarrasClientes) {
-                    window.gerenciadorCodigoBarrasClientes.desativarModoScan();
-                }
+            if (modal && modal.classList.contains('active')) {
+                fecharModal('quickSearchModal');
             }
         }
     });
     
-    // Evento de redimensionamento para atualizar o carrossel
     window.addEventListener('resize', () => {
         if (swiperInstance) {
             swiperInstance.update();
@@ -767,7 +770,95 @@ function configurarEventos() {
 }
 
 // ============================================
-// FUNÇÃO PARA RENDERIZAR ENDEREÇO
+// CONFIGURAR MODAL DE CONSULTA (CORRIGIDO)
+// ============================================
+function configurarModalConsulta() {
+    const modalConsulta = document.getElementById('quickSearchModal');
+    if (!modalConsulta) return;
+    
+    const modalClose = modalConsulta.querySelector('.modal-close');
+    if (modalClose) {
+        modalClose.addEventListener('click', () => {
+            fecharModal('quickSearchModal');
+        });
+    }
+    
+    modalConsulta.addEventListener('click', function(e) {
+        if (e.target === this) {
+            fecharModal('quickSearchModal');
+        }
+    });
+    
+    const searchClearModal = document.getElementById('searchClearModal');
+    if (searchClearModal) {
+        searchClearModal.addEventListener('click', () => {
+            const input = document.getElementById('searchProductInputModal');
+            if (input) {
+                input.value = '';
+                input.focus();
+                document.getElementById('searchResultsModal').innerHTML = `
+                    <div class="empty-results">
+                        <i class="fas fa-search"></i>
+                        <p>Digite para buscar um produto</p>
+                        <small>Busque por código, nome ou categoria</small>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    const btnScanCodeModal = document.getElementById('btnScanCodeModal');
+    if (btnScanCodeModal) {
+        btnScanCodeModal.addEventListener('click', function() {
+            const searchInput = document.getElementById('searchProductInputModal');
+            if (searchInput) searchInput.value = '';
+            
+            this.classList.toggle('active');
+            
+            if (this.classList.contains('active')) {
+                if (window.gerenciadorCodigoBarrasClientes) {
+                    window.gerenciadorCodigoBarrasClientes.ativarModoScan();
+                }
+            } else {
+                if (window.gerenciadorCodigoBarrasClientes) {
+                    window.gerenciadorCodigoBarrasClientes.desativarModoScan();
+                }
+            }
+        });
+    }
+    
+    const searchProductInputModal = document.getElementById('searchProductInputModal');
+    if (searchProductInputModal) {
+        searchProductInputModal.addEventListener('input', function() {
+            const termo = this.value.trim();
+            buscarNoModal(termo);
+        });
+        
+        searchProductInputModal.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const termo = this.value.trim();
+                if (termo) buscarNoModal(termo);
+            }
+        });
+    }
+    
+    const filterBtns = modalConsulta.querySelectorAll('.filter-btn');
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            const input = document.getElementById('searchProductInputModal');
+            if (input) {
+                buscarNoModal(input.value.trim());
+            }
+        });
+    });
+}
+
+// ============================================
+// RENDERIZAR ENDEREÇO
 // ============================================
 function renderizarEndereco(dadosLoja) {
     const addressGrid = document.getElementById('addressGrid');
@@ -780,10 +871,9 @@ function renderizarEndereco(dadosLoja) {
     
     const endereco = dadosLoja.endereco;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;  // CORRIGIDO: voltando a ter /spdv
+    const basePath = `/spdv/imagens/${lojaId}/`;
     const placeholder = getPlaceholderIcon();
     
-    // Montar string do endereço
     const partes = [];
     if (endereco.rua) partes.push(endereco.rua);
     if (endereco.numero) partes.push(`nº ${endereco.numero}`);
@@ -793,8 +883,6 @@ function renderizarEndereco(dadosLoja) {
     if (endereco.cep) partes.push(`CEP: ${endereco.cep}`);
     
     const enderecoCompleto = partes.join(' ');
-    
-    // Montar URL do Google Maps
     const query = encodeURIComponent(enderecoCompleto);
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
     
@@ -812,12 +900,11 @@ function renderizarEndereco(dadosLoja) {
     `;
     
     addressGrid.innerHTML = html;
-    
     console.log('📍 Endereço renderizado:', enderecoCompleto);
 }
 
 // ============================================
-// FUNÇÃO PARA CONFIGURAR CHAT
+// CONFIGURAR CHAT
 // ============================================
 function configurarChat() {
     const chatButton = document.getElementById('chatButton');
@@ -833,9 +920,8 @@ function configurarChat() {
     console.log('💬 Chat configurado');
 }
 
-
 // ============================================
-// FUNÇÃO PARA RENDERIZAR CONTATOS (CORRIGIDA)
+// RENDERIZAR CONTATOS
 // ============================================
 function renderizarContatos(dadosLoja) {
     const contactGrid = document.getElementById('contactGrid');
@@ -848,12 +934,11 @@ function renderizarContatos(dadosLoja) {
     
     const contato = dadosLoja.contato;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;  // CORRIGIDO: voltando a ter /spdv
+    const basePath = `/spdv/imagens/${lojaId}/`;
     const placeholder = getPlaceholderIcon();
     
     let html = '';
     
-    // WHATSAPP
     if (contato.whatsapp && contato.whatsapp.trim() !== '') {
         const numero = contato.whatsapp.replace(/\D/g, '');
         html += `
@@ -872,7 +957,6 @@ function renderizarContatos(dadosLoja) {
         `;
     }
     
-    // E-MAIL
     if (contato.email && contato.email.trim() !== '') {
         html += `
             <a href="mailto:${contato.email}" target="_blank" class="contact-link">
@@ -890,7 +974,6 @@ function renderizarContatos(dadosLoja) {
         `;
     }
     
-    // INSTAGRAM
     if (contato.instagram && contato.instagram.trim() !== '') {
         const usuario = contato.instagram.replace('@', '');
         html += `
@@ -922,133 +1005,127 @@ function renderizarContatos(dadosLoja) {
     });
 }
 
-
 // ============================================
-// CONFIGURAR MODAL DE CONSULTA
+// CARREGAR DADOS DA LOJA DO FIREBASE
 // ============================================
-function configurarModalConsulta() {
-    const modalConsulta = document.getElementById('quickSearchModal');
-    if (!modalConsulta) return;
+async function carregarDadosLojaFirebase() {
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     
-    const modalClose = modalConsulta.querySelector('.modal-close');
-    if (modalClose) {
-        modalClose.addEventListener('click', () => {
-            modalConsulta.style.display = 'none';
-            if (window.gerenciadorCodigoBarrasClientes) {
-                window.gerenciadorCodigoBarrasClientes.desativarModoScan();
-            }
-        });
+    if (!lojaId) {
+        console.warn('⚠️ ID da loja não disponível para carregar dados');
+        return;
     }
     
-    modalConsulta.addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.style.display = 'none';
-            if (window.gerenciadorCodigoBarrasClientes) {
-                window.gerenciadorCodigoBarrasClientes.desativarModoScan();
-            }
-        }
-    });
-    
-    // Botão limpar busca no modal
-    const searchClearModal = document.getElementById('searchClearModal');
-    if (searchClearModal) {
-        searchClearModal.addEventListener('click', () => {
-            const input = document.getElementById('searchProductInputModal');
-            if (input) {
-                input.value = '';
-                input.focus();
-                document.getElementById('searchResultsModal').innerHTML = `
-                    <div class="empty-results">
-                        <i class="fas fa-search"></i>
-                        <p>Digite para buscar um produto</p>
-                        <small>Busque por código, nome ou categoria</small>
-                    </div>
-                `;
-            }
+    try {
+        console.log(`🔍 Buscando dados da loja no Firebase para: ${lojaId}`);
+        
+        const lojasRef = collection(db, "lojas");
+        const q = query(lojasRef, where("banco_login", "==", lojaId));
+        const querySnapshot = await getDocs(q);
+        
+        let dadosLoja = null;
+        let documentoId = null;
+        
+        querySnapshot.forEach((doc) => {
+            dadosLoja = doc.data();
+            documentoId = doc.id;
+            console.log(`✅ Loja encontrada! Documento ID: ${documentoId}`);
         });
-    }
-    
-    // Botão scan no modal
-    const btnScanCodeModal = document.getElementById('btnScanCodeModal');
-    if (btnScanCodeModal) {
-        btnScanCodeModal.addEventListener('click', function() {
-            const searchInput = document.getElementById('searchProductInputModal');
-            if (searchInput) searchInput.value = '';
+        
+        if (dadosLoja) {
+            console.log('✅ Dados completos da loja:', dadosLoja);
             
-            this.classList.toggle('active');
+            const nomeLoja = dadosLoja.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             
-            if (this.classList.contains('active')) {
-                if (window.gerenciadorCodigoBarrasClientes) {
-                    window.gerenciadorCodigoBarrasClientes.ativarModoScan();
-                }
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeFooter',
+                'lojaNomeCopyright'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) elemento.textContent = nomeLoja;
+            });
+            
+            document.title = `${nomeLoja} - Loja Online`;
+            console.log(`🏪 Nome da loja: ${nomeLoja}`);
+            
+            const lojaLocal = document.getElementById('lojaLocal');
+            if (lojaLocal && dadosLoja.local) {
+                lojaLocal.textContent = dadosLoja.local;
+                console.log(`📍 Local: ${dadosLoja.local}`);
+            }
+            
+            if (dadosLoja.contato) {
+                console.log('📞 Contato encontrado:', dadosLoja.contato);
+                renderizarContatos(dadosLoja);
             } else {
-                if (window.gerenciadorCodigoBarrasClientes) {
-                    window.gerenciadorCodigoBarrasClientes.desativarModoScan();
+                console.log('ℹ️ Nenhum contato encontrado no Firebase');
+                const contactGrid = document.getElementById('contactGrid');
+                if (contactGrid) {
+                    contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
                 }
             }
-        });
-    }
-    
-    // Input no modal
-    const searchProductInputModal = document.getElementById('searchProductInputModal');
-    if (searchProductInputModal) {
-        searchProductInputModal.addEventListener('input', function() {
-            const termo = this.value.trim();
-            buscarNoModal(termo);
-        });
-        
-        searchProductInputModal.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const termo = this.value.trim();
-                if (termo) buscarNoModal(termo);
-            }
-        });
-    }
-    
-    // Filtros no modal
-    const filterBtns = modalConsulta.querySelectorAll('.filter-btn');
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
             
-            const input = document.getElementById('searchProductInputModal');
-            if (input) {
-                buscarNoModal(input.value.trim());
+            if (dadosLoja.endereco) {
+                console.log('📍 Endereço encontrado:', dadosLoja.endereco);
+                renderizarEndereco(dadosLoja);
+            } else {
+                console.log('ℹ️ Nenhum endereço encontrado no Firebase');
+                const addressGrid = document.getElementById('addressGrid');
+                if (addressGrid) {
+                    addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
+                }
             }
-        });
-    });
-}
-
-// ============================================
-// FUNÇÕES DE MODAL
-// ============================================
-function abrirModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-}
-
-window.fecharModal = function(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
-};
-
-function abrirModalConsulta() {
-    const modal = document.getElementById('quickSearchModal');
-    const searchInput = document.getElementById('searchProductInputModal');
-    
-    if (modal && searchInput) {
-        modal.style.display = 'flex';
-        searchInput.value = '';
-        searchInput.focus();
+            
+            renderizarChat();
+            
+            if (dadosLoja.ativo !== undefined) {
+                console.log(`🔵 Loja ativa: ${dadosLoja.ativo ? 'Sim' : 'Não'}`);
+            }
+            
+            console.log(`✅ Loja ${nomeLoja} configurada com sucesso!`);
+            
+        } else {
+            console.warn(`⚠️ Nenhuma loja encontrada com banco_login = ${lojaId}`);
+            
+            const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) elemento.textContent = nomeFallback;
+            });
+            
+            document.title = `${nomeFallback} - Loja Online`;
+            
+            const contactGrid = document.getElementById('contactGrid');
+            if (contactGrid) {
+                contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
+            }
+            
+            const addressGrid = document.getElementById('addressGrid');
+            if (addressGrid) {
+                addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
+            }
+            
+            renderizarChat();
+        }
         
-        // Mostrar todos os produtos
-        exibirTodosProdutosNoModal();
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados da loja do Firebase:', error);
+        
+        const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
+        elementosNome.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) elemento.textContent = nomeFallback;
+        });
+        
+        renderizarChat();
+        mostrarMensagem('Erro ao carregar dados da loja', 'error');
     }
 }
 
@@ -1074,17 +1151,14 @@ async function fazerLoginCliente() {
             dadosCliente = resultado.data;
             clienteLogado = true;
             
-            // Salvar na sessão
             sessionStorage.setItem('cliente_logado', JSON.stringify(dadosCliente));
             
-            // Salvar login para lembrar (opcional)
             if (lembrar) {
                 localStorage.setItem('cliente_ultimo_login', login);
             } else {
                 localStorage.removeItem('cliente_ultimo_login');
             }
             
-            // Atualizar interface
             const userName = document.getElementById('userName');
             const btnLogout = document.getElementById('btnLogout');
             const btnLogin = document.getElementById('btnLogin');
@@ -1096,7 +1170,6 @@ async function fazerLoginCliente() {
             fecharModal('loginModal');
             mostrarMensagem(`Bem-vindo(a) ${dadosCliente.nome}!`, 'success');
             
-            // Limpar campos
             document.getElementById('loginUsuario').value = '';
             document.getElementById('loginSenha').value = '';
             
@@ -1130,7 +1203,6 @@ async function fazerCadastroCliente() {
     const cep = document.getElementById('cadastroCep').value.trim();
     const termos = document.getElementById('cadastroTermos').checked;
     
-    // Validações
     if (!nome || !email || !telefone || !cpf || !login || !senha || !confirmarSenha) {
         mostrarMensagem('Preencha todos os campos obrigatórios', 'warning');
         return;
@@ -1151,21 +1223,18 @@ async function fazerCadastroCliente() {
         return;
     }
     
-    // Validar email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         mostrarMensagem('E-mail inválido', 'warning');
         return;
     }
     
-    // Limpar CPF (remover formatação)
     const cpfLimpo = cpf.replace(/\D/g, '');
     if (cpfLimpo.length !== 11) {
         mostrarMensagem('CPF inválido', 'warning');
         return;
     }
     
-    // Limpar telefone
     const telefoneLimpo = telefone.replace(/\D/g, '');
     if (telefoneLimpo.length < 10 || telefoneLimpo.length > 11) {
         mostrarMensagem('Telefone inválido', 'warning');
@@ -1194,7 +1263,6 @@ async function fazerCadastroCliente() {
             mostrarMensagem('Cadastro realizado com sucesso! Faça o login.', 'success');
             fecharModal('cadastroModal');
             
-            // Limpar campos
             document.getElementById('cadastroNome').value = '';
             document.getElementById('cadastroEmail').value = '';
             document.getElementById('cadastroTelefone').value = '';
@@ -1207,7 +1275,6 @@ async function fazerCadastroCliente() {
             document.getElementById('cadastroCep').value = '';
             document.getElementById('cadastroTermos').checked = false;
             
-            // Abrir modal de login
             setTimeout(() => {
                 abrirModal('loginModal');
             }, 500);
@@ -1245,165 +1312,6 @@ async function carregarProdutos() {
 }
 
 // ============================================
-// FUNÇÃO PARA OBTER PLACEHOLDER
-// ============================================
-function getPlaceholderIcon() {
-    return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E";
-}
-
-// ============================================
-// FUNÇÃO PARA CARREGAR DADOS DA LOJA DO FIREBASE
-// ============================================
-async function carregarDadosLojaFirebase() {
-    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    
-    if (!lojaId) {
-        console.warn('⚠️ ID da loja não disponível para carregar dados');
-        return;
-    }
-    
-    try {
-        console.log(`🔍 Buscando dados da loja no Firebase para: ${lojaId}`);
-        
-        const lojasRef = collection(db, "lojas");
-        const q = query(lojasRef, where("banco_login", "==", lojaId));
-        const querySnapshot = await getDocs(q);
-        
-        let dadosLoja = null;
-        let documentoId = null;
-        
-        querySnapshot.forEach((doc) => {
-            dadosLoja = doc.data();
-            documentoId = doc.id;
-            console.log(`✅ Loja encontrada! Documento ID: ${documentoId}`);
-        });
-        
-        if (dadosLoja) {
-            console.log('✅ Dados completos da loja:', dadosLoja);
-            console.log('📊 Campos disponíveis:', Object.keys(dadosLoja));
-            
-            // ============================================
-            // 1. NOME DA LOJA
-            // ============================================
-            const nomeLoja = dadosLoja.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            const elementosNome = [
-                'lojaNomeHeader',
-                'lojaNomeFooter',
-                'lojaNomeCopyright'
-            ];
-            
-            elementosNome.forEach(id => {
-                const elemento = document.getElementById(id);
-                if (elemento) elemento.textContent = nomeLoja;
-            });
-            
-            document.title = `${nomeLoja} - Loja Online`;
-            console.log(`🏪 Nome da loja: ${nomeLoja}`);
-            
-            // ============================================
-            // 2. LOCAL DA LOJA (HEADER)
-            // ============================================
-            const lojaLocal = document.getElementById('lojaLocal');
-            if (lojaLocal && dadosLoja.local) {
-                lojaLocal.textContent = dadosLoja.local;
-                console.log(`📍 Local: ${dadosLoja.local}`);
-            }
-            
-            // ============================================
-            // 3. RENDERIZAR CONTATOS
-            // ============================================
-            if (dadosLoja.contato) {
-                console.log('📞 Contato encontrado:', dadosLoja.contato);
-                renderizarContatos(dadosLoja);
-            } else {
-                console.log('ℹ️ Nenhum contato encontrado no Firebase');
-                const contactGrid = document.getElementById('contactGrid');
-                if (contactGrid) {
-                    contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
-                }
-            }
-            
-            // ============================================
-            // 4. RENDERIZAR ENDEREÇO
-            // ============================================
-            if (dadosLoja.endereco) {
-                console.log('📍 Endereço encontrado:', dadosLoja.endereco);
-                renderizarEndereco(dadosLoja);
-            } else {
-                console.log('ℹ️ Nenhum endereço encontrado no Firebase');
-                const addressGrid = document.getElementById('addressGrid');
-                if (addressGrid) {
-                    addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
-                }
-            }
-            
-            // ============================================
-            // 5. RENDERIZAR CHAT (SEMPRE)
-            // ============================================
-            renderizarChat();
-            
-            // ============================================
-            // 6. STATUS DA LOJA
-            // ============================================
-            if (dadosLoja.ativo !== undefined) {
-                console.log(`🔵 Loja ativa: ${dadosLoja.ativo ? 'Sim' : 'Não'}`);
-            }
-            
-            console.log(`✅ Loja ${nomeLoja} configurada com sucesso!`);
-            
-        } else {
-            console.warn(`⚠️ Nenhuma loja encontrada com banco_login = ${lojaId}`);
-            
-            // Fallback mínimo
-            const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
-            elementosNome.forEach(id => {
-                const elemento = document.getElementById(id);
-                if (elemento) elemento.textContent = nomeFallback;
-            });
-            
-            document.title = `${nomeFallback} - Loja Online`;
-            
-            // Fallback para contatos vazios
-            const contactGrid = document.getElementById('contactGrid');
-            if (contactGrid) {
-                contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
-            }
-            
-            // Fallback para endereço vazio
-            const addressGrid = document.getElementById('addressGrid');
-            if (addressGrid) {
-                addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
-            }
-            
-            // Renderizar chat mesmo sem dados da loja
-            renderizarChat();
-        }
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar dados da loja do Firebase:', error);
-        console.error('Detalhes do erro:', error.message);
-        
-        // Fallback em caso de erro
-        const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        
-        const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
-        elementosNome.forEach(id => {
-            const elemento = document.getElementById(id);
-            if (elemento) elemento.textContent = nomeFallback;
-        });
-        
-        // Renderizar chat mesmo em caso de erro
-        renderizarChat();
-        
-        // Mensagem amigável para o usuário
-        mostrarMensagem('Erro ao carregar dados da loja', 'error');
-    }
-}
-
-// ============================================
 // CARREGAR CATEGORIAS
 // ============================================
 async function carregarCategorias() {
@@ -1419,7 +1327,6 @@ async function carregarCategorias() {
             categoriasList = resultado.data;
         }
         
-        // Adicionar categorias dos produtos se não houver
         if (categoriasList.length === 0 && produtos.length > 0) {
             const categoriasSet = new Set();
             produtos.forEach(p => {
@@ -1428,17 +1335,14 @@ async function carregarCategorias() {
             categoriasList = Array.from(categoriasSet).sort();
         }
         
-        // Categorias padrão se ainda estiver vazio
         if (categoriasList.length === 0) {
             categoriasList = ['Eletrônicos', 'Informática', 'Celulares', 'Acessórios', 'Games', 'Áudio'];
         }
         
         categorias = categoriasList;
         
-        // Renderizar categorias com "Todos" como primeiro
         let slidesHtml = '';
         
-        // Card "Todos"
         const totalProdutos = produtos.length;
         slidesHtml += `
             <div class="swiper-slide">
@@ -1454,7 +1358,6 @@ async function carregarCategorias() {
             </div>
         `;
         
-        // Cards das categorias específicas
         categoriasList.forEach(categoria => {
             const count = produtos.filter(p => p.categoria === categoria).length;
             slidesHtml += `
@@ -1474,7 +1377,6 @@ async function carregarCategorias() {
         
         categoriesGrid.innerHTML = slidesHtml;
         
-        // Inicializar o carrossel após renderizar
         setTimeout(() => {
             inicializarCarrosselCategorias();
         }, 100);
@@ -1485,13 +1387,12 @@ async function carregarCategorias() {
 }
 
 // ============================================
-// CARREGAR PRODUTOS EM DESTAQUE (CARROSSEL)
+// CARREGAR PRODUTOS EM DESTAQUE
 // ============================================
 async function carregarProdutosDestaque() {
     const featuredContainer = document.getElementById('featuredProducts');
     if (!featuredContainer) return;
     
-    // Mostrar todos os produtos, não apenas os primeiros
     const todosProdutos = produtos;
     
     if (todosProdutos.length === 0) {
@@ -1541,7 +1442,6 @@ async function carregarProdutosDestaque() {
     
     featuredContainer.innerHTML = slidesHtml;
     
-    // Inicializar o Swiper após os slides serem adicionados
     setTimeout(() => {
         if (swiperInstance) {
             swiperInstance.destroy(true, true);
@@ -1639,7 +1539,6 @@ window.adicionarAoCarrinho = function(produtoId) {
         return;
     }
     
-    // Verificar se já está no carrinho
     const itemExistente = carrinho.find(item => item.id === produtoId);
     
     if (itemExistente) {
@@ -1654,7 +1553,6 @@ window.adicionarAoCarrinho = function(produtoId) {
         });
     }
     
-    // Salvar no sessionStorage
     sessionStorage.setItem('carrinho_cliente', JSON.stringify(carrinho));
     
     atualizarBadgeCarrinho();
@@ -1738,7 +1636,6 @@ function exibirProdutosFiltrados(produtosFiltrados, titulo) {
     const featuredContainer = document.getElementById('featuredProducts');
     if (!featuredContainer) return;
     
-    // Atualizar título (opcional)
     const tituloElement = document.querySelector('.featured-products h2');
     if (tituloElement) {
         tituloElement.innerHTML = `<i class="fas fa-search"></i> ${titulo}`;
@@ -1793,7 +1690,6 @@ function exibirProdutosFiltrados(produtosFiltrados, titulo) {
     
     featuredContainer.innerHTML = slidesHtml;
     
-    // Atualizar o swiper
     setTimeout(() => {
         if (swiperInstance) {
             swiperInstance.destroy(true, true);
@@ -1858,11 +1754,10 @@ function buscarNoModal(termo) {
                codigoBarras.includes(termoLimpo);
     });
     
-    // Aplicar filtros
     if (tipoFiltro === 'estoque') {
         resultados = resultados.filter(p => p.quantidade > 0);
     } else if (tipoFiltro === 'destaque') {
-        resultados = resultados.slice(0, 10); // Simular destaques
+        resultados = resultados.slice(0, 10);
     }
     
     if (resultados.length === 0) {
@@ -1895,7 +1790,7 @@ function exibirTodosProdutosNoModal() {
         return;
     }
     
-    exibirResultadosNoModal(produtos.slice(0, 20)); // Limitar a 20 para não sobrecarregar
+    exibirResultadosNoModal(produtos.slice(0, 20));
 }
 
 // ============================================
@@ -2000,25 +1895,3 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
