@@ -6,7 +6,7 @@
     <title>SPDVI - Produtos para Clientes</title>
     <link rel="stylesheet" href="clientes.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Swiper CSS para o carrossel -->
+    <!-- Swiper CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
 </head>
 <body>
@@ -44,7 +44,7 @@
                 </div>
             </div>
         
-            <!-- Barra de Pesquisa Integrada -->
+            <!-- Barra de Pesquisa -->
             <div class="header-search">
                 <div class="search-wrapper">
                     <i class="fas fa-search search-icon"></i>
@@ -68,7 +68,6 @@
                 
                 <div class="swiper categories-swiper">
                     <div class="swiper-wrapper" id="categoriesGrid">
-                        <!-- Categorias serão carregadas via JS -->
                         <div class="swiper-slide loading-categories">
                             <div class="spinner"></div>
                             <p>Carregando categorias...</p>
@@ -82,7 +81,7 @@
             </div>
         </div>
 
-        <!-- Produtos em Destaque com Carrossel -->
+        <!-- Produtos em Destaque -->
         <div class="featured-products">
             <h2><i class="fas fa-star"></i> Produtos em Destaque</h2>
             <div class="carousel-container">
@@ -90,9 +89,7 @@
                     <i class="fas fa-chevron-left"></i>
                 </button>
                 <div class="swiper featured-swiper">
-                    <div class="swiper-wrapper" id="featuredProducts">
-                        <!-- Produtos serão carregados via JS -->
-                    </div>
+                    <div class="swiper-wrapper" id="featuredProducts"></div>
                 </div>
                 <button class="carousel-arrow next" id="carouselNext">
                     <i class="fas fa-chevron-right"></i>
@@ -104,36 +101,23 @@
         <div id="quickSearchModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>
-                        <i class="fas fa-search"></i> 
-                        Consulta Rápida
-                    </h3>
+                    <h3><i class="fas fa-search"></i> Consulta Rápida</h3>
                     <button class="modal-close" title="Fechar (ESC)">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
                 <div class="modal-body">
-                    <!-- SEARCH BOX COM BOTÕES -->
                     <div class="search-box">
                         <i class="fas fa-search search-icon"></i>
-                        
-                        <input 
-                            type="text" 
-                            id="searchProductInputModal" 
-                            placeholder="Código, nome ou categoria do produto" 
-                            autocomplete="off" 
-                            spellcheck="false"
-                        >
-                        
-                        <!-- BOTÃO LIMPAR (X) -->
+                        <input type="text" id="searchProductInputModal" 
+                               placeholder="Código, nome ou categoria do produto" 
+                               autocomplete="off" spellcheck="false">
                         <button class="search-clear" id="searchClearModal" title="Limpar busca">
                             <i class="fas fa-times"></i>
                         </button>
-                        
                     </div>
                     
-                    <!-- FILTROS RÁPIDOS -->
                     <div class="search-filters">
                         <button class="filter-btn active" data-filter="all">
                             <i class="fas fa-list"></i> Todos
@@ -146,14 +130,12 @@
                         </button>
                     </div>
                     
-                    <!-- DICA DE ATALHO -->
                     <div class="search-tip">
                         <i class="fas fa-lightbulb"></i>
                         Dica: Use o leitor de código de barras ou digite o código manualmente
                         <span class="shortcut">Ctrl+K</span>
                     </div>
                     
-                    <!-- RESULTADOS DA BUSCA -->
                     <div class="search-results" id="searchResultsModal">
                         <div class="empty-results">
                             <i class="fas fa-search"></i>
@@ -162,7 +144,6 @@
                         </div>
                     </div>
 
-                    <!-- INDICADOR DE SCAN ATIVO -->
                     <div id="scanIndicatorModal" class="scan-indicator" style="display: none;">
                         <i class="fas fa-barcode fa-spin"></i>
                         <span>Modo scan ativo - Aponte o leitor para o código de barras</span>
@@ -174,7 +155,7 @@
             </div>
         </div>
 
-        <!-- Modal de Login do Cliente -->
+        <!-- Modal de Login -->
         <div id="loginModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -205,7 +186,7 @@
             </div>
         </div>
 
-        <!-- Modal de Cadastro de Cliente -->
+        <!-- Modal de Cadastro -->
         <div id="cadastroModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -268,51 +249,41 @@
             </div>
         </div>
 
-        <!-- Modal de Produto Detalhado -->
+        <!-- Modal de Produto -->
         <div id="produtoModal" class="modal">
             <div class="modal-content modal-lg">
                 <div class="modal-header">
                     <h3><i class="fas fa-box"></i> Detalhes do Produto</h3>
                     <button class="modal-close" onclick="fecharModal('produtoModal')">&times;</button>
                 </div>
-                <div class="modal-body" id="produtoModalBody">
-                    <!-- Conteúdo carregado dinamicamente -->
-                </div>
+                <div class="modal-body" id="produtoModalBody"></div>
             </div>
         </div>
 
         <!-- Footer -->
         <footer class="main-footer">
             <div class="footer-content">
-                <!-- Contatos -->
                 <div class="footer-contacts">
                     <h4>Atendimento</h4>
                     <div class="contact-grid" id="contactGrid">
-                        <!-- Contatos serão inseridos aqui pelo JavaScript -->
                         <div class="loading-contacts">
                             <div class="spinner-small"></div>
                         </div>
                     </div>
                 </div>
         
-                <!-- Endereço -->
                 <div class="footer-address">
                     <h4>Endereço</h4>
                     <div id="addressGrid">
-                        <!-- Endereço será inserido aqui pelo JavaScript -->
                         <div class="loading-address">
                             <div class="spinner-small"></div>
                         </div>
                     </div>
                 </div>
         
-                <!-- Chat -->
-                <div class="footer-chat">
-                    <!-- Conteúdo será inserido via JavaScript -->
-                </div>
+                <div class="footer-chat"></div>
             </div>
         
-            <!-- Copyright -->
             <div class="footer-copyright">
                 <p>© EVOTL</p>
             </div>
@@ -336,19 +307,9 @@
         <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
     </div>
 
-    <!-- Swiper JS -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script type="module" src="/spdv/lojas.js"></script>
     <script type="module" src="clientes.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
