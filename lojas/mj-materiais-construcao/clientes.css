@@ -1695,3 +1695,239 @@ body {
         padding: 0.25rem !important;
     }
 }
+/* ====================================
+   HEADER REORGANIZADO
+   ==================================== */
+.main-header {
+    background: linear-gradient(135deg, #2c3e50, #1a1a1a);
+    color: white;
+    padding: 0.8rem 2rem 0.8rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.logo-img {
+    width: 45px;  /* Reduzido */
+    height: 45px;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo h1 {
+    font-size: 1rem;  /* Reduzido */
+    font-weight: 600;
+    margin-bottom: 0.1rem;
+    color: white;
+}
+
+.logo .subtitle {
+    font-size: 0.7rem;  /* Reduzido */
+    opacity: 0.7;
+    color: #cccccc;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.3rem 0.8rem;  /* Padding reduzido */
+    border-radius: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#userName {
+    font-weight: 500;
+    font-size: 0.85rem;  /* Fonte reduzida */
+    color: white;
+}
+
+.btn-login, .btn-logout {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.25rem 0.8rem;  /* Padding reduzido */
+    border-radius: 20px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-weight: 500;
+    font-size: 0.8rem;  /* Fonte reduzida */
+    transition: all 0.3s ease;
+}
+
+.btn-login:hover, .btn-logout:hover {
+    background: #00a86b;
+    border-color: #00a86b;
+    transform: translateY(-1px);
+}
+
+.header-info {
+    font-size: 0.75rem;  /* Fonte reduzida */
+    opacity: 0.7;
+    color: #cccccc;
+}
+
+/* ====================================
+   BARRA DE PESQUISA INTEGRADA
+   ==================================== */
+.header-search {
+    width: 100%;
+}
+
+.header-search .search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 40px;
+    padding: 0.2rem 0.2rem 0.2rem 1rem;
+    transition: all 0.3s ease;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.header-search .search-wrapper:focus-within {
+    border-color: #00a86b;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.2);
+}
+
+.header-search .search-icon {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+}
+
+.header-search input {
+    flex: 1;
+    border: none;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    outline: none;
+    background: transparent;
+    color: white;
+}
+
+.header-search input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+}
+
+.header-search .btn-cart-header {
+    background: linear-gradient(135deg, #00a86b, #0056b3);
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 40px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: white;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.header-search .btn-cart-header:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 168, 107, 0.3);
+}
+
+.header-search .cart-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ff6b00;
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 600;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .main-header {
+        padding: 0.5rem 1rem;
+    }
+    
+    .header-top {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .logo {
+        justify-content: center;
+    }
+    
+    .logo h1 {
+        font-size: 0.9rem;
+    }
+    
+    .header-search .search-wrapper {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .user-info {
+        padding: 0.2rem 0.5rem;
+    }
+    
+    #userName {
+        font-size: 0.75rem;
+    }
+    
+    .btn-login, .btn-logout {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+    }
+    
+    .header-search input {
+        font-size: 0.8rem;
+    }
+    
+    .header-search .btn-cart-header {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.8rem;
+    }
+}
