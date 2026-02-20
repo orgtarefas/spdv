@@ -46,19 +46,26 @@ body {
 }
 
 /* ====================================
-   HEADER
+   HEADER - MESMO GRADIENTE DO RODAPÉ
    ==================================== */
 .main-header {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    background: linear-gradient(135deg, #2c3e50, #1a1a1a);
     color: white;
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     position: sticky;
     top: 0;
     z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Efeito de brilho no header ao passar o mouse */
+.main-header:hover {
+    box-shadow: 0 6px 25px rgba(0, 168, 107, 0.2);
+    transition: box-shadow 0.3s ease;
 }
 
 .header-left {
@@ -77,20 +84,30 @@ body {
     width: 60px;
     height: 60px;
     object-fit: contain;
-    background: white;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     padding: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.logo-img:hover {
+    transform: scale(1.05);
+    border-color: #00a86b;
 }
 
 .logo h1 {
     font-size: 1.25rem;
     font-weight: 600;
     margin-bottom: 0.25rem;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .logo .subtitle {
     font-size: 0.85rem;
-    opacity: 0.9;
+    opacity: 0.8;
+    color: #cccccc;
 }
 
 .header-right {
@@ -106,15 +123,23 @@ body {
     background: rgba(255, 255, 255, 0.1);
     padding: 0.5rem 1rem;
     border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.user-info:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #00a86b;
 }
 
 #userName {
     font-weight: 500;
+    color: white;
 }
 
 .btn-login, .btn-logout {
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 20px;
@@ -123,17 +148,20 @@ body {
     align-items: center;
     gap: 0.5rem;
     font-weight: 500;
-    transition: var(--transition);
+    transition: all 0.3s ease;
 }
 
 .btn-login:hover, .btn-logout:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: #00a86b;
+    border-color: #00a86b;
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 168, 107, 0.3);
 }
 
 .header-info {
     font-size: 0.9rem;
-    opacity: 0.9;
+    opacity: 0.8;
+    color: #cccccc;
 }
 
 /* ====================================
@@ -245,13 +273,11 @@ body {
     font-size: 1.5rem;
 }
 
-/* Container do carrossel */
 .categories-carousel-container {
     position: relative;
     padding: 0 40px;
 }
 
-/* Setas de navegação */
 .categories-arrow {
     position: absolute;
     top: 50%;
@@ -286,7 +312,6 @@ body {
     right: 0;
 }
 
-/* Swiper para categorias */
 .categories-swiper {
     width: 100%;
     padding: 0.5rem 0;
@@ -297,7 +322,6 @@ body {
     flex-wrap: nowrap;
 }
 
-/* Cards de categoria - FONTE AJUSTADA */
 .categoria-card {
     background: var(--gray-light);
     border: 1px solid var(--border);
@@ -352,49 +376,6 @@ body {
     font-size: 0.75rem;
     color: var(--gray);
     font-weight: 400;
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-    .categories-carousel-container {
-        padding: 0 35px;
-    }
-    
-    .categories-arrow {
-        width: 32px;
-        height: 32px;
-    }
-    
-    .categoria-card {
-        padding: 0.7rem;
-        min-height: 65px;
-    }
-    
-    .categoria-icon {
-        width: 36px;
-        height: 36px;
-        font-size: 1rem;
-    }
-    
-    .categoria-info h4 {
-        font-size: 0.85rem;
-    }
-    
-    .categoria-info p {
-        font-size: 0.7rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .categories-carousel-container {
-        padding: 0 30px;
-    }
-    
-    .categories-arrow {
-        width: 28px;
-        height: 28px;
-        font-size: 0.8rem;
-    }
 }
 
 /* ====================================
@@ -1247,7 +1228,6 @@ body {
     color: var(--dark);
 }
 
-/* Loading states */
 .loading-categories, .loading-products {
     text-align: center;
     padding: 3rem;
@@ -1605,125 +1585,6 @@ body {
     font-size: 0.8rem;
     color: #a0a0a0;
     font-style: italic;
-}
-
-/* ====================================
-   HEADER - MESMO GRADIENTE DO RODAPÉ
-   ==================================== */
-.main-header {
-    background: linear-gradient(135deg, #2c3e50, #1a1a1a);
-    color: white;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Efeito de brilho no header ao passar o mouse */
-.main-header:hover {
-    box-shadow: 0 6px 25px rgba(0, 168, 107, 0.2);
-    transition: box-shadow 0.3s ease;
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-}
-
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.logo-img {
-    width: 60px;
-    height: 60px;
-    object-fit: contain;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    transition: transform 0.3s ease;
-}
-
-.logo-img:hover {
-    transform: scale(1.05);
-    border-color: #00a86b;
-}
-
-.logo h1 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-    color: white;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.logo .subtitle {
-    font-size: 0.85rem;
-    opacity: 0.8;
-    color: #cccccc;
-}
-
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.5rem 1rem;
-    border-radius: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
-}
-
-.user-info:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: #00a86b;
-}
-
-#userName {
-    font-weight: 500;
-    color: white;
-}
-
-.btn-login, .btn-logout {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-login:hover, .btn-logout:hover {
-    background: #00a86b;
-    border-color: #00a86b;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 168, 107, 0.3);
-}
-
-.header-info {
-    font-size: 0.9rem;
-    opacity: 0.8;
-    color: #cccccc;
 }
 
 /* ====================================
