@@ -13,20 +13,35 @@
     <div class="container">
         <!-- Header -->
         <header class="main-header">
+            <!-- Linha Superior: Logo, Pesquisa, Usuário -->
             <div class="header-top">
+                <!-- Esquerda: Logo Grande -->
                 <div class="header-left">
                     <div class="logo">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E" 
+                        <img src="/spdv/imagens/mj-materiais-construcao/logo.png" 
                              alt="Logo da Loja" 
                              class="logo-img" 
                              id="lojaLogo">
-                        <div>
-                            <h1 id="lojaNomeHeader">Sistema Ponto de Vendas Integrado</h1>
+                        <div class="logo-text">
+                            <h1 id="lojaNomeHeader">MJ Materiais de Construção</h1>
                             <p class="subtitle">Loja Online</p>
                         </div>
                     </div>
                 </div>
                 
+                <!-- Centro: Barra de Pesquisa e Carrinho -->
+                <div class="header-center">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="searchProductInput" placeholder="O que você está procurando?" autocomplete="off">
+                        <button class="btn-cart-header" id="btnGoToCart">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="cart-badge" id="cartBadge">0</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Direita: Informações do Usuário -->
                 <div class="header-right">
                     <div class="user-info">
                         <span id="userName">Visitante</span>
@@ -43,20 +58,8 @@
                     </div>
                 </div>
             </div>
-        
-            <!-- Barra de Pesquisa -->
-            <div class="header-search">
-                <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="searchProductInput" placeholder="O que você está procurando?" autocomplete="off">
-                    <button class="btn-cart-header" id="btnGoToCart">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span class="cart-badge" id="cartBadge">0</span>
-                    </button>
-                </div>
-            </div>
         </header>
-
+        
         <!-- Categorias -->
         <div class="categories-section">
             <h2><i class="fas fa-tags"></i> Categorias</h2>
@@ -313,3 +316,4 @@
     <script type="module" src="clientes.js"></script>
 </body>
 </html>
+
