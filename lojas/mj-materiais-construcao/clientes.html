@@ -277,32 +277,51 @@
         <!-- Footer -->
         <footer class="main-footer">
             <div class="footer-content">
-                <div class="footer-section">
-                    <h4><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230056b3'/%3E%3Ctext x='16' y='22' font-family='Arial' font-size='16' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E" 
-                                         alt="Logo" 
-                                         class="footer-logo" 
-                                         id="footerLogo"> 
-                        <span id="lojaNomeFooter">Sistema PDV</span>
-                    </h4>
-                    <p>Seu parceiro de compras online</p>
+                <!-- Logo e Nome da Loja -->
+                <div class="footer-brand">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' fill='%230056b3'/%3E%3Ctext x='20' y='28' font-family='Arial' font-size='20' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E" 
+                         alt="Logo" 
+                         class="footer-logo" 
+                         id="footerLogo">
+                    <span id="lojaNomeFooter">Sistema PDV</span>
                 </div>
-                <div class="footer-section contact-section">
+        
+                <!-- Contatos -->
+                <div class="footer-contacts">
                     <h4>Atendimento</h4>
                     <div class="contact-grid" id="contactGrid">
-                        <!-- Os contatos serão inseridos aqui pelo JavaScript -->
+                        <!-- Contatos serão inseridos aqui pelo JavaScript -->
                         <div class="loading-contacts">
                             <div class="spinner-small"></div>
-                            <p>Carregando contatos...</p>
                         </div>
                     </div>
                 </div>
-                <div class="footer-section">
-                    <h4>Formas de Pagamento</h4>
-                    <p><i class="fas fa-credit-card"></i> Cartão de Crédito</p>
-                    <p><i class="fas fa-barcode"></i> Boleto</p>
-                    <p><i class="fas fa-qrcode"></i> PIX</p>
+        
+                <!-- Endereço -->
+                <div class="footer-address">
+                    <h4>Endereço</h4>
+                    <div id="addressGrid">
+                        <!-- Endereço será inserido aqui pelo JavaScript -->
+                        <div class="loading-address">
+                            <div class="spinner-small"></div>
+                        </div>
+                    </div>
+                </div>
+        
+                <!-- Chat -->
+                <div class="footer-chat">
+                    <h4>Precisa de ajuda?</h4>
+                    <div class="chat-button" id="chatButton">
+                        <div class="chat-icon">
+                            <img src="/spdv/imagens/chat.png" alt="Chat" 
+                                 onerror="this.src='/spdv/imagens/placeholder-icon.png'">
+                        </div>
+                        <div class="chat-text">Chat Online</div>
+                    </div>
                 </div>
             </div>
+        
+            <!-- Copyright -->
             <div class="footer-bottom">
                 <p>&copy; 2026 <span id="lojaNomeCopyright">SPDVI</span> - Todos os direitos reservados</p>
                 <p id="connectionStatus"><i class="fas fa-circle"></i> <span id="statusText">Conectado</span></p>
@@ -333,6 +352,7 @@
     <script type="module" src="clientes.js"></script>
 </body>
 </html>
+
 
 
 
