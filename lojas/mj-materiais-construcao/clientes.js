@@ -1245,6 +1245,16 @@ async function carregarDadosLojaFirebase() {
                         console.log(`📘 Facebook: ${dadosLoja.contato.facebook}`);
                     }
                 }
+
+                renderizarContatos(dadosLoja);
+
+                // Log para debug
+                console.log('📞 Contatos renderizados:', {
+                    whatsapp: dadosLoja.contato?.whatsapp || 'não',
+                    telefone: dadosLoja.contato?.telefone || 'não',
+                    email: dadosLoja.contato?.email || 'não',
+                    instagram: dadosLoja.contato?.instagram || 'não'
+                });
                 
                 // SITE (se tiver)
                 const spanSite = document.getElementById('lojaSite');
@@ -1882,6 +1892,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
