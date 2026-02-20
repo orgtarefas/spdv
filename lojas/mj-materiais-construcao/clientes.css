@@ -1532,3 +1532,28 @@ body {
         height: 22px;
     }
 }
+
+.loading-contacts {
+    text-align: center;
+    padding: 2rem;
+    color: #94a3b8;
+}
+
+.spinner-small {
+    width: 30px;
+    height: 30px;
+    border: 2px solid #e9ecef;
+    border-top: 2px solid #0056b3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+.no-contacts {
+    text-align: center;
+    padding: 2rem;
+    color: #94a3b8;
+    font-style: italic;
+    background: #f8fafc;
+    border-radius: 12px;
+}
