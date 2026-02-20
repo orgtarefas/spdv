@@ -1177,43 +1177,62 @@ body {
 }
 
 /* ====================================
-   FOOTER HORIZONTAL - TUDO NA MESMA LINHA
+   FOOTER LARGO - TUDO NA MESMA LINHA
    ==================================== */
 .main-footer {
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
-    padding: 1rem 2rem;
+    padding: 1rem 1rem 0.5rem;
     margin-top: auto;
+    width: 100%;
 }
 
 .footer-content {
-    max-width: 1200px;
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 2rem;
+    gap: 1rem;
+    padding: 0 0.5rem;
 }
 
-/* Remove a logo do rodapé */
+/* Logo da Loja */
 .footer-brand {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.footer-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.footer-brand span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
 }
 
 /* Seção de Contatos - horizontal */
 .footer-contacts {
-    flex: 2;
+    flex: 0 1 auto;
 }
 
 .footer-contacts h4 {
-    display: none; /* Esconde o título "Atendimento" */
+    display: none;
 }
 
 .contact-grid {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+    gap: 1rem;
+    flex-wrap: nowrap;
 }
 
 .contact-link {
@@ -1224,28 +1243,28 @@ body {
 .contact-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
+    gap: 0.35rem;
+    padding: 0.2rem 0.4rem;
     border-radius: 6px;
     transition: all 0.2s ease;
 }
 
 .contact-item:hover {
     background: rgba(0, 86, 179, 0.05);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }
 
 .contact-icon {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .contact-icon img {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
 }
 
@@ -1255,11 +1274,11 @@ body {
 }
 
 .contact-label {
-    display: none; /* Esconde o label (WhatsApp, E-mail, Instagram) */
+    display: none;
 }
 
 .contact-value {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #1e293b;
     font-weight: 500;
     white-space: nowrap;
@@ -1267,74 +1286,79 @@ body {
 
 /* Seção Endereço */
 .footer-address {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .footer-address h4 {
-    display: none; /* Esconde o título "Endereço" */
+    display: none;
 }
 
 .address-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
+    gap: 0.35rem;
+    padding: 0.2rem 0.4rem;
     border-radius: 6px;
     transition: all 0.2s ease;
     text-decoration: none;
     color: inherit;
     cursor: pointer;
+    max-width: 100%;
 }
 
 .address-item:hover {
     background: rgba(0, 86, 179, 0.05);
-    transform: translateY(-2px);
+    transform: translateY(-1px);
 }
 
 .address-icon {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .address-icon img {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
 }
 
 .address-content {
-    display: flex;
-    flex-direction: column;
+    min-width: 0;
+    flex: 1;
 }
 
 .address-label {
-    display: none; /* Esconde o label "Endereço" */
+    display: none;
 }
 
 .address-text {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #1e293b;
     font-weight: 500;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Seção Chat */
 .footer-chat {
-    flex: 0 0 auto;
+    flex-shrink: 0;
 }
 
 .footer-chat h4 {
-    display: none; /* Esconde o título "Precisa de ajuda?" */
+    display: none;
 }
 
 .chat-button {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 30px;
     background: linear-gradient(135deg, #0056b3, #00a86b);
     color: white;
@@ -1345,40 +1369,41 @@ body {
 }
 
 .chat-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 86, 179, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0, 86, 179, 0.3);
 }
 
 .chat-icon {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .chat-icon img {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
     object-fit: contain;
     filter: brightness(0) invert(1);
 }
 
 .chat-text {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 500;
 }
 
-/* Footer Bottom - copyright e status */
+/* Footer Bottom - copyright */
 .footer-bottom {
-    max-width: 1200px;
-    margin: 1rem auto 0;
-    padding-top: 1rem;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0.5rem auto 0;
+    padding: 0.5rem 0.5rem 0;
     border-top: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #64748b;
 }
 
@@ -1389,19 +1414,19 @@ body {
 }
 
 #connectionStatus i {
-    font-size: 0.5rem;
+    font-size: 0.45rem;
     color: #00a86b;
 }
 
 /* Loading states */
 .loading-contacts,
 .loading-address {
-    padding: 0;
+    display: inline-block;
 }
 
 .spinner-small {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border: 2px solid #e2e8f0;
     border-top: 2px solid #0056b3;
     border-radius: 50%;
@@ -1410,26 +1435,54 @@ body {
 
 .no-contacts,
 .no-address {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #94a3b8;
     font-style: italic;
-    padding: 0;
 }
 
 /* ====================================
    RESPONSIVIDADE
    ==================================== */
+@media (max-width: 1200px) {
+    .footer-content {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.8rem;
+    }
+    
+    .footer-brand {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .footer-contacts {
+        order: 2;
+    }
+    
+    .footer-address {
+        order: 3;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .address-item {
+        justify-content: center;
+    }
+    
+    .footer-chat {
+        order: 4;
+    }
+}
+
 @media (max-width: 768px) {
     .footer-content {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
+        gap: 0.8rem;
     }
     
     .contact-grid {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     .footer-address {
@@ -1438,19 +1491,17 @@ body {
     
     .address-item {
         width: 100%;
+        justify-content: center;
     }
     
-    .footer-chat {
-        width: 100%;
-    }
-    
-    .chat-button {
-        width: fit-content;
+    .address-text {
+        white-space: normal;
+        text-align: center;
     }
     
     .footer-bottom {
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 0.25rem;
         text-align: center;
     }
 }
