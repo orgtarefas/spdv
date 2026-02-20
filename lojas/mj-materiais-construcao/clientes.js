@@ -1165,105 +1165,141 @@ async function carregarDadosLojaFirebase() {
     }
     
     try {
-        console.log(`🔍 Buscando dados da loja no Firebase: ${lojaId}`);
+        console.log(`🔍 Buscando dados da loja no Firebase para: ${lojaId}`);
+        console.log(`📌 Loja ID: ${lojaId}`);
         
-        // Referência para o documento da loja na coleção "lojas"
-        const lojaRef = doc(db, "lojas", lojaId);
-        const lojaDoc = await getDoc(lojaRef);
+        // Referência para a coleção "lojas"
+        const lojasRef = collection(db, "lojas");
         
-        if (lojaDoc.exists()) {
-            const dadosLoja = lojaDoc.data();
-            console.log('✅ Dados da loja encontrados:', dadosLoja);
+        // Criar query para buscar apenas documentos com banco_login = lojaId
+        // Isso é mais eficiente que ler todos os documentos
+        const q = query(lojasRef, where("banco_login", "==", lojaId));
+        const querySnapshot = await getDocs(q);
+        
+        let dadosLoja = null;
+        let lojaDocId = null;
+        
+        // Deve retornar apenas um documento (ou nenhum)
+        querySnapshot.forEach((doc) => {
+            dadosLoja = doc.data();
+            lojaDocId = doc.id;
+            console.log(`✅ Loja encontrada! Documento ID: ${lojaDocId}`);
+        });
+        
+        // Se encontrou a loja
+        if (dadosLoja) {
+            console.log('✅ Dados completos da loja:', dadosLoja);
+            console.log('📊 Campos disponíveis:', Object.keys(dadosLoja));
             
-            // 1. Atualizar nome da loja no header
+            // 1. Nome da loja (em vários lugares)
             const nomeLoja = dadosLoja.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            console.log(`🏪 Nome da loja: ${nomeLoja}`);
             
-            const elementosNome = [
-                'lojaNomeHeader',
-                'lojaNomeFooter',
-                'lojaNomeCopyright'
-            ];
+            // Header
+            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
+            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
             
-            elementosNome.forEach(id => {
-                const elemento = document.getElementById(id);
-                if (elemento) {
-                    elemento.textContent = nomeLoja;
-                }
-            });
+            // Footer - nome da loja
+            const lojaNomeFooter = document.getElementById('lojaNomeFooter');
+            if (lojaNomeFooter) lojaNomeFooter.textContent = nomeLoja;
             
-            // 2. Atualizar título da página
+            // Footer - copyright
+            const lojaNomeCopyright = document.getElementById('lojaNomeCopyright');
+            if (lojaNomeCopyright) lojaNomeCopyright.textContent = nomeLoja;
+            
+            // Título da página
             document.title = `${nomeLoja} - Loja Online`;
             
-            // 3. Atualizar local da loja (se existir)
+            // 2. Local da loja (header)
             const lojaLocal = document.getElementById('lojaLocal');
             if (lojaLocal && dadosLoja.local) {
                 lojaLocal.textContent = dadosLoja.local;
+                console.log(`📍 Local: ${dadosLoja.local}`);
             }
             
-            // 4. Atualizar telefone no footer
-            const lojaTelefone = document.getElementById('lojaTelefone');
-            if (lojaTelefone && dadosLoja.contato && dadosLoja.contato.telefone) {
-                lojaTelefone.textContent = dadosLoja.contato.telefone;
+            // 3. Status da loja
+            if (dadosLoja.ativo !== undefined) {
+                console.log(`🔵 Loja ativa: ${dadosLoja.ativo ? 'Sim' : 'Não'}`);
             }
             
-            // 5. Atualizar email no footer (se existir)
-            const lojaEmail = document.getElementById('lojaEmail');
-            if (lojaEmail && dadosLoja.contato && dadosLoja.contato.email) {
-                lojaEmail.textContent = dadosLoja.contato.email;
-            } else {
-                // Email padrão se não existir
-                lojaEmail.textContent = 'contato@loja.com.br';
+            // 4. Contato (telefone)
+            if (dadosLoja.contato) {
+                console.log('📞 Contato:', dadosLoja.contato);
+                
+                const lojaTelefone = document.getElementById('lojaTelefone');
+                if (lojaTelefone && dadosLoja.contato.telefone) {
+                    lojaTelefone.textContent = dadosLoja.contato.telefone;
+                    console.log(`📞 Telefone: ${dadosLoja.contato.telefone}`);
+                }
+                
+                // 5. Email (se existir)
+                const lojaEmail = document.getElementById('lojaEmail');
+                if (lojaEmail) {
+                    if (dadosLoja.contato.email) {
+                        lojaEmail.textContent = dadosLoja.contato.email;
+                        console.log(`✉️ Email: ${dadosLoja.contato.email}`);
+                    } else {
+                        lojaEmail.textContent = 'contato@loja.com.br';
+                        console.log(`✉️ Email não informado, usando padrão`);
+                    }
+                }
             }
+            
+            // 6. Qualquer outro campo personalizado
+            // Exemplo: endereço completo, horário, etc.
+            const camposPersonalizados = [
+                'endereco', 'horario_funcionamento', 'cnpj', 'instagram', 'facebook'
+            ];
+            
+            camposPersonalizados.forEach(campo => {
+                if (dadosLoja[campo]) {
+                    console.log(`📌 ${campo}: ${dadosLoja[campo]}`);
+                    
+                    // Se você tiver elementos HTML para esses campos, pode atualizar aqui
+                    // Exemplo:
+                    // const elemento = document.getElementById(`loja${campo}`);
+                    // if (elemento) elemento.textContent = dadosLoja[campo];
+                }
+            });
+            
+            console.log(`✅ Loja ${nomeLoja} configurada com sucesso!`);
             
             return dadosLoja;
             
         } else {
-            console.warn(`⚠️ Documento da loja não encontrado: ${lojaId}`);
+            console.warn(`⚠️ Nenhuma loja encontrada com banco_login = ${lojaId}`);
+            console.log('📝 Verifique se o documento existe no Firebase com o campo banco_login correto');
             
             // Fallback: usar o ID formatado
             const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            console.log(`🏪 Usando nome fallback: ${nomeFallback}`);
             
-            const elementosNome = [
-                'lojaNomeHeader',
-                'lojaNomeFooter',
-                'lojaNomeCopyright'
-            ];
-            
+            const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
             elementosNome.forEach(id => {
                 const elemento = document.getElementById(id);
-                if (elemento) {
-                    elemento.textContent = nomeFallback;
-                }
+                if (elemento) elemento.textContent = nomeFallback;
             });
             
             document.title = `${nomeFallback} - Loja Online`;
             
-            // Manter telefone padrão
             const lojaTelefone = document.getElementById('lojaTelefone');
-            if (lojaTelefone) {
-                lojaTelefone.textContent = '(71) 99999-9999';
-            }
+            if (lojaTelefone) lojaTelefone.textContent = '(71) 99999-9999';
             
             return null;
         }
         
     } catch (error) {
         console.error('❌ Erro ao carregar dados da loja do Firebase:', error);
+        console.error('Detalhes do erro:', error.message);
         
         // Fallback em caso de erro
         const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        console.log(`🏪 Usando nome fallback devido a erro: ${nomeFallback}`);
         
-        const elementosNome = [
-            'lojaNomeHeader',
-            'lojaNomeFooter',
-            'lojaNomeCopyright'
-        ];
-        
+        const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
         elementosNome.forEach(id => {
             const elemento = document.getElementById(id);
-            if (elemento) {
-                elemento.textContent = nomeFallback;
-            }
+            if (elemento) elemento.textContent = nomeFallback;
         });
         
         return null;
@@ -1858,6 +1894,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
