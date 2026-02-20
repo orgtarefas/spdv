@@ -228,7 +228,7 @@ body {
 }
 
 /* ====================================
-   CATEGORIAS
+   CATEGORIAS - LARGURA MAIOR
    ==================================== */
 .categories-section {
     padding: 2rem;
@@ -241,24 +241,27 @@ body {
     align-items: center;
     gap: 0.5rem;
     color: var(--dark);
+    font-size: 1.5rem;
 }
 
 .categories-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.2rem;
 }
 
 .categoria-card {
     background: var(--gray-light);
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
-    padding: 1rem;
+    padding: 1.2rem 1.5rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.2rem;
     cursor: pointer;
     transition: var(--transition);
+    width: 100%;
+    min-width: 250px;
 }
 
 .categoria-card:hover {
@@ -269,26 +272,70 @@ body {
 }
 
 .categoria-icon {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     background: var(--primary);
-    border-radius: 12px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.categoria-info {
+    flex: 1;
+    min-width: 0;
 }
 
 .categoria-info h4 {
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
     color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .categoria-info p {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     color: var(--gray);
+    font-weight: 500;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .categories-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .categoria-card {
+        padding: 1rem;
+        min-width: 200px;
+    }
+    
+    .categoria-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 1.5rem;
+    }
+    
+    .categoria-info h4 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .categoria-card {
+        min-width: 100%;
+    }
 }
 
 /* ====================================
@@ -1487,3 +1534,4 @@ body {
         font-size: 0.7rem;
     }
 }
+
