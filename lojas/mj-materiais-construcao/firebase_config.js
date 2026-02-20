@@ -1243,6 +1243,8 @@ export {
     setDoc, 
     updateDoc, 
     deleteDoc,
+    query,           
+    where,           
     query, 
     where, 
     orderBy, 
@@ -1270,6 +1272,7 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
+
 
 
 
