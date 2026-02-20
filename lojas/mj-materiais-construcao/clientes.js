@@ -142,13 +142,14 @@ function renderizarChat() {
     const placeholder = getPlaceholderIcon();
     
     footerChat.innerHTML = `
-        <h4>Precisa de ajuda?</h4>
-        <div class="chat-button" id="chatButton">
-            <div class="chat-icon">
+        <div class="chat-container">
+            <div class="chat-icon-large">
                 <img src="${basePath}chat.png" alt="Chat" 
                      onerror="this.src='${placeholder}'">
             </div>
-            <div class="chat-text">Chat Online</div>
+            <div class="chat-button" id="chatButton">
+                Chat Online
+            </div>
         </div>
     `;
     
@@ -927,7 +928,7 @@ function configurarChat() {
         alert('Chat em desenvolvimento. Breve estaremos disponíveis 😉');
     });
     
-    console.log('💬 Chat configurado');
+    console.log('💬 Chat configurado com ícone separado');
 }
 
 // ============================================
@@ -1905,4 +1906,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
