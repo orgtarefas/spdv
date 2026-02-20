@@ -815,6 +815,8 @@ function renderizarEndereco(dadosLoja) {
     `;
     
     addressGrid.innerHTML = html;
+    
+    console.log('📍 Endereço renderizado:', enderecoCompleto);
 }
 
 // ============================================
@@ -830,6 +832,8 @@ function configurarChat() {
     novoBotao.addEventListener('click', () => {
         alert('Chat em desenvolvimento. Breve estaremos disponíveis 😉');
     });
+    
+    console.log('💬 Chat configurado');
 }
 
 
@@ -865,6 +869,25 @@ function renderizarContatos(dadosLoja) {
                     <div class="contact-content">
                         <div class="contact-label">WhatsApp</div>
                         <div class="contact-value">${contato.whatsapp}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    // TELEFONE (se existir e for diferente do WhatsApp)
+    if (contato.telefone && contato.telefone.trim() !== '' && 
+        contato.telefone.replace(/\D/g, '') !== contato.whatsapp?.replace(/\D/g, '')) {
+        html += `
+            <a href="tel:${contato.telefone.replace(/\D/g, '')}" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}telefone.png" alt="Telefone" 
+                             onerror="this.src='${placeholder}'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">Telefone</div>
+                        <div class="contact-value">${contato.telefone}</div>
                     </div>
                 </div>
             </a>
@@ -913,7 +936,15 @@ function renderizarContatos(dadosLoja) {
     }
     
     contactGrid.innerHTML = html;
+    
+    console.log('📞 Contatos renderizados:', {
+        whatsapp: contato.whatsapp || 'não',
+        telefone: contato.telefone || 'não',
+        email: contato.email || 'não',
+        instagram: contato.instagram || 'não'
+    });
 }
+
 
 // ============================================
 // CONFIGURAR MODAL DE CONSULTA
@@ -1992,6 +2023,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
