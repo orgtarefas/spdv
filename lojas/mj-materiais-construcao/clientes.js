@@ -738,7 +738,6 @@ function renderizarContatos(dadosLoja) {
     
     // 2. TELEFONE (se existir e for diferente do WhatsApp)
     if (contato.telefone && contato.telefone.trim() !== '') {
-        // Se for o mesmo número do WhatsApp, não mostrar telefone separado
         const mesmoNumero = contato.telefone.replace(/\D/g, '') === contato.whatsapp?.replace(/\D/g, '');
         
         if (!mesmoNumero) {
@@ -796,14 +795,63 @@ function renderizarContatos(dadosLoja) {
         `;
     }
     
+    // 5. FACEBOOK (se existir)
+    if (contato.facebook && contato.facebook.trim() !== '') {
+        html += `
+            <a href="https://facebook.com/${contato.facebook}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}facebook.png" alt="Facebook" 
+                             onerror="this.src='/spdv/imagens/placeholder-icon.png'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">Facebook</div>
+                        <div class="contact-value">${contato.facebook}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    // 6. SITE (se existir)
+    if (contato.site && contato.site.trim() !== '') {
+        let siteUrl = contato.site;
+        if (!siteUrl.startsWith('http')) {
+            siteUrl = 'https://' + siteUrl;
+        }
+        html += `
+            <a href="${siteUrl}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}site.png" alt="Site" 
+                             onerror="this.src='/spdv/imagens/placeholder-icon.png'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">Site</div>
+                        <div class="contact-value">${contato.site}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
     // Se não houver nenhum contato
     if (html === '') {
         html = '<p class="no-contacts">Nenhum contato disponível</p>';
     }
     
     contactGrid.innerHTML = html;
+    
+    // Log para debug
+    console.log('📞 Contatos renderizados:', {
+        whatsapp: contato.whatsapp || 'não',
+        telefone: contato.telefone || 'não',
+        email: contato.email || 'não',
+        instagram: contato.instagram || 'não',
+        facebook: contato.facebook || 'não',
+        site: contato.site || 'não'
+    });
 }
-
 
 // ============================================
 // CONFIGURAR MODAL DE CONSULTA
@@ -1155,7 +1203,7 @@ async function carregarDadosLojaFirebase() {
             console.log('✅ Dados completos da loja:', dadosLoja);
             
             // ============================================
-            // 1. NOME DA LOJA (em vários lugares)
+            // 1. NOME DA LOJA
             // ============================================
             const nomeLoja = dadosLoja.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             
@@ -1183,95 +1231,16 @@ async function carregarDadosLojaFirebase() {
             }
             
             // ============================================
-            // 3. DADOS DE CONTATO (TUDO VINDO DO FIREBASE)
+            // 3. RENDERIZAR CONTATOS (ÚNICA FUNÇÃO)
             // ============================================
             if (dadosLoja.contato) {
-                console.log('📞 Contato:', dadosLoja.contato);
-                
-                // TELEFONE / WHATSAPP
-                const spanTelefone = document.getElementById('lojaTelefone');
-                const linkTelefone = document.getElementById('linkTelefone');
-                
-                if (spanTelefone && dadosLoja.contato.telefone) {
-                    spanTelefone.textContent = dadosLoja.contato.telefone;
-                    
-                    if (linkTelefone) {
-                        const numero = dadosLoja.contato.telefone.replace(/\D/g, '');
-                        linkTelefone.href = `https://wa.me/${numero}`;
-                        linkTelefone.title = "Enviar mensagem no WhatsApp";
-                        console.log(`📱 WhatsApp: ${dadosLoja.contato.telefone}`);
-                    }
-                }
-                
-                // E-MAIL
-                const spanEmail = document.getElementById('lojaEmail');
-                const linkEmail = document.getElementById('linkEmail');
-                
-                if (spanEmail && dadosLoja.contato.email) {
-                    spanEmail.textContent = dadosLoja.contato.email;
-                    
-                    if (linkEmail) {
-                        linkEmail.href = `mailto:${dadosLoja.contato.email}`;
-                        linkEmail.title = "Enviar e-mail";
-                        console.log(`✉️ E-mail: ${dadosLoja.contato.email}`);
-                    }
-                }
-                
-                // INSTAGRAM
-                const spanInstagram = document.getElementById('lojaInstagram');
-                const linkInstagram = document.getElementById('linkInstagram');
-                
-                if (spanInstagram && dadosLoja.contato.instagram) {
-                    spanInstagram.textContent = dadosLoja.contato.instagram;
-                    
-                    if (linkInstagram) {
-                        const usuario = dadosLoja.contato.instagram.replace('@', '');
-                        linkInstagram.href = `https://instagram.com/${usuario}`;
-                        linkInstagram.title = "Seguir no Instagram";
-                        console.log(`📸 Instagram: ${dadosLoja.contato.instagram}`);
-                    }
-                }
-                
-                // FACEBOOK (se tiver)
-                const spanFacebook = document.getElementById('lojaFacebook');
-                const linkFacebook = document.getElementById('linkFacebook');
-                
-                if (spanFacebook && dadosLoja.contato.facebook) {
-                    spanFacebook.textContent = dadosLoja.contato.facebook;
-                    
-                    if (linkFacebook) {
-                        linkFacebook.href = `https://facebook.com/${dadosLoja.contato.facebook}`;
-                        linkFacebook.title = "Seguir no Facebook";
-                        console.log(`📘 Facebook: ${dadosLoja.contato.facebook}`);
-                    }
-                }
-
-                renderizarContatos(dadosLoja);
-
-                // Log para debug
-                console.log('📞 Contatos renderizados:', {
-                    whatsapp: dadosLoja.contato?.whatsapp || 'não',
-                    telefone: dadosLoja.contato?.telefone || 'não',
-                    email: dadosLoja.contato?.email || 'não',
-                    instagram: dadosLoja.contato?.instagram || 'não'
-                });
-                
-                // SITE (se tiver)
-                const spanSite = document.getElementById('lojaSite');
-                const linkSite = document.getElementById('linkSite');
-                
-                if (spanSite && dadosLoja.contato.site) {
-                    spanSite.textContent = dadosLoja.contato.site;
-                    
-                    if (linkSite) {
-                        let siteUrl = dadosLoja.contato.site;
-                        if (!siteUrl.startsWith('http')) {
-                            siteUrl = 'https://' + siteUrl;
-                        }
-                        linkSite.href = siteUrl;
-                        linkSite.title = "Visitar site";
-                        console.log(`🌐 Site: ${dadosLoja.contato.site}`);
-                    }
+                console.log('📞 Contato encontrado:', dadosLoja.contato);
+                renderizarContatos(dadosLoja); // ← ÚNICA CHAMADA PARA CONTATOS
+            } else {
+                console.log('ℹ️ Nenhum contato encontrado no Firebase');
+                const contactGrid = document.getElementById('contactGrid');
+                if (contactGrid) {
+                    contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
                 }
             }
             
@@ -1892,6 +1861,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
