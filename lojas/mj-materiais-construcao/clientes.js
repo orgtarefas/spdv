@@ -8,7 +8,9 @@ import {
     getDocs, 
     getDoc, 
     setDoc,
-    serverTimestamp
+    serverTimestamp,
+    query,           
+    where           
 } from './firebase_config.js';
 
 import { lojaServices } from './firebase_config.js';
@@ -1894,6 +1896,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
