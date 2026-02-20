@@ -76,7 +76,7 @@ function renderizarChat() {
     if (!footerChat) return;
     
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/imagens/${lojaId}/`;  // CORRIGIDO: removido /spdv
+    const basePath = `/spdv/imagens/${lojaId}/`;  // CORRIGIDO: voltando a ter /spdv
     const placeholder = getPlaceholderIcon();
     
     footerChat.innerHTML = `
@@ -153,8 +153,8 @@ function carregarLogoLoja() {
         return;
     }
     
-    // Caminho correto: /imagens/[loja-id]/logo.png
-    const logoPath = `/imagens/${lojaId}/logo.png`;  // CORRIGIDO: removido /spdv
+    // Caminho correto: /spdv/imagens/[loja-id]/logo.png
+    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;  // CORRIGIDO: voltando a ter /spdv
     console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
     
     const testImg = new Image();
@@ -780,7 +780,7 @@ function renderizarEndereco(dadosLoja) {
     
     const endereco = dadosLoja.endereco;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/imagens/${lojaId}/`;  // CORRIGIDO: removido /spdv
+    const basePath = `/spdv/imagens/${lojaId}/`;  // CORRIGIDO: voltando a ter /spdv
     const placeholder = getPlaceholderIcon();
     
     // Montar string do endereço
@@ -848,7 +848,7 @@ function renderizarContatos(dadosLoja) {
     
     const contato = dadosLoja.contato;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/imagens/${lojaId}/`;  // CORRIGIDO: removido /spdv
+    const basePath = `/spdv/imagens/${lojaId}/`;  // CORRIGIDO: voltando a ter /spdv
     const placeholder = getPlaceholderIcon();
     
     let html = '';
@@ -866,25 +866,6 @@ function renderizarContatos(dadosLoja) {
                     <div class="contact-content">
                         <div class="contact-label">WhatsApp</div>
                         <div class="contact-value">${contato.whatsapp}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    // TELEFONE (se existir e for diferente do WhatsApp)
-    if (contato.telefone && contato.telefone.trim() !== '' && 
-        contato.telefone.replace(/\D/g, '') !== contato.whatsapp?.replace(/\D/g, '')) {
-        html += `
-            <a href="tel:${contato.telefone.replace(/\D/g, '')}" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}telefone.png" alt="Telefone" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">Telefone</div>
-                        <div class="contact-value">${contato.telefone}</div>
                     </div>
                 </div>
             </a>
@@ -936,11 +917,11 @@ function renderizarContatos(dadosLoja) {
     
     console.log('📞 Contatos renderizados:', {
         whatsapp: contato.whatsapp || 'não',
-        telefone: contato.telefone || 'não',
         email: contato.email || 'não',
         instagram: contato.instagram || 'não'
     });
 }
+
 
 // ============================================
 // CONFIGURAR MODAL DE CONSULTA
@@ -2019,6 +2000,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
