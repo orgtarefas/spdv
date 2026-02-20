@@ -16,7 +16,6 @@ html {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    /* Reset de zoom universal */
     zoom: 1;
     -moz-transform: scale(1);
     -moz-transform-origin: 0 0;
@@ -26,11 +25,9 @@ html {
     -webkit-transform-origin: 0 0;
     transform: scale(1);
     transform-origin: 0 0;
-    /* Ajustes de texto */
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    /* Garantir altura mínima */
     min-height: 100%;
     position: relative;
 }
@@ -47,11 +44,9 @@ body {
     line-height: 1.5;
     display: flex;
     flex-direction: column;
-    /* Garantir que o body ocupe toda a altura */
     position: relative;
 }
 
-/* Container principal - garante layout flexível */
 .container {
     flex: 1 0 auto;
     display: flex;
@@ -65,7 +60,7 @@ body {
 }
 
 /* ====================================
-   HEADER - FIXO NO TOPO
+   HEADER
    ==================================== */
 .main-header {
     background: linear-gradient(135deg, #1a2634, #0f1217);
@@ -91,7 +86,6 @@ body {
     margin: 0 auto;
 }
 
-/* Esquerda - Logo */
 .header-left {
     display: flex;
     align-items: center;
@@ -135,7 +129,6 @@ body {
     white-space: nowrap;
 }
 
-/* Centro - Pesquisa */
 .header-center {
     display: flex;
     justify-content: center;
@@ -234,13 +227,6 @@ body {
     animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-/* Direita - Usuário */
 .header-right {
     display: flex;
     flex-direction: column;
@@ -303,7 +289,7 @@ body {
 }
 
 /* ====================================
-   CONTEÚDO PRINCIPAL - EXPANSÍVEL
+   CATEGORIAS E PRODUTOS
    ==================================== */
 .categories-section {
     padding: 2rem;
@@ -319,12 +305,9 @@ body {
     flex: 1 0 auto;
     position: relative;
     width: 100%;
-    min-height: 300px; /* Altura mínima para evitar colapso */
+    min-height: 300px;
 }
 
-/* ====================================
-   CATEGORIAS
-   ==================================== */
 .categories-section h2,
 .featured-products h2 {
     font-size: 1.3rem;
@@ -457,9 +440,6 @@ body {
     font-weight: 400;
 }
 
-/* ====================================
-   PRODUTOS
-   ==================================== */
 .carousel-container {
     position: relative;
     padding: 0 40px;
@@ -696,23 +676,57 @@ body {
 @keyframes modalFadeIn {
     from {
         opacity: 0;
-        transform: translateY(-30px);
+        transform: translateY(-30px) scale(0.95);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
 .modal-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid #dee2e6;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: linear-gradient(135deg, #0056b3, #003d82);
+    background: linear-gradient(135deg, #1a2634, #0f1217);
     color: white;
-    border-radius: 12px 12px 0 0;
+    border-radius: 20px 20px 0 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.modal-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #00a86b, #0056b3, #00a86b);
+    animation: headerShine 3s infinite;
+}
+
+@keyframes headerShine {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+}
+
+.modal-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header h3 i {
+    font-size: 1.4rem;
+    color: #00a86b;
 }
 
 .modal-close {
@@ -928,7 +942,7 @@ body {
 }
 
 /* ====================================
-   FOOTER - SEMPRE VISÍVEL
+   FOOTER - PRONTO PARA SEU HTML
    ==================================== */
 .main-footer {
     background: linear-gradient(135deg, #1a2634, #0f1217);
@@ -940,222 +954,11 @@ body {
     flex-shrink: 0;
     margin-top: auto;
     z-index: 10;
-    min-height: 100px; /* Altura mínima para centralização */
+    min-height: 100px;
     display: flex;
-    align-items: center; /* Centraliza verticalmente o conteúdo */
+    align-items: center;
 }
 
-.footer-content {
-    width: 100%;
-    max-width: 1400px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1.5fr 1.2fr 0.8fr;
-    gap: 2rem;
-    align-items: center; /* Centraliza verticalmente todos os itens */
-    padding: 0 1rem;
-    position: relative;
-    z-index: 2;
-}
-
-
-/* Coluna Esquerda - Contatos */
-.footer-contacts {
-    text-align: left;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    height: 100%;
-}
-
-/* Coluna Centro - Endereço */
-.footer-address {
-    text-align: left;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    height: 100%;
-}
-
-.address-item {
-    display: flex;
-    align-items: center; /* Centraliza verticalmente ícone e texto */
-    gap: 0.6rem;
-    padding: 0.15rem 0;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    color: inherit;
-    cursor: pointer;
-    background: transparent;
-    border: none;
-    position: relative;
-    width: 100%;
-}
-
-.address-content {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.1rem;
-    min-width: 0;
-    flex: 1;
-    justify-content: center; /* Centraliza verticalmente */
-}
-
-/* Coluna Direita - Chat */
-.footer-chat {
-    text-align: right;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: center;
-    height: 100%;
-}
-
-/* ====================================
-   RESPONSIVIDADE
-   ==================================== */
-@media (max-width: 1024px) {
-    .produto-detalhe {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 300px;
-    }
-    
-    .produto-info-detalhe h2 {
-        font-size: 1.5rem;
-    }
-    
-    .produto-preco {
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 900px) {
-    .footer-content {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        align-items: center;
-    }
-    
-    .footer-contacts,
-    .footer-address,
-    .footer-chat {
-        text-align: center;
-        align-items: center;
-        width: 100%;
-    }
-    
-    .footer-address {
-        text-align: center;
-    }
-    
-    .address-item {
-        justify-content: center;
-    }
-    
-    .address-content {
-        align-items: center;
-    }
-    
-    .address-text {
-        align-items: center;
-    }
-    
-    .footer-chat {
-        align-items: center;
-    }
-    
-    .chat-container {
-        justify-content: center;
-    }
-}
-
-@media (max-width: 768px) {
-    .modal-content {
-        width: 95%;
-        max-height: 95vh;
-    }
-    
-    .modal-header {
-        padding: 1.2rem 1.5rem;
-    }
-    
-    .modal-header h3 {
-        font-size: 1.1rem;
-    }
-    
-    .modal-body {
-        padding: 1.5rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 250px;
-    }
-    
-    .produto-info-detalhe h2 {
-        font-size: 1.3rem;
-    }
-    
-    .produto-preco {
-        font-size: 1.8rem;
-    }
-    
-    .btn-add-cart-large {
-        padding: 1rem;
-        font-size: 1.1rem;
-    }
-    
-    .footer-content {
-        padding: 0;
-    }
-}
-
-@media (max-width: 480px) {
-    .produto-imagem-grande {
-        height: 200px;
-    }
-    
-    .produto-info-detalhe h2 {
-        font-size: 1.2rem;
-    }
-    
-    .produto-preco {
-        font-size: 1.5rem;
-    }
-    
-    .produto-codigo,
-    .produto-categoria,
-    .produto-descricao {
-        font-size: 0.85rem;
-    }
-    
-    .btn-add-cart-large {
-        padding: 0.8rem;
-        font-size: 1rem;
-    }
-    
-    .chat-icon-large {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .chat-icon-large img {
-        width: 22px;
-        height: 22px;
-    }
-    
-    .chat-button {
-        padding: 0.4rem 1rem;
-        font-size: 0.85rem;
-    }
-}
-
-/* Efeito de brilho */
 .main-footer::before {
     content: '';
     position: absolute;
@@ -1180,7 +983,7 @@ body {
     display: grid;
     grid-template-columns: 1.5fr 1.2fr 0.8fr;
     gap: 2rem;
-    align-items: start;
+    align-items: center;
     padding: 0 1rem;
     position: relative;
     z-index: 2;
@@ -1189,6 +992,10 @@ body {
 /* Coluna Esquerda - Contatos */
 .footer-contacts {
     text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
 }
 
 .footer-contacts h4 {
@@ -1287,9 +1094,12 @@ body {
 
 /* Coluna Centro - Endereço */
 .footer-address {
-    text-align: left;  /* Força alinhamento à esquerda */
+    text-align: left;
     min-width: 0;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
 }
 
 .footer-address h4 {
@@ -1298,7 +1108,7 @@ body {
 
 .address-item {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.6rem;
     padding: 0.15rem 0;
     transition: all 0.3s ease;
@@ -1309,7 +1119,6 @@ body {
     border: none;
     position: relative;
     width: 100%;
-    justify-content: flex-start; /* Garante alinhamento à esquerda */
 }
 
 .address-item:hover {
@@ -1339,7 +1148,6 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-top: 2px; /* Pequeno ajuste para alinhar com o texto */
 }
 
 .address-icon img {
@@ -1357,11 +1165,11 @@ body {
 .address-content {
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Alinha todo conteúdo à esquerda */
-    gap: 0.2rem;
+    align-items: flex-start;
+    gap: 0.1rem;
     min-width: 0;
     flex: 1;
-    text-align: left; /* Garante texto à esquerda */
+    justify-content: center;
 }
 
 .address-label {
@@ -1369,8 +1177,6 @@ body {
     color: #a0a0a0;
     font-weight: 400;
     white-space: nowrap;
-    text-align: left;
-    width: 100%;
 }
 
 .address-label::after {
@@ -1383,32 +1189,22 @@ body {
     flex-direction: column;
     gap: 0.1rem;
     width: 100%;
-    text-align: left; /* Garante texto à esquerda */
 }
 
-/* Primeira linha: rua e número */
 .rua-numero {
     font-size: 0.8rem;
     color: #ffffff;
     font-weight: 500;
     line-height: 1.3;
     word-wrap: break-word;
-    text-align: left;
-    width: 100%;
-    display: block;
 }
 
-/* Segunda linha: cidade, UF e CEP - SEMPRE EMBAIXO */
 .cidade-uf-cep {
     font-size: 0.7rem;
     color: #a0a0a0;
     font-weight: 400;
     line-height: 1.3;
     word-wrap: break-word;
-    text-align: left;
-    width: 100%;
-    display: block;
-    margin-top: 0.1rem;
 }
 
 /* Coluna Direita - Chat */
@@ -1425,14 +1221,12 @@ body {
     display: none;
 }
 
-/* Container do chat com ícone separado */
 .chat-container {
     display: flex;
     align-items: center;
     gap: 0.75rem;
 }
 
-/* Ícone do chat fora do botão */
 .chat-icon-large {
     width: 48px;
     height: 48px;
@@ -1458,7 +1252,6 @@ body {
     filter: brightness(0) invert(1);
 }
 
-/* Botão do chat (apenas texto) */
 .chat-button {
     padding: 0.6rem 1.5rem;
     border-radius: 40px;
@@ -1549,17 +1342,12 @@ body {
 }
 
 /* ====================================
-   RESPONSIVIDADE - AJUSTES FINOS
+   RESPONSIVIDADE
    ==================================== */
 @media (max-width: 1200px) {
     .footer-content {
         grid-template-columns: 1fr 1fr;
         gap: 1.5rem;
-    }
-    
-    .footer-chat {
-        grid-column: span 2;
-        text-align: center;
     }
 }
 
@@ -1568,36 +1356,63 @@ body {
         grid-template-columns: 1fr 1.5fr 1fr;
         gap: 1rem;
     }
+    
+    .produto-detalhe {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .produto-imagem-grande {
+        height: 300px;
+    }
+    
+    .produto-info-detalhe h2 {
+        font-size: 1.5rem;
+    }
+    
+    .produto-preco {
+        font-size: 2rem;
+    }
 }
 
 @media (max-width: 900px) {
     .footer-content {
         grid-template-columns: 1fr;
         gap: 1.5rem;
+        align-items: center;
+    }
+    
+    .footer-contacts,
+    .footer-address,
+    .footer-chat {
+        text-align: center;
+        align-items: center;
+        width: 100%;
     }
     
     .footer-address {
-        text-align: left;
+        text-align: center;
     }
     
     .address-item {
-        justify-content: flex-start;
+        justify-content: center;
     }
     
     .address-content {
-        align-items: flex-start;
-        text-align: left;
+        align-items: center;
     }
     
     .address-text {
-        text-align: left;
+        align-items: center;
     }
     
-    .rua-numero,
-    .cidade-uf-cep {
-        text-align: left;
+    .footer-chat {
+        align-items: center;
     }
-
+    
+    .chat-container {
+        justify-content: center;
+    }
 }
 
 @media (max-width: 768px) {
@@ -1657,8 +1472,29 @@ body {
         padding: 0 35px;
     }
     
+    .modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .modal-header {
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .produto-imagem-grande {
+        height: 250px;
+    }
+    
     .main-footer {
-        padding: 1rem 1rem 0.5rem;
+        padding: 1rem 1rem;
     }
     
     .footer-content {
@@ -1723,6 +1559,29 @@ body {
         font-size: 0.9rem;
     }
     
+    .produto-imagem-grande {
+        height: 200px;
+    }
+    
+    .produto-info-detalhe h2 {
+        font-size: 1.2rem;
+    }
+    
+    .produto-preco {
+        font-size: 1.5rem;
+    }
+    
+    .produto-codigo,
+    .produto-categoria,
+    .produto-descricao {
+        font-size: 0.85rem;
+    }
+    
+    .btn-add-cart-large {
+        padding: 0.8rem;
+        font-size: 1rem;
+    }
+    
     .rua-numero {
         font-size: 0.75rem;
     }
@@ -1741,8 +1600,19 @@ body {
         font-size: 0.7rem;
     }
     
-    .chat-text {
-        font-size: 0.75rem;
+    .chat-icon-large {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .chat-icon-large img {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .chat-button {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
     }
     
     .footer-copyright p {
@@ -1753,8 +1623,6 @@ body {
 /* ====================================
    AJUSTES ESPECÍFICOS POR NAVEGADOR
    ==================================== */
-
-/* Chrome e Edge */
 @media screen and (-webkit-min-device-pixel-ratio:0) {
     html {
         -webkit-text-size-adjust: 100%;
@@ -1765,7 +1633,6 @@ body {
     }
 }
 
-/* Firefox */
 @-moz-document url-prefix() {
     html {
         font-size: 16px;
@@ -1773,7 +1640,6 @@ body {
     }
 }
 
-/* Edge Legacy */
 @supports (-ms-ime-align: auto) {
     html {
         zoom: 1;
@@ -1790,21 +1656,8 @@ body {
     }
 }
 
-/* Garantia adicional para o rodapé em todos os navegadores */
-@media screen and (max-height: 600px) {
-    .featured-products {
-        min-height: 250px;
-    }
-    
-    .main-footer {
-        padding: 0.8rem 2rem 0.4rem;
-    }
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
-
-/* Impedir que o conteúdo fique atrás do rodapé */
-.container::after {
-    content: '';
-    display: table;
-    clear: both;
-}
-
