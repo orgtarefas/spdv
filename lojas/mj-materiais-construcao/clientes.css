@@ -975,10 +975,27 @@ body {
     font-size: 0.8rem;
     color: #ffffff;
     font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;  /* MUDA DE nowrap PARA normal */
+    word-wrap: break-word; /* Permite quebra de palavras longas */
+    overflow: visible;     /* MUDA DE hidden PARA visible */
     max-width: 280px;
+    line-height: 1.4;
+}
+
+/* Formatação especial para o endereço */
+.address-text .cidade-uf {
+    display: block;        /* Força quebra de linha */
+    margin-top: 0.1rem;
+    color: #a0a0a0;        /* Cor mais suave para cidade/UF/CEP */
+    font-size: 0.75rem;
+}
+
+/* Para mobile */
+@media (max-width: 768px) {
+    .address-text {
+        max-width: 100%;
+        text-align: center;
+    }
 }
 
 /* Coluna Direita - Chat */
@@ -1388,3 +1405,4 @@ body {
         font-size: 0.6rem;
     }
 }
+
