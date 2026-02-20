@@ -815,8 +815,6 @@ function renderizarEndereco(dadosLoja) {
     `;
     
     addressGrid.innerHTML = html;
-    
-    console.log('📍 Endereço renderizado:', enderecoCompleto);
 }
 
 // ============================================
@@ -832,8 +830,6 @@ function configurarChat() {
     novoBotao.addEventListener('click', () => {
         alert('Chat em desenvolvimento. Breve estaremos disponíveis 😉');
     });
-    
-    console.log('💬 Chat configurado');
 }
 
 
@@ -869,25 +865,6 @@ function renderizarContatos(dadosLoja) {
                     <div class="contact-content">
                         <div class="contact-label">WhatsApp</div>
                         <div class="contact-value">${contato.whatsapp}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    // TELEFONE
-    if (contato.telefone && contato.telefone.trim() !== '' && 
-        contato.telefone.replace(/\D/g, '') !== contato.whatsapp?.replace(/\D/g, '')) {
-        html += `
-            <a href="tel:${contato.telefone.replace(/\D/g, '')}" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}telefone.png" alt="Telefone" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">Telefone</div>
-                        <div class="contact-value">${contato.telefone}</div>
                     </div>
                 </div>
             </a>
@@ -936,13 +913,6 @@ function renderizarContatos(dadosLoja) {
     }
     
     contactGrid.innerHTML = html;
-    
-    console.log('📞 Contatos renderizados:', {
-        whatsapp: contato.whatsapp || 'não',
-        telefone: contato.telefone || 'não',
-        email: contato.email || 'não',
-        instagram: contato.instagram || 'não'
-    });
 }
 
 // ============================================
@@ -1267,7 +1237,7 @@ async function carregarProdutos() {
 }
 
 // ============================================
-// FUNÇÃO PARA OBTER O PLACEHOLDER
+// FUNÇÃO PARA OBTER PLACEHOLDER
 // ============================================
 function getPlaceholderIcon() {
     return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E";
@@ -1424,8 +1394,6 @@ async function carregarDadosLojaFirebase() {
         mostrarMensagem('Erro ao carregar dados da loja', 'error');
     }
 }
-
-
 
 // ============================================
 // CARREGAR CATEGORIAS
@@ -2024,6 +1992,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
