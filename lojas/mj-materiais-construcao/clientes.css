@@ -1283,14 +1283,15 @@ body {
 }
 
 /* ====================================
-   FOOTER - 3 COLUNAS
+   FOOTER - GRADIENTE CINZA PARA PRETO
    ==================================== */
 .main-footer {
-    background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
+    background: linear-gradient(135deg, #2c3e50, #1a1a1a);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding: 1rem 1rem 0.5rem;
     margin-top: auto;
     width: 100%;
+    color: #ffffff;
 }
 
 .footer-content {
@@ -1330,11 +1331,12 @@ body {
     gap: 0.5rem;
     padding: 0.2rem 0;
     transition: all 0.2s ease;
+    color: #ffffff;
 }
 
 .contact-item:hover {
     transform: translateX(3px);
-    color: var(--primary);
+    color: #00a86b;
 }
 
 .contact-icon {
@@ -1350,6 +1352,8 @@ body {
     width: 16px;
     height: 16px;
     object-fit: contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
 }
 
 .contact-content {
@@ -1363,9 +1367,10 @@ body {
 
 .contact-value {
     font-size: 0.8rem;
-    color: #1e293b;
+    color: #ffffff;
     font-weight: 400;
     line-height: 1.2;
+    opacity: 0.9;
 }
 
 /* Coluna Centro - Endereço */
@@ -1388,11 +1393,11 @@ body {
     color: inherit;
     cursor: pointer;
     max-width: 100%;
-    background: rgba(0, 86, 179, 0.03);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .address-item:hover {
-    background: rgba(0, 86, 179, 0.08);
+    background: rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
 }
 
@@ -1409,6 +1414,8 @@ body {
     width: 16px;
     height: 16px;
     object-fit: contain;
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
 }
 
 .address-content {
@@ -1421,12 +1428,13 @@ body {
 
 .address-text {
     font-size: 0.8rem;
-    color: #1e293b;
+    color: #ffffff;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 280px;
+    opacity: 0.9;
 }
 
 /* Coluna Direita - Chat */
@@ -1444,17 +1452,18 @@ body {
     gap: 0.5rem;
     padding: 0.4rem 1rem;
     border-radius: 30px;
-    background: linear-gradient(135deg, #0056b3, #00a86b);
+    background: linear-gradient(135deg, #00a86b, #0056b3);
     color: white;
     cursor: pointer;
     transition: all 0.2s ease;
     border: none;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .chat-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 168, 107, 0.3);
 }
 
 .chat-icon {
@@ -1477,21 +1486,103 @@ body {
     font-weight: 500;
 }
 
-/* Copyright - Centralizado */
+/* ====================================
+   COPYRIGHT - PRETO COM EFEITOS ANIMADOS
+   ==================================== */
 .footer-copyright {
     width: 100%;
     text-align: center;
     padding: 0.75rem 0 0.25rem;
     margin-top: 0.5rem;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efeito de brilho que desliza */
+.footer-copyright::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #00a86b, transparent);
+    animation: slideShine 3s infinite;
+}
+
+@keyframes slideShine {
+    0% {
+        left: -100%;
+    }
+    20% {
+        left: 100%;
+    }
+    100% {
+        left: 100%;
+    }
 }
 
 .footer-copyright p {
     margin: 0;
     font-size: 0.7rem;
     font-weight: 400;
-    color: #94a3b8;
+    color: #a0a0a0;
     letter-spacing: 0.5px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    display: inline-block;
+}
+
+/* Efeito de hover no texto */
+.footer-copyright p:hover {
+    color: #ffffff;
+    transform: scale(1.05);
+    text-shadow: 0 0 10px #00a86b;
+    cursor: default;
+}
+
+/* Efeito de pulsação suave */
+@keyframes softPulse {
+    0% {
+        opacity: 0.8;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.8;
+    }
+}
+
+.footer-copyright p {
+    animation: softPulse 3s infinite;
+}
+
+/* Efeito de partículas (opcional) */
+.footer-copyright::after {
+    content: '✦';
+    position: absolute;
+    color: #00a86b;
+    font-size: 0.5rem;
+    opacity: 0;
+    animation: sparkle 3s infinite;
+}
+
+@keyframes sparkle {
+    0% {
+        opacity: 0;
+        transform: translate(-20px, -5px);
+    }
+    50% {
+        opacity: 0.5;
+        transform: translate(0, -10px);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(20px, -5px);
+    }
 }
 
 /* Loading states */
@@ -1503,8 +1594,8 @@ body {
 .spinner-small {
     width: 16px;
     height: 16px;
-    border: 2px solid #e2e8f0;
-    border-top: 2px solid #0056b3;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top: 2px solid #00a86b;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -1512,8 +1603,127 @@ body {
 .no-contacts,
 .no-address {
     font-size: 0.8rem;
-    color: #94a3b8;
+    color: #a0a0a0;
     font-style: italic;
+}
+
+/* ====================================
+   HEADER - MESMO GRADIENTE DO RODAPÉ
+   ==================================== */
+.main-header {
+    background: linear-gradient(135deg, #2c3e50, #1a1a1a);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Efeito de brilho no header ao passar o mouse */
+.main-header:hover {
+    box-shadow: 0 6px 25px rgba(0, 168, 107, 0.2);
+    transition: box-shadow 0.3s ease;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-img {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease;
+}
+
+.logo-img:hover {
+    transform: scale(1.05);
+    border-color: #00a86b;
+}
+
+.logo h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.logo .subtitle {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    color: #cccccc;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.user-info:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #00a86b;
+}
+
+#userName {
+    font-weight: 500;
+    color: white;
+}
+
+.btn-login, .btn-logout {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-login:hover, .btn-logout:hover {
+    background: #00a86b;
+    border-color: #00a86b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 168, 107, 0.3);
+}
+
+.header-info {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    color: #cccccc;
 }
 
 /* ====================================
@@ -1552,5 +1762,38 @@ body {
     
     .footer-chat {
         text-align: center;
+    }
+    
+    .main-header {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .header-left {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .logo h1 {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-value {
+        font-size: 0.75rem;
+    }
+    
+    .address-text {
+        font-size: 0.75rem;
+    }
+    
+    .chat-text {
+        font-size: 0.75rem;
+    }
+    
+    .footer-copyright p {
+        font-size: 0.65rem;
     }
 }
