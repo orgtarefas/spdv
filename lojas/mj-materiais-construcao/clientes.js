@@ -76,7 +76,7 @@ function renderizarChat() {
     if (!footerChat) return;
     
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
+    const basePath = `/imagens/${lojaId}/`;  // CORRIGIDO: removido /spdv
     const placeholder = getPlaceholderIcon();
     
     footerChat.innerHTML = `
@@ -149,33 +149,30 @@ function carregarLogoLoja() {
     
     if (!lojaId) {
         console.log('ℹ️ Usando logo placeholder (loja não identificada)');
-        logoImg.src = LOGO_PLACEHOLDER;
+        logoImg.src = getPlaceholderIcon();
         return;
     }
     
-    // Caminho correto: /spdv/imagens/[loja-id]/logo.png
-    // Exemplo: /spdv/imagens/mj-materiais-construcao/logo.png
-    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
+    // Caminho correto: /imagens/[loja-id]/logo.png
+    const logoPath = `/imagens/${lojaId}/logo.png`;  // CORRIGIDO: removido /spdv
     console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
     
-    // Criar um novo objeto Image para testar se a imagem existe
     const testImg = new Image();
     testImg.onload = function() {
         console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
         logoImg.src = logoPath;
         
         // Atualizar logo do footer também
-        const footerLogo = document.querySelector('.footer-logo');
+        const footerLogo = document.getElementById('footerLogo');
         if (footerLogo) footerLogo.src = logoPath;
     };
     
     testImg.onerror = function() {
         console.log(`ℹ️ Logo não encontrada em ${logoPath}, usando placeholder`);
-        logoImg.src = LOGO_PLACEHOLDER;
+        logoImg.src = getPlaceholderIcon();
         
-        // Footer também usa placeholder
-        const footerLogo = document.querySelector('.footer-logo');
-        if (footerLogo) footerLogo.src = LOGO_PLACEHOLDER;
+        const footerLogo = document.getElementById('footerLogo');
+        if (footerLogo) footerLogo.src = getPlaceholderIcon();
     };
     
     testImg.src = logoPath;
@@ -783,7 +780,7 @@ function renderizarEndereco(dadosLoja) {
     
     const endereco = dadosLoja.endereco;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
+    const basePath = `/imagens/${lojaId}/`;  // CORRIGIDO: removido /spdv
     const placeholder = getPlaceholderIcon();
     
     // Montar string do endereço
@@ -838,7 +835,7 @@ function configurarChat() {
 
 
 // ============================================
-// FUNÇÃO PARA RENDERIZAR CONTATOS
+// FUNÇÃO PARA RENDERIZAR CONTATOS (CORRIGIDA)
 // ============================================
 function renderizarContatos(dadosLoja) {
     const contactGrid = document.getElementById('contactGrid');
@@ -851,7 +848,7 @@ function renderizarContatos(dadosLoja) {
     
     const contato = dadosLoja.contato;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
+    const basePath = `/imagens/${lojaId}/`;  // CORRIGIDO: removido /spdv
     const placeholder = getPlaceholderIcon();
     
     let html = '';
@@ -944,7 +941,6 @@ function renderizarContatos(dadosLoja) {
         instagram: contato.instagram || 'não'
     });
 }
-
 
 // ============================================
 // CONFIGURAR MODAL DE CONSULTA
@@ -2023,6 +2019,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
