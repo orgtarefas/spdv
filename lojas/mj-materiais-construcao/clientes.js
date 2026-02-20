@@ -69,6 +69,31 @@ function getCaminhoLogo(lojaId) {
 }
 
 // ============================================
+// FUNÇÃO PARA RENDERIZAR CHAT
+// ============================================
+function renderizarChat() {
+    const footerChat = document.querySelector('.footer-chat');
+    if (!footerChat) return;
+    
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    const basePath = `/spdv/imagens/${lojaId}/`;
+    const placeholder = getPlaceholderIcon();
+    
+    footerChat.innerHTML = `
+        <h4>Precisa de ajuda?</h4>
+        <div class="chat-button" id="chatButton">
+            <div class="chat-icon">
+                <img src="${basePath}chat.png" alt="Chat" 
+                     onerror="this.src='${placeholder}'">
+            </div>
+            <div class="chat-text">Chat Online</div>
+        </div>
+    `;
+    
+    configurarChat();
+}
+
+// ============================================
 // FUNÇÃO PARA CARREGAR LOGO DA LOJA
 // ============================================
 function carregarLogoLoja() {
@@ -714,6 +739,7 @@ function renderizarEndereco(dadosLoja) {
     const endereco = dadosLoja.endereco;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     const basePath = `/spdv/imagens/${lojaId}/`;
+    const placeholder = getPlaceholderIcon();
     
     // Montar string do endereço
     const partes = [];
@@ -721,10 +747,10 @@ function renderizarEndereco(dadosLoja) {
     if (endereco.numero) partes.push(`nº ${endereco.numero}`);
     if (endereco.bairro) partes.push(endereco.bairro);
     if (endereco.cidade) partes.push(endereco.cidade);
-    if (endereco.uf) partes.push(endereco.uf);
+    if (endereco.uf) partes.push(`- ${endereco.uf}`);
     if (endereco.cep) partes.push(`CEP: ${endereco.cep}`);
     
-    const enderecoCompleto = partes.join(', ');
+    const enderecoCompleto = partes.join(' ');
     
     // Montar URL do Google Maps
     const query = encodeURIComponent(enderecoCompleto);
@@ -734,7 +760,7 @@ function renderizarEndereco(dadosLoja) {
         <a href="${mapsUrl}" target="_blank" class="address-item">
             <div class="address-icon">
                 <img src="${basePath}endereco.png" alt="Endereço" 
-                     onerror="this.src='${LOGO_PLACEHOLDER}'">
+                     onerror="this.src='${placeholder}'">
             </div>
             <div class="address-content">
                 <div class="address-label">Endereço</div>
@@ -755,7 +781,6 @@ function configurarChat() {
     const chatButton = document.getElementById('chatButton');
     if (!chatButton) return;
     
-    // Remover listeners antigos para evitar duplicação
     const novoBotao = chatButton.cloneNode(true);
     chatButton.parentNode.replaceChild(novoBotao, chatButton);
     
@@ -782,6 +807,7 @@ function renderizarContatos(dadosLoja) {
     const contato = dadosLoja.contato;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     const basePath = `/spdv/imagens/${lojaId}/`;
+    const placeholder = getPlaceholderIcon();
     
     let html = '';
     
@@ -793,7 +819,7 @@ function renderizarContatos(dadosLoja) {
                 <div class="contact-item">
                     <div class="contact-icon">
                         <img src="${basePath}whatsapp.png" alt="WhatsApp" 
-                             onerror="this.src='${LOGO_PLACEHOLDER}'">
+                             onerror="this.src='${placeholder}'">
                     </div>
                     <div class="contact-content">
                         <div class="contact-label">WhatsApp</div>
@@ -804,26 +830,23 @@ function renderizarContatos(dadosLoja) {
         `;
     }
     
-    // TELEFONE (se existir e for diferente do WhatsApp)
-    if (contato.telefone && contato.telefone.trim() !== '') {
-        const mesmoNumero = contato.telefone.replace(/\D/g, '') === contato.whatsapp?.replace(/\D/g, '');
-        
-        if (!mesmoNumero) {
-            html += `
-                <a href="tel:${contato.telefone.replace(/\D/g, '')}" class="contact-link">
-                    <div class="contact-item">
-                        <div class="contact-icon">
-                            <img src="${basePath}telefone.png" alt="Telefone" 
-                                 onerror="this.src='${LOGO_PLACEHOLDER}'">
-                        </div>
-                        <div class="contact-content">
-                            <div class="contact-label">Telefone</div>
-                            <div class="contact-value">${contato.telefone}</div>
-                        </div>
+    // TELEFONE
+    if (contato.telefone && contato.telefone.trim() !== '' && 
+        contato.telefone.replace(/\D/g, '') !== contato.whatsapp?.replace(/\D/g, '')) {
+        html += `
+            <a href="tel:${contato.telefone.replace(/\D/g, '')}" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}telefone.png" alt="Telefone" 
+                             onerror="this.src='${placeholder}'">
                     </div>
-                </a>
-            `;
-        }
+                    <div class="contact-content">
+                        <div class="contact-label">Telefone</div>
+                        <div class="contact-value">${contato.telefone}</div>
+                    </div>
+                </div>
+            </a>
+        `;
     }
     
     // E-MAIL
@@ -833,7 +856,7 @@ function renderizarContatos(dadosLoja) {
                 <div class="contact-item">
                     <div class="contact-icon">
                         <img src="${basePath}email.png" alt="E-mail" 
-                             onerror="this.src='${LOGO_PLACEHOLDER}'">
+                             onerror="this.src='${placeholder}'">
                     </div>
                     <div class="contact-content">
                         <div class="contact-label">E-mail</div>
@@ -852,51 +875,11 @@ function renderizarContatos(dadosLoja) {
                 <div class="contact-item">
                     <div class="contact-icon">
                         <img src="${basePath}instagram.png" alt="Instagram" 
-                             onerror="this.src='${LOGO_PLACEHOLDER}'">
+                             onerror="this.src='${placeholder}'">
                     </div>
                     <div class="contact-content">
                         <div class="contact-label">Instagram</div>
                         <div class="contact-value">${contato.instagram}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    // FACEBOOK
-    if (contato.facebook && contato.facebook.trim() !== '') {
-        html += `
-            <a href="https://facebook.com/${contato.facebook}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}facebook.png" alt="Facebook" 
-                             onerror="this.src='${LOGO_PLACEHOLDER}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">Facebook</div>
-                        <div class="contact-value">${contato.facebook}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    // SITE
-    if (contato.site && contato.site.trim() !== '') {
-        let siteUrl = contato.site;
-        if (!siteUrl.startsWith('http')) {
-            siteUrl = 'https://' + siteUrl;
-        }
-        html += `
-            <a href="${siteUrl}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}site.png" alt="Site" 
-                             onerror="this.src='${LOGO_PLACEHOLDER}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">Site</div>
-                        <div class="contact-value">${contato.site}</div>
                     </div>
                 </div>
             </a>
@@ -913,9 +896,7 @@ function renderizarContatos(dadosLoja) {
         whatsapp: contato.whatsapp || 'não',
         telefone: contato.telefone || 'não',
         email: contato.email || 'não',
-        instagram: contato.instagram || 'não',
-        facebook: contato.facebook || 'não',
-        site: contato.site || 'não'
+        instagram: contato.instagram || 'não'
     });
 }
 
@@ -1241,6 +1222,13 @@ async function carregarProdutos() {
 }
 
 // ============================================
+// FUNÇÃO PARA OBTER O PLACEHOLDER
+// ============================================
+function getPlaceholderIcon() {
+    return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E";
+}
+
+// ============================================
 // FUNÇÃO PARA CARREGAR DADOS DA LOJA DO FIREBASE
 // ============================================
 async function carregarDadosLojaFirebase() {
@@ -1328,9 +1316,9 @@ async function carregarDadosLojaFirebase() {
             }
             
             // ============================================
-            // 5. CONFIGURAR CHAT
+            // 5. RENDERIZAR CHAT (SEMPRE)
             // ============================================
-            configurarChat();
+            renderizarChat();
             
             // ============================================
             // 6. STATUS DA LOJA
@@ -1367,8 +1355,8 @@ async function carregarDadosLojaFirebase() {
                 addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
             }
             
-            // Configurar chat mesmo sem dados
-            configurarChat();
+            // Renderizar chat mesmo sem dados da loja
+            renderizarChat();
         }
         
     } catch (error) {
@@ -1384,10 +1372,15 @@ async function carregarDadosLojaFirebase() {
             if (elemento) elemento.textContent = nomeFallback;
         });
         
+        // Renderizar chat mesmo em caso de erro
+        renderizarChat();
+        
         // Mensagem amigável para o usuário
         mostrarMensagem('Erro ao carregar dados da loja', 'error');
     }
 }
+
+
 
 // ============================================
 // CARREGAR CATEGORIAS (com "Todos" como primeira)
@@ -1977,6 +1970,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
