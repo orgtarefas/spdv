@@ -858,7 +858,7 @@ function configurarModalConsulta() {
 }
 
 // ============================================
-// RENDERIZAR ENDEREÇO
+// FUNÇÃO PARA RENDERIZAR ENDEREÇO
 // ============================================
 function renderizarEndereco(dadosLoja) {
     const addressGrid = document.getElementById('addressGrid');
@@ -874,15 +874,22 @@ function renderizarEndereco(dadosLoja) {
     const basePath = `/spdv/imagens/${lojaId}/`;
     const placeholder = getPlaceholderIcon();
     
-    const partes = [];
-    if (endereco.rua) partes.push(endereco.rua);
-    if (endereco.numero) partes.push(`nº ${endereco.numero}`);
-    if (endereco.bairro) partes.push(endereco.bairro);
-    if (endereco.cidade) partes.push(endereco.cidade);
-    if (endereco.uf) partes.push(`- ${endereco.uf}`);
-    if (endereco.cep) partes.push(`CEP: ${endereco.cep}`);
+    // Primeira linha: rua, número e bairro
+    const ruaNumeroBairro = [];
+    if (endereco.rua) ruaNumeroBairro.push(endereco.rua);
+    if (endereco.numero) ruaNumeroBairro.push(`nº ${endereco.numero}`);
+    if (endereco.bairro) ruaNumeroBairro.push(endereco.bairro);
+    const ruaNumeroBairroStr = ruaNumeroBairro.join(' ');
     
-    const enderecoCompleto = partes.join(' ');
+    // Segunda linha: cidade, UF e CEP (sempre juntos)
+    const cidadeUfCep = [];
+    if (endereco.cidade) cidadeUfCep.push(endereco.cidade);
+    if (endereco.uf) cidadeUfCep.push(endereco.uf);
+    if (endereco.cep) cidadeUfCep.push(`CEP: ${endereco.cep}`);
+    const cidadeUfCepStr = cidadeUfCep.join(' - ');
+    
+    // Endereço completo para URL do Maps
+    const enderecoCompleto = `${ruaNumeroBairroStr} ${cidadeUfCepStr}`.trim();
     const query = encodeURIComponent(enderecoCompleto);
     const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
     
@@ -894,7 +901,10 @@ function renderizarEndereco(dadosLoja) {
             </div>
             <div class="address-content">
                 <div class="address-label">Endereço</div>
-                <div class="address-text">${enderecoCompleto}</div>
+                <div class="address-text">
+                    <span class="rua-numero">${ruaNumeroBairroStr}</span>
+                    <span class="cidade-uf-cep">${cidadeUfCepStr}</span>
+                </div>
             </div>
         </a>
     `;
@@ -1895,3 +1905,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
