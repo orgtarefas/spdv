@@ -1177,57 +1177,48 @@ body {
 }
 
 /* ====================================
-   FOOTER PROFISSIONAL - COMPACTO
+   FOOTER PROFISSIONAL - SEÇÕES LADO A LADO
    ==================================== */
 .main-footer {
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
-    padding: 1.5rem 2rem 0.8rem;
+    padding: 2rem 2rem 1rem;
     margin-top: auto;
-    font-size: 0.9rem;
 }
 
 .footer-content {
     max-width: 1200px;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 1.2fr 1.5fr 1.2fr 0.8fr;
-    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
     align-items: start;
 }
 
-/* Brand */
+/* Remove a logo e nome da loja do rodapé */
 .footer-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    display: none;
 }
 
-.footer-logo {
-    width: 36px;
-    height: 36px;
-    object-fit: contain;
-}
-
-.footer-brand span {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #1e293b;
-    line-height: 1.2;
+/* Ajuste para as colunas restantes */
+.footer-contacts,
+.footer-address,
+.footer-chat {
+    min-width: 0; /* Permite que o conteúdo quebre */
 }
 
 /* Títulos das seções */
 .footer-contacts h4,
 .footer-address h4,
 .footer-chat h4 {
-    color: #475569;
-    font-size: 0.85rem;
+    color: #1e293b;
+    font-size: 0.9rem;
     font-weight: 600;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
     position: relative;
-    padding-bottom: 0.25rem;
+    padding-bottom: 0.5rem;
 }
 
 .footer-contacts h4::after,
@@ -1237,17 +1228,17 @@ body {
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 30px;
+    width: 40px;
     height: 2px;
     background: linear-gradient(90deg, #0056b3, #00a86b);
     border-radius: 2px;
 }
 
-/* Grid de Contatos */
+/* Grid de Contatos - vertical */
 .contact-grid {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.75rem;
 }
 
 .contact-link {
@@ -1259,56 +1250,61 @@ body {
 .contact-item {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.35rem 0.5rem;
-    border-radius: 6px;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 8px;
     transition: all 0.2s ease;
 }
 
 .contact-item:hover {
-    background: rgba(0, 86, 179, 0.04);
-    transform: translateX(3px);
+    background: rgba(0, 86, 179, 0.05);
+    transform: translateX(5px);
 }
 
 .contact-icon {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .contact-icon img {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     object-fit: contain;
 }
 
 .contact-content {
     flex: 1;
+    min-width: 0; /* Permite que o texto quebre */
 }
 
 .contact-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     color: #64748b;
-    margin-bottom: 0.05rem;
-    line-height: 1.2;
+    margin-bottom: 0.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .contact-value {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: #1e293b;
     font-weight: 500;
-    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Endereço */
 .address-item {
     display: flex;
     align-items: flex-start;
-    gap: 0.6rem;
-    padding: 0.35rem 0.5rem;
-    border-radius: 6px;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 8px;
     transition: all 0.2s ease;
     text-decoration: none;
     color: inherit;
@@ -1316,62 +1312,68 @@ body {
 }
 
 .address-item:hover {
-    background: rgba(0, 86, 179, 0.04);
-    transform: translateX(3px);
+    background: rgba(0, 86, 179, 0.05);
+    transform: translateX(5px);
 }
 
 .address-icon {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .address-icon img {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     object-fit: contain;
 }
 
 .address-content {
     flex: 1;
+    min-width: 0;
 }
 
 .address-label {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     color: #64748b;
-    margin-bottom: 0.05rem;
+    margin-bottom: 0.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .address-text {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: #1e293b;
     font-weight: 500;
-    line-height: 1.3;
+    line-height: 1.4;
+    word-wrap: break-word;
 }
 
 /* Chat Button */
-.chat-button {
-    display: flex;
+.footer-chat .chat-button {
+    display: inline-flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 30px;
     background: linear-gradient(135deg, #0056b3, #00a86b);
     color: white;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     border: none;
-    width: fit-content;
+    width: auto;
+    margin-top: 0.5rem;
 }
 
-.chat-button:hover {
+.footer-chat .chat-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2);
+    box-shadow: 0 5px 15px rgba(0, 86, 179, 0.3);
 }
 
-.chat-icon {
+.footer-chat .chat-icon {
     width: 28px;
     height: 28px;
     display: flex;
@@ -1379,15 +1381,15 @@ body {
     justify-content: center;
 }
 
-.chat-icon img {
-    width: 18px;
-    height: 18px;
+.footer-chat .chat-icon img {
+    width: 20px;
+    height: 20px;
     object-fit: contain;
     filter: brightness(0) invert(1);
 }
 
-.chat-text {
-    font-size: 0.85rem;
+.footer-chat .chat-text {
+    font-size: 0.9rem;
     font-weight: 500;
 }
 
@@ -1408,7 +1410,7 @@ body {
 
 .no-contacts,
 .no-address {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: #94a3b8;
     font-style: italic;
     padding: 0.5rem 0;
@@ -1417,103 +1419,41 @@ body {
 /* Footer Bottom */
 .footer-bottom {
     max-width: 1200px;
-    margin: 1.5rem auto 0;
-    padding-top: 1rem;
+    margin: 2rem auto 0;
+    padding-top: 1.5rem;
     border-top: 1px solid #e2e8f0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     color: #64748b;
+}
+
+#connectionStatus {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 #connectionStatus i {
     font-size: 0.5rem;
     color: #00a86b;
-    margin-right: 0.25rem;
 }
 
 /* ====================================
-   RESPONSIVIDADE
+   RESPONSIVIDADE DO FOOTER
    ==================================== */
 @media (max-width: 1024px) {
     .footer-content {
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
     }
 }
 
 @media (max-width: 768px) {
-    .main-header {
-        flex-direction: column;
-        gap: 1rem;
-        padding: 1rem;
-    }
-    
-    .header-left {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .logo h1 {
-        font-size: 1rem;
-    }
-    
-    .logo-img {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .search-bar-container {
-        padding: 1rem;
-    }
-    
-    .search-wrapper {
-        flex-wrap: wrap;
-    }
-    
-    .btn-cart-header {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .categories-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    }
-    
-    .carousel-container {
-        padding: 0 30px;
-    }
-    
-    .carousel-arrow {
-        width: 35px;
-        height: 35px;
-    }
-    
-    .produto-detalhe {
-        grid-template-columns: 1fr;
-    }
-    
-    .produto-imagem-grande {
-        height: 200px;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 1rem;
-    }
-    
-    .modal-results-grid {
-        grid-template-columns: 1fr;
-    }
-    
     .footer-content {
         grid-template-columns: 1fr;
-        gap: 1.2rem;
-    }
-    
-    .footer-brand {
-        justify-content: center;
+        gap: 1.5rem;
     }
     
     .footer-contacts h4,
@@ -1531,11 +1471,14 @@ body {
     
     .contact-item,
     .address-item {
-        justify-content: center;
+        max-width: 300px;
+        margin: 0 auto;
     }
     
-    .chat-button {
+    .footer-chat .chat-button {
         margin: 0 auto;
+        display: flex;
+        width: fit-content;
     }
     
     .footer-bottom {
@@ -1546,39 +1489,13 @@ body {
 }
 
 @media (max-width: 480px) {
-    .categories-grid {
-        grid-template-columns: 1fr;
+    .contact-item,
+    .address-item {
+        max-width: 100%;
     }
     
-    .carousel-container {
-        padding: 0 25px;
-    }
-    
-    .carousel-arrow {
-        width: 30px;
-        height: 30px;
-        font-size: 0.9rem;
-    }
-    
-    .product-actions {
-        flex-direction: column;
-    }
-    
-    .search-filters {
-        justify-content: center;
-    }
-    
-    .filter-btn {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.8rem;
-    }
-    
-    .search-tip {
-        flex-wrap: wrap;
-        text-align: center;
-    }
-    
-    .shortcut {
-        margin: 0 auto;
+    .contact-value {
+        white-space: normal;
+        overflow: visible;
     }
 }
