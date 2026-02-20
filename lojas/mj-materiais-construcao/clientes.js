@@ -327,6 +327,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Carregar nome da loja do lojas.js
         carregarNomeLoja();  // <-- NOVA LINHA
+
+        // CARREGAR DADOS DA LOJA DO FIREBASE (NOVO)
+        await carregarDadosLojaFirebase();
         
         // Carregar logo da loja
         carregarLogoLoja();
@@ -1151,6 +1154,123 @@ async function carregarProdutos() {
 }
 
 // ============================================
+// FUNÇÃO PARA CARREGAR DADOS DA LOJA DO FIREBASE
+// ============================================
+async function carregarDadosLojaFirebase() {
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    
+    if (!lojaId) {
+        console.warn('⚠️ ID da loja não disponível para carregar dados');
+        return;
+    }
+    
+    try {
+        console.log(`🔍 Buscando dados da loja no Firebase: ${lojaId}`);
+        
+        // Referência para o documento da loja na coleção "lojas"
+        const lojaRef = doc(db, "lojas", lojaId);
+        const lojaDoc = await getDoc(lojaRef);
+        
+        if (lojaDoc.exists()) {
+            const dadosLoja = lojaDoc.data();
+            console.log('✅ Dados da loja encontrados:', dadosLoja);
+            
+            // 1. Atualizar nome da loja no header
+            const nomeLoja = dadosLoja.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeFooter',
+                'lojaNomeCopyright'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) {
+                    elemento.textContent = nomeLoja;
+                }
+            });
+            
+            // 2. Atualizar título da página
+            document.title = `${nomeLoja} - Loja Online`;
+            
+            // 3. Atualizar local da loja (se existir)
+            const lojaLocal = document.getElementById('lojaLocal');
+            if (lojaLocal && dadosLoja.local) {
+                lojaLocal.textContent = dadosLoja.local;
+            }
+            
+            // 4. Atualizar telefone no footer
+            const lojaTelefone = document.getElementById('lojaTelefone');
+            if (lojaTelefone && dadosLoja.contato && dadosLoja.contato.telefone) {
+                lojaTelefone.textContent = dadosLoja.contato.telefone;
+            }
+            
+            // 5. Atualizar email no footer (se existir)
+            const lojaEmail = document.getElementById('lojaEmail');
+            if (lojaEmail && dadosLoja.contato && dadosLoja.contato.email) {
+                lojaEmail.textContent = dadosLoja.contato.email;
+            } else {
+                // Email padrão se não existir
+                lojaEmail.textContent = 'contato@loja.com.br';
+            }
+            
+            return dadosLoja;
+            
+        } else {
+            console.warn(`⚠️ Documento da loja não encontrado: ${lojaId}`);
+            
+            // Fallback: usar o ID formatado
+            const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeFooter',
+                'lojaNomeCopyright'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) {
+                    elemento.textContent = nomeFallback;
+                }
+            });
+            
+            document.title = `${nomeFallback} - Loja Online`;
+            
+            // Manter telefone padrão
+            const lojaTelefone = document.getElementById('lojaTelefone');
+            if (lojaTelefone) {
+                lojaTelefone.textContent = '(71) 99999-9999';
+            }
+            
+            return null;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados da loja do Firebase:', error);
+        
+        // Fallback em caso de erro
+        const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        
+        const elementosNome = [
+            'lojaNomeHeader',
+            'lojaNomeFooter',
+            'lojaNomeCopyright'
+        ];
+        
+        elementosNome.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                elemento.textContent = nomeFallback;
+            }
+        });
+        
+        return null;
+    }
+}
+
+// ============================================
 // CARREGAR CATEGORIAS (com "Todos" como primeira)
 // ============================================
 async function carregarCategorias() {
@@ -1738,6 +1858,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
