@@ -1428,7 +1428,7 @@ async function carregarDadosLojaFirebase() {
 
 
 // ============================================
-// CARREGAR CATEGORIAS (com "Todos" como primeira)
+// CARREGAR CATEGORIAS
 // ============================================
 async function carregarCategorias() {
     try {
@@ -1460,18 +1460,20 @@ async function carregarCategorias() {
         categorias = categoriasList;
         
         // Renderizar categorias com "Todos" como primeiro
-        let html = '';
+        let slidesHtml = '';
         
-        // Card "Todos" - mostra todos os produtos
+        // Card "Todos"
         const totalProdutos = produtos.length;
-        html += `
-            <div class="categoria-card" onclick="filtrarPorCategoria('todos')">
-                <div class="categoria-icon">
-                    <i class="fas fa-th-large"></i>
-                </div>
-                <div class="categoria-info">
-                    <h4>Todos</h4>
-                    <p>${totalProdutos} produto${totalProdutos !== 1 ? 's' : ''}</p>
+        slidesHtml += `
+            <div class="swiper-slide">
+                <div class="categoria-card" onclick="filtrarPorCategoria('todos')">
+                    <div class="categoria-icon">
+                        <i class="fas fa-th-large"></i>
+                    </div>
+                    <div class="categoria-info">
+                        <h4>Todos</h4>
+                        <p>${totalProdutos} produto${totalProdutos !== 1 ? 's' : ''}</p>
+                    </div>
                 </div>
             </div>
         `;
@@ -1479,20 +1481,27 @@ async function carregarCategorias() {
         // Cards das categorias específicas
         categoriasList.forEach(categoria => {
             const count = produtos.filter(p => p.categoria === categoria).length;
-            html += `
-                <div class="categoria-card" onclick="filtrarPorCategoria('${categoria}')">
-                    <div class="categoria-icon">
-                        <i class="fas fa-tag"></i>
-                    </div>
-                    <div class="categoria-info">
-                        <h4>${categoria}</h4>
-                        <p>${count} produto${count !== 1 ? 's' : ''}</p>
+            slidesHtml += `
+                <div class="swiper-slide">
+                    <div class="categoria-card" onclick="filtrarPorCategoria('${categoria}')">
+                        <div class="categoria-icon">
+                            <i class="fas fa-tag"></i>
+                        </div>
+                        <div class="categoria-info">
+                            <h4>${categoria}</h4>
+                            <p>${count} produto${count !== 1 ? 's' : ''}</p>
+                        </div>
                     </div>
                 </div>
             `;
         });
         
-        categoriesGrid.innerHTML = html;
+        categoriesGrid.innerHTML = slidesHtml;
+        
+        // Inicializar o carrossel após renderizar
+        setTimeout(() => {
+            inicializarCarrosselCategorias();
+        }, 100);
         
     } catch (error) {
         console.error("❌ Erro ao carregar categorias:", error);
@@ -2015,6 +2024,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
