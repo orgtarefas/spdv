@@ -94,6 +94,51 @@ function renderizarChat() {
 }
 
 // ============================================
+// INICIALIZAR CARROSSEL DE CATEGORIAS
+// ============================================
+function inicializarCarrosselCategorias() {
+    if (typeof Swiper === 'undefined') {
+        console.warn('⚠️ Swiper não está carregado');
+        return;
+    }
+    
+    const categoriesSwiper = new Swiper('.categories-swiper', {
+        slidesPerView: 2,
+        spaceBetween: 10,
+        loop: true,
+        navigation: {
+            prevEl: '#categoriesPrev',
+            nextEl: '#categoriesNext',
+        },
+        breakpoints: {
+            480: {
+                slidesPerView: 3,
+                spaceBetween: 12,
+            },
+            640: {
+                slidesPerView: 4,
+                spaceBetween: 15,
+            },
+            768: {
+                slidesPerView: 5,
+                spaceBetween: 15,
+            },
+            1024: {
+                slidesPerView: 6,
+                spaceBetween: 18,
+            },
+            1280: {
+                slidesPerView: 7,
+                spaceBetween: 20,
+            }
+        }
+    });
+    
+    console.log('✅ Carrossel de categorias inicializado');
+    return categoriesSwiper;
+}
+
+// ============================================
 // FUNÇÃO PARA CARREGAR LOGO DA LOJA
 // ============================================
 function carregarLogoLoja() {
@@ -1970,6 +2015,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
