@@ -62,12 +62,25 @@
         <!-- Categorias -->
         <div class="categories-section">
             <h2><i class="fas fa-tags"></i> Categorias</h2>
-            <div class="categories-grid" id="categoriesGrid">
-                <!-- Categorias serão carregadas via JS -->
-                <div class="loading-categories">
-                    <div class="spinner"></div>
-                    <p>Carregando categorias...</p>
+            
+            <div class="categories-carousel-container">
+                <button class="categories-arrow prev" id="categoriesPrev">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="swiper categories-swiper">
+                    <div class="swiper-wrapper" id="categoriesGrid">
+                        <!-- Categorias serão carregadas via JS -->
+                        <div class="swiper-slide loading-categories">
+                            <div class="spinner"></div>
+                            <p>Carregando categorias...</p>
+                        </div>
+                    </div>
                 </div>
+                
+                <button class="categories-arrow next" id="categoriesNext">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
         </div>
 
@@ -335,6 +348,7 @@
     <script type="module" src="clientes.js"></script>
 </body>
 </html>
+
 
 
 
