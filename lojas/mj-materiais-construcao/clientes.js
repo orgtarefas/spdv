@@ -700,6 +700,112 @@ function configurarEventos() {
 }
 
 // ============================================
+// FUNÇÃO PARA RENDERIZAR CONTATOS
+// ============================================
+function renderizarContatos(dadosLoja) {
+    const contactGrid = document.getElementById('contactGrid');
+    if (!contactGrid) return;
+    
+    if (!dadosLoja || !dadosLoja.contato) {
+        contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
+        return;
+    }
+    
+    const contato = dadosLoja.contato;
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    const basePath = `/spdv/imagens/${lojaId}/`;
+    
+    let html = '';
+    
+    // 1. WHATSAPP (se existir)
+    if (contato.whatsapp && contato.whatsapp.trim() !== '') {
+        const numero = contato.whatsapp.replace(/\D/g, '');
+        html += `
+            <a href="https://wa.me/${numero}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}whatsapp.png" alt="WhatsApp" 
+                             onerror="this.src='/spdv/imagens/placeholder-icon.png'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">WhatsApp</div>
+                        <div class="contact-value">${contato.whatsapp}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    // 2. TELEFONE (se existir e for diferente do WhatsApp)
+    if (contato.telefone && contato.telefone.trim() !== '') {
+        // Se for o mesmo número do WhatsApp, não mostrar telefone separado
+        const mesmoNumero = contato.telefone.replace(/\D/g, '') === contato.whatsapp?.replace(/\D/g, '');
+        
+        if (!mesmoNumero) {
+            html += `
+                <a href="tel:${contato.telefone.replace(/\D/g, '')}" class="contact-link">
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <img src="${basePath}telefone.png" alt="Telefone" 
+                                 onerror="this.src='/spdv/imagens/placeholder-icon.png'">
+                        </div>
+                        <div class="contact-content">
+                            <div class="contact-label">Telefone</div>
+                            <div class="contact-value">${contato.telefone}</div>
+                        </div>
+                    </div>
+                </a>
+            `;
+        }
+    }
+    
+    // 3. E-MAIL (se existir)
+    if (contato.email && contato.email.trim() !== '') {
+        html += `
+            <a href="mailto:${contato.email}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}email.png" alt="E-mail" 
+                             onerror="this.src='/spdv/imagens/placeholder-icon.png'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">E-mail</div>
+                        <div class="contact-value">${contato.email}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    // 4. INSTAGRAM (se existir)
+    if (contato.instagram && contato.instagram.trim() !== '') {
+        const usuario = contato.instagram.replace('@', '');
+        html += `
+            <a href="https://instagram.com/${usuario}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}instagram.png" alt="Instagram" 
+                             onerror="this.src='/spdv/imagens/placeholder-icon.png'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">Instagram</div>
+                        <div class="contact-value">${contato.instagram}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    // Se não houver nenhum contato
+    if (html === '') {
+        html = '<p class="no-contacts">Nenhum contato disponível</p>';
+    }
+    
+    contactGrid.innerHTML = html;
+}
+
+
+// ============================================
 // CONFIGURAR MODAL DE CONSULTA
 // ============================================
 function configurarModalConsulta() {
@@ -1776,6 +1882,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
