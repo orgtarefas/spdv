@@ -13,48 +13,49 @@
     <div class="container">
         <!-- Header -->
         <header class="main-header">
-            <div class="header-left">
-                <div class="logo">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E" 
-                         alt="Logo da Loja" 
-                         class="logo-img" 
-                         id="lojaLogo">
-                    <div>
-                        <h1 id="lojaNomeHeader">Sistema Ponto de Vendas Integrado</h1>
-                        <p class="subtitle">Loja Online</p>
+            <div class="header-top">
+                <div class="header-left">
+                    <div class="logo">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E" 
+                             alt="Logo da Loja" 
+                             class="logo-img" 
+                             id="lojaLogo">
+                        <div>
+                            <h1 id="lojaNomeHeader">Sistema Ponto de Vendas Integrado</h1>
+                            <p class="subtitle">Loja Online</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="user-info">
+                        <span id="userName">Visitante</span>
+                        <button id="btnLogout" class="btn-logout" style="display: none;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Sair
+                        </button>
+                        <button id="btnLogin" class="btn-login">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </div>
+                    <div class="header-info">
+                        <span id="lojaLocal"></span>
                     </div>
                 </div>
             </div>
-            
-            <div class="header-right">
-                <div class="user-info">
-                    <span id="userName">Visitante</span>
-                    <button id="btnLogout" class="btn-logout" style="display: none;">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Sair
+        
+            <!-- Barra de Pesquisa Integrada -->
+            <div class="header-search">
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchProductInput" placeholder="O que você está procurando?" autocomplete="off">
+                    <button class="btn-cart-header" id="btnGoToCart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-badge" id="cartBadge">0</span>
                     </button>
-                    <button id="btnLogin" class="btn-login">
-                        <i class="fas fa-sign-in-alt"></i>
-                        Entrar
-                    </button>
-                </div>
-                <div class="header-info">
-                    <span id="lojaLocal"></span>
                 </div>
             </div>
         </header>
-
-        <!-- Barra de Pesquisa e Carrinho -->
-        <div class="search-bar-container">
-            <div class="search-wrapper">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" id="searchProductInput" placeholder="O que você está procurando?" autocomplete="off">
-                <button class="btn-cart-header" id="btnGoToCart">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span class="cart-badge" id="cartBadge">0</span>
-                </button>
-            </div>
-        </div>
 
         <!-- Categorias -->
         <div class="categories-section">
@@ -341,6 +342,7 @@
     <script type="module" src="clientes.js"></script>
 </body>
 </html>
+
 
 
 
