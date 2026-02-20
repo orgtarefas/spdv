@@ -58,88 +58,7 @@ function extrairLojaIdDaURL() {
     return null;
 }
 
-// ============================================
-// FUNÇÃO PARA CARREGAR NOME DA LOJA DO LOJAS.JS
-// ============================================
-function carregarNomeLoja() {
-    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    
-    if (!lojaId) {
-        console.warn('⚠️ ID da loja não disponível para carregar nome');
-        return;
-    }
-    
-    try {
-        // Importar a configuração da loja do lojas.js
-        import('/spdv/lojas.js').then(module => {
-            const config = module.getLojaConfig(lojaId);
-            
-            // Nome da loja (usando o ID formatado como fallback)
-            let nomeLoja = 'Sistema Ponto de Vendas Integrado';
-            
-            // Mapeamento de nomes das lojas (você pode expandir isso)
-            const nomesLojas = {
-                'mj-materiais-construcao': 'MJ Materiais de Construção',
-                'acai-ponto-11': 'Açaí Ponto 11',
-                'template-exibicao': 'Template de Demonstração',
-                'teste_operacional': 'Teste Operacional'
-            };
-            
-            // Se tiver configuração da loja, usar o nome dela
-            if (config) {
-                // Se o config tiver um nome, usar ele
-                nomeLoja = config.nome || nomesLojas[lojaId] || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            } else {
-                // Usar o mapeamento ou formatar o ID
-                nomeLoja = nomesLojas[lojaId] || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            }
-            
-            console.log(`🏪 Nome da loja carregado: ${nomeLoja}`);
-            
-            // Atualizar todos os elementos com o nome da loja
-            const elementosNome = [
-                'lojaNomeHeader',
-                'lojaNomeBemVindo',
-                'lojaNomeFooter',
-                'lojaNomeCopyright'
-            ];
-            
-            elementosNome.forEach(id => {
-                const elemento = document.getElementById(id);
-                if (elemento) {
-                    elemento.textContent = nomeLoja;
-                }
-            });
-            
-            // Atualizar título da página
-            document.title = `${nomeLoja} - Loja Online`;
-            
-        }).catch(error => {
-            console.error('❌ Erro ao carregar lojas.js:', error);
-            
-            // Fallback: formatar o ID da loja
-            const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            const elementosNome = [
-                'lojaNomeHeader',
-                'lojaNomeFooter',
-                'lojaNomeCopyright'
-            ];
-            
-            elementosNome.forEach(id => {
-                const elemento = document.getElementById(id);
-                if (elemento) {
-                    elemento.textContent = nomeFallback;
-                }
-            });
-            
-            document.title = `${nomeFallback} - Loja Online`;
-        });
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar nome da loja:', error);
-    }
-}
+
 
 // ============================================
 // FUNÇÃO PARA OBTER CAMINHO DA LOGO
@@ -308,57 +227,49 @@ document.addEventListener('DOMContentLoaded', async function() {
     mostrarLoading('Carregando loja...');
     
     try {
-        // Extrair loja ID da URL primeiro
+        // 1. Extrair loja ID da URL
         extrairLojaIdDaURL();
         
-        if (!lojaServices || !lojaServices.lojaId) {
-            console.warn('❌ Loja não identificada no lojaServices');
-            
-            if (!lojaIdAtual) {
-                mostrarMensagem('Erro ao identificar a loja', 'error');
-                setTimeout(() => {
-                    window.location.href = '../../../login.html';
-                }, 2000);
-                return;
-            }
-            
-            console.log(`✅ Usando loja ID da URL: ${lojaIdAtual}`);
-        } else {
-            console.log(`✅ Loja identificada no lojaServices: ${lojaServices.lojaId}`);
+        // 2. Verificar se temos o ID da loja
+        const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+        
+        if (!lojaId) {
+            console.error('❌ Loja não identificada');
+            mostrarMensagem('Erro ao identificar a loja', 'error');
+            setTimeout(() => {
+                window.location.href = '../../../login.html';
+            }, 2000);
+            return;
         }
         
-        // Carregar nome da loja do lojas.js
-        carregarNomeLoja();  // <-- NOVA LINHA
-
-        // CARREGAR DADOS DA LOJA DO FIREBASE (NOVO)
+        console.log(`✅ Loja identificada: ${lojaId}`);
+        
+        // 3. CARREGAR DADOS DA LOJA DO FIREBASE (ÚNICA FONTE DE VERDADE)
         await carregarDadosLojaFirebase();
         
-        // Carregar logo da loja
+        // 4. Carregar logo da loja
         carregarLogoLoja();
         
-        // Carregar configuração da loja
+        // 5. Carregar configuração técnica do lojas.js (banco_estoque, imgbb_key, etc)
         carregarConfigLoja();
         
-        // Inicializar gerenciador de código de barras
+        // 6. Inicializar gerenciador de código de barras
         gerenciadorCodigoBarrasClientes = new GerenciadorCodigoBarrasClientes();
         window.gerenciadorCodigoBarrasClientes = gerenciadorCodigoBarrasClientes;
         gerenciadorCodigoBarrasClientes.iniciarEscuta();
         
-        // Verificar se já está logado
+        // 7. Verificar se cliente já está logado
         await verificarSessaoCliente();
         
-        // Atualizar interface com dados da loja do Firebase (fallback)
-        await atualizarInterfaceLoja();
-        
-        // Configurar eventos
+        // 8. Configurar eventos da interface
         configurarEventos();
         
-        // Carregar dados
+        // 9. Carregar produtos e categorias
         await carregarProdutos();
         await carregarCategorias();
         await carregarProdutosDestaque();
         
-        // Carregar carrinho do sessionStorage
+        // 10. Carregar carrinho do sessionStorage
         carregarCarrinhoStorage();
         
         esconderLoading();
@@ -599,53 +510,7 @@ async function cadastrarCliente(dados) {
     }
 }
 
-// ============================================
-// ATUALIZAR INTERFACE DA LOJA
-// ============================================
-async function atualizarInterfaceLoja() {
-    try {
-        const resultado = await lojaServices.buscarDadosLoja();
-        
-        if (resultado.success) {
-            const dadosLoja = resultado.data;
-            
-            const nomeLoja = dadosLoja.nome || lojaServices.lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            const elementosNome = [
-                'lojaNomeHeader',
-                'lojaNomeFooter',
-                'lojaNomeCopyright'
-            ];
-            
-            elementosNome.forEach(id => {
-                const elemento = document.getElementById(id);
-                if (elemento) {
-                    elemento.textContent = nomeLoja;
-                }
-            });
-            
-            document.title = `${nomeLoja} - Loja Online`;
-            
-            const lojaLocal = document.getElementById('lojaLocal');
-            if (lojaLocal && dadosLoja.local) {
-                lojaLocal.textContent = dadosLoja.local;
-            }
-            
-            const lojaTelefone = document.getElementById('lojaTelefone');
-            if (lojaTelefone && dadosLoja.telefone) {
-                lojaTelefone.textContent = dadosLoja.telefone;
-            }
-            
-            const lojaEmail = document.getElementById('lojaEmail');
-            if (lojaEmail && dadosLoja.email) {
-                lojaEmail.textContent = dadosLoja.email;
-            }
-        }
-        
-    } catch (error) {
-        console.error('❌ Erro ao atualizar interface da loja:', error);
-    }
-}
+
 
 // ============================================
 // CONFIGURAR EVENTOS
@@ -1168,113 +1033,146 @@ async function carregarDadosLojaFirebase() {
     
     try {
         console.log(`🔍 Buscando dados da loja no Firebase para: ${lojaId}`);
-        console.log(`📌 Loja ID: ${lojaId}`);
         
-        // Referência para a coleção "lojas"
         const lojasRef = collection(db, "lojas");
-        
-        // Criar query para buscar apenas documentos com banco_login = lojaId
-        // Isso é mais eficiente que ler todos os documentos
         const q = query(lojasRef, where("banco_login", "==", lojaId));
         const querySnapshot = await getDocs(q);
         
         let dadosLoja = null;
-        let lojaDocId = null;
         
-        // Deve retornar apenas um documento (ou nenhum)
         querySnapshot.forEach((doc) => {
             dadosLoja = doc.data();
-            lojaDocId = doc.id;
-            console.log(`✅ Loja encontrada! Documento ID: ${lojaDocId}`);
+            console.log(`✅ Loja encontrada! Documento ID: ${doc.id}`);
         });
         
-        // Se encontrou a loja
         if (dadosLoja) {
             console.log('✅ Dados completos da loja:', dadosLoja);
-            console.log('📊 Campos disponíveis:', Object.keys(dadosLoja));
             
-            // 1. Nome da loja (em vários lugares)
+            // ============================================
+            // 1. NOME DA LOJA (em vários lugares)
+            // ============================================
             const nomeLoja = dadosLoja.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const elementosNome = [
+                'lojaNomeHeader',
+                'lojaNomeFooter',
+                'lojaNomeCopyright'
+            ];
+            
+            elementosNome.forEach(id => {
+                const elemento = document.getElementById(id);
+                if (elemento) elemento.textContent = nomeLoja;
+            });
+            
+            document.title = `${nomeLoja} - Loja Online`;
             console.log(`🏪 Nome da loja: ${nomeLoja}`);
             
-            // Header
-            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
-            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
-            
-            // Footer - nome da loja
-            const lojaNomeFooter = document.getElementById('lojaNomeFooter');
-            if (lojaNomeFooter) lojaNomeFooter.textContent = nomeLoja;
-            
-            // Footer - copyright
-            const lojaNomeCopyright = document.getElementById('lojaNomeCopyright');
-            if (lojaNomeCopyright) lojaNomeCopyright.textContent = nomeLoja;
-            
-            // Título da página
-            document.title = `${nomeLoja} - Loja Online`;
-            
-            // 2. Local da loja (header)
+            // ============================================
+            // 2. LOCAL DA LOJA
+            // ============================================
             const lojaLocal = document.getElementById('lojaLocal');
             if (lojaLocal && dadosLoja.local) {
                 lojaLocal.textContent = dadosLoja.local;
                 console.log(`📍 Local: ${dadosLoja.local}`);
             }
             
-            // 3. Status da loja
-            if (dadosLoja.ativo !== undefined) {
-                console.log(`🔵 Loja ativa: ${dadosLoja.ativo ? 'Sim' : 'Não'}`);
-            }
-            
-            // 4. Contato (telefone)
+            // ============================================
+            // 3. DADOS DE CONTATO (TUDO VINDO DO FIREBASE)
+            // ============================================
             if (dadosLoja.contato) {
                 console.log('📞 Contato:', dadosLoja.contato);
                 
-                const lojaTelefone = document.getElementById('lojaTelefone');
-                if (lojaTelefone && dadosLoja.contato.telefone) {
-                    lojaTelefone.textContent = dadosLoja.contato.telefone;
-                    console.log(`📞 Telefone: ${dadosLoja.contato.telefone}`);
+                // TELEFONE / WHATSAPP
+                const spanTelefone = document.getElementById('lojaTelefone');
+                const linkTelefone = document.getElementById('linkTelefone');
+                
+                if (spanTelefone && dadosLoja.contato.telefone) {
+                    spanTelefone.textContent = dadosLoja.contato.telefone;
+                    
+                    if (linkTelefone) {
+                        const numero = dadosLoja.contato.telefone.replace(/\D/g, '');
+                        linkTelefone.href = `https://wa.me/${numero}`;
+                        linkTelefone.title = "Enviar mensagem no WhatsApp";
+                        console.log(`📱 WhatsApp: ${dadosLoja.contato.telefone}`);
+                    }
                 }
                 
-                // 5. Email (se existir)
-                const lojaEmail = document.getElementById('lojaEmail');
-                if (lojaEmail) {
-                    if (dadosLoja.contato.email) {
-                        lojaEmail.textContent = dadosLoja.contato.email;
-                        console.log(`✉️ Email: ${dadosLoja.contato.email}`);
-                    } else {
-                        lojaEmail.textContent = 'contato@loja.com.br';
-                        console.log(`✉️ Email não informado, usando padrão`);
+                // E-MAIL
+                const spanEmail = document.getElementById('lojaEmail');
+                const linkEmail = document.getElementById('linkEmail');
+                
+                if (spanEmail && dadosLoja.contato.email) {
+                    spanEmail.textContent = dadosLoja.contato.email;
+                    
+                    if (linkEmail) {
+                        linkEmail.href = `mailto:${dadosLoja.contato.email}`;
+                        linkEmail.title = "Enviar e-mail";
+                        console.log(`✉️ E-mail: ${dadosLoja.contato.email}`);
+                    }
+                }
+                
+                // INSTAGRAM
+                const spanInstagram = document.getElementById('lojaInstagram');
+                const linkInstagram = document.getElementById('linkInstagram');
+                
+                if (spanInstagram && dadosLoja.contato.instagram) {
+                    spanInstagram.textContent = dadosLoja.contato.instagram;
+                    
+                    if (linkInstagram) {
+                        const usuario = dadosLoja.contato.instagram.replace('@', '');
+                        linkInstagram.href = `https://instagram.com/${usuario}`;
+                        linkInstagram.title = "Seguir no Instagram";
+                        console.log(`📸 Instagram: ${dadosLoja.contato.instagram}`);
+                    }
+                }
+                
+                // FACEBOOK (se tiver)
+                const spanFacebook = document.getElementById('lojaFacebook');
+                const linkFacebook = document.getElementById('linkFacebook');
+                
+                if (spanFacebook && dadosLoja.contato.facebook) {
+                    spanFacebook.textContent = dadosLoja.contato.facebook;
+                    
+                    if (linkFacebook) {
+                        linkFacebook.href = `https://facebook.com/${dadosLoja.contato.facebook}`;
+                        linkFacebook.title = "Seguir no Facebook";
+                        console.log(`📘 Facebook: ${dadosLoja.contato.facebook}`);
+                    }
+                }
+                
+                // SITE (se tiver)
+                const spanSite = document.getElementById('lojaSite');
+                const linkSite = document.getElementById('linkSite');
+                
+                if (spanSite && dadosLoja.contato.site) {
+                    spanSite.textContent = dadosLoja.contato.site;
+                    
+                    if (linkSite) {
+                        let siteUrl = dadosLoja.contato.site;
+                        if (!siteUrl.startsWith('http')) {
+                            siteUrl = 'https://' + siteUrl;
+                        }
+                        linkSite.href = siteUrl;
+                        linkSite.title = "Visitar site";
+                        console.log(`🌐 Site: ${dadosLoja.contato.site}`);
                     }
                 }
             }
             
-            // 6. Qualquer outro campo personalizado
-            // Exemplo: endereço completo, horário, etc.
-            const camposPersonalizados = [
-                'endereco', 'horario_funcionamento', 'cnpj', 'instagram', 'facebook'
-            ];
-            
-            camposPersonalizados.forEach(campo => {
-                if (dadosLoja[campo]) {
-                    console.log(`📌 ${campo}: ${dadosLoja[campo]}`);
-                    
-                    // Se você tiver elementos HTML para esses campos, pode atualizar aqui
-                    // Exemplo:
-                    // const elemento = document.getElementById(`loja${campo}`);
-                    // if (elemento) elemento.textContent = dadosLoja[campo];
-                }
-            });
+            // ============================================
+            // 4. STATUS DA LOJA
+            // ============================================
+            if (dadosLoja.ativo !== undefined) {
+                console.log(`🔵 Loja ativa: ${dadosLoja.ativo ? 'Sim' : 'Não'}`);
+            }
             
             console.log(`✅ Loja ${nomeLoja} configurada com sucesso!`);
             
-            return dadosLoja;
-            
         } else {
             console.warn(`⚠️ Nenhuma loja encontrada com banco_login = ${lojaId}`);
-            console.log('📝 Verifique se o documento existe no Firebase com o campo banco_login correto');
             
-            // Fallback: usar o ID formatado
+            // Fallback mínimo
             const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            console.log(`🏪 Usando nome fallback: ${nomeFallback}`);
             
             const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
             elementosNome.forEach(id => {
@@ -1283,28 +1181,10 @@ async function carregarDadosLojaFirebase() {
             });
             
             document.title = `${nomeFallback} - Loja Online`;
-            
-            const lojaTelefone = document.getElementById('lojaTelefone');
-            if (lojaTelefone) lojaTelefone.textContent = '(71) 99999-9999';
-            
-            return null;
         }
         
     } catch (error) {
         console.error('❌ Erro ao carregar dados da loja do Firebase:', error);
-        console.error('Detalhes do erro:', error.message);
-        
-        // Fallback em caso de erro
-        const nomeFallback = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        console.log(`🏪 Usando nome fallback devido a erro: ${nomeFallback}`);
-        
-        const elementosNome = ['lojaNomeHeader', 'lojaNomeFooter', 'lojaNomeCopyright'];
-        elementosNome.forEach(id => {
-            const elemento = document.getElementById(id);
-            if (elemento) elemento.textContent = nomeFallback;
-        });
-        
-        return null;
     }
 }
 
@@ -1896,6 +1776,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ clientes.js carregado com sucesso!");
+
 
 
 
