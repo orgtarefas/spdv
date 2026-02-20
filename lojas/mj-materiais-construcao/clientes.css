@@ -228,11 +228,12 @@ body {
 }
 
 /* ====================================
-   CATEGORIAS - LARGURA MAIOR
+   CATEGORIAS COM CARROSSEL
    ==================================== */
 .categories-section {
     padding: 2rem;
     background: white;
+    position: relative;
 }
 
 .categories-section h2 {
@@ -244,43 +245,91 @@ body {
     font-size: 1.5rem;
 }
 
-.categories-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.2rem;
+/* Container do carrossel */
+.categories-carousel-container {
+    position: relative;
+    padding: 0 40px;
 }
 
+/* Setas de navegação */
+.categories-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 1rem;
+    transition: var(--transition);
+    z-index: 10;
+    box-shadow: var(--shadow);
+}
+
+.categories-arrow:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.categories-arrow.prev {
+    left: 0;
+}
+
+.categories-arrow.next {
+    right: 0;
+}
+
+/* Swiper para categorias */
+.categories-swiper {
+    width: 100%;
+    padding: 0.5rem 0;
+}
+
+.categories-grid {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+/* Cards de categoria - FONTE AJUSTADA */
 .categoria-card {
     background: var(--gray-light);
     border: 1px solid var(--border);
     border-radius: var(--border-radius);
-    padding: 1.2rem 1.5rem;
+    padding: 0.8rem 1rem;
     display: flex;
     align-items: center;
-    gap: 1.2rem;
+    gap: 0.8rem;
     cursor: pointer;
     transition: var(--transition);
     width: 100%;
-    min-width: 250px;
+    height: 100%;
+    min-height: 70px;
 }
 
 .categoria-card:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
     border-color: var(--primary);
     background: white;
 }
 
 .categoria-icon {
-    width: 56px;
-    height: 56px;
+    width: 40px;
+    height: 40px;
     background: var(--primary);
-    border-radius: 14px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 1.8rem;
+    font-size: 1.2rem;
     flex-shrink: 0;
 }
 
@@ -290,9 +339,9 @@ body {
 }
 
 .categoria-info h4 {
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.2rem;
     color: var(--dark);
     white-space: nowrap;
     overflow: hidden;
@@ -300,41 +349,51 @@ body {
 }
 
 .categoria-info p {
-    font-size: 0.95rem;
+    font-size: 0.75rem;
     color: var(--gray);
-    font-weight: 500;
+    font-weight: 400;
 }
 
 /* Responsividade */
 @media (max-width: 768px) {
-    .categories-grid {
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1rem;
+    .categories-carousel-container {
+        padding: 0 35px;
+    }
+    
+    .categories-arrow {
+        width: 32px;
+        height: 32px;
     }
     
     .categoria-card {
-        padding: 1rem;
-        min-width: 200px;
+        padding: 0.7rem;
+        min-height: 65px;
     }
     
     .categoria-icon {
-        width: 48px;
-        height: 48px;
-        font-size: 1.5rem;
+        width: 36px;
+        height: 36px;
+        font-size: 1rem;
     }
     
     .categoria-info h4 {
-        font-size: 1.1rem;
+        font-size: 0.85rem;
+    }
+    
+    .categoria-info p {
+        font-size: 0.7rem;
     }
 }
 
 @media (max-width: 480px) {
-    .categories-grid {
-        grid-template-columns: 1fr;
+    .categories-carousel-container {
+        padding: 0 30px;
     }
     
-    .categoria-card {
-        min-width: 100%;
+    .categories-arrow {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
     }
 }
 
@@ -1224,30 +1283,29 @@ body {
 }
 
 /* ====================================
-   FOOTER LARGO - FONTE MAIOR NOS ITENS
+   FOOTER - 3 COLUNAS
    ==================================== */
 .main-footer {
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
-    padding: 1.5rem 1rem 0.8rem;
+    padding: 1rem 1rem 0.5rem;
     margin-top: auto;
     width: 100%;
 }
 
 .footer-content {
     width: 100%;
-    max-width: 1400px;
+    max-width: 1200px;
     margin: 0 auto;
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
     align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-    padding: 0 1rem;
 }
 
-/* Seção de Contatos - horizontal */
+/* Coluna Esquerda - Contatos */
 .footer-contacts {
-    flex: 2;
+    text-align: left;
 }
 
 .footer-contacts h4 {
@@ -1256,41 +1314,41 @@ body {
 
 .contact-grid {
     display: flex;
-    align-items: center;
-    gap: 2rem;
-    flex-wrap: nowrap;
+    flex-direction: column;
+    gap: 0.3rem;
 }
 
 .contact-link {
     text-decoration: none;
     color: inherit;
+    display: inline-block;
 }
 
 .contact-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
     transition: all 0.2s ease;
 }
 
 .contact-item:hover {
-    background: rgba(0, 86, 179, 0.05);
-    transform: translateY(-2px);
+    transform: translateX(3px);
+    color: var(--primary);
 }
 
 .contact-icon {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .contact-icon img {
-    width: 26px;
-    height: 26px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
 }
 
@@ -1304,15 +1362,15 @@ body {
 }
 
 .contact-value {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 0.8rem;
     color: #1e293b;
-    white-space: nowrap;
+    font-weight: 400;
+    line-height: 1.2;
 }
 
-/* Seção Endereço */
+/* Coluna Centro - Endereço */
 .footer-address {
-    flex: 1;
+    text-align: center;
 }
 
 .footer-address h4 {
@@ -1320,25 +1378,27 @@ body {
 }
 
 .address-item {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 20px;
     transition: all 0.2s ease;
     text-decoration: none;
     color: inherit;
     cursor: pointer;
+    max-width: 100%;
+    background: rgba(0, 86, 179, 0.03);
 }
 
 .address-item:hover {
-    background: rgba(0, 86, 179, 0.05);
-    transform: translateY(-2px);
+    background: rgba(0, 86, 179, 0.08);
+    transform: translateY(-1px);
 }
 
 .address-icon {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1346,8 +1406,8 @@ body {
 }
 
 .address-icon img {
-    width: 26px;
-    height: 26px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
 }
 
@@ -1360,17 +1420,18 @@ body {
 }
 
 .address-text {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 0.8rem;
     color: #1e293b;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 280px;
 }
 
-/* Seção Chat */
+/* Coluna Direita - Chat */
 .footer-chat {
-    flex-shrink: 0;
+    text-align: right;
 }
 
 .footer-chat h4 {
@@ -1378,70 +1439,70 @@ body {
 }
 
 .chat-button {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1.2rem;
-    border-radius: 40px;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    border-radius: 30px;
     background: linear-gradient(135deg, #0056b3, #00a86b);
     color: white;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     border: none;
     white-space: nowrap;
 }
 
 .chat-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 86, 179, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2);
 }
 
 .chat-icon {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .chat-icon img {
-    width: 22px;
-    height: 22px;
+    width: 14px;
+    height: 14px;
     object-fit: contain;
     filter: brightness(0) invert(1);
 }
 
 .chat-text {
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
-/* Copyright - Centralizado com fonte menor */
+/* Copyright - Centralizado */
 .footer-copyright {
     width: 100%;
     text-align: center;
-    padding: 1rem 0 0.25rem;
-    margin-top: 0.8rem;
+    padding: 0.75rem 0 0.25rem;
+    margin-top: 0.5rem;
     border-top: 1px solid #e2e8f0;
 }
 
 .footer-copyright p {
     margin: 0;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     font-weight: 400;
     color: #94a3b8;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
 }
 
 /* Loading states */
 .loading-contacts,
 .loading-address {
-    display: inline-block;
+    padding: 0;
 }
 
 .spinner-small {
-    width: 24px;
-    height: 24px;
+    width: 16px;
+    height: 16px;
     border: 2px solid #e2e8f0;
     border-top: 2px solid #0056b3;
     border-radius: 50%;
@@ -1450,7 +1511,7 @@ body {
 
 .no-contacts,
 .no-address {
-    font-size: 1rem;
+    font-size: 0.8rem;
     color: #94a3b8;
     font-style: italic;
 }
@@ -1458,80 +1519,38 @@ body {
 /* ====================================
    RESPONSIVIDADE
    ==================================== */
-@media (max-width: 1200px) {
+@media (max-width: 768px) {
     .footer-content {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 1.5rem;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        text-align: center;
     }
     
     .footer-contacts {
-        order: 1;
-        width: 100%;
+        text-align: center;
     }
     
     .contact-grid {
+        align-items: center;
+    }
+    
+    .contact-item {
         justify-content: center;
-        flex-wrap: wrap;
-        gap: 1.5rem;
     }
     
     .footer-address {
-        order: 2;
-        width: 100%;
         text-align: center;
     }
     
     .address-item {
         justify-content: center;
-        width: 100%;
     }
     
     .address-text {
-        white-space: normal;
-        text-align: center;
+        max-width: 100%;
     }
     
     .footer-chat {
-        order: 3;
+        text-align: center;
     }
 }
-
-@media (max-width: 768px) {
-    .footer-content {
-        flex-direction: column;
-        gap: 1.2rem;
-    }
-    
-    .contact-grid {
-        flex-direction: column;
-        align-items: center;
-        gap: 0.8rem;
-    }
-    
-    .contact-item {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .contact-value {
-        font-size: 1rem;
-    }
-    
-    .address-text {
-        font-size: 1rem;
-    }
-    
-    .chat-text {
-        font-size: 1rem;
-    }
-    
-    .footer-address {
-        width: 100%;
-    }
-    
-    .footer-copyright p {
-        font-size: 0.7rem;
-    }
-}
-
