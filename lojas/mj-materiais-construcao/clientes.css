@@ -2232,7 +2232,7 @@ body {
 }
 
 /* ============================================ */
-/* MENU DE PERFIL - 3 PONTINHOS (CORRIGIDO) */
+/* MENU DE PERFIL - 3 PONTINHOS (CONTRASTE GARANTIDO) */
 /* ============================================ */
 .profile-menu {
     position: relative;
@@ -2240,10 +2240,11 @@ body {
     margin-left: 10px;
 }
 
+/* Botão normal - fundo claro, texto escuro */
 .profile-menu-btn {
-    background: #e9ecef !important;  /* Fundo cinza claro bem visível */
-    border: 1px solid #ced4da !important;
-    color: #495057 !important;
+    background: #f8f9fa !important;  /* Fundo claro */
+    border: 1px solid #dee2e6 !important;
+    color: #2c3e50 !important;  /* Texto escuro */
     font-size: 18px;
     cursor: pointer;
     padding: 8px 12px;
@@ -2257,23 +2258,32 @@ body {
     height: 40px;
 }
 
+/* Hover - fundo escuro, texto claro */
 .profile-menu-btn:hover {
-    background: #2c3e50 !important;  /* Azul petróleo escuro no hover */
+    background: #2c3e50 !important;  /* Fundo escuro */
     border-color: #2c3e50 !important;
-    color: white !important;
+    color: white !important;  /* Texto claro */
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Active/aberto - fundo escuro, texto claro */
+.profile-menu-btn.active {
+    background: #2c3e50 !important;
+    border-color: #2c3e50 !important;
+    color: white !important;
 }
 
 .profile-menu-btn i {
     font-size: 18px;
 }
 
+/* Dropdown - fundo branco, texto escuro */
 .profile-menu-dropdown {
     position: absolute;
     top: 100%;
     right: 0;
-    background: white;
+    background: white;  /* Fundo claro */
     min-width: 240px;
     border-radius: 8px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.15);
@@ -2300,6 +2310,7 @@ body {
     }
 }
 
+/* Header do menu - fundo claro, texto escuro */
 .profile-menu-dropdown .menu-header {
     padding: 15px 16px;
     background: #f8f9fa;
@@ -2308,46 +2319,49 @@ body {
 
 .profile-menu-dropdown .menu-header strong {
     display: block;
-    color: #2c3e50;
+    color: #2c3e50;  /* Texto escuro */
     font-size: 14px;
     margin-bottom: 4px;
 }
 
 .profile-menu-dropdown .menu-header small {
-    color: #6c757d;
+    color: #6c757d;  /* Texto cinza escuro */
     font-size: 12px;
 }
 
+/* Itens do menu - fundo claro, texto escuro */
 .profile-menu-dropdown .menu-item {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    color: #495057;
+    color: #495057;  /* Texto escuro */
     text-decoration: none;
     transition: all 0.2s ease;
     border-bottom: 1px solid #f1f3f5;
     cursor: pointer;
     font-size: 14px;
-    background: white;
+    background: white;  /* Fundo claro */
 }
 
 .profile-menu-dropdown .menu-item:last-child {
     border-bottom: none;
 }
 
+/* Hover dos itens - fundo claro mais escuro, texto escuro */
 .profile-menu-dropdown .menu-item:hover {
-    background: #f1f4f8;
-    color: #2c3e50;
+    background: #e9ecef;  /* Fundo claro mais escuro */
+    color: #2c3e50;  /* Texto escuro */
     padding-left: 20px;
 }
 
 .profile-menu-dropdown .menu-item i {
     width: 20px;
-    color: #3498db;
+    color: #3498db;  /* Ícone azul */
     font-size: 16px;
 }
 
+/* Item ativo - fundo claro, texto escuro com borda */
 .profile-menu-dropdown .menu-item.active {
     background: #e9ecef;
     color: #2c3e50;
@@ -2355,6 +2369,7 @@ body {
     font-weight: 600;
 }
 
+/* Item de logout - vermelho escuro */
 .profile-menu-dropdown .menu-item.logout {
     color: #dc3545;
 }
@@ -2363,11 +2378,13 @@ body {
     color: #dc3545;
 }
 
+/* Hover do logout - fundo vermelho claro */
 .profile-menu-dropdown .menu-item.logout:hover {
     background: #fff5f5;
     color: #c82333;
 }
 
+/* Divisor */
 .profile-menu-dropdown .menu-divider {
     height: 1px;
     background: linear-gradient(to right, transparent, #dee2e6, transparent);
@@ -2378,8 +2395,8 @@ body {
 .perfil-badge {
     display: inline-flex;
     align-items: center;
-    background: #2c3e50;
-    color: white;
+    background: #2c3e50;  /* Fundo escuro */
+    color: white;  /* Texto claro */
     font-size: 11px;
     padding: 3px 10px;
     border-radius: 20px;
@@ -2389,24 +2406,30 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* Cores por perfil */
 .perfil-badge.admin {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #667eea, #764ba2);  /* Roxo */
+    color: white;
 }
 
 .perfil-badge.gerente {
-    background: linear-gradient(135deg, #f39c12, #e67e22);
+    background: linear-gradient(135deg, #f39c12, #e67e22);  /* Laranja */
+    color: white;
 }
 
 .perfil-badge.supervisor {
-    background: linear-gradient(135deg, #3498db, #2980b9);
+    background: linear-gradient(135deg, #3498db, #2980b9);  /* Azul */
+    color: white;
 }
 
 .perfil-badge.vendedor {
-    background: linear-gradient(135deg, #27ae60, #229954);
+    background: linear-gradient(135deg, #27ae60, #229954);  /* Verde */
+    color: white;
 }
 
 .perfil-badge.cliente {
-    background: #95a5a6;
+    background: #95a5a6;  /* Cinza */
+    color: white;
 }
 
 /* Esconder botão de logout antigo */
@@ -2420,14 +2443,14 @@ body {
     align-items: center;
     gap: 10px;
     padding: 5px 15px;
-    background: #f1f3f5;
+    background: #f1f3f5;  /* Fundo claro */
     border-radius: 8px;
     position: relative;
 }
 
 #userName {
     font-weight: 500;
-    color: #2c3e50;
+    color: #2c3e50;  /* Texto escuro */
     display: flex;
     align-items: center;
     gap: 5px;
