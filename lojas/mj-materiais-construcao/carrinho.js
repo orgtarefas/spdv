@@ -1,7 +1,7 @@
-// carrinho.js - Carrinho de Compras Integrado com Login
-console.log("🛒 Carrinho de Compras - Cliente Logado");
+// carrinho.js - Carrinho de Compras Integrado com Login (FIREBASE)
+console.log("🛒 Carrinho de Compras - Cliente Logado (Firebase)");
 
-import { lojaServices } from './firebase_config.js';
+import { lojaServices } from './novo_firebase_config.js';
 import { getLojaConfig } from '/spdv/lojas.js';
 
 // ============================================
@@ -86,7 +86,7 @@ window.addEventListener('usuarioLogado', (event) => {
     if (btnLogout) btnLogout.style.display = 'inline-flex';
     if (btnLogin) btnLogin.style.display = 'none';
     
-    // Carregar carrinho do usuário
+    // Carregar carrinho do usuário do Firebase
     carregarCarrinhoDoUsuario();
 });
 
@@ -117,9 +117,13 @@ window.addEventListener('usuarioNaoAutorizado', () => {
 });
 
 // ============================================
-// FUNÇÕES DO CARRINHO
+// FUNÇÕES DO CARRINHO (FIREBASE)
 // ============================================
-function carregarCarrinhoDoUsuario() {
+
+/**
+ * Carregar carrinho do usuário do Firebase
+ */
+async function carregarCarrinhoDoUsuario() {
     if (!usuarioLogado) {
         console.log('👤 Usuário não logado');
         carrinho.itens = [];
@@ -128,18 +132,17 @@ function carregarCarrinhoDoUsuario() {
     }
     
     try {
-        // Usar a MESMA chave que foi usada para salvar
-        const chaveCarrinho = `carrinho_${usuarioLogado.email}_${lojaIdAtual}`;
-        console.log(`🔑 Buscando carrinho com chave: ${chaveCarrinho}`);
+        mostrarLoading('Carregando carrinho...');
         
-        const carrinhoSalvo = sessionStorage.getItem(chaveCarrinho);
+        console.log(`🔍 Buscando carrinho de ${usuarioLogado.email} na loja ${lojaIdAtual}...`);
         
-        if (carrinhoSalvo) {
-            carrinho.itens = JSON.parse(carrinhoSalvo);
-            console.log(`✅ Carrinho carregado para ${usuarioLogado.email}: ${carrinho.itens.length} itens`);
-            console.log('📦 Itens:', carrinho.itens);
+        const resultado = await lojaServices.carregarCarrinhoUsuario(usuarioLogado.email);
+        
+        if (resultado.success) {
+            carrinho.itens = resultado.data || [];
+            console.log(`✅ Carrinho carregado: ${carrinho.itens.length} itens (${resultado.tipo})`);
         } else {
-            console.log('ℹ️ Nenhum carrinho encontrado para este usuário');
+            console.error('❌ Erro ao carregar:', resultado.error);
             carrinho.itens = [];
         }
         
@@ -149,86 +152,140 @@ function carregarCarrinhoDoUsuario() {
         console.error('❌ Erro ao carregar carrinho:', error);
         carrinho.itens = [];
         atualizarInterface();
+    } finally {
+        esconderLoading();
     }
 }
 
-// Salvar carrinho do usuário
-function salvarCarrinhoDoUsuario() {
+/**
+ * Salvar carrinho no Firebase
+ */
+async function salvarCarrinhoNoFirebase() {
     if (!usuarioLogado) return;
     
     try {
-        const chaveCarrinho = `carrinho_${usuarioLogado.email}_${lojaIdAtual}`;
-        sessionStorage.setItem(chaveCarrinho, JSON.stringify(carrinho.itens));
-        console.log(`✅ Carrinho salvo para ${usuarioLogado.email}`);
+        await lojaServices.salvarCarrinhoUsuario(usuarioLogado.email, carrinho.itens);
+        console.log('✅ Carrinho salvo no Firebase');
     } catch (error) {
         console.error('❌ Erro ao salvar carrinho:', error);
     }
 }
 
-// Adicionar item ao carrinho
-function adicionarItem(produto) {
+/**
+ * Adicionar item ao carrinho
+ */
+async function adicionarItem(produto) {
     if (!usuarioLogado) {
         abrirModal('loginModal');
         return false;
     }
     
-    const itemExistente = carrinho.itens.find(item => item.id === produto.id);
+    mostrarLoading('Adicionando item...');
     
-    if (itemExistente) {
-        itemExistente.quantidade++;
-        itemExistente.subtotal = itemExistente.quantidade * itemExistente.preco_unitario;
-    } else {
-        carrinho.itens.push({
+    try {
+        const item = {
             id: produto.id,
             codigo: produto.codigo,
             codigo_barras: produto.codigo_barras,
             nome: produto.nome,
             preco_unitario: produto.preco,
             quantidade: 1,
-            subtotal: produto.preco,
-            imagem: produto.imagens?.thumbnail || produto.imagens?.principal || null,
+            imagem: produto.imagens?.thumbnail || produto.imagens?.principal,
             unidade: produto.unidade_venda || produto.unidade || 'UN',
             desconto: 0,
             desconto_valor: 0
-        });
+        };
+        
+        const resultado = await lojaServices.adicionarItemAoCarrinho(usuarioLogado.email, item);
+        
+        if (resultado.success) {
+            carrinho.itens = resultado.data;
+            atualizarInterface();
+            mostrarMensagem(`${produto.nome} adicionado ao carrinho`, 'success');
+            return true;
+        } else {
+            mostrarMensagem('Erro ao adicionar item', 'error');
+            return false;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        mostrarMensagem('Erro ao adicionar item', 'error');
+        return false;
+    } finally {
+        esconderLoading();
     }
-    
-    atualizarInterface();
-    salvarCarrinhoDoUsuario();
-    return true;
 }
 
-// Remover item do carrinho
-function removerItem(index) {
+/**
+ * Remover item do carrinho
+ */
+async function removerItem(index) {
     if (!usuarioLogado) return;
     
     const item = carrinho.itens[index];
-    if (confirm(`Remover ${item.nome} do carrinho?`)) {
-        carrinho.itens.splice(index, 1);
-        atualizarInterface();
-        salvarCarrinhoDoUsuario();
-        mostrarMensagem('Item removido', 'info');
+    if (!confirm(`Remover ${item.nome} do carrinho?`)) return;
+    
+    mostrarLoading('Removendo item...');
+    
+    try {
+        const resultado = await lojaServices.removerItemDoCarrinho(
+            usuarioLogado.email,
+            item.id
+        );
+        
+        if (resultado.success) {
+            carrinho.itens = resultado.data;
+            atualizarInterface();
+            mostrarMensagem('Item removido', 'info');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao remover item:', error);
+        mostrarMensagem('Erro ao remover item', 'error');
+    } finally {
+        esconderLoading();
     }
 }
 
-// Atualizar quantidade
-function atualizarQuantidade(index, novaQuantidade) {
+/**
+ * Atualizar quantidade
+ */
+async function atualizarQuantidade(index, novaQuantidade) {
     if (!usuarioLogado) return;
     
     if (novaQuantidade < 1) {
-        removerItem(index);
+        await removerItem(index);
         return;
     }
     
-    carrinho.itens[index].quantidade = novaQuantidade;
-    carrinho.itens[index].subtotal = novaQuantidade * carrinho.itens[index].preco_unitario;
+    const item = carrinho.itens[index];
+    mostrarLoading('Atualizando...');
     
-    atualizarInterface();
-    salvarCarrinhoDoUsuario();
+    try {
+        const resultado = await lojaServices.atualizarQuantidadeItem(
+            usuarioLogado.email,
+            item.id,
+            novaQuantidade
+        );
+        
+        if (resultado.success) {
+            carrinho.itens = resultado.data;
+            atualizarInterface();
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao atualizar quantidade:', error);
+        mostrarMensagem('Erro ao atualizar quantidade', 'error');
+    } finally {
+        esconderLoading();
+    }
 }
 
-// Limpar carrinho
-function limparCarrinho() {
+/**
+ * Limpar carrinho
+ */
+async function limparCarrinho() {
     if (!usuarioLogado) return;
     
     if (carrinho.itens.length === 0) {
@@ -236,11 +293,24 @@ function limparCarrinho() {
         return;
     }
     
-    if (confirm('Tem certeza que deseja limpar o carrinho?')) {
-        carrinho.itens = [];
-        atualizarInterface();
-        salvarCarrinhoDoUsuario();
-        mostrarMensagem('Carrinho limpo', 'info');
+    if (!confirm('Tem certeza que deseja limpar o carrinho?')) return;
+    
+    mostrarLoading('Limpando carrinho...');
+    
+    try {
+        const resultado = await lojaServices.limparCarrinhoUsuario(usuarioLogado.email);
+        
+        if (resultado.success) {
+            carrinho.itens = [];
+            atualizarInterface();
+            mostrarMensagem('Carrinho limpo', 'info');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao limpar carrinho:', error);
+        mostrarMensagem('Erro ao limpar carrinho', 'error');
+    } finally {
+        esconderLoading();
     }
 }
 
@@ -507,9 +577,9 @@ async function finalizarVenda() {
             );
         }
         
-        // Limpar carrinho
+        // Limpar carrinho no Firebase
+        await lojaServices.limparCarrinhoUsuario(usuarioLogado.email);
         carrinho.itens = [];
-        salvarCarrinhoDoUsuario();
         atualizarInterface();
         
         mostrarMensagem(`Venda #${numeroVenda} finalizada com sucesso!`, 'success');
@@ -582,6 +652,7 @@ window.alterarQuantidade = function(index, delta) {
     }
 };
 
+// Exportar funções globais
 window.atualizarQuantidade = atualizarQuantidade;
 window.removerItem = removerItem;
 window.limparCarrinho = limparCarrinho;
@@ -831,6 +902,5 @@ document.addEventListener('DOMContentLoaded', async function() {
 window.adicionarItem = adicionarItem;
 window.finalizarVenda = finalizarVenda;
 window.abrirModalFinalizacao = abrirModalFinalizacao;
-
 
 console.log("✅ carrinho.js carregado com sucesso!");
