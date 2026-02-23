@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Login Lojasite</title>
+    <title>Sistema de Login - MJ Materiais de Construção</title>
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <!-- Arquivo de configuração do Firebase -->
-    <script src="login_firebase.js"></script>
-    <!-- Arquivo de dados públicos das lojas -->
-    <script src="novo_lojas.js"></script>
+    <!-- Arquivos de configuração (com caminho corrigido) -->
+    <script src="../../login_firebase.js"></script>
+    <script src="../../novo_lojas.js"></script>
     <style>
         body {
             margin: 0;
@@ -333,16 +332,21 @@
             messageDiv.innerHTML = 'Processando...';
             messageDiv.className = 'error-message';
             
-            const resultado = await fazerLogin(email, senha);
-            
-            if (resultado.sucesso) {
-                messageDiv.innerHTML = 'Login realizado com sucesso!';
-                messageDiv.className = 'success-message';
-                setTimeout(() => {
-                    fecharModal('login');
-                }, 1500);
-            } else {
-                messageDiv.innerHTML = resultado.erro;
+            try {
+                const resultado = await fazerLogin(email, senha);
+                
+                if (resultado.sucesso) {
+                    messageDiv.innerHTML = 'Login realizado com sucesso!';
+                    messageDiv.className = 'success-message';
+                    setTimeout(() => {
+                        fecharModal('login');
+                    }, 1500);
+                } else {
+                    messageDiv.innerHTML = resultado.erro;
+                    messageDiv.className = 'error-message';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = 'Erro ao processar login: ' + error.message;
                 messageDiv.className = 'error-message';
             }
         }
@@ -358,26 +362,49 @@
             messageDiv.innerHTML = 'Processando...';
             messageDiv.className = 'error-message';
             
-            const resultado = await cadastrarCliente(nome, email, senha, telefone);
-            
-            if (resultado.sucesso) {
-                messageDiv.innerHTML = 'Cadastro realizado com sucesso!';
-                messageDiv.className = 'success-message';
-                setTimeout(() => {
-                    fecharModal('cadastro');
-                }, 1500);
-            } else {
-                messageDiv.innerHTML = resultado.erro;
+            try {
+                const resultado = await cadastrarCliente(nome, email, senha, telefone);
+                
+                if (resultado.sucesso) {
+                    messageDiv.innerHTML = 'Cadastro realizado com sucesso!';
+                    messageDiv.className = 'success-message';
+                    setTimeout(() => {
+                        fecharModal('cadastro');
+                    }, 1500);
+                } else {
+                    messageDiv.innerHTML = resultado.erro;
+                    messageDiv.className = 'error-message';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = 'Erro ao processar cadastro: ' + error.message;
                 messageDiv.className = 'error-message';
             }
         }
         
         // Logout
         async function logout() {
-            const resultado = await fazerLogout();
-            if (resultado.sucesso) {
-                console.log('Logout realizado com sucesso');
+            try {
+                const resultado = await fazerLogout();
+                if (resultado.sucesso) {
+                    console.log('Logout realizado com sucesso');
+                }
+            } catch (error) {
+                console.error('Erro ao fazer logout:', error);
             }
+        }
+        
+        // Função para extrair loja da URL (cópia local para garantir)
+        function getLojaLocal() {
+            const path = window.location.pathname;
+            // Ex: /spdv/lojas/mj-materiais-construcao/
+            const match = path.match(/\/lojas\/([^\/]+)\//);
+            if (match && match[1]) {
+                return match[1];
+            }
+            // Fallback para o nome da pasta atual
+            const parts = path.split('/');
+            const lojaFolder = parts[parts.length - 2]; // Pega a pasta antes do index.html
+            return lojaFolder || 'mj-materiais-construcao';
         }
         
         // Eventos personalizados
@@ -469,24 +496,16 @@
             // Limpar informações
             document.getElementById('userInfo').innerHTML = '';
             document.getElementById('permissoesInfo').innerHTML = '';
-            document.getElementById('lojaInfo').innerHTML = '';
-        });
-        
-        // Verificar loja ao carregar a página
-        (async function() {
-            const lojaAtual = getLojaDaURL();
-            if (lojaAtual) {
-                console.log('🔍 Loja atual:', lojaAtual);
-                
-                // Verificar status da loja no Firebase
-                const lojaStatus = await verificarLojaAtiva(lojaAtual);
-                
-                // Mostrar informações da loja (dados públicos)
-                if (lojaStatus.dadosPublicos) {
-                    const contato = lojaStatus.dadosPublicos.contato || {};
-                    let statusHtml = `
+            
+            // Manter informações da loja visíveis
+            const lojaAtual = getLojaLocal();
+            if (lojaAtual && typeof LOJAS_CONFIG !== 'undefined') {
+                const lojaConfig = LOJAS_CONFIG[lojaAtual];
+                if (lojaConfig) {
+                    const contato = lojaConfig.contato || {};
+                    document.getElementById('lojaInfo').innerHTML = `
                         <strong>🏪 Loja:</strong><br>
-                        <strong>Nome:</strong> ${lojaStatus.dadosPublicos.nome || lojaAtual}<br>
+                        <strong>Nome:</strong> ${lojaConfig.nome || lojaAtual}<br>
                         <strong>Contato:</strong><br>
                         &nbsp;&nbsp;📱 WhatsApp: ${contato.whatsapp || 'Não informado'}<br>
                         &nbsp;&nbsp;📷 Instagram: ${contato.instagram || 'Não informado'}<br>
@@ -496,27 +515,50 @@
                         &nbsp;&nbsp;${contato.endereco?.bairro || ''}, ${contato.endereco?.cidade || ''} - ${contato.endereco?.uf || ''}<br>
                         &nbsp;&nbsp;CEP: ${contato.endereco?.cep || ''}
                     `;
-                    
-                    if (!lojaStatus.ativa) {
-                        statusHtml += `<br><strong style="color: #f44336;">Status: ${lojaStatus.erro}</strong>`;
-                    } else {
-                        statusHtml += `<br><strong style="color: #4CAF50;">Status: Loja Ativa ✅</strong>`;
-                    }
-                    
-                    document.getElementById('lojaInfo').innerHTML = statusHtml;
                 }
+            }
+        });
+        
+        // Verificar loja ao carregar a página
+        (async function() {
+            const lojaAtual = getLojaLocal();
+            console.log('🔍 Loja atual (local):', lojaAtual);
+            
+            // Mostrar informações da loja do novo_lojas.js
+            if (typeof LOJAS_CONFIG !== 'undefined' && LOJAS_CONFIG[lojaAtual]) {
+                const lojaConfig = LOJAS_CONFIG[lojaAtual];
+                const contato = lojaConfig.contato || {};
+                document.getElementById('lojaInfo').innerHTML = `
+                    <strong>🏪 Loja:</strong><br>
+                    <strong>Nome:</strong> ${lojaConfig.nome || lojaAtual}<br>
+                    <strong>Contato:</strong><br>
+                    &nbsp;&nbsp;📱 WhatsApp: ${contato.whatsapp || 'Não informado'}<br>
+                    &nbsp;&nbsp;📷 Instagram: ${contato.instagram || 'Não informado'}<br>
+                    &nbsp;&nbsp;📧 Email: ${contato.email || 'Não informado'}<br>
+                    <strong>Endereço:</strong><br>
+                    &nbsp;&nbsp;${contato.endereco?.rua || ''}, ${contato.endereco?.numero || ''} ${contato.endereco?.complemento || ''}<br>
+                    &nbsp;&nbsp;${contato.endereco?.bairro || ''}, ${contato.endereco?.cidade || ''} - ${contato.endereco?.uf || ''}<br>
+                    &nbsp;&nbsp;CEP: ${contato.endereco?.cep || ''}
+                `;
                 
-                if (!lojaStatus.ativa) {
-                    console.warn('⚠️ Status da loja:', lojaStatus.erro);
-                } else {
-                    console.log('✅ Loja ativa');
+                // Verificar status no Firebase (se a função existir)
+                if (typeof verificarLojaAtiva === 'function') {
+                    try {
+                        const lojaStatus = await verificarLojaAtiva(lojaAtual);
+                        if (!lojaStatus.ativa) {
+                            document.getElementById('lojaInfo').innerHTML += `<br><strong style="color: #f44336;">Status: ${lojaStatus.erro}</strong>`;
+                        } else {
+                            document.getElementById('lojaInfo').innerHTML += `<br><strong style="color: #4CAF50;">Status: Loja Ativa ✅</strong>`;
+                        }
+                    } catch (error) {
+                        console.log('Erro ao verificar status no Firebase:', error);
+                    }
                 }
             } else {
-                console.error('❌ Loja não identificada na URL');
                 document.getElementById('lojaInfo').innerHTML = `
-                    <strong>❌ Erro:</strong><br>
-                    Loja não identificada na URL<br>
-                    <small>Use o formato: /lojas/nome-da-loja/</small>
+                    <strong>🏪 Loja:</strong><br>
+                    <strong>ID:</strong> ${lojaAtual}<br>
+                    <small>Informações detalhadas não disponíveis no novo_lojas.js</small>
                 `;
             }
         })();
