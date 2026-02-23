@@ -36,61 +36,85 @@
 
         <!-- Main Content -->
         <main class="content">
-            <div class="cart-container">
-                <!-- LADO ESQUERDO - ITENS DO CARRINHO -->
-                <div class="cart-items-section">
-                    <div class="section-header">
-                        <h3><i class="fas fa-boxes"></i> Itens do Carrinho</h3>
-                        <span class="item-count" id="itemCount">0 itens</span>
+            <div class="pdv-container"> <!-- Mantendo a classe pdv-container para compatibilidade com CSS -->
+                <!-- LADO ESQUERDO - RESUMO E FINALIZAÇÃO -->
+                <div class="pdv-left">
+                    <!-- RESUMO DO PEDIDO -->
+                    <div class="resumo-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-file-invoice"></i> Resumo do Pedido</h3>
+                        </div>
+                        
+                        <div class="resumo-card">
+                            <div class="resumo-linhas">
+                                <div class="resumo-row">
+                                    <span>Subtotal:</span>
+                                    <span id="subtotal">R$ 0,00</span>
+                                </div>
+                                
+                                <div class="resumo-row" id="descontoRow" style="display: none;">
+                                    <span>Descontos:</span>
+                                    <span id="descontoTotal">- R$ 0,00</span>
+                                </div>
+                                
+                                <div class="resumo-row total">
+                                    <span>TOTAL:</span>
+                                    <span id="total">R$ 0,00</span>
+                                </div>
+                            </div>
+                            
+                            <div class="resumo-actions">
+                                <button class="btn-finalize" id="btnFinalizar" disabled>
+                                    <i class="fas fa-check-circle"></i>
+                                    Finalizar Compra
+                                </button>
+                                
+                                <button class="btn-clear" id="btnLimparCarrinho" disabled>
+                                    <i class="fas fa-trash-alt"></i>
+                                    Limpar Carrinho
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     
-                    <div class="cart-items-list" id="cartItemsList">
-                        <!-- Lista de itens será inserida aqui pelo JS -->
-                        <div class="empty-cart">
-                            <i class="fas fa-shopping-cart"></i>
-                            <p>Seu carrinho está vazio</p>
-                            <small>Adicione produtos para continuar</small>
-                            <a href="novo_clientes.html" class="btn-continue">Continuar Comprando</a>
+                    <!-- INFORMAÇÕES ADICIONAIS -->
+                    <div class="info-section">
+                        <div class="info-card">
+                            <h4><i class="fas fa-info-circle"></i> Informações</h4>
+                            <p><i class="fas fa-truck"></i> Frete será calculado na finalização</p>
+                            <p><i class="fas fa-credit-card"></i> Aceitamos diversas formas de pagamento</p>
+                            <p><i class="fas fa-store"></i> Retirada no local disponível</p>
                         </div>
+                    </div>
+
+                    <!-- BOTÕES ADICIONAIS -->
+                    <div class="action-buttons-bottom">
+                        <a href="novo_clientes.html" class="btn-continue">
+                            <i class="fas fa-arrow-left"></i>
+                            Continuar Comprando
+                        </a>
                     </div>
                 </div>
                 
-                <!-- LADO DIREITO - RESUMO E FINALIZAÇÃO -->
-                <div class="cart-summary-section">
-                    <div class="summary-card">
-                        <h3><i class="fas fa-file-invoice"></i> Resumo do Pedido</h3>
-                        
-                        <div class="summary-row">
-                            <span>Subtotal:</span>
-                            <span id="subtotal">R$ 0,00</span>
+                <!-- LADO DIREITO - LISTA DE PRODUTOS -->
+                <div class="pdv-right">
+                    <div class="cart-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-shopping-cart"></i> Itens do Carrinho</h3>
+                            <div class="cart-controls">
+                                <span class="item-count" id="itemCount">0 itens</span>
+                            </div>
                         </div>
                         
-                        <div class="summary-row" id="descontoRow" style="display: none;">
-                            <span>Descontos:</span>
-                            <span id="descontoTotal">- R$ 0,00</span>
+                        <!-- LISTA DE PRODUTOS (CARDS) -->
+                        <div class="cart-items-list" id="cartItemsList">
+                            <div class="empty-cart">
+                                <i class="fas fa-shopping-cart"></i>
+                                <p>Seu carrinho está vazio</p>
+                                <small>Adicione produtos para continuar</small>
+                                <a href="novo_clientes.html" class="btn-continue">Continuar Comprando</a>
+                            </div>
                         </div>
-                        
-                        <div class="summary-row total">
-                            <span>TOTAL:</span>
-                            <span id="total">R$ 0,00</span>
-                        </div>
-                        
-                        <button class="btn-finalize" id="btnFinalizar" disabled>
-                            <i class="fas fa-check-circle"></i>
-                            Finalizar Compra
-                        </button>
-                        
-                        <button class="btn-clear" id="btnLimparCarrinho" disabled>
-                            <i class="fas fa-trash-alt"></i>
-                            Limpar Carrinho
-                        </button>
-                    </div>
-                    
-                    <div class="info-card">
-                        <h4><i class="fas fa-info-circle"></i> Informações</h4>
-                        <p><i class="fas fa-truck"></i> Frete será calculado na finalização</p>
-                        <p><i class="fas fa-credit-card"></i> Aceitamos diversas formas de pagamento</p>
-                        <p><i class="fas fa-store"></i> Retirada no local disponível</p>
                     </div>
                 </div>
             </div>
@@ -99,7 +123,7 @@
         <!-- Footer -->
         <footer class="main-footer">
             <div class="footer-content">
-                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema de Vendas</span></p>
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema PDV</span></p>
                 <p id="currentDateTime">--:--:--</p>
             </div>
         </footer>
@@ -130,7 +154,7 @@
                     </div>
                 </div>
 
-                <!-- DADOS DO CLIENTE (pré-preenchidos do login) -->
+                <!-- DADOS DO CLIENTE -->
                 <div class="cliente-section">
                     <h4><i class="fas fa-user"></i> Dados do Cliente</h4>
                     
@@ -172,7 +196,6 @@
                         </label>
                     </div>
 
-                    <!-- CAMPOS DE ENTREGA -->
                     <div id="camposEntrega" style="display: none;">
                         <div class="form-group">
                             <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
@@ -222,7 +245,6 @@
                         </label>
                     </div>
 
-                    <!-- TROCO (para dinheiro) -->
                     <div id="trocoSection" style="display: none;">
                         <div class="form-group">
                             <label><i class="fas fa-calculator"></i> Valor Recebido</label>
@@ -246,7 +268,7 @@
         </div>
     </div>
 
-    <!-- MODAL DE LOGIN (caso necessário) -->
+    <!-- MODAL DE LOGIN -->
     <div id="loginModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -309,7 +331,7 @@
     
     <script src="../../login_firebase.js"></script>
     <script type="module" src="/spdv/lojas.js"></script>
-    <script src="firebase_config.js" type="module"></script>
+    <script src="novo_firebase_config.js" type="module"></script>
     <script src="carrinho.js" type="module"></script>
 </body>
 </html>
