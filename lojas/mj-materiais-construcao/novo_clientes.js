@@ -939,7 +939,7 @@ function configurarEventos() {
             abrirModal('loginModal');
             return;
         }
-        window.location.href = 'venda.html';
+        window.location.href = 'carrinho.html';
     });
     
     // Eventos de login
@@ -1095,3 +1095,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
