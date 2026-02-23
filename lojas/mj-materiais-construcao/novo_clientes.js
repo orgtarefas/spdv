@@ -16,7 +16,7 @@ import {
     obterURLImagem,
     formatarMoeda,
     gerarImagemPlaceholderBase64
-} from './firebase_config.js';
+} from './novo_firebase_config.js';
 
 import { getLojaConfig } from '/spdv/lojas.js';
 
@@ -758,7 +758,7 @@ window.verProdutoDetalhe = function(produtoId) {
 };
 
 // ============================================
-// ADICIONAR AO CARRINHO
+// ADICIONAR AO CARRINHO (FIREBASE)
 // ============================================
 window.adicionarAoCarrinho = async function(produtoId) {
     if (!usuarioLogado) {
@@ -792,12 +792,20 @@ window.adicionarAoCarrinho = async function(produtoId) {
             desconto_valor: 0
         };
         
-        // Adicionar no Firebase (na coleção da loja)
+        console.log('🛒 Adicionando item:', item);
+        console.log('👤 Usuário:', usuarioLogado.email);
+        
+        // Adicionar no Firebase
         const resultado = await lojaServices.adicionarItemAoCarrinho(usuarioLogado.email, item);
         
-        if (resultado.success) {
+        console.log('📦 Resultado:', resultado);
+        
+        if (resultado && resultado.success) {
+            // Calcular total de itens
+            const totalItens = resultado.data ? 
+                resultado.data.reduce((acc, item) => acc + item.quantidade, 0) : 1;
+            
             // Atualizar badge do carrinho
-            const totalItens = resultado.data.reduce((acc, item) => acc + item.quantidade, 0);
             const badge = document.getElementById('cartBadge');
             if (badge) {
                 badge.textContent = totalItens;
@@ -806,37 +814,16 @@ window.adicionarAoCarrinho = async function(produtoId) {
             
             mostrarMensagem(`${produto.nome} adicionado ao carrinho`, 'success');
         } else {
-            mostrarMensagem('Erro ao adicionar ao carrinho', 'error');
+            mostrarMensagem(resultado?.error || 'Erro ao adicionar ao carrinho', 'error');
         }
         
     } catch (error) {
-        console.error('❌ Erro:', error);
-        mostrarMensagem('Erro ao adicionar ao carrinho', 'error');
+        console.error('❌ Erro detalhado:', error);
+        mostrarMensagem(`Erro: ${error.message}`, 'error');
     } finally {
         esconderLoading();
     }
 };
-
-function atualizarBadgeCarrinho() {
-    const badge = document.getElementById('cartBadge');
-    if (badge) {
-        const total = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
-        badge.textContent = total;
-        badge.style.display = total > 0 ? 'flex' : 'none';
-    }
-}
-
-function carregarCarrinhoStorage() {
-    const carrinhoSalvo = sessionStorage.getItem('carrinho_cliente');
-    if (carrinhoSalvo) {
-        try {
-            carrinho = JSON.parse(carrinhoSalvo);
-            atualizarBadgeCarrinho();
-        } catch (e) {
-            console.error('Erro ao carregar carrinho:', e);
-        }
-    }
-}
 
 window.filtrarPorCategoria = function(categoria) {
     console.log(`Filtrando por categoria: ${categoria}`);
@@ -1099,9 +1086,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         await carregarCategorias();
         await carregarProdutosDestaque();
         
-        // Carregar carrinho
-        carregarCarrinhoStorage();
-        
         esconderLoading();
         console.log("✅ Loja clientes pronta!");
         
@@ -1121,6 +1105,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
