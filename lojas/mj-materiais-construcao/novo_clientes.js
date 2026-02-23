@@ -78,16 +78,18 @@ window.fecharModal = function(modalId) {
     }
 };
 
-// ============================================
-// EVENTOS DO LOGIN (vindos do login_firebase.js)
+/// ============================================
+// EVENTOS DO LOGIN (CORRIGIDO)
 // ============================================
 window.addEventListener('usuarioLogado', (event) => {
     const { usuario, permissoes } = event.detail;
     
+    // Garantir que todos os dados do usuário sejam capturados
     usuarioLogado = true;
     dadosUsuario = usuario;
     
-    console.log('✅ Usuário logado:', usuario);
+    console.log('✅ Usuário logado no clientes.js:', usuario);
+    console.log('🔑 Email do usuário:', usuario?.email);
     console.log('🔑 Permissões:', permissoes);
     
     const userName = document.getElementById('userName');
@@ -95,7 +97,6 @@ window.addEventListener('usuarioLogado', (event) => {
     const btnLogin = document.getElementById('btnLogin');
     
     if (userName) {
-        // Mostrar nome e tipo de usuário
         let tipoDisplay = '';
         if (usuario.tipo === 'admin') tipoDisplay = ' (Admin)';
         else if (usuario.tipo === 'funcionario') tipoDisplay = ` (${usuario.nivel})`;
@@ -107,11 +108,7 @@ window.addEventListener('usuarioLogado', (event) => {
     if (btnLogout) btnLogout.style.display = 'inline-flex';
     if (btnLogin) btnLogin.style.display = 'none';
     
-    // Fechar modal de login se estiver aberto
     fecharModal('loginModal');
-    
-    // Atualizar interface baseado nas permissões (para implementar depois)
-    // if (permissoes.editar_produtos) { ... }
 });
 
 window.addEventListener('usuarioDeslogado', () => {
@@ -1105,6 +1102,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
