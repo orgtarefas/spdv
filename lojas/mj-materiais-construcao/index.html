@@ -407,20 +407,22 @@
             return lojaFolder || 'mj-materiais-construcao';
         }
         
-        // Eventos personalizados
+        // ========== EVENTOS PERSONALIZADOS ==========
+        
+        // Evento quando usuário loga com sucesso
         window.addEventListener('usuarioLogado', (event) => {
-            const { usuario, permissoes, lojaInfo } = event.detail;
+            const { usuario, permissoes, dadosPublicos } = event.detail;
             
             // Esconder botões de login/cadastro e mostrar botão de logout
             document.getElementById('botoesContainer').style.display = 'none';
             document.getElementById('btnLogout').style.display = 'block';
             
             // Mostrar informações da loja (dados públicos do novo_lojas.js)
-            if (lojaInfo && lojaInfo.dadosPublicos) {
-                const contato = lojaInfo.dadosPublicos.contato || {};
+            if (dadosPublicos) {
+                const contato = dadosPublicos.contato || {};
                 document.getElementById('lojaInfo').innerHTML = `
                     <strong>🏪 Loja:</strong><br>
-                    <strong>Nome:</strong> ${lojaInfo.dadosPublicos.nome || usuario.loja}<br>
+                    <strong>Nome:</strong> ${dadosPublicos.nome || usuario.loja}<br>
                     <strong>Contato:</strong><br>
                     &nbsp;&nbsp;📱 WhatsApp: ${contato.whatsapp || 'Não informado'}<br>
                     &nbsp;&nbsp;📷 Instagram: ${contato.instagram || 'Não informado'}<br>
@@ -430,6 +432,13 @@
                     &nbsp;&nbsp;${contato.endereco?.bairro || ''}, ${contato.endereco?.cidade || ''} - ${contato.endereco?.uf || ''}<br>
                     &nbsp;&nbsp;CEP: ${contato.endereco?.cep || ''}
                 `;
+            } else {
+                // Se não tiver dados públicos, mostrar pelo menos o ID da loja
+                document.getElementById('lojaInfo').innerHTML = `
+                    <strong>🏪 Loja:</strong><br>
+                    <strong>ID:</strong> ${usuario.loja}<br>
+                    <small>Bem-vindo(a) ${usuario.nome}!</small>
+                `;
             }
             
             // Mostrar informações do usuário
@@ -438,8 +447,7 @@
                 <strong>Nome:</strong> ${usuario.nome || 'Não informado'}<br>
                 <strong>Email:</strong> ${usuario.email}<br>
                 <strong>Nível:</strong> <span style="color: #4CAF50; font-weight: bold;">${usuario.nivel}</span><br>
-                <strong>Loja:</strong> ${usuario.loja_nome || usuario.loja}<br>
-                <strong>ID Loja:</strong> ${usuario.loja}<br>
+                <strong>Loja:</strong> ${usuario.loja}<br>
                 <strong>UID:</strong> ${usuario.uid.substring(0, 15)}...
             `;
             
@@ -463,31 +471,23 @@
             console.log('Permissões:', permissoes);
         });
         
+        // Evento quando usuário não tem autorização
         window.addEventListener('usuarioNaoAutorizado', (event) => {
             const erro = event.detail?.erro || 'Usuário não tem permissão para acessar esta loja';
-            const lojaInfo = event.detail?.lojaInfo;
             
             alert(`Acesso negado: ${erro}`);
             
-            // Mostrar informações da loja mesmo sem login
-            if (lojaInfo && lojaInfo.dadosPublicos) {
-                const contato = lojaInfo.dadosPublicos.contato || {};
-                document.getElementById('lojaInfo').innerHTML = `
-                    <strong>🏪 Loja:</strong><br>
-                    <strong>Nome:</strong> ${lojaInfo.dadosPublicos.nome || 'Loja não identificada'}<br>
-                    <strong>Status:</strong> <span style="color: #f44336;">${erro}</span><br>
-                    <strong>Contato:</strong><br>
-                    &nbsp;&nbsp;📱 WhatsApp: ${contato.whatsapp || 'Não informado'}<br>
-                    &nbsp;&nbsp;📷 Instagram: ${contato.instagram || 'Não informado'}<br>
-                    &nbsp;&nbsp;📧 Email: ${contato.email || 'Não informado'}
-                `;
-            }
+            // Limpar formulários
+            document.getElementById('loginForm')?.reset();
+            document.getElementById('cadastroForm')?.reset();
         });
         
+        // Evento de erro na loja
         window.addEventListener('erroLoja', (event) => {
             alert(`Erro: ${event.detail.erro}`);
         });
         
+        // Evento quando usuário desloga
         window.addEventListener('usuarioDeslogado', () => {
             // Mostrar botões de login/cadastro e esconder botão de logout
             document.getElementById('botoesContainer').style.display = 'flex';
@@ -519,6 +519,7 @@
             }
         });
         
+        // ========== INICIALIZAÇÃO ==========
         // Verificar loja ao carregar a página
         (async function() {
             const lojaAtual = getLojaLocal();
