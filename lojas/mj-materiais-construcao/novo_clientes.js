@@ -78,23 +78,128 @@ window.fecharModal = function(modalId) {
     }
 };
 
+// ============================================
+// MENU DE PERFIL - CONTROLE DE PERMISSÕES
+// ============================================
+
+// Configurar menu de perfil
+function configurarMenuPerfil() {
+    const menuBtn = document.getElementById('profileMenuBtn');
+    const dropdown = document.getElementById('profileMenuDropdown');
+    
+    if (menuBtn && dropdown) {
+        // Abrir/fechar menu ao clicar no botão
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('show');
+        });
+        
+        // Fechar menu ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        // Fechar menu ao clicar em um item
+        dropdown.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                dropdown.classList.remove('show');
+            });
+        });
+    }
+    
+    // Configurar botões do menu
+    document.getElementById('menuRelatorios')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        mostrarMensagem('Página de relatórios em desenvolvimento', 'info');
+    });
+    
+    document.getElementById('menuGestaoLogins')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        mostrarMensagem('Gestão de logins em desenvolvimento', 'info');
+    });
+    
+    document.getElementById('menuEstoque')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (dadosUsuario) {
+            // Passar o perfil como parâmetro na URL
+            window.location.href = `novo_estoque.html?perfil=${dadosUsuario.nivel || dadosUsuario.tipo}`;
+        }
+    });
+    
+    document.getElementById('menuLogout')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        fazerLogoutCliente();
+    });
+}
+
+// Atualizar menu baseado no perfil
+function atualizarMenuPerfil() {
+    if (!dadosUsuario) return;
+    
+    const perfil = dadosUsuario.nivel || dadosUsuario.tipo;
+    console.log('🔍 Atualizando menu para perfil:', perfil);
+    
+    // Mapear quais itens devem aparecer para cada perfil
+    const permissoes = {
+        'admin': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
+        'gerente': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
+        'supervisor': ['menuEstoque'],
+        'vendedor': ['menuEstoque'],
+        'cliente': [] // Cliente não vê nenhum
+    };
+    
+    // Itens que devem aparecer para este perfil
+    const itensPermitidos = permissoes[perfil] || [];
+    
+    // Mostrar/esconder itens
+    const menuItems = {
+        menuRelatorios: document.getElementById('menuRelatorios'),
+        menuGestaoLogins: document.getElementById('menuGestaoLogins'),
+        menuEstoque: document.getElementById('menuEstoque')
+    };
+    
+    for (const [id, element] of Object.entries(menuItems)) {
+        if (element) {
+            if (itensPermitidos.includes(id)) {
+                element.style.display = 'flex';
+            } else {
+                element.style.display = 'none';
+            }
+        }
+    }
+    
+    // Mostrar/esconder divisor
+    const divisor = document.querySelector('.menu-divider');
+    if (divisor) {
+        divisor.style.display = itensPermitidos.length > 0 ? 'block' : 'none';
+    }
+    
+    // Sempre mostrar o logout quando logado
+    const menuLogout = document.getElementById('menuLogout');
+    if (menuLogout) {
+        menuLogout.style.display = 'flex';
+    }
+}
+
+
 /// ============================================
-// EVENTOS DO LOGIN (CORRIGIDO)
+// EVENTOS DO LOGIN
 // ============================================
 window.addEventListener('usuarioLogado', (event) => {
     const { usuario, permissoes } = event.detail;
     
-    // Garantir que todos os dados do usuário sejam capturados
     usuarioLogado = true;
     dadosUsuario = usuario;
     
     console.log('✅ Usuário logado no clientes.js:', usuario);
-    console.log('🔑 Email do usuário:', usuario?.email);
-    console.log('🔑 Permissões:', permissoes);
+    console.log('🔑 Perfil:', usuario.nivel || usuario.tipo);
     
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
     const btnLogin = document.getElementById('btnLogin');
+    const profileMenuBtn = document.getElementById('profileMenuBtn');
     
     if (userName) {
         let tipoDisplay = '';
@@ -105,8 +210,15 @@ window.addEventListener('usuarioLogado', (event) => {
         userName.textContent = usuario.nome + tipoDisplay;
     }
     
-    if (btnLogout) btnLogout.style.display = 'inline-flex';
+    // Esconder botões antigos
+    if (btnLogout) btnLogout.style.display = 'none';
     if (btnLogin) btnLogin.style.display = 'none';
+    
+    // Mostrar menu de perfil
+    if (profileMenuBtn) profileMenuBtn.style.display = 'flex';
+    
+    // Atualizar menu baseado no perfil
+    atualizarMenuPerfil();
     
     fecharModal('loginModal');
 });
@@ -120,11 +232,24 @@ window.addEventListener('usuarioDeslogado', () => {
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
     const btnLogin = document.getElementById('btnLogin');
+    const profileMenuBtn = document.getElementById('profileMenuBtn');
+    const dropdown = document.getElementById('profileMenuDropdown');
     
     if (userName) userName.textContent = 'Visitante';
     if (btnLogout) btnLogout.style.display = 'none';
     if (btnLogin) btnLogin.style.display = 'inline-flex';
+    
+    // Esconder menu de perfil
+    if (profileMenuBtn) profileMenuBtn.style.display = 'none';
+    if (dropdown) dropdown.classList.remove('show');
+    
+    // Esconder todos os itens do menu
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.style.display = 'none';
+    });
+    document.querySelector('.menu-divider').style.display = 'none';
 });
+
 
 window.addEventListener('usuarioNaoAutorizado', (event) => {
     const erro = event.detail?.erro || 'Acesso negado';
@@ -1039,6 +1164,8 @@ function configurarEventos() {
             }
         }
     });
+
+    configurarMenuPerfil();
     
     console.log("✅ Eventos configurados");
 }
@@ -1132,6 +1259,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
