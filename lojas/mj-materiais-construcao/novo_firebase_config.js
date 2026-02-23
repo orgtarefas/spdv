@@ -109,6 +109,15 @@ class LojaManager {
         return this.config?.banco_vendas || `vendas_${this.lojaId?.replace(/-/g, '_')}`;
     }
     
+    /**
+     * Nome da coleção de carrinhos para a loja atual
+     */
+    get colecaoCarrinhos() {
+        // Ex: mj-materiais-construcao -> carrinhos_mj_materiais_construcao
+        const lojaFormatada = this.lojaId.replace(/-/g, '_');
+        return `carrinhos_${lojaFormatada}`;
+    }
+    
     get isLogged() {
         return !!this.lojaId && !!this.usuario;
     }
@@ -332,7 +341,6 @@ class LojaManager {
             
             const vendaRef = doc(db, this.bancoVendas, vendaId);
             
-            // Verificar se existe
             const vendaDoc = await getDoc(vendaRef);
             
             if (!vendaDoc.exists()) {
@@ -341,12 +349,10 @@ class LojaManager {
             
             const vendaData = vendaDoc.data();
             
-            // Verificar permissão
             if (vendaData.loja_id !== this.lojaId && !this.isAdmin) {
                 throw new Error('Venda não pertence a esta loja');
             }
             
-            // Adicionar timestamp de atualização
             const dadosParaAtualizar = {
                 ...dadosAtualizados,
                 data_atualizacao: serverTimestamp()
@@ -527,9 +533,7 @@ class LojaManager {
     async criarVenda(dadosVenda) {
         try {
             const resultado = await runTransaction(db, async (transaction) => {
-                // 1️⃣ PRIMEIRO: FAZER TODAS AS LEITURAS
                 const produtosRefs = [];
-                const produtosData = [];
                 
                 for (const item of dadosVenda.itens) {
                     const produtoRef = doc(db, this.bancoEstoque, item.produto_id);
@@ -558,7 +562,6 @@ class LojaManager {
                     });
                 }
                 
-                // 2️⃣ DEPOIS: FAZER TODAS AS ESCRITAS
                 const vendasRef = collection(db, this.bancoVendas);
                 const novaVendaRef = doc(vendasRef);
                 
@@ -579,7 +582,6 @@ class LojaManager {
                 
                 transaction.set(novaVendaRef, vendaData);
                 
-                // Atualizar estoque de todos os produtos
                 for (const { ref, quantidade } of produtosRefs) {
                     transaction.update(ref, {
                         quantidade: increment(-quantidade),
@@ -610,7 +612,6 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            // Buscar todas as vendas e filtrar manualmente (SEM ÍNDICE)
             const vendasRef = collection(db, this.bancoVendas);
             const snapshot = await getDocs(vendasRef);
             
@@ -622,17 +623,14 @@ class LojaManager {
                 });
             });
             
-            // Filtrar por loja_id manualmente
             vendas = vendas.filter(v => v.loja_id === this.lojaId);
             
-            // Ordenar por data_venda manualmente (mais recentes primeiro)
             vendas.sort((a, b) => {
                 const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
                 const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
                 return dataB - dataA;
             });
             
-            // Aplicar limite
             vendas = vendas.slice(0, limite);
             
             console.log(`✅ ${vendas.length} vendas encontradas`);
@@ -667,10 +665,8 @@ class LojaManager {
                 });
             });
             
-            // Filtrar por loja_id
             vendas = vendas.filter(v => v.loja_id === this.lojaId);
             
-            // Filtrar por período (dataInicio e dataFim)
             if (filtros.dataInicio && filtros.dataFim) {
                 const dataInicio = new Date(filtros.dataInicio);
                 dataInicio.setHours(0, 0, 0, 0);
@@ -686,7 +682,6 @@ class LojaManager {
                 });
             }
             
-            // Filtrar por número
             if (filtros.numero) {
                 const numLower = filtros.numero.toLowerCase();
                 vendas = vendas.filter(v => 
@@ -696,7 +691,6 @@ class LojaManager {
                 );
             }
             
-            // Ordenar por data
             vendas.sort((a, b) => {
                 const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
                 const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
@@ -760,10 +754,8 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            // Referência para a coleção de orçamentos
             const orcamentosRef = collection(db, 'orcamentos');
             
-            // Adicionar dados da loja e timestamps
             const orcamentoCompleto = {
                 ...orcamentoData,
                 loja_id: this.lojaId,
@@ -772,7 +764,6 @@ class LojaManager {
                 updated_at: serverTimestamp()
             };
             
-            // Salvar no Firebase
             const docRef = await addDoc(orcamentosRef, orcamentoCompleto);
             
             console.log(`✅ Orçamento ${orcamentoData.numero} criado com ID: ${docRef.id}`);
@@ -804,7 +795,6 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            // Buscar TODOS os orçamentos (SEM where com orderBy para evitar índice)
             const orcamentosRef = collection(db, 'orcamentos');
             const snapshot = await getDocs(orcamentosRef);
             
@@ -816,10 +806,8 @@ class LojaManager {
                 });
             });
             
-            // Filtrar por loja_id manualmente
             orcamentos = orcamentos.filter(o => o.loja_id === this.lojaId);
             
-            // Aplicar filtros adicionais
             if (filtros.data) {
                 const dataFiltro = new Date(filtros.data);
                 dataFiltro.setHours(0, 0, 0, 0);
@@ -843,7 +831,6 @@ class LojaManager {
                 orcamentos = orcamentos.filter(o => o.status === filtros.status);
             }
             
-            // Ordenar por data de criação (mais recentes primeiro)
             orcamentos.sort((a, b) => {
                 const dataA = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.data_criacao || 0);
                 const dataB = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.data_criacao || 0);
@@ -941,7 +928,6 @@ class LojaManager {
             
             const orcamentoRef = doc(db, 'orcamentos', orcamentoId);
             
-            // Verificar se existe
             const orcamentoDoc = await getDoc(orcamentoRef);
             
             if (!orcamentoDoc.exists()) {
@@ -950,12 +936,10 @@ class LojaManager {
             
             const orcamentoData = orcamentoDoc.data();
             
-            // Verificar permissão (opcional)
             if (orcamentoData.loja_id !== this.lojaId && !this.isAdmin) {
                 throw new Error('Orçamento não pertence a esta loja');
             }
             
-            // EXCLUIR definitivamente
             await deleteDoc(orcamentoRef);
             
             console.log(`✅ Orçamento ${orcamentoId} excluído permanentemente`);
@@ -984,10 +968,8 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            // Referência para a coleção de recolhimentos
             const recolhimentosRef = collection(db, 'recolhimentos');
             
-            // Adicionar dados da loja e timestamps
             const recolhimentoCompleto = {
                 ...recolhimentoData,
                 loja_id: this.lojaId,
@@ -995,7 +977,6 @@ class LojaManager {
                 created_at: serverTimestamp()
             };
             
-            // Salvar no Firebase
             const docRef = await addDoc(recolhimentosRef, recolhimentoCompleto);
             
             console.log(`✅ Recolhimento ${recolhimentoData.numero} criado com ID: ${docRef.id}`);
@@ -1142,6 +1123,277 @@ class LojaManager {
         }
     }
     
+    // ============================================
+    // MÉTODOS PARA CARRINHO DE USUÁRIOS (NOVOS)
+    // ============================================
+    
+    /**
+     * Determina o tipo de usuário (funcionario ou cliente) baseado no email
+     * @param {string} email - Email do usuário
+     */
+    async determinarTipoUsuario(email) {
+        try {
+            // Verificar se é funcionário (no banco de login via window)
+            if (window.loginDb) {
+                const funcDoc = await window.loginDb
+                    .collection('usuarios')
+                    .doc(this.lojaId)
+                    .collection('funcionarios')
+                    .doc(email)
+                    .get();
+                
+                if (funcDoc.exists) {
+                    return {
+                        tipo: 'funcionarios',
+                        nome: funcDoc.data().nome || email.split('@')[0],
+                        perfil: funcDoc.data().perfil
+                    };
+                }
+            }
+            
+            // Se não for funcionário, é cliente
+            return {
+                tipo: 'clientes',
+                nome: email.split('@')[0],
+                perfil: 'cliente'
+            };
+            
+        } catch (error) {
+            console.error('Erro ao determinar tipo de usuário:', error);
+            return {
+                tipo: 'clientes',
+                nome: email.split('@')[0],
+                perfil: 'cliente'
+            };
+        }
+    }
+    
+    /**
+     * Salvar carrinho do usuário no Firebase
+     * @param {string} email - Email do usuário
+     * @param {Array} itens - Itens do carrinho
+     */
+    async salvarCarrinhoUsuario(email, itens) {
+        try {
+            if (!email) {
+                throw new Error('Email do usuário não informado');
+            }
+            
+            // Determinar se é funcionário ou cliente
+            const tipoInfo = await this.determinarTipoUsuario(email);
+            
+            // Referência para o documento (funcionarios ou clientes)
+            const carrinhoRef = doc(db, this.colecaoCarrinhos, tipoInfo.tipo);
+            
+            // Buscar o documento atual
+            const carrinhoDoc = await getDoc(carrinhoRef);
+            
+            let dadosAtuais = {};
+            if (carrinhoDoc.exists()) {
+                dadosAtuais = carrinhoDoc.data();
+            }
+            
+            // Atualizar apenas o MAP do email específico
+            dadosAtuais[email] = {
+                itens: itens || [],
+                ultima_atualizacao: serverTimestamp(),
+                nome: tipoInfo.nome,
+                perfil: tipoInfo.perfil,
+                loja_id: this.lojaId
+            };
+            
+            // Salvar documento completo
+            await setDoc(carrinhoRef, dadosAtuais, { merge: true });
+            
+            console.log(`✅ Carrinho salvo para ${email} em ${this.colecaoCarrinhos}/${tipoInfo.tipo}`);
+            return { success: true };
+            
+        } catch (error) {
+            console.error('❌ Erro ao salvar carrinho:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    /**
+     * Carregar carrinho do usuário do Firebase
+     * @param {string} email - Email do usuário
+     */
+    async carregarCarrinhoUsuario(email) {
+        try {
+            if (!email) {
+                throw new Error('Email do usuário não informado');
+            }
+            
+            // Tentar primeiro em funcionarios, depois em clientes
+            const tipos = ['funcionarios', 'clientes'];
+            
+            for (const tipo of tipos) {
+                const carrinhoRef = doc(db, this.colecaoCarrinhos, tipo);
+                const carrinhoDoc = await getDoc(carrinhoRef);
+                
+                if (carrinhoDoc.exists()) {
+                    const dados = carrinhoDoc.data();
+                    if (dados[email]) {
+                        console.log(`✅ Carrinho carregado para ${email} de ${this.colecaoCarrinhos}/${tipo}: ${dados[email].itens?.length || 0} itens`);
+                        return { 
+                            success: true, 
+                            data: dados[email].itens || [],
+                            tipo: tipo,
+                            nome: dados[email].nome
+                        };
+                    }
+                }
+            }
+            
+            // Se não encontrou em nenhum dos dois, criar entrada padrão
+            console.log(`ℹ️ Nenhum carrinho encontrado para ${email}, criando novo...`);
+            
+            const tipoInfo = await this.determinarTipoUsuario(email);
+            await this.salvarCarrinhoUsuario(email, []);
+            
+            return { success: true, data: [], tipo: tipoInfo.tipo };
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar carrinho:', error);
+            return { success: false, error: error.message, data: [] };
+        }
+    }
+    
+    /**
+     * Adicionar item ao carrinho do usuário
+     * @param {string} email - Email do usuário
+     * @param {Object} item - Item a ser adicionado
+     */
+    async adicionarItemAoCarrinho(email, item) {
+        try {
+            if (!email || !item) {
+                throw new Error('Dados incompletos');
+            }
+            
+            // Carregar carrinho atual
+            const resultado = await this.carregarCarrinhoUsuario(email);
+            let itens = resultado.data || [];
+            
+            // Verificar se item já existe
+            const index = itens.findIndex(i => i.id === item.id);
+            
+            if (index !== -1) {
+                // Atualizar quantidade
+                itens[index].quantidade += item.quantidade || 1;
+                itens[index].subtotal = itens[index].quantidade * itens[index].preco_unitario;
+            } else {
+                // Adicionar novo item
+                const novoItem = {
+                    id: item.id,
+                    codigo: item.codigo,
+                    codigo_barras: item.codigo_barras,
+                    nome: item.nome,
+                    preco_unitario: item.preco_unitario || item.preco,
+                    quantidade: item.quantidade || 1,
+                    subtotal: (item.preco_unitario || item.preco) * (item.quantidade || 1),
+                    imagem: item.imagem || item.imagens?.thumbnail,
+                    unidade: item.unidade || 'UN',
+                    desconto: item.desconto || 0,
+                    desconto_valor: item.desconto_valor || 0
+                };
+                itens.push(novoItem);
+            }
+            
+            // Salvar no Firebase
+            await this.salvarCarrinhoUsuario(email, itens);
+            
+            return { success: true, data: itens };
+            
+        } catch (error) {
+            console.error('❌ Erro ao adicionar item:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    /**
+     * Remover item do carrinho
+     * @param {string} email - Email do usuário
+     * @param {string} produtoId - ID do produto a remover
+     */
+    async removerItemDoCarrinho(email, produtoId) {
+        try {
+            if (!email || !produtoId) {
+                throw new Error('Dados incompletos');
+            }
+            
+            // Carregar carrinho atual
+            const resultado = await this.carregarCarrinhoUsuario(email);
+            let itens = resultado.data || [];
+            
+            // Filtrar removendo o item
+            itens = itens.filter(i => i.id !== produtoId);
+            
+            // Salvar no Firebase
+            await this.salvarCarrinhoUsuario(email, itens);
+            
+            return { success: true, data: itens };
+            
+        } catch (error) {
+            console.error('❌ Erro ao remover item:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    /**
+     * Atualizar quantidade de item
+     * @param {string} email - Email do usuário
+     * @param {string} produtoId - ID do produto
+     * @param {number} quantidade - Nova quantidade
+     */
+    async atualizarQuantidadeItem(email, produtoId, quantidade) {
+        try {
+            if (!email || !produtoId || quantidade < 1) {
+                throw new Error('Dados inválidos');
+            }
+            
+            // Carregar carrinho atual
+            const resultado = await this.carregarCarrinhoUsuario(email);
+            let itens = resultado.data || [];
+            
+            // Encontrar e atualizar item
+            const item = itens.find(i => i.id === produtoId);
+            if (item) {
+                item.quantidade = quantidade;
+                item.subtotal = quantidade * item.preco_unitario;
+            }
+            
+            // Salvar no Firebase
+            await this.salvarCarrinhoUsuario(email, itens);
+            
+            return { success: true, data: itens };
+            
+        } catch (error) {
+            console.error('❌ Erro ao atualizar quantidade:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    /**
+     * Limpar carrinho do usuário
+     * @param {string} email - Email do usuário
+     */
+    async limparCarrinhoUsuario(email) {
+        try {
+            if (!email) {
+                throw new Error('Email do usuário não informado');
+            }
+            
+            await this.salvarCarrinhoUsuario(email, []);
+            
+            console.log(`✅ Carrinho limpo para ${email}`);
+            return { success: true };
+            
+        } catch (error) {
+            console.error('❌ Erro ao limpar carrinho:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
     logout() {
         sessionStorage.removeItem('pdv_sessao_temporaria');
         localStorage.removeItem('pdv_sessao_backup');
@@ -1184,6 +1436,14 @@ const lojaServices = {
     logout: () => lojaManager.logout(),
     excluirOrcamento: (id) => lojaManager.excluirOrcamento(id),
     atualizarVenda: (id, dados) => lojaManager.atualizarVenda(id, dados),
+    
+    // NOVOS MÉTODOS DE CARRINHO
+    salvarCarrinhoUsuario: (email, itens) => lojaManager.salvarCarrinhoUsuario(email, itens),
+    carregarCarrinhoUsuario: (email) => lojaManager.carregarCarrinhoUsuario(email),
+    limparCarrinhoUsuario: (email) => lojaManager.limparCarrinhoUsuario(email),
+    adicionarItemAoCarrinho: (email, item) => lojaManager.adicionarItemAoCarrinho(email, item),
+    removerItemDoCarrinho: (email, produtoId) => lojaManager.removerItemDoCarrinho(email, produtoId),
+    atualizarQuantidadeItem: (email, produtoId, quantidade) => lojaManager.atualizarQuantidadeItem(email, produtoId, quantidade),
     
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
@@ -1276,3 +1536,4 @@ console.log(`🔑 Chave ImgBB: ${lojaManager.imgbbKey ? 'CONFIGURADA' : 'NÃO CO
 if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
+console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
