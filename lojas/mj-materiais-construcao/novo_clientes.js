@@ -755,17 +755,28 @@ window.verProdutoDetalhe = function(produtoId) {
 };
 
 // ============================================
-// ADICIONAR AO CARRINHO (FIREBASE)
+// ADICIONAR AO CARRINHO (CORRIGIDO)
 // ============================================
 window.adicionarAoCarrinho = async function(produtoId) {
-    if (!usuarioLogado) {
+    // Verificar se usuário está logado
+    if (!usuarioLogado || !dadosUsuario) {
         mostrarMensagem('Faça login para adicionar produtos ao carrinho', 'warning');
         abrirModal('loginModal');
         return;
     }
     
+    // Verificar se tem email
+    if (!dadosUsuario.email) {
+        console.error('❌ Usuário sem email:', dadosUsuario);
+        mostrarMensagem('Erro: usuário sem email', 'error');
+        return;
+    }
+    
     const produto = produtos.find(p => p.id === produtoId);
-    if (!produto) return;
+    if (!produto) {
+        mostrarMensagem('Produto não encontrado', 'error');
+        return;
+    }
     
     if ((produto.quantidade || 0) <= 0) {
         mostrarMensagem('Produto sem estoque', 'warning');
@@ -790,10 +801,16 @@ window.adicionarAoCarrinho = async function(produtoId) {
         };
         
         console.log('🛒 Adicionando item:', item);
-        console.log('👤 Usuário:', usuarioLogado.email);
+        console.log('👤 Usuário email:', dadosUsuario.email);
+        
+        // Verificar se o método existe
+        if (typeof lojaServices.adicionarItemAoCarrinho !== 'function') {
+            console.error('❌ Método adicionarItemAoCarrinho não encontrado');
+            throw new Error('Função de carrinho não disponível');
+        }
         
         // Adicionar no Firebase
-        const resultado = await lojaServices.adicionarItemAoCarrinho(usuarioLogado.email, item);
+        const resultado = await lojaServices.adicionarItemAoCarrinho(dadosUsuario.email, item);
         
         console.log('📦 Resultado:', resultado);
         
@@ -834,6 +851,19 @@ window.filtrarPorCategoria = function(categoria) {
         produtosFiltrados = produtos.filter(p => p.categoria === categoria);
         exibirProdutosFiltrados(produtosFiltrados, `Categoria: ${categoria}`);
     }
+};
+
+// ============================================
+// FUNÇÃO DE DIAGNÓSTICO
+// ============================================
+window.diagnosticarLogin = function() {
+    console.log('🔍 DIAGNÓSTICO DE LOGIN:');
+    console.log('usuarioLogado flag:', usuarioLogado);
+    console.log('dadosUsuario:', dadosUsuario);
+    console.log('dadosUsuario?.email:', dadosUsuario?.email);
+    console.log('lojaServices disponível?', !!lojaServices);
+    console.log('lojaServices.adicionarItemAoCarrinho?', typeof lojaServices?.adicionarItemAoCarrinho);
+    console.log('lojaServices.carregarCarrinhoUsuario?', typeof lojaServices?.carregarCarrinhoUsuario);
 };
 
 function exibirProdutosFiltrados(produtosFiltrados, titulo) {
@@ -1102,6 +1132,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
