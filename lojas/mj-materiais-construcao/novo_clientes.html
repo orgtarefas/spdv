@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=yes">
+    <title>SPDVI - Produtos para Clientes</title>
+    <link rel="stylesheet" href="clientes.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <!-- Linha Superior: Logo, Pesquisa, Usuário -->
+            <div class="header-top">
+                <!-- Esquerda: Logo Grande -->
+                <div class="header-left">
+                    <div class="logo">
+                        <img src="/spdv/imagens/mj-materiais-construcao/logo.png" 
+                             alt="Logo da Loja" 
+                             class="logo-img" 
+                             id="lojaLogo">
+                        <div class="logo-text">
+                            <h1 id="lojaNomeHeader">MJ Materiais de Construção</h1>
+                            <p class="subtitle">Loja Online</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Centro: Barra de Pesquisa e Carrinho -->
+                <div class="header-center">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="searchProductInput" placeholder="O que você está procurando?" autocomplete="off">
+                        <button class="btn-cart-header" id="btnGoToCart">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="cart-badge" id="cartBadge">0</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Direita: Informações do Usuário -->
+                <div class="header-right">
+                    <div class="user-info">
+                        <span id="userName">Visitante</span>
+                        <button id="btnLogout" class="btn-logout" style="display: none;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Sair
+                        </button>
+                        <button id="btnLogin" class="btn-login">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                    </div>
+                    <div class="header-info">
+                        <span id="lojaLocal"></span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Categorias -->
+        <div class="categories-section">
+            <h2><i class="fas fa-tags"></i> Categorias</h2>
+            
+            <div class="categories-carousel-container">
+                <button class="categories-arrow prev" id="categoriesPrev">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="swiper categories-swiper">
+                    <div class="swiper-wrapper" id="categoriesGrid">
+                        <div class="swiper-slide loading-categories">
+                            <div class="spinner"></div>
+                            <p>Carregando categorias...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="categories-arrow next" id="categoriesNext">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Produtos em Destaque -->
+        <div class="featured-products">
+            <h2><i class="fas fa-star"></i> Produtos em Destaque</h2>
+            <div class="carousel-container">
+                <button class="carousel-arrow prev" id="carouselPrev">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="swiper featured-swiper">
+                    <div class="swiper-wrapper" id="featuredProducts"></div>
+                </div>
+                <button class="carousel-arrow next" id="carouselNext">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal de Consulta Rápida -->
+        <div id="quickSearchModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-search"></i> Consulta Rápida</h3>
+                    <button class="modal-close" title="Fechar (ESC)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="searchProductInputModal" 
+                               placeholder="Código, nome ou categoria do produto" 
+                               autocomplete="off" spellcheck="false">
+                        <button class="search-clear" id="searchClearModal" title="Limpar busca">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="search-filters">
+                        <button class="filter-btn active" data-filter="all">
+                            <i class="fas fa-list"></i> Todos
+                        </button>
+                        <button class="filter-btn" data-filter="estoque">
+                            <i class="fas fa-check-circle"></i> Em estoque
+                        </button>
+                        <button class="filter-btn" data-filter="destaque">
+                            <i class="fas fa-star"></i> Destaques
+                        </button>
+                    </div>
+                    
+                    <div class="search-tip">
+                        <i class="fas fa-lightbulb"></i>
+                        Dica: Use o leitor de código de barras ou digite o código manualmente
+                        <span class="shortcut">Ctrl+K</span>
+                    </div>
+                    
+                    <div class="search-results" id="searchResultsModal">
+                        <div class="empty-results">
+                            <i class="fas fa-search"></i>
+                            <p>Digite para buscar um produto</p>
+                            <small>Busque por código, nome, categoria ou use o leitor de código de barras</small>
+                        </div>
+                    </div>
+
+                    <div id="scanIndicatorModal" class="scan-indicator" style="display: none;">
+                        <i class="fas fa-barcode fa-spin"></i>
+                        <span>Modo scan ativo - Aponte o leitor para o código de barras</span>
+                        <button class="btn-stop-scan" onclick="window.gerenciadorCodigoBarrasClientes?.desativarModoScan()">
+                            <i class="fas fa-stop"></i> Parar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Login (NOVO - usando Authentication) -->
+        <div id="loginModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-sign-in-alt"></i> Login do Cliente</h3>
+                    <button class="modal-close" onclick="fecharModal('loginModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="login-form">
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> E-mail</label>
+                            <input type="email" id="loginEmail" placeholder="Digite seu e-mail">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Senha</label>
+                            <input type="password" id="loginSenha" placeholder="Digite sua senha">
+                        </div>
+                        <div class="login-options">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="loginLembrar"> Lembrar login
+                            </label>
+                            <a href="#" class="forgot-password" id="forgotPasswordCliente">Esqueci a senha</a>
+                        </div>
+                        <button class="btn-login-confirm" id="btnConfirmarLogin">
+                            <i class="fas fa-sign-in-alt"></i> Entrar
+                        </button>
+                        
+                        <div class="cadastro-link">
+                            <p>Não tem uma conta? 
+                                <a href="#" id="btnIrCadastro">Cadastre-se</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Cadastro (NOVO - usando Authentication) -->
+        <div id="cadastroModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-user-plus"></i> Cadastro de Cliente</h3>
+                    <button class="modal-close" onclick="fecharModal('cadastroModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="cadastro-form">
+                        <div class="form-group">
+                            <label><i class="fas fa-user"></i> Nome Completo *</label>
+                            <input type="text" id="cadastroNome" placeholder="Digite seu nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-envelope"></i> E-mail *</label>
+                            <input type="email" id="cadastroEmail" placeholder="Digite seu e-mail">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-phone"></i> Telefone *</label>
+                            <input type="text" id="cadastroTelefone" placeholder="(00) 00000-0000">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-id-card"></i> CPF *</label>
+                            <input type="text" id="cadastroCpf" placeholder="000.000.000-00">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Senha *</label>
+                            <input type="password" id="cadastroSenha" placeholder="Crie uma senha (mínimo 6 caracteres)">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-lock"></i> Confirmar Senha *</label>
+                            <input type="password" id="cadastroConfirmarSenha" placeholder="Confirme sua senha">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Endereço</label>
+                            <input type="text" id="cadastroEndereco" placeholder="Rua, número, bairro">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-city"></i> Cidade</label>
+                            <input type="text" id="cadastroCidade" placeholder="Cidade">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-map-pin"></i> CEP</label>
+                            <input type="text" id="cadastroCep" placeholder="00000-000">
+                        </div>
+                        <div class="form-group terms">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="cadastroTermos"> 
+                                <span>Li e aceito os <a href="#" id="termosLink">termos de uso</a></span>
+                            </label>
+                        </div>
+                        <button class="btn-cadastro-confirm" id="btnConfirmarCadastro">
+                            <i class="fas fa-check"></i> Cadastrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Produto -->
+        <div id="produtoModal" class="modal">
+            <div class="modal-content modal-lg">
+                <div class="modal-header">
+                    <h3><i class="fas fa-box"></i> Detalhes do Produto</h3>
+                    <button class="modal-close" onclick="fecharModal('produtoModal')">&times;</button>
+                </div>
+                <div class="modal-body" id="produtoModalBody"></div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <div class="footer-contacts">
+                    <h4>Atendimento</h4>
+                    <div class="contact-grid" id="contactGrid">
+                        <div class="loading-contacts">
+                            <div class="spinner-small"></div>
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="footer-address">
+                    <h4>Endereço</h4>
+                    <div id="addressGrid">
+                        <div class="loading-address">
+                            <div class="spinner-small"></div>
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="footer-chat"></div>
+            </div>
+        
+            <div class="footer-copyright">
+                <p>© EVOTL</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3 id="loadingMessage">Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <span class="message-text"></span>
+        </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <!-- NOVO: Scripts de autenticação -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- NOVO: Login Firebase -->
+    <script src="../../login_firebase.js"></script>
+    <!-- Arquivos originais -->
+    <script type="module" src="/spdv/lojas.js"></script>
+    <script src="firebase_config.js" type="module"></script>
+    <script src="novo_clientes.js" type="module"></script>
+</body>
+</html>
