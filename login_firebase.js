@@ -16,27 +16,25 @@ const db = firebase.firestore();
 // Função para extrair loja da URL
 function getLojaDaURL() {
     const path = window.location.pathname;
-    // Ex: /spdv/lojas/mj-materiais-construcao/
     const match = path.match(/\/lojas\/([^\/]+)\//);
     if (match && match[1]) {
         return match[1];
     }
-    // Fallback para o nome da pasta atual
     const parts = path.split('/');
     const lojaFolder = parts[parts.length - 2];
     return lojaFolder || null;
 }
 
-// Verificar se a loja está ativa
+// ========== FUNÇÕES DA COLEÇÃO LOJAS ==========
+// Verificar se a loja está ativa (busca na coleção 'lojas')
 async function verificarLojaAtiva(lojaId) {
     try {
-        const lojaDoc = await db.collection('usuarios').doc(lojaId).get();
+        const lojaDoc = await db.collection('lojas').doc(lojaId).get();
         
         if (!lojaDoc.exists) {
             return { 
                 ativa: false, 
-                erro: 'Loja não encontrada',
-                dadosPublicos: getLojaConfig(lojaId)
+                erro: 'Loja não encontrada no Firebase'
             };
         }
         
@@ -50,8 +48,7 @@ async function verificarLojaAtiva(lojaId) {
             return { 
                 ativa: false, 
                 erro: 'Loja inativa',
-                dados: lojaData,
-                dadosPublicos: getLojaConfig(lojaId)
+                dados: lojaData
             };
         }
         
@@ -60,8 +57,7 @@ async function verificarLojaAtiva(lojaId) {
             return { 
                 ativa: false, 
                 erro: 'Loja ainda não ativada',
-                dados: lojaData,
-                dadosPublicos: getLojaConfig(lojaId)
+                dados: lojaData
             };
         }
         
@@ -70,30 +66,27 @@ async function verificarLojaAtiva(lojaId) {
             return { 
                 ativa: false, 
                 erro: 'Período de acesso expirado',
-                dados: lojaData,
-                dadosPublicos: getLojaConfig(lojaId)
+                dados: lojaData
             };
         }
         
         return { 
             ativa: true, 
-            dados: lojaData,
-            dadosPublicos: getLojaConfig(lojaId)
+            dados: lojaData
         };
     } catch (error) {
         console.error('Erro ao verificar loja:', error);
         return { 
             ativa: false, 
-            erro: 'Erro ao verificar loja',
-            dadosPublicos: getLojaConfig(lojaId)
+            erro: 'Erro ao verificar loja'
         };
     }
 }
 
-// Verificar se é ADMIN (documento na raiz da coleção usuarios)
+// ========== FUNÇÕES DA COLEÇÃO USUARIOS ==========
+// Verificar se é ADMIN (documento 'admin' na coleção usuarios)
 async function verificarAdmin(email) {
     try {
-        // Buscar documento 'admin' na coleção usuarios
         const adminDoc = await db.collection('usuarios').doc('admin').get();
         
         if (adminDoc.exists) {
@@ -114,10 +107,10 @@ async function verificarAdmin(email) {
     }
 }
 
-// Função para buscar perfil do usuário na loja específica (usando EMAIL como ID)
+// Buscar perfil do usuário na loja específica (coleção usuarios)
 async function buscarPerfilNaLoja(email, lojaId) {
     try {
-        // Buscar na coleção de funcionários da loja usando EMAIL como ID do documento
+        // Buscar na coleção de funcionários da loja
         const userDoc = await db.collection('usuarios').doc(lojaId)
                                .collection('funcionarios').doc(email).get();
         
@@ -128,13 +121,13 @@ async function buscarPerfilNaLoja(email, lojaId) {
                 tipo: 'funcionario',
                 perfil: userData.perfil,
                 nome: userData.nome,
-                email: userData.email,
+                email: email,
                 ativo: userData.ativo,
                 dados: userData
             };
         }
         
-        // Se não for funcionário, buscar na coleção de clientes
+        // Buscar na coleção de clientes
         const clienteDoc = await db.collection('usuarios').doc(lojaId)
                                   .collection('clientes').doc(email).get();
         
@@ -145,7 +138,7 @@ async function buscarPerfilNaLoja(email, lojaId) {
                 tipo: 'cliente',
                 perfil: 'cliente',
                 nome: clienteData.nome,
-                email: clienteData.email,
+                email: email,
                 ativo: clienteData.ativo,
                 dados: clienteData
             };
@@ -158,7 +151,7 @@ async function buscarPerfilNaLoja(email, lojaId) {
     }
 }
 
-// Função de login ATUALIZADA
+// ========== FUNÇÕES DE LOGIN ==========
 async function fazerLogin(email, senha) {
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, senha);
@@ -174,14 +167,18 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // PRIMEIRO: Verificar se é ADMIN (documento admin na raiz)
+        // 1. Verificar se é ADMIN (coleção usuarios - doc admin)
         const adminCheck = await verificarAdmin(email);
         
         if (adminCheck.isAdmin) {
             console.log('✅ Acesso admin concedido para:', email);
             
-            // Admin tem acesso mesmo se a loja estiver inativa
+            // Admin pode acessar mesmo se loja estiver inativa
             const lojaStatus = await verificarLojaAtiva(lojaAtual);
+            
+            // Buscar dados públicos da loja no novo_lojas.js
+            const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
+                LOJAS_CONFIG[lojaAtual] : null;
             
             return {
                 sucesso: true,
@@ -199,11 +196,12 @@ async function fazerLogin(email, senha) {
                     admin: true,
                     acessar_todas_lojas: true 
                 },
-                lojaInfo: lojaStatus
+                lojaInfo: lojaStatus,
+                dadosPublicos: dadosPublicos
             };
         }
         
-        // Se não é admin, verificar status da loja
+        // 2. Verificar status da loja (coleção lojas)
         const lojaStatus = await verificarLojaAtiva(lojaAtual);
         
         if (!lojaStatus.ativa) {
@@ -215,7 +213,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // Buscar perfil do usuário na loja específica (usando EMAIL)
+        // 3. Buscar perfil do usuário na loja (coleção usuarios)
         const perfil = await buscarPerfilNaLoja(email, lojaAtual);
         
         if (!perfil.encontrado) {
@@ -236,7 +234,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // Atualizar último acesso
+        // 4. Atualizar último acesso
         const timestamp = firebase.firestore.FieldValue.serverTimestamp();
         const collection = perfil.tipo === 'funcionario' ? 'funcionarios' : 'clientes';
         
@@ -244,7 +242,11 @@ async function fazerLogin(email, senha) {
                .collection(collection).doc(email)
                .update({ ultimo_acesso: timestamp });
         
-        // Buscar permissões baseadas no perfil
+        // 5. Buscar dados públicos da loja
+        const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
+            LOJAS_CONFIG[lojaAtual] : null;
+        
+        // 6. Buscar permissões
         const permissoes = await buscarPermissoesPorPerfil(perfil.perfil);
         
         return {
@@ -259,7 +261,8 @@ async function fazerLogin(email, senha) {
                 dados: perfil.dados
             },
             permissoes: permissoes,
-            lojaInfo: lojaStatus
+            lojaInfo: lojaStatus,
+            dadosPublicos: dadosPublicos
         };
         
     } catch (error) {
@@ -283,7 +286,7 @@ async function fazerLogin(email, senha) {
     }
 }
 
-// Função de cadastro de cliente
+// Cadastro de cliente
 async function cadastrarCliente(nome, email, senha, telefone) {
     try {
         const lojaAtual = getLojaDaURL();
@@ -295,12 +298,21 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             };
         }
         
-        // Verificar se a loja está ativa
+        // Verificar se a loja está ativa (coleção lojas)
         const lojaStatus = await verificarLojaAtiva(lojaAtual);
         if (!lojaStatus.ativa) {
             return {
                 sucesso: false,
                 erro: `Não é possível cadastrar: ${lojaStatus.erro}`
+            };
+        }
+        
+        // Verificar se já existe um admin com este email
+        const adminCheck = await verificarAdmin(email);
+        if (adminCheck.isAdmin) {
+            return {
+                sucesso: false,
+                erro: 'Email reservado para administrador'
             };
         }
         
@@ -313,17 +325,20 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             displayName: nome
         });
         
-        // Salvar dados na coleção clientes da loja específica usando EMAIL como ID
+        // Salvar dados na coleção usuarios (clientes da loja)
         await db.collection('usuarios').doc(lojaAtual)
                .collection('clientes').doc(email).set({
             nome: nome,
-            email: email,
             telefone: telefone,
             perfil: 'cliente',
             ativo: true,
             data_cadastro: firebase.firestore.FieldValue.serverTimestamp(),
             ultimo_acesso: firebase.firestore.FieldValue.serverTimestamp()
         });
+        
+        // Buscar dados públicos da loja
+        const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
+            LOJAS_CONFIG[lojaAtual] : null;
         
         return {
             sucesso: true,
@@ -333,7 +348,8 @@ async function cadastrarCliente(nome, email, senha, telefone) {
                 nome: nome,
                 nivel: 'cliente',
                 loja: lojaAtual
-            }
+            },
+            dadosPublicos: dadosPublicos
         };
         
     } catch (error) {
@@ -369,7 +385,7 @@ async function buscarPermissoesPorPerfil(perfil) {
             return permissoes[perfil] || {};
         }
         
-        // Permissões padrão baseadas no perfil
+        // Permissões padrão
         const permissoesPadrao = {
             'gerente': {
                 visualizar_vendas: true,
@@ -405,7 +421,7 @@ async function buscarPermissoesPorPerfil(perfil) {
     }
 }
 
-// Função para fazer logout
+// Logout
 async function fazerLogout() {
     try {
         await auth.signOut();
@@ -416,25 +432,28 @@ async function fazerLogout() {
     }
 }
 
-// Listener para mudanças no estado de autenticação
+// Listener de autenticação
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         const lojaAtual = getLojaDaURL();
         
         if (!lojaAtual) {
             await auth.signOut();
-            const evento = new CustomEvent('erroLoja', { 
+            window.dispatchEvent(new CustomEvent('erroLoja', { 
                 detail: { erro: 'URL inválida - Loja não identificada' }
-            });
-            window.dispatchEvent(evento);
+            }));
             return;
         }
         
-        // Verificar se é admin pelo email
+        // Verificar se é admin
         const adminCheck = await verificarAdmin(user.email);
         
         if (adminCheck.isAdmin) {
-            const evento = new CustomEvent('usuarioLogado', { 
+            // Buscar dados públicos da loja
+            const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
+                LOJAS_CONFIG[lojaAtual] : null;
+                
+            window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                 detail: {
                     usuario: {
                         uid: user.uid,
@@ -448,20 +467,24 @@ auth.onAuthStateChanged(async (user) => {
                         todas: true, 
                         admin: true,
                         acessar_todas_lojas: true 
-                    }
+                    },
+                    dadosPublicos: dadosPublicos
                 }
-            });
-            window.dispatchEvent(evento);
+            }));
             return;
         }
         
-        // Verificar perfil na loja pelo email
+        // Verificar perfil na loja
         const perfil = await buscarPerfilNaLoja(user.email, lojaAtual);
         
         if (perfil.encontrado && perfil.ativo) {
             const permissoes = await buscarPermissoesPorPerfil(perfil.perfil);
             
-            const evento = new CustomEvent('usuarioLogado', { 
+            // Buscar dados públicos da loja
+            const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
+                LOJAS_CONFIG[lojaAtual] : null;
+            
+            window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                 detail: {
                     usuario: {
                         uid: user.uid,
@@ -472,17 +495,15 @@ auth.onAuthStateChanged(async (user) => {
                         loja: lojaAtual,
                         dados: perfil.dados
                     },
-                    permissoes: permissoes
+                    permissoes: permissoes,
+                    dadosPublicos: dadosPublicos
                 }
-            });
-            window.dispatchEvent(evento);
+            }));
         } else {
             await auth.signOut();
-            const evento = new CustomEvent('usuarioNaoAutorizado');
-            window.dispatchEvent(evento);
+            window.dispatchEvent(new CustomEvent('usuarioNaoAutorizado'));
         }
     } else {
-        const evento = new CustomEvent('usuarioDeslogado');
-        window.dispatchEvent(evento);
+        window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
     }
 });
