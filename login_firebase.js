@@ -1,4 +1,7 @@
-// Configuração do Firebase
+// ============================================
+// CONFIGURAÇÃO CENTRALIZADA DO FIREBASE
+// ============================================
+
 const firebaseConfig = {
     apiKey: "AIzaSyAYPjEB8cT-mOmLaXJMXAsoP2l3YotY2WQ",
     authDomain: "lojasite-ba36f.firebaseapp.com",
@@ -8,10 +11,33 @@ const firebaseConfig = {
     appId: "1:1083157739430:web:5ed2d4261434c73a9e4167"
 };
 
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
+// Inicializar Firebase (apenas uma vez)
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    console.log('✅ Firebase inicializado pelo login_firebase.js');
+}
+
+// Ativar App Check com reCAPTCHA Enterprise
+try {
+    const appCheck = firebase.appCheck();
+    appCheck.activate(
+        new firebase.appCheck.ReCaptchaEnterpriseProvider(
+            "6LdqQnUsAAAAAOnjtu0Avi_0WubZw0iYS20DjL6b"  // Chave do site
+        ),
+        true // Auto-refresh do token
+    );
+    console.log('✅ App Check ativado com reCAPTCHA Enterprise');
+} catch (error) {
+    console.error('❌ Erro ao ativar App Check:', error);
+}
+
+// Referências globais
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// ============================================
+// FUNÇÕES AUXILIARES
+// ============================================
 
 // Função para extrair loja da URL
 function getLojaDaURL() {
@@ -25,8 +51,11 @@ function getLojaDaURL() {
     return lojaFolder || null;
 }
 
-// ========== FUNÇÕES DA COLEÇÃO LOJAS ==========
-// Verificar se a loja está ativa (agora só chamada após login)
+// ============================================
+// FUNÇÕES DA COLEÇÃO LOJAS
+// ============================================
+
+// Verificar se a loja está ativa
 async function verificarLojaAtiva(lojaId) {
     try {
         const lojaDoc = await db.collection('lojas').doc(lojaId).get();
@@ -62,10 +91,12 @@ async function verificarLojaAtiva(lojaId) {
     }
 }
 
-// ========== FUNÇÕES DA COLEÇÃO USUARIOS ==========
-// Verificar se é ADMIN (só chamada após login)
+// ============================================
+// FUNÇÕES DA COLEÇÃO USUARIOS
+// ============================================
+
+// Verificar se é ADMIN
 async function verificarAdmin(email) {
-    // Se não tem usuário logado, retorna falso
     if (!auth.currentUser) {
         return { isAdmin: false };
     }
@@ -90,15 +121,14 @@ async function verificarAdmin(email) {
     }
 }
 
-// Buscar perfil do usuário na loja específica (só chamada após login)
+// Buscar perfil do usuário na loja
 async function buscarPerfilNaLoja(email, lojaId) {
-    // Se não tem usuário logado, retorna falso
     if (!auth.currentUser) {
         return { encontrado: false };
     }
     
     try {
-        // Buscar na coleção de funcionários da loja
+        // Buscar funcionários
         const userDoc = await db.collection('usuarios').doc(lojaId)
                                .collection('funcionarios').doc(email).get();
         
@@ -115,7 +145,7 @@ async function buscarPerfilNaLoja(email, lojaId) {
             };
         }
         
-        // Buscar na coleção de clientes
+        // Buscar clientes
         const clienteDoc = await db.collection('usuarios').doc(lojaId)
                                   .collection('clientes').doc(email).get();
         
@@ -139,7 +169,10 @@ async function buscarPerfilNaLoja(email, lojaId) {
     }
 }
 
-// ========== FUNÇÕES DE LOGIN ==========
+// ============================================
+// FUNÇÕES DE LOGIN
+// ============================================
+
 async function fazerLogin(email, senha) {
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, senha);
@@ -155,16 +188,14 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // 1. Verificar se é ADMIN (agora com usuário logado)
+        // Verificar admin
         const adminCheck = await verificarAdmin(email);
         
         if (adminCheck.isAdmin) {
             console.log('✅ Acesso admin concedido para:', email);
             
-            // Admin pode acessar mesmo se loja estiver inativa
             const lojaStatus = await verificarLojaAtiva(lojaAtual);
             
-            // Buscar dados públicos da loja no novo_lojas.js
             const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
                 LOJAS_CONFIG[lojaAtual] : null;
             
@@ -189,7 +220,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // 2. Verificar status da loja (agora com usuário logado)
+        // Verificar status da loja
         const lojaStatus = await verificarLojaAtiva(lojaAtual);
         
         if (!lojaStatus.ativa) {
@@ -201,7 +232,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // 3. Buscar perfil do usuário na loja (agora com usuário logado)
+        // Buscar perfil
         const perfil = await buscarPerfilNaLoja(email, lojaAtual);
         
         if (!perfil.encontrado) {
@@ -222,7 +253,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // 4. Atualizar último acesso
+        // Atualizar último acesso
         const timestamp = firebase.firestore.FieldValue.serverTimestamp();
         const collection = perfil.tipo === 'funcionario' ? 'funcionarios' : 'clientes';
         
@@ -230,11 +261,9 @@ async function fazerLogin(email, senha) {
                .collection(collection).doc(email)
                .update({ ultimo_acesso: timestamp });
         
-        // 5. Buscar dados públicos da loja
         const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
             LOJAS_CONFIG[lojaAtual] : null;
         
-        // 6. Buscar permissões
         const permissoes = await buscarPermissoesPorPerfil(perfil.perfil);
         
         return {
@@ -265,6 +294,8 @@ async function fazerLogin(email, senha) {
             mensagemErro = 'E-mail inválido';
         } else if (error.code === 'auth/too-many-requests') {
             mensagemErro = 'Muitas tentativas. Tente novamente mais tarde';
+        } else if (error.code === 'auth/firebase-app-check-token-is-invalid') {
+            mensagemErro = 'Erro de segurança. Recarregue a página.';
         }
         
         return {
@@ -274,7 +305,10 @@ async function fazerLogin(email, senha) {
     }
 }
 
-// Cadastro de cliente
+// ============================================
+// CADASTRO DE CLIENTE
+// ============================================
+
 async function cadastrarCliente(nome, email, senha, telefone) {
     try {
         const lojaAtual = getLojaDaURL();
@@ -286,8 +320,7 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             };
         }
         
-        // Verificar se a loja está ativa (agora sem usuário logado ainda)
-        // Para isso, precisamos de regras que permitam leitura pública de lojas
+        // Verificar se a loja está ativa
         const lojaStatus = await verificarLojaAtiva(lojaAtual);
         if (!lojaStatus.ativa) {
             return {
@@ -296,7 +329,7 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             };
         }
         
-        // Verificar se já existe um admin com este email
+        // Verificar se já existe um admin
         const adminCheck = await verificarAdmin(email);
         if (adminCheck.isAdmin) {
             return {
@@ -305,16 +338,13 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             };
         }
         
-        // Criar usuário no Authentication
+        // Criar usuário
         const userCredential = await auth.createUserWithEmailAndPassword(email, senha);
         const user = userCredential.user;
         
-        // Atualizar perfil com nome
-        await user.updateProfile({
-            displayName: nome
-        });
+        await user.updateProfile({ displayName: nome });
         
-        // Salvar dados na coleção usuarios (clientes da loja)
+        // Salvar na coleção usuarios
         await db.collection('usuarios').doc(lojaAtual)
                .collection('clientes').doc(email).set({
             nome: nome,
@@ -325,7 +355,6 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             ultimo_acesso: firebase.firestore.FieldValue.serverTimestamp()
         });
         
-        // Buscar dados públicos da loja
         const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
             LOJAS_CONFIG[lojaAtual] : null;
         
@@ -360,7 +389,10 @@ async function cadastrarCliente(nome, email, senha, telefone) {
     }
 }
 
-// Buscar permissões por perfil
+// ============================================
+// PERMISSÕES
+// ============================================
+
 async function buscarPermissoesPorPerfil(perfil) {
     try {
         if (perfil === 'admin') {
@@ -374,7 +406,6 @@ async function buscarPermissoesPorPerfil(perfil) {
             return permissoes[perfil] || {};
         }
         
-        // Permissões padrão
         const permissoesPadrao = {
             'gerente': {
                 visualizar_vendas: true,
@@ -410,7 +441,10 @@ async function buscarPermissoesPorPerfil(perfil) {
     }
 }
 
-// Logout
+// ============================================
+// LOGOUT
+// ============================================
+
 async function fazerLogout() {
     try {
         await auth.signOut();
@@ -421,7 +455,10 @@ async function fazerLogout() {
     }
 }
 
-// Listener de autenticação
+// ============================================
+// LISTENER DE AUTENTICAÇÃO
+// ============================================
+
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         console.log('Usuário autenticado:', user.email);
@@ -433,7 +470,6 @@ auth.onAuthStateChanged(async (user) => {
         }
         
         try {
-            // Verificar se é admin
             const adminCheck = await verificarAdmin(user.email);
             
             if (adminCheck.isAdmin) {
@@ -462,7 +498,6 @@ auth.onAuthStateChanged(async (user) => {
                 return;
             }
             
-            // Se não é admin, buscar perfil na loja
             const perfil = await buscarPerfilNaLoja(user.email, lojaAtual);
             
             if (perfil.encontrado && perfil.ativo) {
@@ -486,7 +521,6 @@ auth.onAuthStateChanged(async (user) => {
                     }
                 }));
             } else {
-                // Usuário autenticado mas sem perfil na loja
                 await auth.signOut();
                 window.dispatchEvent(new CustomEvent('usuarioNaoAutorizado', { 
                     detail: { erro: 'Usuário não cadastrado nesta loja' }
@@ -501,3 +535,17 @@ auth.onAuthStateChanged(async (user) => {
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
     }
 });
+
+// ============================================
+// EXPOR FUNÇÕES GLOBALMENTE
+// ============================================
+
+window.fazerLogin = fazerLogin;
+window.cadastrarCliente = cadastrarCliente;
+window.fazerLogout = fazerLogout;
+window.verificarLojaAtiva = verificarLojaAtiva;
+window.getLojaDaURL = getLojaDaURL;
+window.auth = auth;
+window.db = db;
+
+console.log('✅ login_firebase.js carregado com todas as configurações');
