@@ -757,6 +757,9 @@ window.verProdutoDetalhe = function(produtoId) {
     abrirModal('produtoModal');
 };
 
+// ============================================
+// ADICIONAR AO CARRINHO
+// ============================================
 window.adicionarAoCarrinho = function(produtoId) {
     if (!usuarioLogado) {
         mostrarMensagem('Faça login para adicionar produtos ao carrinho', 'warning');
@@ -772,23 +775,55 @@ window.adicionarAoCarrinho = function(produtoId) {
         return;
     }
     
-    const itemExistente = carrinho.find(item => item.id === produtoId);
+    // Pegar carrinho atual do usuário
+    const chaveCarrinho = `carrinho_${usuarioLogado.email}_${lojaIdAtual}`;
+    let carrinhoAtual = [];
+    
+    try {
+        const carrinhoSalvo = sessionStorage.getItem(chaveCarrinho);
+        if (carrinhoSalvo) {
+            carrinhoAtual = JSON.parse(carrinhoSalvo);
+        }
+    } catch (e) {
+        console.error('Erro ao ler carrinho:', e);
+    }
+    
+    // Verificar se produto já existe no carrinho
+    const itemExistente = carrinhoAtual.find(item => item.id === produtoId);
     
     if (itemExistente) {
         itemExistente.quantidade++;
+        itemExistente.subtotal = itemExistente.quantidade * itemExistente.preco_unitario;
     } else {
-        carrinho.push({
+        carrinhoAtual.push({
             id: produto.id,
+            codigo: produto.codigo,
+            codigo_barras: produto.codigo_barras,
             nome: produto.nome,
-            preco: produto.preco,
+            preco_unitario: produto.preco,
             quantidade: 1,
-            imagem: obterURLImagem(produto, 'thumb')
+            subtotal: produto.preco,
+            imagem: produto.imagens?.thumbnail || produto.imagens?.principal || IMAGEM_PADRAO_BASE64,
+            unidade: produto.unidade_venda || produto.unidade || 'UN',
+            desconto: 0,
+            desconto_valor: 0
         });
     }
     
-    sessionStorage.setItem('carrinho_cliente', JSON.stringify(carrinho));
-    atualizarBadgeCarrinho();
+    // Salvar carrinho
+    sessionStorage.setItem(chaveCarrinho, JSON.stringify(carrinhoAtual));
+    
+    // Atualizar badge do carrinho
+    const totalItens = carrinhoAtual.reduce((acc, item) => acc + item.quantidade, 0);
+    const badge = document.getElementById('cartBadge');
+    if (badge) {
+        badge.textContent = totalItens;
+        badge.style.display = totalItens > 0 ? 'flex' : 'none';
+    }
+    
     mostrarMensagem(`${produto.nome} adicionado ao carrinho`, 'success');
+    
+    console.log(`✅ Carrinho atualizado: ${totalItens} itens no total`);
 };
 
 function atualizarBadgeCarrinho() {
@@ -1095,4 +1130,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
