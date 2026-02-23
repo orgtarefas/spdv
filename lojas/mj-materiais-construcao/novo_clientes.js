@@ -1,7 +1,9 @@
-// novo_clientes.js - Tela de Exposição de Produtos para Clientes
-console.log("🛒 Sistema PDV - Loja para Clientes");
+// novo_clientes.js - Tela de Exposição de Produtos para Clientes (NOVO SISTEMA)
+console.log("🛒 Sistema PDV - Loja para Clientes (Nova Autenticação)");
 
-// Importar APENAS do novo_firebase_config.js (estoque/vendas)
+// ============================================
+// IMPORTAÇÕES
+// ============================================
 import { 
     db, 
     collection, 
@@ -14,7 +16,7 @@ import {
     obterURLImagem,
     formatarMoeda,
     gerarImagemPlaceholderBase64
-} from './novo_firebase_config.js';
+} from './firebase_config.js';
 
 import { getLojaConfig } from '/spdv/lojas.js';
 
@@ -23,14 +25,13 @@ import { getLojaConfig } from '/spdv/lojas.js';
 // ============================================
 const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSI4MCIgcj0iNDAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTUwIDE1MEw4MCAxMDBMMTEwIDEzMEwxNDAgODBMMTcwIDEzMEwyMDAgMTUwSDUwWiIgZmlsbD0iI2U3NGMzYyIgZmlsbC1vcGFjaXR5PSIwLjEiLz48dGV4dCB4PSIxMDAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TRU0gRk9UTzwvdGV4dD48L3N2Zz4=";
 
-// Placeholder de logo em SVG
 const LOGO_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E🏪%3C/text%3E%3C/svg%3E";
 
 let produtos = [];
 let categorias = [];
 let carrinho = [];
-let clienteLogado = false;
-let dadosCliente = null;
+let usuarioLogado = false;
+let dadosUsuario = null;
 let swiperInstance = null;
 let lojaIdAtual = null;
 
@@ -64,6 +65,8 @@ function abrirModal(modalId) {
     if (modal) {
         modal.classList.add('active');
         console.log(`✅ Modal ${modalId} aberto`);
+    } else {
+        console.error(`❌ Modal ${modalId} não encontrado`);
     }
 }
 
@@ -76,20 +79,16 @@ window.fecharModal = function(modalId) {
 };
 
 // ============================================
-// VERIFICAR SESSÃO DO CLIENTE (via eventos do login_firebase.js)
-// ============================================
-function verificarSessaoCliente() {
-    // O login_firebase.js já dispara eventos, só precisamos ouvir
-}
-
-// ============================================
-// EVENTO DE LOGIN (no novo_clientes.js)
+// EVENTOS DO LOGIN (vindos do login_firebase.js)
 // ============================================
 window.addEventListener('usuarioLogado', (event) => {
     const { usuario, permissoes } = event.detail;
     
-    clienteLogado = true;
-    dadosCliente = usuario;
+    usuarioLogado = true;
+    dadosUsuario = usuario;
+    
+    console.log('✅ Usuário logado:', usuario);
+    console.log('🔑 Permissões:', permissoes);
     
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
@@ -100,6 +99,7 @@ window.addEventListener('usuarioLogado', (event) => {
         let tipoDisplay = '';
         if (usuario.tipo === 'admin') tipoDisplay = ' (Admin)';
         else if (usuario.tipo === 'funcionario') tipoDisplay = ` (${usuario.nivel})`;
+        else tipoDisplay = ' (Cliente)';
         
         userName.textContent = usuario.nome + tipoDisplay;
     }
@@ -107,247 +107,36 @@ window.addEventListener('usuarioLogado', (event) => {
     if (btnLogout) btnLogout.style.display = 'inline-flex';
     if (btnLogin) btnLogin.style.display = 'none';
     
-    console.log('✅ Usuário logado:', usuario);
-    console.log('🔑 Permissões:', permissoes);
+    // Fechar modal de login se estiver aberto
+    fecharModal('loginModal');
     
-    // Aqui você pode esconder/mostrar elementos baseado nas permissões
-    // Exemplo:
-    if (permissoes.editar_produtos) {
-        document.querySelectorAll('.btn-editar').forEach(btn => btn.style.display = 'block');
-    }
+    // Atualizar interface baseado nas permissões (para implementar depois)
+    // if (permissoes.editar_produtos) { ... }
+});
+
+window.addEventListener('usuarioDeslogado', () => {
+    usuarioLogado = false;
+    dadosUsuario = null;
+    
+    console.log('👤 Usuário deslogado');
+    
+    const userName = document.getElementById('userName');
+    const btnLogout = document.getElementById('btnLogout');
+    const btnLogin = document.getElementById('btnLogin');
+    
+    if (userName) userName.textContent = 'Visitante';
+    if (btnLogout) btnLogout.style.display = 'none';
+    if (btnLogin) btnLogin.style.display = 'inline-flex';
+});
+
+window.addEventListener('usuarioNaoAutorizado', (event) => {
+    const erro = event.detail?.erro || 'Acesso negado';
+    mostrarMensagem(erro, 'error');
+    console.error('❌ Acesso negado:', erro);
 });
 
 // ============================================
-// FUNÇÃO PARA CARREGAR LOGO DA LOJA
-// ============================================
-function carregarLogoLoja() {
-    const logoImg = document.getElementById('lojaLogo');
-    if (!logoImg) return;
-    
-    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    
-    if (!lojaId) {
-        logoImg.src = getPlaceholderIcon();
-        return;
-    }
-    
-    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
-    
-    const testImg = new Image();
-    testImg.onload = function() {
-        logoImg.src = logoPath;
-    };
-    
-    testImg.onerror = function() {
-        logoImg.src = getPlaceholderIcon();
-    };
-    
-    testImg.src = logoPath;
-}
-
-function getPlaceholderIcon() {
-    return LOGO_PLACEHOLDER;
-}
-
-// ============================================
-// CARREGAR DADOS DA LOJA
-// ============================================
-function carregarDadosLoja() {
-    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    
-    if (!lojaId) return;
-    
-    try {
-        const config = getLojaConfig(lojaId);
-        
-        if (config) {
-            const nomeLoja = config.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
-            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
-            
-            document.title = `${nomeLoja} - Loja Online`;
-            
-            if (config.contato) {
-                renderizarContatos(config);
-            }
-            
-            if (config.contato?.endereco) {
-                renderizarEndereco(config);
-            }
-        }
-        
-        renderizarChat();
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar dados da loja:', error);
-    }
-}
-
-// ============================================
-// RENDERIZAR CONTATOS
-// ============================================
-function renderizarContatos(dadosLoja) {
-    const contactGrid = document.getElementById('contactGrid');
-    if (!contactGrid) return;
-    
-    if (!dadosLoja || !dadosLoja.contato) {
-        contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
-        return;
-    }
-    
-    const contato = dadosLoja.contato;
-    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
-    const placeholder = getPlaceholderIcon();
-    
-    let html = '';
-    
-    if (contato.whatsapp && contato.whatsapp.trim() !== '') {
-        const numero = contato.whatsapp.replace(/\D/g, '');
-        html += `
-            <a href="https://wa.me/${numero}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}whatsapp.png" alt="WhatsApp" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">WhatsApp</div>
-                        <div class="contact-value">${contato.whatsapp}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    if (contato.email && contato.email.trim() !== '') {
-        html += `
-            <a href="mailto:${contato.email}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}email.png" alt="E-mail" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">E-mail</div>
-                        <div class="contact-value">${contato.email}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    if (contato.instagram && contato.instagram.trim() !== '') {
-        const usuario = contato.instagram.replace('@', '');
-        html += `
-            <a href="https://instagram.com/${usuario}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}instagram.png" alt="Instagram" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">Instagram</div>
-                        <div class="contact-value">${contato.instagram}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    if (html === '') {
-        html = '<p class="no-contacts">Nenhum contato disponível</p>';
-    }
-    
-    contactGrid.innerHTML = html;
-}
-
-// ============================================
-// RENDERIZAR ENDEREÇO
-// ============================================
-function renderizarEndereco(dadosLoja) {
-    const addressGrid = document.getElementById('addressGrid');
-    if (!addressGrid) return;
-    
-    if (!dadosLoja || !dadosLoja.contato?.endereco) {
-        addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
-        return;
-    }
-    
-    const endereco = dadosLoja.contato.endereco;
-    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
-    const placeholder = getPlaceholderIcon();
-    
-    const ruaNumeroBairro = [];
-    if (endereco.rua) ruaNumeroBairro.push(endereco.rua);
-    if (endereco.numero) ruaNumeroBairro.push(`nº ${endereco.numero}`);
-    if (endereco.bairro) ruaNumeroBairro.push(endereco.bairro);
-    const ruaNumeroBairroStr = ruaNumeroBairro.join(' ');
-    
-    const cidadeUfCep = [];
-    if (endereco.cidade) cidadeUfCep.push(endereco.cidade);
-    if (endereco.uf) cidadeUfCep.push(endereco.uf);
-    if (endereco.cep) cidadeUfCep.push(`CEP: ${endereco.cep}`);
-    const cidadeUfCepStr = cidadeUfCep.join(' - ');
-    
-    const enderecoCompleto = `${ruaNumeroBairroStr} ${cidadeUfCepStr}`.trim();
-    const query = encodeURIComponent(enderecoCompleto);
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    
-    let html = `
-        <a href="${mapsUrl}" target="_blank" class="address-item">
-            <div class="address-icon">
-                <img src="${basePath}endereco.png" alt="Endereço" 
-                     onerror="this.src='${placeholder}'">
-            </div>
-            <div class="address-content">
-                <div class="address-label">Endereço</div>
-                <div class="address-text">
-                    <span class="rua-numero">${ruaNumeroBairroStr}</span>
-                    <span class="cidade-uf-cep">${cidadeUfCepStr}</span>
-                </div>
-            </div>
-        </a>
-    `;
-    
-    addressGrid.innerHTML = html;
-}
-
-// ============================================
-// RENDERIZAR CHAT
-// ============================================
-function renderizarChat() {
-    const footerChat = document.querySelector('.footer-chat');
-    if (!footerChat) return;
-    
-    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
-    const placeholder = getPlaceholderIcon();
-    
-    footerChat.innerHTML = `
-        <div class="chat-container">
-            <div class="chat-icon-large">
-                <img src="${basePath}chat.png" alt="Chat" 
-                     onerror="this.src='${placeholder}'">
-            </div>
-            <div class="chat-button" id="chatButton">
-                Chat Online
-            </div>
-        </div>
-    `;
-    
-    const chatButton = document.getElementById('chatButton');
-    if (chatButton) {
-        chatButton.addEventListener('click', () => {
-            alert('Chat em desenvolvimento. Breve estaremos disponíveis 😉');
-        });
-    }
-}
-
-// ============================================
-// FUNÇÕES DE LOGIN/LOGOUT (usam window.fazerLogin do login_firebase.js)
+// FUNÇÕES DE LOGIN (usam window.fazerLogin do login_firebase.js)
 // ============================================
 async function fazerLoginCliente() {
     const email = document.getElementById('loginEmail').value.trim();
@@ -371,7 +160,6 @@ async function fazerLoginCliente() {
                 localStorage.removeItem('cliente_ultimo_email');
             }
             
-            fecharModal('loginModal');
             mostrarMensagem(`Bem-vindo(a) ${resultado.usuario.nome || email}!`, 'success');
             
             document.getElementById('loginEmail').value = '';
@@ -453,6 +241,7 @@ async function fazerCadastroCliente() {
             mostrarMensagem('Cadastro realizado com sucesso! Faça o login.', 'success');
             fecharModal('cadastroModal');
             
+            // Limpar formulário
             document.getElementById('cadastroNome').value = '';
             document.getElementById('cadastroEmail').value = '';
             document.getElementById('cadastroTelefone').value = '';
@@ -464,6 +253,7 @@ async function fazerCadastroCliente() {
             document.getElementById('cadastroCep').value = '';
             document.getElementById('cadastroTermos').checked = false;
             
+            // Pré-preencher e-mail no login
             const loginEmail = document.getElementById('loginEmail');
             if (loginEmail) loginEmail.value = email;
             
@@ -485,8 +275,248 @@ async function fazerCadastroCliente() {
 
 async function fazerLogoutCliente() {
     if (confirm('Deseja realmente sair?')) {
+        mostrarLoading('Saindo...');
         await window.fazerLogout();
+        esconderLoading();
     }
+}
+
+// ============================================
+// FUNÇÃO PARA CARREGAR LOGO DA LOJA
+// ============================================
+function carregarLogoLoja() {
+    const logoImg = document.getElementById('lojaLogo');
+    if (!logoImg) return;
+    
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    
+    if (!lojaId) {
+        logoImg.src = getPlaceholderIcon();
+        return;
+    }
+    
+    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
+    console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
+    
+    const testImg = new Image();
+    testImg.onload = function() {
+        console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
+        logoImg.src = logoPath;
+    };
+    
+    testImg.onerror = function() {
+        console.log(`ℹ️ Logo não encontrada, usando placeholder`);
+        logoImg.src = getPlaceholderIcon();
+    };
+    
+    testImg.src = logoPath;
+}
+
+function getPlaceholderIcon() {
+    return LOGO_PLACEHOLDER;
+}
+
+// ============================================
+// CARREGAR DADOS DA LOJA (do novo_lojas.js)
+// ============================================
+function carregarDadosLoja() {
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    
+    if (!lojaId) return;
+    
+    try {
+        const config = getLojaConfig(lojaId);
+        console.log(`📋 Configuração da loja ${lojaId}:`, config);
+        
+        if (config) {
+            const nomeLoja = config.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
+            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
+            
+            document.title = `${nomeLoja} - Loja Online`;
+            
+            if (config.contato) {
+                renderizarContatos(config);
+            }
+            
+            if (config.contato?.endereco) {
+                renderizarEndereco(config);
+            }
+        }
+        
+        renderizarChat();
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados da loja:', error);
+        renderizarChat();
+    }
+}
+
+// ============================================
+// RENDERIZAR CONTATOS
+// ============================================
+function renderizarContatos(dadosLoja) {
+    const contactGrid = document.getElementById('contactGrid');
+    if (!contactGrid) return;
+    
+    if (!dadosLoja || !dadosLoja.contato) {
+        contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
+        return;
+    }
+    
+    const contato = dadosLoja.contato;
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    const basePath = `/spdv/imagens/${lojaId}/`;
+    const placeholder = getPlaceholderIcon();
+    
+    let html = '';
+    
+    if (contato.whatsapp && contato.whatsapp.trim() !== '') {
+        const numero = contato.whatsapp.replace(/\D/g, '');
+        html += `
+            <a href="https://wa.me/${numero}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}whatsapp.png" alt="WhatsApp" 
+                             onerror="this.src='${placeholder}'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">WhatsApp</div>
+                        <div class="contact-value">${contato.whatsapp}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    if (contato.email && contato.email.trim() !== '') {
+        html += `
+            <a href="mailto:${contato.email}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}email.png" alt="E-mail" 
+                             onerror="this.src='${placeholder}'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">E-mail</div>
+                        <div class="contact-value">${contato.email}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    if (contato.instagram && contato.instagram.trim() !== '') {
+        const usuario = contato.instagram.replace('@', '');
+        html += `
+            <a href="https://instagram.com/${usuario}" target="_blank" class="contact-link">
+                <div class="contact-item">
+                    <div class="contact-icon">
+                        <img src="${basePath}instagram.png" alt="Instagram" 
+                             onerror="this.src='${placeholder}'">
+                    </div>
+                    <div class="contact-content">
+                        <div class="contact-label">Instagram</div>
+                        <div class="contact-value">${contato.instagram}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    }
+    
+    if (html === '') {
+        html = '<p class="no-contacts">Nenhum contato disponível</p>';
+    }
+    
+    contactGrid.innerHTML = html;
+    console.log('📞 Contatos renderizados');
+}
+
+// ============================================
+// RENDERIZAR ENDEREÇO
+// ============================================
+function renderizarEndereco(dadosLoja) {
+    const addressGrid = document.getElementById('addressGrid');
+    if (!addressGrid) return;
+    
+    if (!dadosLoja || !dadosLoja.contato?.endereco) {
+        addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
+        return;
+    }
+    
+    const endereco = dadosLoja.contato.endereco;
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    const basePath = `/spdv/imagens/${lojaId}/`;
+    const placeholder = getPlaceholderIcon();
+    
+    const ruaNumeroBairro = [];
+    if (endereco.rua) ruaNumeroBairro.push(endereco.rua);
+    if (endereco.numero) ruaNumeroBairro.push(`nº ${endereco.numero}`);
+    if (endereco.bairro) ruaNumeroBairro.push(endereco.bairro);
+    const ruaNumeroBairroStr = ruaNumeroBairro.join(' ');
+    
+    const cidadeUfCep = [];
+    if (endereco.cidade) cidadeUfCep.push(endereco.cidade);
+    if (endereco.uf) cidadeUfCep.push(endereco.uf);
+    if (endereco.cep) cidadeUfCep.push(`CEP: ${endereco.cep}`);
+    const cidadeUfCepStr = cidadeUfCep.join(' - ');
+    
+    const enderecoCompleto = `${ruaNumeroBairroStr} ${cidadeUfCepStr}`.trim();
+    const query = encodeURIComponent(enderecoCompleto);
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
+    
+    let html = `
+        <a href="${mapsUrl}" target="_blank" class="address-item">
+            <div class="address-icon">
+                <img src="${basePath}endereco.png" alt="Endereço" 
+                     onerror="this.src='${placeholder}'">
+            </div>
+            <div class="address-content">
+                <div class="address-label">Endereço</div>
+                <div class="address-text">
+                    <span class="rua-numero">${ruaNumeroBairroStr}</span>
+                    <span class="cidade-uf-cep">${cidadeUfCepStr}</span>
+                </div>
+            </div>
+        </a>
+    `;
+    
+    addressGrid.innerHTML = html;
+    console.log('📍 Endereço renderizado');
+}
+
+// ============================================
+// RENDERIZAR CHAT
+// ============================================
+function renderizarChat() {
+    const footerChat = document.querySelector('.footer-chat');
+    if (!footerChat) return;
+    
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    const basePath = `/spdv/imagens/${lojaId}/`;
+    const placeholder = getPlaceholderIcon();
+    
+    footerChat.innerHTML = `
+        <div class="chat-container">
+            <div class="chat-icon-large">
+                <img src="${basePath}chat.png" alt="Chat" 
+                     onerror="this.src='${placeholder}'">
+            </div>
+            <div class="chat-button" id="chatButton">
+                Chat Online
+            </div>
+        </div>
+    `;
+    
+    const chatButton = document.getElementById('chatButton');
+    if (chatButton) {
+        chatButton.addEventListener('click', () => {
+            alert('Chat em desenvolvimento. Breve estaremos disponíveis 😉');
+        });
+    }
+    
+    console.log('💬 Chat configurado');
 }
 
 // ============================================
@@ -564,18 +594,46 @@ async function carregarCategorias() {
         
         categoriesGrid.innerHTML = slidesHtml;
         
+        setTimeout(() => {
+            inicializarCarrosselCategorias();
+        }, 100);
+        
     } catch (error) {
         console.error("❌ Erro ao carregar categorias:", error);
     }
+}
+
+function inicializarCarrosselCategorias() {
+    if (typeof Swiper === 'undefined') {
+        console.warn('⚠️ Swiper não está carregado');
+        return;
+    }
+    
+    const categoriesSwiper = new Swiper('.categories-swiper', {
+        slidesPerView: 2,
+        spaceBetween: 10,
+        loop: true,
+        navigation: {
+            prevEl: '#categoriesPrev',
+            nextEl: '#categoriesNext',
+        },
+        breakpoints: {
+            480: { slidesPerView: 3, spaceBetween: 12 },
+            640: { slidesPerView: 4, spaceBetween: 15 },
+            768: { slidesPerView: 5, spaceBetween: 15 },
+            1024: { slidesPerView: 6, spaceBetween: 18 },
+            1280: { slidesPerView: 7, spaceBetween: 20 }
+        }
+    });
+    
+    console.log('✅ Carrossel de categorias inicializado');
 }
 
 async function carregarProdutosDestaque() {
     const featuredContainer = document.getElementById('featuredProducts');
     if (!featuredContainer) return;
     
-    const todosProdutos = produtos;
-    
-    if (todosProdutos.length === 0) {
+    if (produtos.length === 0) {
         featuredContainer.innerHTML = `
             <div class="swiper-wrapper">
                 <div class="swiper-slide">
@@ -590,7 +648,7 @@ async function carregarProdutosDestaque() {
     }
     
     let slidesHtml = '';
-    todosProdutos.slice(0, 20).forEach(produto => {
+    produtos.slice(0, 20).forEach(produto => {
         const imagem = obterURLImagem(produto, 'thumb');
         const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = (produto.quantidade || 0) > 0;
@@ -624,7 +682,9 @@ async function carregarProdutosDestaque() {
     
     featuredContainer.innerHTML = slidesHtml;
     
-    setTimeout(inicializarSwiper, 100);
+    setTimeout(() => {
+        inicializarSwiper();
+    }, 100);
 }
 
 function inicializarSwiper() {
@@ -653,8 +713,13 @@ function inicializarSwiper() {
             nextEl: '#carouselNext',
         },
     });
+    
+    console.log('✅ Swiper inicializado');
 }
 
+// ============================================
+// FUNÇÕES DE INTERAÇÃO COM PRODUTOS
+// ============================================
 window.verProdutoDetalhe = function(produtoId) {
     const produto = produtos.find(p => p.id === produtoId);
     if (!produto) return;
@@ -693,7 +758,7 @@ window.verProdutoDetalhe = function(produtoId) {
 };
 
 window.adicionarAoCarrinho = function(produtoId) {
-    if (!clienteLogado) {
+    if (!usuarioLogado) {
         mostrarMensagem('Faça login para adicionar produtos ao carrinho', 'warning');
         abrirModal('loginModal');
         return;
@@ -819,7 +884,123 @@ function exibirProdutosFiltrados(produtosFiltrados, titulo) {
     
     featuredContainer.innerHTML = slidesHtml;
     
-    setTimeout(inicializarSwiper, 100);
+    setTimeout(() => {
+        inicializarSwiper();
+    }, 100);
+}
+
+function filtrarProdutosPorBusca(termo) {
+    const termoLimpo = termo.toLowerCase().trim();
+    
+    if (!termoLimpo) {
+        carregarProdutosDestaque();
+        return;
+    }
+    
+    const resultados = produtos.filter(produto => {
+        const nome = (produto.nome || '').toLowerCase();
+        const codigo = (produto.codigo || '').toLowerCase();
+        const categoria = (produto.categoria || '').toLowerCase();
+        const codigoBarras = (produto.codigo_barras || '').toLowerCase();
+        
+        return nome.includes(termoLimpo) || 
+               codigo.includes(termoLimpo) || 
+               categoria.includes(termoLimpo) ||
+               codigoBarras.includes(termoLimpo);
+    });
+    
+    exibirProdutosFiltrados(resultados, `Resultados para: "${termo}"`);
+}
+
+function buscarProdutoPorCodigo(codigo) {
+    const produto = produtos.find(p => 
+        p.codigo_barras === codigo || p.codigo === codigo
+    );
+    
+    if (produto) {
+        verProdutoDetalhe(produto.id);
+    } else {
+        mostrarMensagem(`Produto com código ${codigo} não encontrado`, 'warning');
+    }
+}
+
+// ============================================
+// CONFIGURAR EVENTOS DE INTERFACE
+// ============================================
+function configurarEventos() {
+    console.log("⚙️ Configurando eventos...");
+    
+    // Botões principais
+    document.getElementById('btnLogin')?.addEventListener('click', () => abrirModal('loginModal'));
+    document.getElementById('btnLogout')?.addEventListener('click', fazerLogoutCliente);
+    document.getElementById('btnGoToCart')?.addEventListener('click', () => {
+        if (!usuarioLogado) {
+            mostrarMensagem('Faça login para ir ao carrinho', 'warning');
+            abrirModal('loginModal');
+            return;
+        }
+        window.location.href = 'venda.html';
+    });
+    
+    // Eventos de login
+    document.getElementById('btnConfirmarLogin')?.addEventListener('click', fazerLoginCliente);
+    document.getElementById('loginSenha')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') fazerLoginCliente();
+    });
+    
+    // Links entre modais
+    document.getElementById('btnIrCadastro')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        fecharModal('loginModal');
+        abrirModal('cadastroModal');
+    });
+    
+    document.getElementById('btnConfirmarCadastro')?.addEventListener('click', fazerCadastroCliente);
+    
+    // Formatação de campos
+    document.getElementById('cadastroTelefone')?.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '')
+            .replace(/^(\d{2})(\d)/g, '($1) $2')
+            .replace(/(\d{5})(\d)/, '$1-$2')
+            .slice(0, 15);
+    });
+    
+    document.getElementById('cadastroCpf')?.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '')
+            .replace(/^(\d{3})(\d)/g, '$1.$2')
+            .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+            .replace(/\.(\d{3})(\d)/, '.$1-$2')
+            .slice(0, 14);
+    });
+    
+    document.getElementById('cadastroCep')?.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '')
+            .replace(/^(\d{5})(\d)/g, '$1-$2')
+            .slice(0, 9);
+    });
+    
+    // Carregar último e-mail
+    const ultimoEmail = localStorage.getItem('cliente_ultimo_email');
+    if (ultimoEmail) {
+        document.getElementById('loginEmail').value = ultimoEmail;
+    }
+    
+    // Eventos de teclado globais
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            abrirModal('quickSearchModal');
+        }
+        
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('quickSearchModal');
+            if (modal && modal.classList.contains('active')) {
+                fecharModal('quickSearchModal');
+            }
+        }
+    });
+    
+    console.log("✅ Eventos configurados");
 }
 
 // ============================================
@@ -858,63 +1039,11 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }, tempo);
 }
 
-function configurarEventos() {
-    document.getElementById('btnLogin')?.addEventListener('click', () => abrirModal('loginModal'));
-    document.getElementById('btnLogout')?.addEventListener('click', fazerLogoutCliente);
-    document.getElementById('btnGoToCart')?.addEventListener('click', () => {
-        if (!clienteLogado) {
-            mostrarMensagem('Faça login para ir ao carrinho', 'warning');
-            abrirModal('loginModal');
-            return;
-        }
-        window.location.href = 'venda.html';
-    });
-    
-    document.getElementById('btnConfirmarLogin')?.addEventListener('click', fazerLoginCliente);
-    document.getElementById('loginSenha')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') fazerLoginCliente();
-    });
-    
-    document.getElementById('btnIrCadastro')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        fecharModal('loginModal');
-        abrirModal('cadastroModal');
-    });
-    
-    document.getElementById('btnConfirmarCadastro')?.addEventListener('click', fazerCadastroCliente);
-    
-    document.getElementById('cadastroTelefone')?.addEventListener('input', function() {
-        this.value = this.value.replace(/\D/g, '')
-            .replace(/^(\d{2})(\d)/g, '($1) $2')
-            .replace(/(\d{5})(\d)/, '$1-$2')
-            .slice(0, 15);
-    });
-    
-    document.getElementById('cadastroCpf')?.addEventListener('input', function() {
-        this.value = this.value.replace(/\D/g, '')
-            .replace(/^(\d{3})(\d)/g, '$1.$2')
-            .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
-            .replace(/\.(\d{3})(\d)/, '.$1-$2')
-            .slice(0, 14);
-    });
-    
-    document.getElementById('cadastroCep')?.addEventListener('input', function() {
-        this.value = this.value.replace(/\D/g, '')
-            .replace(/^(\d{5})(\d)/g, '$1-$2')
-            .slice(0, 9);
-    });
-    
-    const ultimoEmail = localStorage.getItem('cliente_ultimo_email');
-    if (ultimoEmail) {
-        document.getElementById('loginEmail').value = ultimoEmail;
-    }
-}
-
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log("📄 Página clientes carregada");
+    console.log("📄 Página clientes carregada (nova autenticação)");
     
     mostrarLoading('Carregando loja...');
     
@@ -930,14 +1059,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
+        console.log(`✅ Loja identificada: ${lojaId}`);
+        
+        // Carregar dados da loja
         carregarLogoLoja();
         carregarDadosLoja();
+        
+        // Configurar eventos
         configurarEventos();
         
+        // Carregar produtos e categorias
         await carregarProdutos();
         await carregarCategorias();
         await carregarProdutosDestaque();
         
+        // Carregar carrinho
         carregarCarrinhoStorage();
         
         esconderLoading();
@@ -950,11 +1086,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// Exportar funções globais
+// ============================================
+// EXPOR FUNÇÕES GLOBAIS
+// ============================================
 window.verProdutoDetalhe = verProdutoDetalhe;
 window.adicionarAoCarrinho = adicionarAoCarrinho;
 window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
-
