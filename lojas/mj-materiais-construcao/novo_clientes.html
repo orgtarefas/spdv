@@ -318,6 +318,41 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- APP CHECK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
+    
+    <!-- CONFIGURAÇÃO DO APP CHECK (ADICIONAR ANTES DOS OUTROS SCRIPTS) -->
+    <script>
+      // Configurar App Check com debug token para desenvolvimento
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Modo desenvolvimento - usar debug token
+        window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      }
+      
+      // Inicializar Firebase (sobrescrever a inicialização do login_firebase.js)
+      const firebaseConfig = {
+        apiKey: "AIzaSyAYPjEB8cT-mOmLaXJMXAsoP2l3YotY2WQ",
+        authDomain: "lojasite-ba36f.firebaseapp.com",
+        projectId: "lojasite-ba36f",
+        storageBucket: "lojasite-ba36f.firebasestorage.app",
+        messagingSenderId: "1083157739430",
+        appId: "1:1083157739430:web:5ed2d4261434c73a9e4167"
+      };
+      
+      firebase.initializeApp(firebaseConfig);
+      
+      // Ativar App Check com reCAPTCHA Enterprise
+      const appCheck = firebase.appCheck();
+      appCheck.activate(
+        new firebase.appCheck.ReCaptchaEnterpriseProvider(
+          "6LdqQnUsAAAAAOnjtu0Avi_0WubZw0iYS20DjL6b" 
+        ),
+        true // Auto-refresh
+      );
+      
+      console.log('✅ App Check ativado no clientes.html');
+    </script>
+    
     <!-- NOVO: Login Firebase -->
     <script src="../../login_firebase.js"></script>
     <!-- Arquivos originais -->
@@ -325,4 +360,5 @@
     <script src="firebase_config.js" type="module"></script>
     <script src="novo_clientes.js" type="module"></script>
 </body>
+
 </html>
