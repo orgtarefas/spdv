@@ -119,20 +119,27 @@ window.addEventListener('usuarioNaoAutorizado', () => {
 // ============================================
 // FUNÇÕES DO CARRINHO
 // ============================================
-
-// Carregar carrinho do usuário do sessionStorage
 function carregarCarrinhoDoUsuario() {
-    if (!usuarioLogado) return;
+    if (!usuarioLogado) {
+        console.log('👤 Usuário não logado');
+        carrinho.itens = [];
+        atualizarInterface();
+        return;
+    }
     
     try {
-        // Chave única por usuário: carrinho_{email}_{loja}
+        // Usar a MESMA chave que foi usada para salvar
         const chaveCarrinho = `carrinho_${usuarioLogado.email}_${lojaIdAtual}`;
+        console.log(`🔑 Buscando carrinho com chave: ${chaveCarrinho}`);
+        
         const carrinhoSalvo = sessionStorage.getItem(chaveCarrinho);
         
         if (carrinhoSalvo) {
             carrinho.itens = JSON.parse(carrinhoSalvo);
             console.log(`✅ Carrinho carregado para ${usuarioLogado.email}: ${carrinho.itens.length} itens`);
+            console.log('📦 Itens:', carrinho.itens);
         } else {
+            console.log('ℹ️ Nenhum carrinho encontrado para este usuário');
             carrinho.itens = [];
         }
         
@@ -141,6 +148,7 @@ function carregarCarrinhoDoUsuario() {
     } catch (error) {
         console.error('❌ Erro ao carregar carrinho:', error);
         carrinho.itens = [];
+        atualizarInterface();
     }
 }
 
@@ -823,5 +831,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 window.adicionarItem = adicionarItem;
 window.finalizarVenda = finalizarVenda;
 window.abrirModalFinalizacao = abrirModalFinalizacao;
+
 
 console.log("✅ carrinho.js carregado com sucesso!");
