@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Carrinho - Loja Online</title>
+    <link rel="stylesheet" href="carrinho.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <a href="novo_clientes.html" class="btn-back" id="btnVoltar">
+                    <i class="fas fa-arrow-left"></i>
+                    Continuar Comprando
+                </a>
+                <div class="page-title">
+                    <h1><i class="fas fa-shopping-cart"></i> Meu Carrinho</h1>
+                    <p class="page-subtitle" id="lojaNomeHeader">Carregando...</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="userName">Visitante</span>
+                    <button id="btnLogout" class="btn-logout" style="display: none;">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                    <button id="btnLogin" class="btn-login" style="display: inline-flex;">
+                        <i class="fas fa-sign-in-alt"></i> Entrar
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="cart-container">
+                <!-- LADO ESQUERDO - ITENS DO CARRINHO -->
+                <div class="cart-items-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-boxes"></i> Itens do Carrinho</h3>
+                        <span class="item-count" id="itemCount">0 itens</span>
+                    </div>
+                    
+                    <div class="cart-items-list" id="cartItemsList">
+                        <!-- Lista de itens será inserida aqui pelo JS -->
+                        <div class="empty-cart">
+                            <i class="fas fa-shopping-cart"></i>
+                            <p>Seu carrinho está vazio</p>
+                            <small>Adicione produtos para continuar</small>
+                            <a href="novo_clientes.html" class="btn-continue">Continuar Comprando</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- LADO DIREITO - RESUMO E FINALIZAÇÃO -->
+                <div class="cart-summary-section">
+                    <div class="summary-card">
+                        <h3><i class="fas fa-file-invoice"></i> Resumo do Pedido</h3>
+                        
+                        <div class="summary-row">
+                            <span>Subtotal:</span>
+                            <span id="subtotal">R$ 0,00</span>
+                        </div>
+                        
+                        <div class="summary-row" id="descontoRow" style="display: none;">
+                            <span>Descontos:</span>
+                            <span id="descontoTotal">- R$ 0,00</span>
+                        </div>
+                        
+                        <div class="summary-row total">
+                            <span>TOTAL:</span>
+                            <span id="total">R$ 0,00</span>
+                        </div>
+                        
+                        <button class="btn-finalize" id="btnFinalizar" disabled>
+                            <i class="fas fa-check-circle"></i>
+                            Finalizar Compra
+                        </button>
+                        
+                        <button class="btn-clear" id="btnLimparCarrinho" disabled>
+                            <i class="fas fa-trash-alt"></i>
+                            Limpar Carrinho
+                        </button>
+                    </div>
+                    
+                    <div class="info-card">
+                        <h4><i class="fas fa-info-circle"></i> Informações</h4>
+                        <p><i class="fas fa-truck"></i> Frete será calculado na finalização</p>
+                        <p><i class="fas fa-credit-card"></i> Aceitamos diversas formas de pagamento</p>
+                        <p><i class="fas fa-store"></i> Retirada no local disponível</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema de Vendas</span></p>
+                <p id="currentDateTime">--:--:--</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL DE FINALIZAÇÃO DE COMPRA -->
+    <div id="finalizarModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Finalizar Compra</h3>
+                <button class="modal-close" onclick="fecharModal('finalizarModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- RESUMO DA COMPRA -->
+                <div class="venda-resumo">
+                    <h4>Resumo do Pedido</h4>
+                    <div class="resumo-linha">
+                        <span>Total de Itens:</span>
+                        <span id="resumoTotalItens">0</span>
+                    </div>
+                    <div class="resumo-linha">
+                        <span>Subtotal:</span>
+                        <span id="resumoSubtotal">R$ 0,00</span>
+                    </div>
+                    <div class="resumo-linha total">
+                        <span>TOTAL:</span>
+                        <span id="resumoTotal">R$ 0,00</span>
+                    </div>
+                </div>
+
+                <!-- DADOS DO CLIENTE (pré-preenchidos do login) -->
+                <div class="cliente-section">
+                    <h4><i class="fas fa-user"></i> Dados do Cliente</h4>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome *</label>
+                        <input type="text" id="clienteNome" readonly class="readonly-field">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-envelope"></i> E-mail *</label>
+                        <input type="email" id="clienteEmail" readonly class="readonly-field">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> Telefone *</label>
+                        <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-id-card"></i> CPF (opcional)</label>
+                        <input type="text" id="clienteCpf" placeholder="000.000.000-00" onkeyup="mascaraCPF(this)">
+                    </div>
+                </div>
+
+                <!-- OPÇÕES DE ENTREGA -->
+                <div class="entrega-section">
+                    <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
+                    
+                    <div class="entrega-opcoes">
+                        <label class="entrega-option">
+                            <input type="radio" name="tipoEntrega" value="retirada" checked>
+                            <span class="entrega-icon"><i class="fas fa-store"></i></span>
+                            <span class="entrega-nome">Retirada na loja</span>
+                        </label>
+                        <label class="entrega-option">
+                            <input type="radio" name="tipoEntrega" value="entrega">
+                            <span class="entrega-icon"><i class="fas fa-home"></i></span>
+                            <span class="entrega-nome">Receber em casa</span>
+                        </label>
+                    </div>
+
+                    <!-- CAMPOS DE ENTREGA -->
+                    <div id="camposEntrega" style="display: none;">
+                        <div class="form-group">
+                            <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
+                            <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="clienteCidade" placeholder="Cidade">
+                            </div>
+                            <div class="form-group">
+                                <label>CEP</label>
+                                <input type="text" id="clienteCep" placeholder="00000-000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
+                            <input type="text" id="taxaEntrega" value="R$ 0,00" onkeyup="mascaraMoeda(this)">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORMAS DE PAGAMENTO -->
+                <div class="payment-section">
+                    <h4><i class="fas fa-credit-card"></i> Forma de Pagamento</h4>
+                    
+                    <div class="methods-grid">
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="dinheiro" checked>
+                            <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
+                            <span class="method-name">Dinheiro</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="pix">
+                            <span class="method-icon"><i class="fas fa-qrcode"></i></span>
+                            <span class="method-name">PIX</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="debito">
+                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                            <span class="method-name">Débito</span>
+                        </label>
+                        <label class="method-option">
+                            <input type="radio" name="payment" value="credito">
+                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                            <span class="method-name">Crédito</span>
+                        </label>
+                    </div>
+
+                    <!-- TROCO (para dinheiro) -->
+                    <div id="trocoSection" style="display: none;">
+                        <div class="form-group">
+                            <label><i class="fas fa-calculator"></i> Valor Recebido</label>
+                            <input type="text" id="valorRecebido" placeholder="R$ 0,00" onkeyup="calcularTroco()">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-exchange-alt"></i> Troco</label>
+                            <input type="text" id="valorTroco" placeholder="R$ 0,00" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-confirm" id="btnConfirmarVenda">
+                    <i class="fas fa-check"></i> Confirmar Compra
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('finalizarModal')">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE LOGIN (caso necessário) -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-sign-in-alt"></i> Login Necessário</h3>
+                <button class="modal-close" onclick="fecharModal('loginModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Você precisa estar logado para acessar o carrinho.</p>
+                <p>Clique no botão abaixo para fazer login.</p>
+                <button class="btn-login-confirm" onclick="window.location.href='novo_clientes.html'">
+                    <i class="fas fa-sign-in-alt"></i> Ir para Login
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE NOTA FISCAL -->
+    <div id="notaFiscalModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-receipt"></i> Nota Fiscal</h3>
+                <button class="modal-close" onclick="fecharModal('notaFiscalModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="notaFiscalConteudo" class="nota-fiscal-conteudo"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-print" onclick="imprimirNotaFiscal()">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3>Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <span class="message-text"></span>
+        </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
+    
+    <script src="../../login_firebase.js"></script>
+    <script type="module" src="/spdv/lojas.js"></script>
+    <script src="firebase_config.js" type="module"></script>
+    <script src="carrinho.js" type="module"></script>
+</body>
+</html>
