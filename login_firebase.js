@@ -26,7 +26,7 @@ function getLojaDaURL() {
 }
 
 // ========== FUNÇÕES DA COLEÇÃO LOJAS ==========
-// Verificar se a loja está ativa (busca na coleção 'lojas')
+// Verificar se a loja está ativa (agora só chamada após login)
 async function verificarLojaAtiva(lojaId) {
     try {
         const lojaDoc = await db.collection('lojas').doc(lojaId).get();
@@ -43,55 +43,38 @@ async function verificarLojaAtiva(lojaId) {
         const dataAtivacao = lojaData.data_ativacao?.toDate();
         const dataValidade = lojaData.data_validade?.toDate();
         
-        // Verificar se está ativa
         if (lojaData.ativo === false) {
-            return { 
-                ativa: false, 
-                erro: 'Loja inativa',
-                dados: lojaData
-            };
+            return { ativa: false, erro: 'Loja inativa', dados: lojaData };
         }
         
-        // Verificar data de ativação
         if (dataAtivacao && agora < dataAtivacao) {
-            return { 
-                ativa: false, 
-                erro: 'Loja ainda não ativada',
-                dados: lojaData
-            };
+            return { ativa: false, erro: 'Loja ainda não ativada', dados: lojaData };
         }
         
-        // Verificar data de validade
         if (dataValidade && agora > dataValidade) {
-            return { 
-                ativa: false, 
-                erro: 'Período de acesso expirado',
-                dados: lojaData
-            };
+            return { ativa: false, erro: 'Período de acesso expirado', dados: lojaData };
         }
         
-        return { 
-            ativa: true, 
-            dados: lojaData
-        };
+        return { ativa: true, dados: lojaData };
     } catch (error) {
         console.error('Erro ao verificar loja:', error);
-        return { 
-            ativa: false, 
-            erro: 'Erro ao verificar loja'
-        };
+        return { ativa: false, erro: 'Erro ao verificar loja' };
     }
 }
 
 // ========== FUNÇÕES DA COLEÇÃO USUARIOS ==========
-// Verificar se é ADMIN (documento 'admin' na coleção usuarios)
+// Verificar se é ADMIN (só chamada após login)
 async function verificarAdmin(email) {
+    // Se não tem usuário logado, retorna falso
+    if (!auth.currentUser) {
+        return { isAdmin: false };
+    }
+    
     try {
         const adminDoc = await db.collection('usuarios').doc('admin').get();
         
         if (adminDoc.exists) {
             const adminData = adminDoc.data();
-            // Verificar se o email está no mapa de admins
             if (adminData[email]) {
                 return {
                     isAdmin: true,
@@ -107,8 +90,13 @@ async function verificarAdmin(email) {
     }
 }
 
-// Buscar perfil do usuário na loja específica (coleção usuarios)
+// Buscar perfil do usuário na loja específica (só chamada após login)
 async function buscarPerfilNaLoja(email, lojaId) {
+    // Se não tem usuário logado, retorna falso
+    if (!auth.currentUser) {
+        return { encontrado: false };
+    }
+    
     try {
         // Buscar na coleção de funcionários da loja
         const userDoc = await db.collection('usuarios').doc(lojaId)
@@ -167,7 +155,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // 1. Verificar se é ADMIN (coleção usuarios - doc admin)
+        // 1. Verificar se é ADMIN (agora com usuário logado)
         const adminCheck = await verificarAdmin(email);
         
         if (adminCheck.isAdmin) {
@@ -201,7 +189,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // 2. Verificar status da loja (coleção lojas)
+        // 2. Verificar status da loja (agora com usuário logado)
         const lojaStatus = await verificarLojaAtiva(lojaAtual);
         
         if (!lojaStatus.ativa) {
@@ -213,7 +201,7 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // 3. Buscar perfil do usuário na loja (coleção usuarios)
+        // 3. Buscar perfil do usuário na loja (agora com usuário logado)
         const perfil = await buscarPerfilNaLoja(email, lojaAtual);
         
         if (!perfil.encontrado) {
@@ -298,7 +286,8 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             };
         }
         
-        // Verificar se a loja está ativa (coleção lojas)
+        // Verificar se a loja está ativa (agora sem usuário logado ainda)
+        // Para isso, precisamos de regras que permitam leitura pública de lojas
         const lojaStatus = await verificarLojaAtiva(lojaAtual);
         if (!lojaStatus.ativa) {
             return {
@@ -435,75 +424,80 @@ async function fazerLogout() {
 // Listener de autenticação
 auth.onAuthStateChanged(async (user) => {
     if (user) {
+        console.log('Usuário autenticado:', user.email);
         const lojaAtual = getLojaDaURL();
         
         if (!lojaAtual) {
-            await auth.signOut();
-            window.dispatchEvent(new CustomEvent('erroLoja', { 
-                detail: { erro: 'URL inválida - Loja não identificada' }
-            }));
+            console.log('Loja não identificada na URL');
             return;
         }
         
-        // Verificar se é admin
-        const adminCheck = await verificarAdmin(user.email);
-        
-        if (adminCheck.isAdmin) {
-            // Buscar dados públicos da loja
-            const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
-                LOJAS_CONFIG[lojaAtual] : null;
+        try {
+            // Verificar se é admin
+            const adminCheck = await verificarAdmin(user.email);
+            
+            if (adminCheck.isAdmin) {
+                console.log('Admin detectado');
+                const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
+                    LOJAS_CONFIG[lojaAtual] : null;
+                    
+                window.dispatchEvent(new CustomEvent('usuarioLogado', { 
+                    detail: {
+                        usuario: {
+                            uid: user.uid,
+                            email: user.email,
+                            nome: adminCheck.dados.nome,
+                            nivel: 'admin',
+                            tipo_perfil: 'admin',
+                            loja: lojaAtual
+                        },
+                        permissoes: { 
+                            todas: true, 
+                            admin: true,
+                            acessar_todas_lojas: true 
+                        },
+                        dadosPublicos: dadosPublicos
+                    }
+                }));
+                return;
+            }
+            
+            // Se não é admin, buscar perfil na loja
+            const perfil = await buscarPerfilNaLoja(user.email, lojaAtual);
+            
+            if (perfil.encontrado && perfil.ativo) {
+                const permissoes = await buscarPermissoesPorPerfil(perfil.perfil);
+                const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
+                    LOJAS_CONFIG[lojaAtual] : null;
                 
-            window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                detail: {
-                    usuario: {
-                        uid: user.uid,
-                        email: user.email,
-                        nome: adminCheck.dados.nome,
-                        nivel: 'admin',
-                        tipo_perfil: 'admin',
-                        loja: lojaAtual
-                    },
-                    permissoes: { 
-                        todas: true, 
-                        admin: true,
-                        acessar_todas_lojas: true 
-                    },
-                    dadosPublicos: dadosPublicos
-                }
-            }));
-            return;
-        }
-        
-        // Verificar perfil na loja
-        const perfil = await buscarPerfilNaLoja(user.email, lojaAtual);
-        
-        if (perfil.encontrado && perfil.ativo) {
-            const permissoes = await buscarPermissoesPorPerfil(perfil.perfil);
-            
-            // Buscar dados públicos da loja
-            const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
-                LOJAS_CONFIG[lojaAtual] : null;
-            
-            window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                detail: {
-                    usuario: {
-                        uid: user.uid,
-                        email: user.email,
-                        nome: perfil.nome,
-                        nivel: perfil.perfil,
-                        tipo_perfil: perfil.tipo,
-                        loja: lojaAtual,
-                        dados: perfil.dados
-                    },
-                    permissoes: permissoes,
-                    dadosPublicos: dadosPublicos
-                }
-            }));
-        } else {
+                window.dispatchEvent(new CustomEvent('usuarioLogado', { 
+                    detail: {
+                        usuario: {
+                            uid: user.uid,
+                            email: user.email,
+                            nome: perfil.nome,
+                            nivel: perfil.perfil,
+                            tipo_perfil: perfil.tipo,
+                            loja: lojaAtual,
+                            dados: perfil.dados
+                        },
+                        permissoes: permissoes,
+                        dadosPublicos: dadosPublicos
+                    }
+                }));
+            } else {
+                // Usuário autenticado mas sem perfil na loja
+                await auth.signOut();
+                window.dispatchEvent(new CustomEvent('usuarioNaoAutorizado', { 
+                    detail: { erro: 'Usuário não cadastrado nesta loja' }
+                }));
+            }
+        } catch (error) {
+            console.error('Erro no auth state changed:', error);
             await auth.signOut();
-            window.dispatchEvent(new CustomEvent('usuarioNaoAutorizado'));
         }
     } else {
+        console.log('Usuário não autenticado');
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
     }
 });
