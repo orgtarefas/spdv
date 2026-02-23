@@ -1,6 +1,6 @@
 // ============================================
 // CONFIGURAÇÃO DO FIREBASE DE LOGIN
-// Projeto: lojasite-ba36f (APENAS AUTENTICAÇÃO)
+// Projeto: lojasite-ba36f
 // ============================================
 
 const loginFirebaseConfig = {
@@ -12,12 +12,12 @@ const loginFirebaseConfig = {
     appId: "1:1083157739430:web:5ed2d4261434c73a9e4167"
 };
 
-// Inicializar Firebase de login (com nome diferente para não conflitar)
+// Inicializar Firebase de login
 const loginApp = firebase.initializeApp(loginFirebaseConfig, 'loginApp');
 const auth = loginApp.auth();
 const loginDb = loginApp.firestore();
 
-// Ativar App Check no projeto de login
+// Ativar App Check
 try {
     const appCheck = loginApp.appCheck();
     appCheck.activate(
@@ -32,7 +32,7 @@ try {
 }
 
 // ============================================
-// FUNÇÕES DE LOGIN
+// FUNÇÕES AUXILIARES
 // ============================================
 
 // Função para extrair loja da URL
@@ -47,17 +47,21 @@ function getLojaDaURL() {
     return lojaFolder || null;
 }
 
-// Verificar se é ADMIN
+// ============================================
+// VERIFICAR SE É ADMIN (coleção admin)
+// ============================================
 async function verificarAdmin(email) {
     if (!auth.currentUser) {
         return { isAdmin: false };
     }
     
     try {
+        // Buscar documento admin na raiz da coleção usuarios
         const adminDoc = await loginDb.collection('usuarios').doc('admin').get();
         
         if (adminDoc.exists) {
             const adminData = adminDoc.data();
+            // Verificar se o email está no mapa de admins
             if (adminData[email]) {
                 return {
                     isAdmin: true,
@@ -73,21 +77,43 @@ async function verificarAdmin(email) {
     }
 }
 
-// Buscar perfil do cliente na loja
-async function buscarPerfilCliente(email, lojaId) {
+// ============================================
+// BUSCAR PERFIL DO USUÁRIO (FUNCIONÁRIO OU CLIENTE)
+// ============================================
+async function buscarPerfilUsuario(email, lojaId) {
     if (!auth.currentUser) {
         return { encontrado: false };
     }
     
     try {
-        // Buscar apenas clientes (funcionários não acessam área de clientes)
+        // 1️⃣ VERIFICAR SE É FUNCIONÁRIO
+        const funcDoc = await loginDb.collection('usuarios').doc(lojaId)
+                               .collection('funcionarios').doc(email).get();
+        
+        if (funcDoc.exists) {
+            const funcData = funcDoc.data();
+            console.log('✅ Usuário é FUNCIONÁRIO:', funcData.perfil);
+            return {
+                encontrado: true,
+                tipo: 'funcionario',
+                perfil: funcData.perfil, // 'gerente', 'supervisor', 'vendedor'
+                nome: funcData.nome,
+                email: email,
+                ativo: funcData.ativo,
+                dados: funcData
+            };
+        }
+        
+        // 2️⃣ VERIFICAR SE É CLIENTE
         const clienteDoc = await loginDb.collection('usuarios').doc(lojaId)
                                   .collection('clientes').doc(email).get();
         
         if (clienteDoc.exists) {
             const clienteData = clienteDoc.data();
+            console.log('✅ Usuário é CLIENTE');
             return {
                 encontrado: true,
+                tipo: 'cliente',
                 perfil: 'cliente',
                 nome: clienteData.nome,
                 email: email,
@@ -96,14 +122,18 @@ async function buscarPerfilCliente(email, lojaId) {
             };
         }
         
+        console.log('❌ Usuário não encontrado');
         return { encontrado: false };
+        
     } catch (error) {
         console.error('Erro ao buscar perfil:', error);
         return { encontrado: false, erro: error.message };
     }
 }
 
+// ============================================
 // FUNÇÃO PRINCIPAL DE LOGIN
+// ============================================
 async function fazerLogin(email, senha) {
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, senha);
@@ -119,11 +149,11 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // Verificar se é admin
+        // 1️⃣ VERIFICAR SE É ADMIN (acesso global)
         const adminCheck = await verificarAdmin(email);
         
         if (adminCheck.isAdmin) {
-            console.log('✅ Acesso admin concedido para:', email);
+            console.log('✅ Acesso ADMIN concedido para:', email);
             
             return {
                 sucesso: true,
@@ -136,20 +166,27 @@ async function fazerLogin(email, senha) {
                     loja: lojaAtual
                 },
                 permissoes: { 
-                    todas: true, 
-                    admin: true
+                    todas: true,
+                    admin: true,
+                    visualizar_produtos: true,
+                    fazer_compras: true,
+                    editar_produtos: true,
+                    gerenciar_estoque: true,
+                    ver_relatorios: true,
+                    gerenciar_funcionarios: true,
+                    gerenciar_loja: true
                 }
             };
         }
         
-        // Buscar perfil do cliente
-        const perfil = await buscarPerfilCliente(email, lojaAtual);
+        // 2️⃣ BUSCAR PERFIL (funcionário ou cliente)
+        const perfil = await buscarPerfilUsuario(email, lojaAtual);
         
         if (!perfil.encontrado) {
             await auth.signOut();
             return {
                 sucesso: false,
-                erro: 'Cliente não cadastrado nesta loja'
+                erro: 'Usuário não cadastrado nesta loja'
             };
         }
         
@@ -157,15 +194,61 @@ async function fazerLogin(email, senha) {
             await auth.signOut();
             return {
                 sucesso: false,
-                erro: 'Cliente inativo'
+                erro: 'Usuário inativo'
             };
         }
         
-        // Atualizar último acesso
+        // 3️⃣ ATUALIZAR ÚLTIMO ACESSO
         const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+        const collection = perfil.tipo === 'funcionario' ? 'funcionarios' : 'clientes';
         await loginDb.collection('usuarios').doc(lojaAtual)
-               .collection('clientes').doc(email)
+               .collection(collection).doc(email)
                .update({ ultimo_acesso: timestamp });
+        
+        // 4️⃣ DEFINIR PERMISSÕES BASEADAS NO PERFIL
+        let permissoes = {
+            // Todos têm acesso básico à loja
+            visualizar_produtos: true,
+            fazer_compras: true
+        };
+        
+        if (perfil.tipo === 'funcionario') {
+            // Funcionários têm permissões adicionais
+            switch(perfil.perfil) {
+                case 'gerente':
+                    permissoes = {
+                        ...permissoes,
+                        editar_produtos: true,
+                        gerenciar_estoque: true,
+                        ver_relatorios: true,
+                        gerenciar_funcionarios: true,
+                        gerenciar_loja: true
+                    };
+                    break;
+                case 'supervisor':
+                    permissoes = {
+                        ...permissoes,
+                        editar_produtos: true,
+                        gerenciar_estoque: true,
+                        ver_relatorios: true
+                    };
+                    break;
+                case 'vendedor':
+                    permissoes = {
+                        ...permissoes,
+                        editar_produtos: false,
+                        gerenciar_estoque: false,
+                        ver_relatorios: false
+                    };
+                    break;
+                default:
+                    permissoes = {
+                        ...permissoes,
+                        editar_produtos: false,
+                        gerenciar_estoque: false
+                    };
+            }
+        }
         
         return {
             sucesso: true,
@@ -173,16 +256,12 @@ async function fazerLogin(email, senha) {
                 uid: user.uid,
                 email: user.email,
                 nome: perfil.nome,
-                nivel: 'cliente',
-                tipo: 'cliente',
+                nivel: perfil.perfil,
+                tipo: perfil.tipo,
                 loja: lojaAtual,
                 dados: perfil.dados
             },
-            permissoes: {
-                visualizar_produtos: true,
-                fazer_compras: true,
-                consultar_pedidos: true
-            }
+            permissoes: permissoes
         };
         
     } catch (error) {
@@ -208,7 +287,9 @@ async function fazerLogin(email, senha) {
     }
 }
 
+// ============================================
 // CADASTRO DE CLIENTE
+// ============================================
 async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cidade, cep) {
     try {
         const lojaAtual = getLojaDaURL();
@@ -226,6 +307,16 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             return {
                 sucesso: false,
                 erro: 'Email reservado para administrador'
+            };
+        }
+        
+        // Verificar se já existe como funcionário
+        const funcCheck = await loginDb.collection('usuarios').doc(lojaAtual)
+                               .collection('funcionarios').doc(email).get();
+        if (funcCheck.exists) {
+            return {
+                sucesso: false,
+                erro: 'Email já cadastrado como funcionário'
             };
         }
         
@@ -281,7 +372,9 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
     }
 }
 
+// ============================================
 // LOGOUT
+// ============================================
 async function fazerLogout() {
     try {
         await auth.signOut();
@@ -292,10 +385,12 @@ async function fazerLogout() {
     }
 }
 
+// ============================================
 // LISTENER DE AUTENTICAÇÃO
+// ============================================
 auth.onAuthStateChanged(async (user) => {
     if (user) {
-        console.log('👤 Cliente autenticado no login:', user.email);
+        console.log('👤 Usuário autenticado:', user.email);
         const lojaAtual = getLojaDaURL();
         
         if (!lojaAtual) {
@@ -304,9 +399,11 @@ auth.onAuthStateChanged(async (user) => {
         }
         
         try {
+            // 1️⃣ VERIFICAR SE É ADMIN
             const adminCheck = await verificarAdmin(user.email);
             
             if (adminCheck.isAdmin) {
+                console.log('✅ ADMIN logado');
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                     detail: {
                         usuario: {
@@ -317,37 +414,74 @@ auth.onAuthStateChanged(async (user) => {
                             tipo: 'admin',
                             loja: lojaAtual
                         },
-                        permissoes: { todas: true, admin: true }
+                        permissoes: { 
+                            todas: true,
+                            admin: true,
+                            visualizar_produtos: true,
+                            fazer_compras: true,
+                            editar_produtos: true,
+                            gerenciar_estoque: true,
+                            ver_relatorios: true,
+                            gerenciar_funcionarios: true,
+                            gerenciar_loja: true
+                        }
                     }
                 }));
                 return;
             }
             
-            const perfil = await buscarPerfilCliente(user.email, lojaAtual);
+            // 2️⃣ BUSCAR PERFIL (funcionário ou cliente)
+            const perfil = await buscarPerfilUsuario(user.email, lojaAtual);
             
             if (perfil.encontrado && perfil.ativo) {
+                // Definir permissões
+                let permissoes = {
+                    visualizar_produtos: true,
+                    fazer_compras: true
+                };
+                
+                if (perfil.tipo === 'funcionario') {
+                    switch(perfil.perfil) {
+                        case 'gerente':
+                            permissoes = {
+                                ...permissoes,
+                                editar_produtos: true,
+                                gerenciar_estoque: true,
+                                ver_relatorios: true,
+                                gerenciar_funcionarios: true
+                            };
+                            break;
+                        case 'supervisor':
+                            permissoes = {
+                                ...permissoes,
+                                editar_produtos: true,
+                                gerenciar_estoque: true,
+                                ver_relatorios: true
+                            };
+                            break;
+                    }
+                }
+                
+                console.log(`✅ ${perfil.tipo.toUpperCase()} logado:`, perfil.nome);
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                     detail: {
                         usuario: {
                             uid: user.uid,
                             email: user.email,
                             nome: perfil.nome,
-                            nivel: 'cliente',
-                            tipo: 'cliente',
+                            nivel: perfil.perfil,
+                            tipo: perfil.tipo,
                             loja: lojaAtual,
                             dados: perfil.dados
                         },
-                        permissoes: {
-                            visualizar_produtos: true,
-                            fazer_compras: true,
-                            consultar_pedidos: true
-                        }
+                        permissoes: permissoes
                     }
                 }));
             } else {
+                console.log('❌ Usuário não tem perfil nesta loja');
                 await auth.signOut();
                 window.dispatchEvent(new CustomEvent('usuarioNaoAutorizado', { 
-                    detail: { erro: 'Cliente não cadastrado' }
+                    detail: { erro: 'Usuário não cadastrado' }
                 }));
             }
         } catch (error) {
@@ -355,15 +489,17 @@ auth.onAuthStateChanged(async (user) => {
             await auth.signOut();
         }
     } else {
-        console.log('Nenhum cliente logado');
+        console.log('👤 Nenhum usuário logado');
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
     }
 });
 
+// ============================================
 // EXPOR FUNÇÕES
+// ============================================
 window.fazerLogin = fazerLogin;
 window.cadastrarCliente = cadastrarCliente;
 window.fazerLogout = fazerLogout;
 window.getLojaDaURL = getLojaDaURL;
 
-console.log('✅ Sistema de login carregado (projeto lojasite-ba36f)');
+console.log('✅ Sistema de login carregado (com suporte a ADMIN, funcionários e clientes)');
