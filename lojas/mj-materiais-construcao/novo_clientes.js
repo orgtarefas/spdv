@@ -83,7 +83,7 @@ function verificarSessaoCliente() {
 }
 
 // ============================================
-// EVENTOS DO LOGIN
+// EVENTO DE LOGIN (no novo_clientes.js)
 // ============================================
 window.addEventListener('usuarioLogado', (event) => {
     const { usuario, permissoes } = event.detail;
@@ -95,31 +95,26 @@ window.addEventListener('usuarioLogado', (event) => {
     const btnLogout = document.getElementById('btnLogout');
     const btnLogin = document.getElementById('btnLogin');
     
-    if (userName) userName.textContent = usuario.nome || usuario.email;
+    if (userName) {
+        // Mostrar nome e tipo de usuário
+        let tipoDisplay = '';
+        if (usuario.tipo === 'admin') tipoDisplay = ' (Admin)';
+        else if (usuario.tipo === 'funcionario') tipoDisplay = ` (${usuario.nivel})`;
+        
+        userName.textContent = usuario.nome + tipoDisplay;
+    }
+    
     if (btnLogout) btnLogout.style.display = 'inline-flex';
     if (btnLogin) btnLogin.style.display = 'none';
     
-    console.log('✅ Cliente logado:', usuario.nome || usuario.email);
-});
-
-window.addEventListener('usuarioDeslogado', () => {
-    clienteLogado = false;
-    dadosCliente = null;
+    console.log('✅ Usuário logado:', usuario);
+    console.log('🔑 Permissões:', permissoes);
     
-    const userName = document.getElementById('userName');
-    const btnLogout = document.getElementById('btnLogout');
-    const btnLogin = document.getElementById('btnLogin');
-    
-    if (userName) userName.textContent = 'Visitante';
-    if (btnLogout) btnLogout.style.display = 'none';
-    if (btnLogin) btnLogin.style.display = 'inline-flex';
-    
-    console.log('👤 Cliente deslogado');
-});
-
-window.addEventListener('usuarioNaoAutorizado', (event) => {
-    const erro = event.detail?.erro || 'Acesso negado';
-    mostrarMensagem(erro, 'error');
+    // Aqui você pode esconder/mostrar elementos baseado nas permissões
+    // Exemplo:
+    if (permissoes.editar_produtos) {
+        document.querySelectorAll('.btn-editar').forEach(btn => btn.style.display = 'block');
+    }
 });
 
 // ============================================
@@ -962,3 +957,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
