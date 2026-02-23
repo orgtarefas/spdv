@@ -1,8 +1,9 @@
 // ============================================
-// CONFIGURAÇÃO CENTRALIZADA DO FIREBASE
+// CONFIGURAÇÃO DO FIREBASE DE LOGIN
+// Projeto: lojasite-ba36f (APENAS AUTENTICAÇÃO)
 // ============================================
 
-const firebaseConfig = {
+const loginFirebaseConfig = {
     apiKey: "AIzaSyAYPjEB8cT-mOmLaXJMXAsoP2l3YotY2WQ",
     authDomain: "lojasite-ba36f.firebaseapp.com",
     projectId: "lojasite-ba36f",
@@ -11,32 +12,27 @@ const firebaseConfig = {
     appId: "1:1083157739430:web:5ed2d4261434c73a9e4167"
 };
 
-// Inicializar Firebase (apenas uma vez)
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-    console.log('✅ Firebase inicializado pelo login_firebase.js');
-}
+// Inicializar Firebase de login (com nome diferente para não conflitar)
+const loginApp = firebase.initializeApp(loginFirebaseConfig, 'loginApp');
+const auth = loginApp.auth();
+const loginDb = loginApp.firestore();
 
-// Ativar App Check com reCAPTCHA Enterprise
+// Ativar App Check no projeto de login
 try {
-    const appCheck = firebase.appCheck();
+    const appCheck = loginApp.appCheck();
     appCheck.activate(
         new firebase.appCheck.ReCaptchaEnterpriseProvider(
-            "6LdqQnUsAAAAAOnjtu0Avi_0WubZw0iYS20DjL6b"  // Chave do site
+            "6LdqQnUsAAAAAOnjtu0Avi_0WubZw0iYS20DjL6b"
         ),
-        true // Auto-refresh do token
+        true
     );
-    console.log('✅ App Check ativado com reCAPTCHA Enterprise');
+    console.log('✅ App Check ativado no projeto de login');
 } catch (error) {
-    console.error('❌ Erro ao ativar App Check:', error);
+    console.error('❌ Erro ao ativar App Check no login:', error);
 }
 
-// Referências globais
-const auth = firebase.auth();
-const db = firebase.firestore();
-
 // ============================================
-// FUNÇÕES AUXILIARES
+// FUNÇÕES DE LOGIN
 // ============================================
 
 // Função para extrair loja da URL
@@ -51,50 +47,6 @@ function getLojaDaURL() {
     return lojaFolder || null;
 }
 
-// ============================================
-// FUNÇÕES DA COLEÇÃO LOJAS
-// ============================================
-
-// Verificar se a loja está ativa
-async function verificarLojaAtiva(lojaId) {
-    try {
-        const lojaDoc = await db.collection('lojas').doc(lojaId).get();
-        
-        if (!lojaDoc.exists) {
-            return { 
-                ativa: false, 
-                erro: 'Loja não encontrada no Firebase'
-            };
-        }
-        
-        const lojaData = lojaDoc.data();
-        const agora = new Date();
-        const dataAtivacao = lojaData.data_ativacao?.toDate();
-        const dataValidade = lojaData.data_validade?.toDate();
-        
-        if (lojaData.ativo === false) {
-            return { ativa: false, erro: 'Loja inativa', dados: lojaData };
-        }
-        
-        if (dataAtivacao && agora < dataAtivacao) {
-            return { ativa: false, erro: 'Loja ainda não ativada', dados: lojaData };
-        }
-        
-        if (dataValidade && agora > dataValidade) {
-            return { ativa: false, erro: 'Período de acesso expirado', dados: lojaData };
-        }
-        
-        return { ativa: true, dados: lojaData };
-    } catch (error) {
-        console.error('Erro ao verificar loja:', error);
-        return { ativa: false, erro: 'Erro ao verificar loja' };
-    }
-}
-
-// ============================================
-// FUNÇÕES DA COLEÇÃO USUARIOS
-// ============================================
-
 // Verificar se é ADMIN
 async function verificarAdmin(email) {
     if (!auth.currentUser) {
@@ -102,7 +54,7 @@ async function verificarAdmin(email) {
     }
     
     try {
-        const adminDoc = await db.collection('usuarios').doc('admin').get();
+        const adminDoc = await loginDb.collection('usuarios').doc('admin').get();
         
         if (adminDoc.exists) {
             const adminData = adminDoc.data();
@@ -121,39 +73,21 @@ async function verificarAdmin(email) {
     }
 }
 
-// Buscar perfil do usuário na loja
-async function buscarPerfilNaLoja(email, lojaId) {
+// Buscar perfil do cliente na loja
+async function buscarPerfilCliente(email, lojaId) {
     if (!auth.currentUser) {
         return { encontrado: false };
     }
     
     try {
-        // Buscar funcionários
-        const userDoc = await db.collection('usuarios').doc(lojaId)
-                               .collection('funcionarios').doc(email).get();
-        
-        if (userDoc.exists) {
-            const userData = userDoc.data();
-            return {
-                encontrado: true,
-                tipo: 'funcionario',
-                perfil: userData.perfil,
-                nome: userData.nome,
-                email: email,
-                ativo: userData.ativo,
-                dados: userData
-            };
-        }
-        
-        // Buscar clientes
-        const clienteDoc = await db.collection('usuarios').doc(lojaId)
+        // Buscar apenas clientes (funcionários não acessam área de clientes)
+        const clienteDoc = await loginDb.collection('usuarios').doc(lojaId)
                                   .collection('clientes').doc(email).get();
         
         if (clienteDoc.exists) {
             const clienteData = clienteDoc.data();
             return {
                 encontrado: true,
-                tipo: 'cliente',
                 perfil: 'cliente',
                 nome: clienteData.nome,
                 email: email,
@@ -169,10 +103,7 @@ async function buscarPerfilNaLoja(email, lojaId) {
     }
 }
 
-// ============================================
-// FUNÇÕES DE LOGIN
-// ============================================
-
+// FUNÇÃO PRINCIPAL DE LOGIN
 async function fazerLogin(email, senha) {
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, senha);
@@ -188,16 +119,11 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // Verificar admin
+        // Verificar se é admin
         const adminCheck = await verificarAdmin(email);
         
         if (adminCheck.isAdmin) {
             console.log('✅ Acesso admin concedido para:', email);
-            
-            const lojaStatus = await verificarLojaAtiva(lojaAtual);
-            
-            const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
-                LOJAS_CONFIG[lojaAtual] : null;
             
             return {
                 sucesso: true,
@@ -206,41 +132,24 @@ async function fazerLogin(email, senha) {
                     email: user.email,
                     nome: adminCheck.dados.nome,
                     nivel: 'admin',
-                    tipo_perfil: 'admin',
-                    loja: lojaAtual,
-                    dados: adminCheck.dados
+                    tipo: 'admin',
+                    loja: lojaAtual
                 },
                 permissoes: { 
                     todas: true, 
-                    admin: true,
-                    acessar_todas_lojas: true 
-                },
-                lojaInfo: lojaStatus,
-                dadosPublicos: dadosPublicos
+                    admin: true
+                }
             };
         }
         
-        // Verificar status da loja
-        const lojaStatus = await verificarLojaAtiva(lojaAtual);
-        
-        if (!lojaStatus.ativa) {
-            await auth.signOut();
-            return {
-                sucesso: false,
-                erro: lojaStatus.erro || 'Loja indisponível',
-                lojaInfo: lojaStatus
-            };
-        }
-        
-        // Buscar perfil
-        const perfil = await buscarPerfilNaLoja(email, lojaAtual);
+        // Buscar perfil do cliente
+        const perfil = await buscarPerfilCliente(email, lojaAtual);
         
         if (!perfil.encontrado) {
             await auth.signOut();
             return {
                 sucesso: false,
-                erro: 'Usuário não cadastrado nesta loja',
-                lojaInfo: lojaStatus
+                erro: 'Cliente não cadastrado nesta loja'
             };
         }
         
@@ -248,23 +157,15 @@ async function fazerLogin(email, senha) {
             await auth.signOut();
             return {
                 sucesso: false,
-                erro: 'Usuário inativo',
-                lojaInfo: lojaStatus
+                erro: 'Cliente inativo'
             };
         }
         
         // Atualizar último acesso
         const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-        const collection = perfil.tipo === 'funcionario' ? 'funcionarios' : 'clientes';
-        
-        await db.collection('usuarios').doc(lojaAtual)
-               .collection(collection).doc(email)
+        await loginDb.collection('usuarios').doc(lojaAtual)
+               .collection('clientes').doc(email)
                .update({ ultimo_acesso: timestamp });
-        
-        const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
-            LOJAS_CONFIG[lojaAtual] : null;
-        
-        const permissoes = await buscarPermissoesPorPerfil(perfil.perfil);
         
         return {
             sucesso: true,
@@ -272,14 +173,16 @@ async function fazerLogin(email, senha) {
                 uid: user.uid,
                 email: user.email,
                 nome: perfil.nome,
-                nivel: perfil.perfil,
-                tipo_perfil: perfil.tipo,
+                nivel: 'cliente',
+                tipo: 'cliente',
                 loja: lojaAtual,
                 dados: perfil.dados
             },
-            permissoes: permissoes,
-            lojaInfo: lojaStatus,
-            dadosPublicos: dadosPublicos
+            permissoes: {
+                visualizar_produtos: true,
+                fazer_compras: true,
+                consultar_pedidos: true
+            }
         };
         
     } catch (error) {
@@ -305,11 +208,8 @@ async function fazerLogin(email, senha) {
     }
 }
 
-// ============================================
 // CADASTRO DE CLIENTE
-// ============================================
-
-async function cadastrarCliente(nome, email, senha, telefone) {
+async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cidade, cep) {
     try {
         const lojaAtual = getLojaDaURL();
         
@@ -317,15 +217,6 @@ async function cadastrarCliente(nome, email, senha, telefone) {
             return {
                 sucesso: false,
                 erro: 'URL inválida - Loja não identificada'
-            };
-        }
-        
-        // Verificar se a loja está ativa
-        const lojaStatus = await verificarLojaAtiva(lojaAtual);
-        if (!lojaStatus.ativa) {
-            return {
-                sucesso: false,
-                erro: `Não é possível cadastrar: ${lojaStatus.erro}`
             };
         }
         
@@ -344,19 +235,21 @@ async function cadastrarCliente(nome, email, senha, telefone) {
         
         await user.updateProfile({ displayName: nome });
         
-        // Salvar na coleção usuarios
-        await db.collection('usuarios').doc(lojaAtual)
+        // Salvar na coleção de clientes
+        await loginDb.collection('usuarios').doc(lojaAtual)
                .collection('clientes').doc(email).set({
             nome: nome,
+            email: email,
             telefone: telefone,
+            cpf: cpf,
+            endereco: endereco || '',
+            cidade: cidade || '',
+            cep: cep || '',
             perfil: 'cliente',
             ativo: true,
             data_cadastro: firebase.firestore.FieldValue.serverTimestamp(),
             ultimo_acesso: firebase.firestore.FieldValue.serverTimestamp()
         });
-        
-        const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
-            LOJAS_CONFIG[lojaAtual] : null;
         
         return {
             sucesso: true,
@@ -366,8 +259,7 @@ async function cadastrarCliente(nome, email, senha, telefone) {
                 nome: nome,
                 nivel: 'cliente',
                 loja: lojaAtual
-            },
-            dadosPublicos: dadosPublicos
+            }
         };
         
     } catch (error) {
@@ -389,62 +281,7 @@ async function cadastrarCliente(nome, email, senha, telefone) {
     }
 }
 
-// ============================================
-// PERMISSÕES
-// ============================================
-
-async function buscarPermissoesPorPerfil(perfil) {
-    try {
-        if (perfil === 'admin') {
-            return { todas: true, admin: true };
-        }
-        
-        const permissoesDoc = await db.collection('configuracoes').doc('permissoes_niveis').get();
-        
-        if (permissoesDoc.exists) {
-            const permissoes = permissoesDoc.data();
-            return permissoes[perfil] || {};
-        }
-        
-        const permissoesPadrao = {
-            'gerente': {
-                visualizar_vendas: true,
-                realizar_venda: true,
-                consultar_estoque: true,
-                alterar_estoque: true,
-                ver_relatorios: true,
-                gerenciar_funcionarios: true
-            },
-            'supervisor': {
-                visualizar_vendas: true,
-                realizar_venda: true,
-                consultar_estoque: true,
-                alterar_estoque: true
-            },
-            'vendedor': {
-                visualizar_vendas: true,
-                realizar_venda: true,
-                consultar_estoque: true
-            },
-            'cliente': {
-                visualizar_produtos: true,
-                fazer_compras: true,
-                consultar_pedidos: true
-            }
-        };
-        
-        return permissoesPadrao[perfil] || {};
-        
-    } catch (error) {
-        console.error('Erro ao buscar permissões:', error);
-        return {};
-    }
-}
-
-// ============================================
 // LOGOUT
-// ============================================
-
 async function fazerLogout() {
     try {
         await auth.signOut();
@@ -455,13 +292,10 @@ async function fazerLogout() {
     }
 }
 
-// ============================================
 // LISTENER DE AUTENTICAÇÃO
-// ============================================
-
 auth.onAuthStateChanged(async (user) => {
     if (user) {
-        console.log('Usuário autenticado:', user.email);
+        console.log('👤 Cliente autenticado no login:', user.email);
         const lojaAtual = getLojaDaURL();
         
         if (!lojaAtual) {
@@ -473,10 +307,6 @@ auth.onAuthStateChanged(async (user) => {
             const adminCheck = await verificarAdmin(user.email);
             
             if (adminCheck.isAdmin) {
-                console.log('Admin detectado');
-                const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
-                    LOJAS_CONFIG[lojaAtual] : null;
-                    
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                     detail: {
                         usuario: {
@@ -484,46 +314,40 @@ auth.onAuthStateChanged(async (user) => {
                             email: user.email,
                             nome: adminCheck.dados.nome,
                             nivel: 'admin',
-                            tipo_perfil: 'admin',
+                            tipo: 'admin',
                             loja: lojaAtual
                         },
-                        permissoes: { 
-                            todas: true, 
-                            admin: true,
-                            acessar_todas_lojas: true 
-                        },
-                        dadosPublicos: dadosPublicos
+                        permissoes: { todas: true, admin: true }
                     }
                 }));
                 return;
             }
             
-            const perfil = await buscarPerfilNaLoja(user.email, lojaAtual);
+            const perfil = await buscarPerfilCliente(user.email, lojaAtual);
             
             if (perfil.encontrado && perfil.ativo) {
-                const permissoes = await buscarPermissoesPorPerfil(perfil.perfil);
-                const dadosPublicos = typeof LOJAS_CONFIG !== 'undefined' ? 
-                    LOJAS_CONFIG[lojaAtual] : null;
-                
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                     detail: {
                         usuario: {
                             uid: user.uid,
                             email: user.email,
                             nome: perfil.nome,
-                            nivel: perfil.perfil,
-                            tipo_perfil: perfil.tipo,
+                            nivel: 'cliente',
+                            tipo: 'cliente',
                             loja: lojaAtual,
                             dados: perfil.dados
                         },
-                        permissoes: permissoes,
-                        dadosPublicos: dadosPublicos
+                        permissoes: {
+                            visualizar_produtos: true,
+                            fazer_compras: true,
+                            consultar_pedidos: true
+                        }
                     }
                 }));
             } else {
                 await auth.signOut();
                 window.dispatchEvent(new CustomEvent('usuarioNaoAutorizado', { 
-                    detail: { erro: 'Usuário não cadastrado nesta loja' }
+                    detail: { erro: 'Cliente não cadastrado' }
                 }));
             }
         } catch (error) {
@@ -531,21 +355,15 @@ auth.onAuthStateChanged(async (user) => {
             await auth.signOut();
         }
     } else {
-        console.log('Usuário não autenticado');
+        console.log('Nenhum cliente logado');
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
     }
 });
 
-// ============================================
-// EXPOR FUNÇÕES GLOBALMENTE
-// ============================================
-
+// EXPOR FUNÇÕES
 window.fazerLogin = fazerLogin;
 window.cadastrarCliente = cadastrarCliente;
 window.fazerLogout = fazerLogout;
-window.verificarLojaAtiva = verificarLojaAtiva;
 window.getLojaDaURL = getLojaDaURL;
-window.auth = auth;
-window.db = db;
 
-console.log('✅ login_firebase.js carregado com todas as configurações');
+console.log('✅ Sistema de login carregado (projeto lojasite-ba36f)');
