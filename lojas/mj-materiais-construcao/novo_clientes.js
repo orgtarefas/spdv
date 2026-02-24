@@ -1171,6 +1171,61 @@ function configurarEventos() {
         }
     });
 
+    // Adicione isso na função configurarEventos():
+
+    // Evento para quando usuário não verificou email
+    window.addEventListener('usuarioNaoVerificado', (event) => {
+        const { email } = event.detail;
+        
+        // Mostrar modal de verificação
+        document.getElementById('verificacaoEmail').textContent = email;
+        abrirModal('verificacaoEmailModal');
+        
+        // Fazer logout para não ficar logado
+        window.fazerLogout();
+    });
+    
+    // Reenviar email de verificação
+    document.getElementById('btnReenviarVerificacao')?.addEventListener('click', async () => {
+        const email = document.getElementById('verificacaoEmail').textContent;
+        
+        mostrarLoading('Reenviando e-mail...');
+        
+        try {
+            const resultado = await window.reenviarEmailVerificacao(email);
+            
+            if (resultado.sucesso) {
+                mostrarMensagem('E-mail de verificação reenviado!', 'success');
+            } else {
+                mostrarMensagem('Erro ao reenviar: ' + resultado.erro, 'error');
+            }
+        } catch (error) {
+            mostrarMensagem('Erro ao reenviar e-mail', 'error');
+        } finally {
+            esconderLoading();
+        }
+    });
+    
+    // Verificar se já verificou o email
+    document.getElementById('btnVerificarAgora')?.addEventListener('click', async () => {
+        const email = document.getElementById('verificacaoEmail').textContent;
+        
+        mostrarLoading('Verificando...');
+        
+        try {
+            // Tentar fazer login para verificar status
+            // Nota: O usuário precisa fazer login novamente
+            fecharModal('verificacaoEmailModal');
+            abrirModal('loginModal');
+            
+            mostrarMensagem('Faça o login novamente após verificar seu e-mail', 'info');
+        } catch (error) {
+            mostrarMensagem('Erro ao verificar', 'error');
+        } finally {
+            esconderLoading();
+        }
+    });
+
     configurarMenuPerfil();
     
     console.log("✅ Eventos configurados");
@@ -1265,3 +1320,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
