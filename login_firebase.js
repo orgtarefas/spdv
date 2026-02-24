@@ -240,7 +240,7 @@ async function reenviarEmailVerificacao(email) {
 }
 
 // ============================================
-// FUNÇÃO PRINCIPAL DE LOGIN (MODIFICADA)
+// FUNÇÃO PRINCIPAL DE LOGIN
 // ============================================
 async function fazerLogin(email, senha) {
     try {
@@ -250,10 +250,8 @@ async function fazerLogin(email, senha) {
         // VERIFICAR SE O EMAIL FOI VERIFICADO
         if (!user.emailVerified) {
             // REENVIAR EMAIL AUTOMATICAMENTE
-            let emailReenviado = false;
             try {
                 await user.sendEmailVerification();
-                emailReenviado = true;
                 console.log('📧 Novo email de verificação enviado para:', email);
                 
                 // ATUALIZAR O TIMESTAMP NO FIRESTORE
@@ -270,17 +268,11 @@ async function fazerLogin(email, senha) {
             
             await auth.signOut();
             
-            // MENSAGEM PERSONALIZADA
-            const mensagem = emailReenviado 
-                ? `❌ Login não realizado: e-mail ainda não verificado.\n\n📧 Reenviamos um novo e-mail de validação para:\n${email}\n\nPor favor, verifique sua caixa de entrada (e spam) e clique no link de verificação antes de tentar logar novamente.`
-                : `❌ Login não realizado: e-mail ainda não verificado.\n\nEntre em contato com o suporte para reenviar o link de verificação.`;
-            
             return {
                 sucesso: false,
-                precisaVerificar: true,
+                tipo: 'email_nao_verificado',
                 email: email,
-                emailReenviado: emailReenviado,
-                erro: mensagem
+                erro: 'E-mail ainda não verificado. Enviamos um novo link de verificação para seu e-mail.'
             };
         }
         
@@ -343,20 +335,37 @@ async function fazerLogin(email, senha) {
     } catch (error) {
         console.error('Erro no login:', error);
         
-        let mensagemErro = error.message;
+        // CASO 1: EMAIL NÃO CADASTRADO
         if (error.code === 'auth/user-not-found') {
-            mensagemErro = 'Usuário não encontrado';
-        } else if (error.code === 'auth/wrong-password') {
-            mensagemErro = 'Senha incorreta';
-        } else if (error.code === 'auth/invalid-email') {
-            mensagemErro = 'E-mail inválido';
-        } else if (error.code === 'auth/too-many-requests') {
-            mensagemErro = 'Muitas tentativas. Tente novamente mais tarde';
+            return {
+                sucesso: false,
+                tipo: 'email_nao_cadastrado',
+                erro: 'E-mail não cadastrado. Deseja realizar um cadastro?'
+            };
         }
         
+        // CASO 2: SENHA INCORRETA (EMAIL EXISTE)
+        if (error.code === 'auth/wrong-password') {
+            return {
+                sucesso: false,
+                tipo: 'senha_incorreta',
+                email: email,
+                erro: 'Senha incorreta. Deseja receber um link no e-mail para redefinir sua senha?'
+            };
+        }
+        
+        // CASO 3: EMAIL INVÁLIDO
+        if (error.code === 'auth/invalid-email') {
+            return {
+                sucesso: false,
+                erro: 'E-mail inválido. Verifique o formato do e-mail.'
+            };
+        }
+               
+        // OUTROS ERROS
         return {
             sucesso: false,
-            erro: mensagemErro
+            erro: error.message
         };
     }
 }
@@ -536,6 +545,7 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
 
