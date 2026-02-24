@@ -136,19 +136,15 @@ async function buscarPerfilUsuario(email, lojaId) {
 // ============================================
 async function reenviarEmailVerificacao(email) {
     try {
-        // Tentar fazer login para obter o user
-        // Nota: Isso requer que o usuário exista e a senha esteja correta
-        // Melhor abordagem: usar sendEmailVerification com o usuário atual
         const user = auth.currentUser;
         
         if (user && user.email === email) {
-            await user.sendEmailVerification({
-                url: window.location.href,
-                handleCodeInApp: true
-            });
-            return { sucesso: true };
+            await user.sendEmailVerification();
+            return { 
+                sucesso: true,
+                mensagem: 'E-mail de verificação reenviado! Verifique sua caixa de entrada.'
+            };
         } else {
-            // Se não tiver usuário logado, não podemos reenviar
             return { 
                 sucesso: false, 
                 erro: 'Usuário não está logado. Faça o login primeiro.' 
@@ -173,7 +169,7 @@ async function fazerLogin(email, senha) {
         
         // VERIFICAR SE O EMAIL FOI VERIFICADO
         if (!user.emailVerified) {
-            // Não fazer signOut ainda para poder reenviar o email
+            // Manter o usuário logado apenas para poder reenviar o email
             return {
                 sucesso: false,
                 precisaVerificar: true,
@@ -305,8 +301,6 @@ async function fazerLogin(email, senha) {
             mensagemErro = 'E-mail inválido';
         } else if (error.code === 'auth/too-many-requests') {
             mensagemErro = 'Muitas tentativas. Tente novamente mais tarde';
-        } else if (error.code === 'auth/firebase-app-check-token-is-invalid') {
-            mensagemErro = 'Erro de segurança. Recarregue a página.';
         }
         
         return {
@@ -341,12 +335,9 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
         // 2. Atualizar perfil com nome
         await user.updateProfile({ displayName: nome });
         
-        // 3. ENVIAR EMAIL DE VERIFICAÇÃO
+        // 3. ENVIAR EMAIL DE VERIFICAÇÃO (SEM URL PERSONALIZADA)
         console.log('📧 Enviando email de verificação...');
-        await user.sendEmailVerification({
-            url: window.location.href, // URL para redirecionar após verificação
-            handleCodeInApp: true // Manipular o código no app
-        });
+        await user.sendEmailVerification(); // Sem parâmetros = usa domínio padrão do Firebase
         
         // 4. SALVAR NO FIRESTORE
         console.log('📝 Salvando dados do cliente no Firestore...');
@@ -376,7 +367,7 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             sucesso: true,
             precisaVerificar: true,
             email: email,
-            mensagem: 'Cadastro realizado! Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada e confirme seu e-mail antes de fazer login.'
+            mensagem: '✅ Cadastro realizado! Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada (incluindo spam) e clique no link para verificar seu e-mail antes de fazer login.'
         };
         
     } catch (error) {
@@ -389,6 +380,25 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             mensagemErro = 'Senha muito fraca. Use pelo menos 6 caracteres';
         } else if (error.code === 'auth/invalid-email') {
             mensagemErro = 'E-mail inválido';
+        } else if (error.code === 'auth/unauthorized-continue-uri') {
+            mensagemErro = 'Erro de configuração do domínio. O e-mail ainda será enviado.';
+            
+            // Fallback: tentar enviar sem URL personalizada
+            try {
+                const user = auth.currentUser;
+                if (user) {
+                    await user.sendEmailVerification();
+                    await auth.signOut();
+                    return {
+                        sucesso: true,
+                        precisaVerificar: true,
+                        email: email,
+                        mensagem: '✅ Cadastro realizado! Verifique seu e-mail (incluindo spam) para confirmar.'
+                    };
+                }
+            } catch (fallbackError) {
+                console.error('Fallback também falhou:', fallbackError);
+            }
         }
         
         return {
@@ -418,7 +428,7 @@ async function verificarStatusEmail(email) {
     try {
         const user = auth.currentUser;
         if (user && user.email === email) {
-            await user.reload(); // Recarregar dados do usuário
+            await user.reload();
             return {
                 verificado: user.emailVerified,
                 email: user.email
@@ -458,7 +468,6 @@ auth.onAuthStateChanged(async (user) => {
             return;
         }
         
-        // FLUXO NORMAL PARA LOGINS COM EMAIL VERIFICADO
         try {
             const adminCheck = await verificarAdmin(user.email);
             
