@@ -39,6 +39,63 @@ function extrairLojaIdDaURL() {
 }
 
 // ============================================
+// FUNÇÃO PARA MOSTRAR BADGE DE PERFIL
+// ============================================
+function mostrarBadgePerfil() {
+    if (!usuarioLogado) return;
+    
+    const perfil = extrairPerfil();
+    const perfilLower = perfil ? perfil.toLowerCase() : '';
+    
+    // Cores diferentes para cada perfil
+    const cores = {
+        'admin': '#dc3545',     // Vermelho
+        'gerente': '#fd7e14',   // Laranja
+        'supervisor': '#20c997', // Verde-azulado
+        'vendedor': '#0d6efd',   // Azul
+        'cliente': '#6c757d'     // Cinza
+    };
+    
+    const cor = cores[perfilLower] || '#6c757d';
+    
+    // Criar badge se não existir
+    let badge = document.getElementById('perfilBadge');
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.id = 'perfilBadge';
+        badge.style.marginLeft = '10px';
+        badge.style.padding = '2px 8px';
+        badge.style.borderRadius = '12px';
+        badge.style.fontSize = '11px';
+        badge.style.fontWeight = 'bold';
+        badge.style.color = 'white';
+        
+        const userName = document.getElementById('userName');
+        if (userName && userName.parentNode) {
+            userName.parentNode.appendChild(badge);
+        }
+    }
+    
+    badge.textContent = perfil ? perfil.toUpperCase() : 'SEM PERFIL';
+    badge.style.backgroundColor = cor;
+}
+
+// ============================================
+// FUNÇÃO PARA EXTRAIR PERFIL
+// ============================================
+function extrairPerfil() {
+    if (!usuarioLogado) return null;
+    
+    // Priorizar nivel, depois perfil, depois tipo
+    const perfil = usuarioLogado.nivel || usuarioLogado.perfil || usuarioLogado.tipo;
+    
+    console.log('📊 Usuário logado:', usuarioLogado);
+    console.log('🎯 Perfil extraído:', perfil);
+    
+    return perfil;
+}
+
+// ============================================
 // CARREGAR DADOS DA LOJA
 // ============================================
 function carregarDadosLoja() {
@@ -71,6 +128,9 @@ window.addEventListener('usuarioLogado', (event) => {
     usuarioLogado = usuario;
     
     console.log('✅ Usuário logado no carrinho:', usuario);
+    console.log('🔑 Nível:', usuario.nivel);
+    console.log('🔑 Perfil:', usuario.perfil);
+    console.log('🔑 Tipo:', usuario.tipo);
     
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
@@ -78,13 +138,31 @@ window.addEventListener('usuarioLogado', (event) => {
     
     if (userName) {
         let tipoDisplay = '';
-        if (usuario.tipo === 'admin') tipoDisplay = ' (Admin)';
-        else if (usuario.tipo === 'funcionario') tipoDisplay = ` (${usuario.nivel})`;
-        userName.textContent = usuario.nome + tipoDisplay;
+        
+        // 🔥 CORREÇÃO: Extrair perfil corretamente
+        const perfilExibicao = usuario.nivel || usuario.perfil || usuario.tipo;
+        
+        if (usuario.tipo === 'admin') {
+            tipoDisplay = ' (Admin)';
+        } else if (usuario.tipo === 'funcionario') {
+            const perfilFormatado = perfilExibicao.charAt(0).toUpperCase() + perfilExibicao.slice(1);
+            tipoDisplay = ` (${perfilFormatado})`;
+        } else if (usuario.tipo === 'cliente') {
+            tipoDisplay = ' (Cliente)';
+        }
+        
+        userName.textContent = (usuario.nome || 'Usuário') + tipoDisplay;
     }
     
     if (btnLogout) btnLogout.style.display = 'inline-flex';
     if (btnLogin) btnLogin.style.display = 'none';
+    
+    // 🔥 DEBUG: Mostrar perfil no console
+    const perfil = extrairPerfil();
+    console.log('🎯 Perfil para controle de permissões:', perfil);
+    
+    // Habilitar campo de código de barras se for funcionário ou admin
+    habilitarCampoCodigoBarras(perfil);
     
     // Carregar carrinho do usuário do Firebase
     carregarCarrinhoDoUsuario();
@@ -115,6 +193,30 @@ window.addEventListener('usuarioNaoAutorizado', () => {
     atualizarInterface();
     abrirModal('loginModal');
 });
+
+// ============================================
+// FUNÇÃO PARA HABILITAR CAMPO DE CÓDIGO DE BARRAS
+// ============================================
+function habilitarCampoCodigoBarras(perfil) {
+    console.log(`🔍 Verificando permissão para código de barras. Perfil: ${perfil}`);
+    
+    // Perfis que podem usar código de barras
+    const perfisPermitidos = ['admin', 'gerente', 'supervisor', 'vendedor'];
+    
+    // Verificar se o perfil está na lista (case insensitive)
+    const perfilLower = perfil ? perfil.toLowerCase() : '';
+    const temPermissao = perfisPermitidos.includes(perfilLower);
+    
+    console.log(`📋 Tem permissão para código de barras? ${temPermissao ? 'SIM' : 'NÃO'}`);
+    
+    // Aqui você pode habilitar o campo de código de barras
+    // Exemplo: mostrar um botão ou campo extra
+    
+    // Se quiser disparar um evento customizado
+    window.dispatchEvent(new CustomEvent('permissaoCodigoBarras', {
+        detail: { permitido: temPermissao, perfil: perfil }
+    }));
+}
 
 // ============================================
 // FUNÇÕES DO CARRINHO (FIREBASE)
@@ -904,3 +1006,4 @@ window.finalizarVenda = finalizarVenda;
 window.abrirModalFinalizacao = abrirModalFinalizacao;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
