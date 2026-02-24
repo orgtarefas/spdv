@@ -87,12 +87,28 @@ async function buscarPerfilUsuario(email, lojaId) {
     }
     
     try {
-        // Verificar se é funcionário
+        // Recarregar dados do usuário para garantir status mais recente
+        await auth.currentUser.reload();
+        const emailVerified = auth.currentUser.emailVerified;
+        
+        // 1️⃣ VERIFICAR SE É FUNCIONÁRIO
         const funcDoc = await loginDb.collection('usuarios').doc(lojaId)
                                .collection('funcionarios').doc(email).get();
         
         if (funcDoc.exists) {
             const funcData = funcDoc.data();
+            
+            // SE O STATUS NO FIRESTORE FOR DIFERENTE DO AUTHENTICATION, ATUALIZAR
+            if (funcData.emailVerificado !== emailVerified) {
+                await loginDb.collection('usuarios').doc(lojaId)
+                       .collection('funcionarios').doc(email)
+                       .update({ 
+                           emailVerificado: emailVerified,
+                           ultima_sincronizacao: firebase.firestore.FieldValue.serverTimestamp()
+                       });
+                console.log('🔄 Campo emailVerificado corrigido para funcionário');
+            }
+            
             return {
                 encontrado: true,
                 tipo: 'funcionario',
@@ -100,17 +116,29 @@ async function buscarPerfilUsuario(email, lojaId) {
                 nome: funcData.nome,
                 email: email,
                 ativo: funcData.ativo,
-                emailVerificado: auth.currentUser?.emailVerified || false,
+                emailVerificado: emailVerified, // USA O STATUS REAL
                 dados: funcData
             };
         }
         
-        // Verificar se é cliente
+        // 2️⃣ VERIFICAR SE É CLIENTE
         const clienteDoc = await loginDb.collection('usuarios').doc(lojaId)
                                   .collection('clientes').doc(email).get();
         
         if (clienteDoc.exists) {
             const clienteData = clienteDoc.data();
+            
+            // SE O STATUS NO FIRESTORE FOR DIFERENTE DO AUTHENTICATION, ATUALIZAR
+            if (clienteData.emailVerificado !== emailVerified) {
+                await loginDb.collection('usuarios').doc(lojaId)
+                       .collection('clientes').doc(email)
+                       .update({ 
+                           emailVerificado: emailVerified,
+                           ultima_sincronizacao: firebase.firestore.FieldValue.serverTimestamp()
+                       });
+                console.log('🔄 Campo emailVerificado corrigido para cliente');
+            }
+            
             return {
                 encontrado: true,
                 tipo: 'cliente',
@@ -118,11 +146,12 @@ async function buscarPerfilUsuario(email, lojaId) {
                 nome: clienteData.nome,
                 email: email,
                 ativo: clienteData.ativo,
-                emailVerificado: auth.currentUser?.emailVerified || false,
+                emailVerificado: emailVerified, // USA O STATUS REAL
                 dados: clienteData
             };
         }
         
+        console.log('❌ Usuário não encontrado');
         return { encontrado: false };
         
     } catch (error) {
@@ -544,4 +573,5 @@ console.log('📋 Funções disponíveis:', {
     fazerLogout: typeof fazerLogout,
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao
 });
+
 
