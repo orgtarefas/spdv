@@ -337,7 +337,7 @@
         <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
     </div>
 
-    <!-- Scripts - ORDEM CORRETA E GENÉRICA -->
+    <!-- Scripts - CAMINHOS ABSOLUTOS -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     
     <!-- Firebase (compat version) -->
@@ -346,21 +346,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
     
-    <!-- ARQUIVOS DE CONFIGURAÇÃO - TODOS RELATIVOS AO CAMINHO ATUAL -->
+    <!-- ARQUIVOS DE CONFIGURAÇÃO - CAMINHOS ABSOLUTOS DA RAIZ -->
     
     <!-- 1️⃣ PRIMEIRO: Login Firebase (NÃO é module) -->
-    <script src="login_firebase.js"></script>
+    <script src="/spdv/login_firebase.js"></script>
     
     <!-- 2️⃣ SEGUNDO: Dados das lojas (não é module para ficar global) -->
-    <script src="novo_lojas.js"></script>
+    <script src="/spdv/novo_lojas.js"></script>
     
     <!-- 3️⃣ TERCEIRO: Config do Firebase da Loja (module) -->
-    <script type="module" src="novo_firebase_config.js"></script>
+    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_firebase_config.js"></script>
     
     <!-- 4️⃣ QUARTO: Imagem API (module) -->
-    <script type="module" src="imagem_api.js"></script>
+    <script type="module" src="/spdv/lojas/mj-materiais-construcao/imagem_api.js"></script>
     
     <!-- 5️⃣ QUINTO: Script principal (module) -->
-    <script type="module" src="novo_clientes.js"></script>
+    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_clientes.js"></script>
 </body>
 </html>
