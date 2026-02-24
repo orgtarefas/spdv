@@ -525,84 +525,14 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
+
     
     // ============================================
     // MÉTODOS PARA VENDAS
-    // ============================================
-    
+    // ============================================ 
     async criarVenda(dadosVenda) {
         try {
-            const resultado = await runTransaction(db, async (transaction) => {
-                const produtosRefs = [];
-                
-                for (const item of dadosVenda.itens) {
-                    const produtoRef = doc(db, this.bancoEstoque, item.produto_id);
-                    const produtoDoc = await transaction.get(produtoRef);
-                    
-                    if (!produtoDoc.exists()) {
-                        throw new Error(`Produto ${item.produto_id} não encontrado`);
-                    }
-                    
-                    const produtoData = produtoDoc.data();
-                    
-                    if (produtoData.loja_id !== this.lojaId) {
-                        throw new Error(`Produto não pertence a esta loja`);
-                    }
-                    
-                    const estoqueAtual = produtoData.quantidade || 0;
-                    const quantidadeVenda = item.quantidade || 0;
-                    
-                    if (estoqueAtual < quantidadeVenda) {
-                        throw new Error(`Estoque insuficiente para ${produtoData.nome}`);
-                    }
-                    
-                    produtosRefs.push({
-                        ref: produtoRef,
-                        quantidade: quantidadeVenda
-                    });
-                }
-                
-                const vendasRef = collection(db, this.bancoVendas);
-                const novaVendaRef = doc(vendasRef);
-                
-                const vendaData = {
-                    ...dadosVenda,
-                    id: novaVendaRef.id,
-                    numero_venda: `V${Date.now().toString().slice(-8)}`,
-                    loja_id: this.lojaId,
-                    loja_nome: this.dadosLoja?.nome || this.formatarNomeLoja(this.lojaId),
-                    vendedor_id: this.usuario?.id,
-                    vendedor_nome: this.nomeUsuario,
-                    vendedor_login: this.loginUsuario,
-                    status: 'concluida',
-                    data_venda: serverTimestamp(),
-                    data_criacao: serverTimestamp(),
-                    total: parseFloat(dadosVenda.total) || 0
-                };
-                
-                transaction.set(novaVendaRef, vendaData);
-                
-                for (const { ref, quantidade } of produtosRefs) {
-                    transaction.update(ref, {
-                        quantidade: increment(-quantidade),
-                        data_atualizacao: serverTimestamp()
-                    });
-                }
-                
-                return vendaData;
-            });
-            
-            return { success: true, data: resultado };
-            
-        } catch (error) {
-            console.error('Erro ao criar venda:', error);
-            return { success: false, error: error.message };
-        }
-    }
-    
-    async buscarVendas(limite = 10) {
-        try {
-            console.log(`📋 Buscando últimas vendas...`);
+            console.log('🔄 Iniciando transação de venda...', dadosVenda.numero);
             
             if (!db) {
                 throw new Error('Banco de dados não inicializado');
@@ -612,33 +542,179 @@ class LojaManager {
                 throw new Error('Loja não identificada');
             }
             
-            const vendasRef = collection(db, this.bancoVendas);
-            const snapshot = await getDocs(vendasRef);
+            // Validar dados mínimos
+            if (!dadosVenda.itens || dadosVenda.itens.length === 0) {
+                throw new Error('Venda sem itens');
+            }
             
-            let vendas = [];
-            snapshot.forEach(doc => {
-                vendas.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
+            // Usar transação do Firestore para garantir atomicidade
+            const resultado = await runTransaction(db, async (transaction) => {
+                console.log('📦 Executando transação...');
+                
+                // 1. VERIFICAR ESTOQUE DE TODOS OS PRODUTOS
+                const produtosVerificados = [];
+                
+                for (const item of dadosVenda.itens) {
+                    if (!item.produto_id) {
+                        throw new Error(`Item sem ID de produto: ${item.nome}`);
+                    }
+                    
+                    const produtoRef = doc(db, this.bancoEstoque, item.produto_id);
+                    const produtoDoc = await transaction.get(produtoRef);
+                    
+                    if (!produtoDoc.exists()) {
+                        throw new Error(`Produto não encontrado: ${item.nome || item.produto_id}`);
+                    }
+                    
+                    const produtoData = produtoDoc.data();
+                    
+                    // Verificar se o produto pertence à loja
+                    if (produtoData.loja_id !== this.lojaId) {
+                        throw new Error(`Produto ${produtoData.nome} não pertence a esta loja`);
+                    }
+                    
+                    const estoqueAtual = produtoData.quantidade || 0;
+                    const quantidadeVenda = item.quantidade || 0;
+                    
+                    if (estoqueAtual < quantidadeVenda) {
+                        throw new Error(
+                            `Estoque insuficiente para ${produtoData.nome}. ` +
+                            `Disponível: ${estoqueAtual} | Solicitado: ${quantidadeVenda}`
+                        );
+                    }
+                    
+                    produtosVerificados.push({
+                        ref: produtoRef,
+                        id: item.produto_id,
+                        nome: produtoData.nome,
+                        quantidade: quantidadeVenda,
+                        estoqueAnterior: estoqueAtual
+                    });
+                }
+                
+                // 2. GERAR NÚMERO DA VENDA (se não veio)
+                const numeroVenda = dadosVenda.numero || 
+                    `V${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)}`;
+                
+                // 3. CRIAR REGISTRO DA VENDA
+                const vendasRef = collection(db, this.bancoVendas);
+                const novaVendaRef = doc(vendasRef);
+                
+                // Preparar dados da venda com timestamps
+                const timestamp = serverTimestamp();
+                const dataVenda = new Date();
+                
+                const vendaData = {
+                    ...dadosVenda,
+                    id: novaVendaRef.id,
+                    numero: numeroVenda,
+                    numero_venda: numeroVenda,
+                    loja_id: this.lojaId,
+                    loja_nome: this.dadosLoja?.nome || this.formatarNomeLoja(this.lojaId),
+                    vendedor_id: this.usuario?.id || dadosVenda.vendedor?.uid || 'sistema',
+                    vendedor_nome: this.nomeUsuario || dadosVenda.vendedor?.nome || 'Sistema',
+                    vendedor_login: this.loginUsuario || dadosVenda.vendedor?.email || 'sistema',
+                    vendedor_perfil: this.perfil || dadosVenda.vendedor?.perfil || 'sistema',
+                    status: 'concluida',
+                    data_venda: timestamp,
+                    data_criacao: timestamp,
+                    data_conclusao: timestamp,
+                    timestamp_venda: dataVenda.toISOString(),
+                    total: parseFloat(dadosVenda.total) || 0,
+                    subtotal: parseFloat(dadosVenda.subtotal) || 0,
+                    forma_pagamento: dadosVenda.forma_pagamento || 'nao_informado',
+                    canal_venda: dadosVenda.canal_venda || 'online',
+                    tipo_entrega: dadosVenda.tipo_entrega || 'retirada'
+                };
+                
+                // Adicionar dados do cliente se existirem
+                if (dadosVenda.cliente) {
+                    vendaData.cliente = {
+                        nome: dadosVenda.cliente.nome || '',
+                        email: dadosVenda.cliente.email || '',
+                        telefone: dadosVenda.cliente.telefone || '',
+                        cpf: dadosVenda.cliente.cpf || ''
+                    };
+                }
+                
+                // Adicionar dados de entrega se existirem
+                if (dadosVenda.dados_entrega) {
+                    vendaData.dados_entrega = dadosVenda.dados_entrega;
+                }
+                
+                transaction.set(novaVendaRef, vendaData);
+                
+                // 4. ATUALIZAR ESTOQUE DE CADA PRODUTO
+                for (const produto of produtosVerificados) {
+                    transaction.update(produto.ref, {
+                        quantidade: increment(-produto.quantidade),
+                        ultima_venda: timestamp,
+                        data_atualizacao: timestamp
+                    });
+                    
+                    // 5. REGISTRAR MOVIMENTO DE ESTOQUE (opcional, mas recomendado)
+                    const movimentosRef = collection(db, 'estoque_movimentos');
+                    const movimentoRef = doc(movimentosRef);
+                    
+                    transaction.set(movimentoRef, {
+                        produto_id: produto.id,
+                        produto_nome: produto.nome,
+                        tipo: 'saida',
+                        quantidade: produto.quantidade,
+                        motivo: 'venda',
+                        venda_id: novaVendaRef.id,
+                        venda_numero: numeroVenda,
+                        loja_id: this.lojaId,
+                        estoque_anterior: produto.estoqueAnterior,
+                        estoque_posterior: produto.estoqueAnterior - produto.quantidade,
+                        data: timestamp,
+                        usuario: this.loginUsuario || 'sistema',
+                        timestamp: dataVenda.toISOString()
+                    });
+                }
+                
+                console.log('✅ Transação concluída com sucesso');
+                
+                return {
+                    id: novaVendaRef.id,
+                    numero: numeroVenda,
+                    success: true,
+                    venda: vendaData
+                };
             });
             
-            vendas = vendas.filter(v => v.loja_id === this.lojaId);
+            console.log(`✅ Venda #${resultado.numero} registrada com sucesso!`);
             
-            vendas.sort((a, b) => {
-                const dataA = a.data_venda?.toDate ? a.data_venda.toDate() : new Date(a.data_criacao || 0);
-                const dataB = b.data_venda?.toDate ? b.data_venda.toDate() : new Date(b.data_criacao || 0);
-                return dataB - dataA;
-            });
-            
-            vendas = vendas.slice(0, limite);
-            
-            console.log(`✅ ${vendas.length} vendas encontradas`);
-            return { success: true, data: vendas };
+            return { 
+                success: true, 
+                data: resultado.venda,
+                id: resultado.id,
+                numero: resultado.numero
+            };
             
         } catch (error) {
-            console.error('Erro ao buscar vendas:', error);
-            return { success: false, error: error.message };
+            console.error('❌ Erro ao criar venda:', error);
+            
+            // Mensagens amigáveis baseadas no erro
+            let mensagemErro = error.message;
+            
+            if (error.message.includes('Estoque insuficiente')) {
+                mensagemErro = error.message; // Mantém a mensagem específica
+            } else if (error.message.includes('permissão') || error.message.includes('permission')) {
+                mensagemErro = 'Erro de permissão. Verifique suas credenciais.';
+            } else if (error.message.includes('network') || error.message.includes('rede')) {
+                mensagemErro = 'Erro de rede. Verifique sua conexão.';
+            } else if (error.message.includes('timeout')) {
+                mensagemErro = 'Tempo limite excedido. Tente novamente.';
+            } else {
+                mensagemErro = 'Erro ao processar venda. Tente novamente.';
+            }
+            
+            return { 
+                success: false, 
+                error: mensagemErro,
+                detalhe: error.message // Para debug
+            };
         }
     }
     
@@ -1537,3 +1613,4 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
