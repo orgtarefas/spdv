@@ -239,7 +239,7 @@ body {
 }
 
 /* ============================================ */
-/* CANAL DE VENDAS - ÍCONE EM CIMA, TEXTO EMBAIXO */
+/* CANAL DE VENDAS - ÍCONE E TEXTO NA MESMA LINHA */
 /* ============================================ */
 .canal-vendas-section {
     background: var(--light);
@@ -273,7 +273,7 @@ body {
     flex: 1;
     position: relative;
     cursor: pointer;
-    min-width: 0; /* Previne overflow */
+    min-width: 0;
 }
 
 .canal-option input[type="radio"] {
@@ -285,12 +285,13 @@ body {
     padding: 0;
 }
 
+/* 🔥 NOVO: Ícone e texto na mesma linha */
 .canal-option .canal-icon {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 15px 10px;
+    gap: 8px;
+    padding: 12px 10px;
     background: var(--white);
     border-radius: 10px;
     transition: all 0.3s ease;
@@ -301,24 +302,17 @@ body {
 }
 
 .canal-option .canal-icon i {
-    font-size: 28px;
+    font-size: 20px;
     color: var(--gray-dark);
-    margin-bottom: 8px;
     transition: all 0.3s ease;
-    display: block;
 }
 
 .canal-option .canal-nome {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--gray-dark);
-    text-align: center;
     transition: all 0.3s ease;
-    display: block;
-    width: 100%;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* Hover effect */
@@ -335,17 +329,9 @@ body {
     box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);
 }
 
-.canal-option input[type="radio"]:checked + .canal-icon i {
-    color: var(--white);
-}
-
+.canal-option input[type="radio"]:checked + .canal-icon i,
 .canal-option input[type="radio"]:checked + .canal-icon .canal-nome {
     color: var(--white);
-}
-
-/* Garantir que o texto não quebre */
-.canal-option .canal-nome {
-    white-space: nowrap;
 }
 
 /* Responsivo */
@@ -355,16 +341,15 @@ body {
     }
     
     .canal-option .canal-icon {
-        padding: 12px 5px;
+        padding: 10px 8px;
     }
     
     .canal-option .canal-icon i {
-        font-size: 24px;
-        margin-bottom: 5px;
+        font-size: 18px;
     }
     
     .canal-option .canal-nome {
-        font-size: 12px;
+        font-size: 13px;
     }
 }
 
@@ -378,12 +363,16 @@ body {
         gap: 8px;
     }
     
-    .canal-option {
-        min-width: 0;
+    .canal-option .canal-icon {
+        padding: 8px 6px;
+    }
+    
+    .canal-option .canal-icon i {
+        font-size: 16px;
     }
     
     .canal-option .canal-nome {
-        font-size: 11px;
+        font-size: 12px;
     }
 }
 
@@ -1991,6 +1980,7 @@ body {
         padding: 10px;
     }
 }
+
 
 
 
