@@ -109,7 +109,7 @@ function habilitarCampoCodigoBarras(perfil) {
     const perfilLower = perfil ? perfil.toLowerCase() : '';
     const temPermissao = perfisPermitidos.includes(perfilLower);
     
-    console.log(`📋 Tem permissão para código de barras? ${temPermissao ? 'SIM' : 'NÃO'}`);
+    console.log(`📋 Tem permissão? ${temPermissao ? 'SIM' : 'NÃO'}`);
     
     const canalFisicoOption = document.getElementById('canalFisicoOption');
     const btnRecolhimento = document.getElementById('btnRecolhimento');
@@ -123,7 +123,7 @@ function habilitarCampoCodigoBarras(perfil) {
         btnRecolhimento.style.display = temPermissao ? 'flex' : 'none';
     }
     
-    // 🔥 NOVO: Ocultar botão de orçamento para clientes
+    // 🔥 BOTÃO DE ORÇAMENTO - APARECE APENAS PARA FUNCIONÁRIOS/ADMIN
     if (btnOrcamento) {
         btnOrcamento.style.display = temPermissao ? 'flex' : 'none';
     }
@@ -133,7 +133,6 @@ function habilitarCampoCodigoBarras(perfil) {
         btnFinalizarTexto.textContent = temPermissao ? 'Venda' : 'Compra';
     }
     
-    // Se não tiver permissão, garantir que Loja Online esteja selecionado
     if (!temPermissao) {
         const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
         if (radioOnline) radioOnline.checked = true;
@@ -1457,4 +1456,5 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
