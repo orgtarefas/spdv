@@ -191,6 +191,9 @@ window.addEventListener('usuarioLogado', (event) => {
     carregarCarrinhoDoUsuario();
 });
 
+// ============================================
+// EVENTO USUÁRIO DESLOGADO (CORRIGIDO)
+// ============================================
 window.addEventListener('usuarioDeslogado', () => {
     usuarioLogado = null;
     carrinho.itens = [];
@@ -207,6 +210,7 @@ window.addEventListener('usuarioDeslogado', () => {
     const barcodeSection = document.getElementById('barcodeSection');
     const canalFisicoOption = document.getElementById('canalFisicoOption');
     const btnRecolhimento = document.getElementById('btnRecolhimento');
+    const btnOrcamento = document.getElementById('btnImprimirOrcamento'); // 🔥 ADICIONADO
     
     if (userName) userName.textContent = 'Visitante';
     if (perfilBadge) perfilBadge.style.display = 'none';
@@ -216,14 +220,18 @@ window.addEventListener('usuarioDeslogado', () => {
     if (canalFisicoOption) canalFisicoOption.style.display = 'none';
     if (btnRecolhimento) btnRecolhimento.style.display = 'none';
     
+    // 🔥 GARANTIR QUE O BOTÃO DE ORÇAMENTO SUMIU
+    if (btnOrcamento) {
+        btnOrcamento.style.display = 'none';
+    }
+    
     const btnFinalizarTexto = document.getElementById('btnFinalizarTexto');
     if (btnFinalizarTexto) btnFinalizarTexto.textContent = 'Compra';
     
-    // Garantir que Loja Online esteja selecionado
     const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
     if (radioOnline) radioOnline.checked = true;
     
-    console.log('👤 Usuário deslogado');
+    console.log('👤 Usuário deslogado - todos os botões de funcionário ocultos');
 });
 
 window.addEventListener('usuarioNaoAutorizado', (event) => {
@@ -1456,5 +1464,6 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
