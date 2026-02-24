@@ -263,6 +263,31 @@ window.addEventListener('usuarioNaoAutorizado', (event) => {
     console.error('❌ Acesso negado:', erro);
 });
 
+// NOVA FUNÇÃO: Mostrar tempo restante no modal de verificação
+async function atualizarTempoRestante() {
+    const email = document.getElementById('verificacaoEmail').textContent;
+    
+    if (!email || email === 'email@exemplo.com') return;
+    
+    const resultado = await window.verificarTempoRestante(email);
+    
+    if (resultado.encontrado && !resultado.emailVerificado) {
+        const tempoElement = document.getElementById('tempoRestante');
+        const avisoElement = document.getElementById('avisoExpiracao');
+        
+        if (tempoElement) {
+            if (resultado.expirado) {
+                tempoElement.innerHTML = `<span style="color: #dc3545; font-weight: bold;">
+                    ⚠️ EXPIRADO! Faça um novo cadastro.
+                </span>`;
+                if (avisoElement) avisoElement.style.display = 'block';
+            } else {
+                tempoElement.innerHTML = `⏳ Tempo restante: <strong>${resultado.minutosRestantes} minutos</strong>`;
+            }
+        }
+    }
+}
+
 // ============================================
 // FUNÇÕES DE LOGIN (usam window.fazerLogin do login_firebase.js)
 // ============================================
@@ -1172,19 +1197,26 @@ function configurarEventos() {
         }
     });
 
-    // Adicione isso na função configurarEventos():
-
     // Evento para quando usuário não verificou email
     window.addEventListener('usuarioNaoVerificado', (event) => {
         const { email } = event.detail;
         
-        // Mostrar modal de verificação
         document.getElementById('verificacaoEmail').textContent = email;
         abrirModal('verificacaoEmailModal');
         
-        // Fazer logout para não ficar logado
-        window.fazerLogout();
+        // Atualizar tempo restante
+        atualizarTempoRestante();
+        
+        // Atualizar a cada 30 segundos
+        const interval = setInterval(() => {
+            if (!document.getElementById('verificacaoEmailModal').classList.contains('active')) {
+                clearInterval(interval);
+                return;
+            }
+            atualizarTempoRestante();
+        }, 30000);
     });
+
     
     // Reenviar email de verificação
     document.getElementById('btnReenviarVerificacao')?.addEventListener('click', async () => {
@@ -1196,12 +1228,13 @@ function configurarEventos() {
             const resultado = await window.reenviarEmailVerificacao(email);
             
             if (resultado.sucesso) {
-                mostrarMensagem('E-mail de verificação reenviado!', 'success');
+                mostrarMensagem('E-mail reenviado! Você tem mais 30 minutos.', 'success');
+                atualizarTempoRestante();
             } else {
-                mostrarMensagem('Erro ao reenviar: ' + resultado.erro, 'error');
+                mostrarMensagem('Erro: ' + resultado.erro, 'error');
             }
         } catch (error) {
-            mostrarMensagem('Erro ao reenviar e-mail', 'error');
+            mostrarMensagem('Erro ao reenviar', 'error');
         } finally {
             esconderLoading();
         }
@@ -1321,5 +1354,6 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
