@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Carrinho - Loja Online</title>
-    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://*.firebaseapp.com https://*.google.com https://*.gstatic.com;">
+    <title>Carrinho de Compras - Loja Online</title>
     <link rel="stylesheet" href="carrinho.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -17,8 +16,11 @@
                     <i class="fas fa-arrow-left"></i>
                     Voltar
                 </a>
+                <div class="logo-mini">
+                    <img id="headerLogo" src="" alt="Logo" class="header-logo">
+                </div>
                 <div class="page-title">
-                    <h1><i class="fas fa-shopping-cart"></i> Meu Carrinho</h1>
+                    <h1><i class="fas fa-shopping-cart"></i> Carrinho de Compras</h1>
                     <p class="page-subtitle" id="lojaNomeHeader">Carregando...</p>
                 </div>
             </div>
@@ -41,18 +43,7 @@
             <div class="pdv-container">
                 <!-- LADO ESQUERDO - CONTROLES E INFORMAÇÕES -->
                 <div class="pdv-left">
-                    <!-- Informações da Loja -->
-                    <div class="loja-info">
-                        <div class="loja-logo">
-                            <img id="lojaLogo" src="" alt="Logo da Loja">
-                        </div>
-                        <div class="loja-dados">
-                            <h2 id="lojaNome">Carregando...</h2>
-                            <p id="lojaEndereco"></p>
-                        </div>
-                    </div>
-
-                    <!-- Canal de Vendas (visível para todos) -->
+                    <!-- Canal de Vendas -->
                     <div class="canal-vendas-section">
                         <label class="canal-label"><i class="fas fa-store-alt"></i> Canal de Vendas:</label>
                         <div class="canal-opcoes" id="canalOpcoes">
@@ -69,7 +60,7 @@
                         </div>
                     </div>
 
-                    <!-- Área de Código de Barras (apenas para funcionários/admin) -->
+                    <!-- Área de Código de Barras (visível apenas para Loja Física) -->
                     <div class="barcode-section" id="barcodeSection" style="display: none;">
                         <h3><i class="fas fa-barcode"></i> Código de Barras</h3>
                         <div class="barcode-input-group">
@@ -88,9 +79,9 @@
                             <div class="quantity-selector">
                                 <label>Quantidade:</label>
                                 <div class="quantity-controls">
-                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(-1)">−</button>
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidadeInput(-1)">−</button>
                                     <input type="number" id="itemQuantity" value="1" min="1" max="999" step="1">
-                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(1)">+</button>
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidadeInput(1)">+</button>
                                 </div>
                             </div>
                             
@@ -115,6 +106,10 @@
                                 <div class="ampliado-preco">
                                     <span class="preco-label">Preço:</span>
                                     <span class="preco-valor" id="ampliadoPreco">R$ 0,00</span>
+                                </div>
+                                <div class="ampliado-estoque">
+                                    <span class="estoque-label">Estoque:</span>
+                                    <span class="estoque-valor" id="ampliadoEstoque">0</span>
                                 </div>
                                 <div class="ampliado-total">
                                     <span class="total-label">Total:</span>
@@ -181,7 +176,7 @@
         </footer>
     </div>
 
-    <!-- MODAL DE FINALIZAÇÃO DE COMPRA/VENDA -->
+    <!-- MODAL DE FINALIZAÇÃO -->
     <div id="finalizarModal" class="modal modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -189,7 +184,7 @@
                 <button class="modal-close" onclick="fecharModal('finalizarModal')">&times;</button>
             </div>
             <div class="modal-body" id="finalizarModalBody">
-                <!-- Conteúdo dinâmico via JavaScript -->
+                <!-- Conteúdo dinâmico -->
             </div>
             <div class="modal-footer">
                 <button class="btn-confirm" id="btnConfirmarFinalizacao">
@@ -240,34 +235,6 @@
         </div>
     </div>
 
-    <!-- MODAL DE CONSULTA DE PREÇO -->
-    <div id="consultaPrecoModal" class="modal modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-search-dollar"></i> Consulta de Preços</h3>
-                <button class="modal-close" onclick="fecharModal('consultaPrecoModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="consultaPrecoInput" placeholder="Digite código, nome ou código de barras...">
-                    <button class="search-clear" id="consultaPrecoClear">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div class="consulta-preco-results" id="consultaPrecoResults">
-                    <!-- Resultados serão carregados aqui -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="fecharModal('consultaPrecoModal')">
-                    <i class="fas fa-times"></i> Fechar
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL DE RECOLHIMENTO DE CAIXA -->
     <div id="recolhimentoModal" class="modal">
         <div class="modal-content">
@@ -280,12 +247,10 @@
                     <label><i class="fas fa-user"></i> Login Operador</label>
                     <input type="text" id="recolhimentoOperador" readonly>
                 </div>
-                
                 <div class="form-group">
                     <label><i class="fas fa-calendar"></i> Data/Hora</label>
                     <input type="text" id="recolhimentoDataHora" readonly>
                 </div>
-                
                 <div class="form-group">
                     <label><i class="fas fa-cash-register"></i> Caixa *</label>
                     <select id="recolhimentoCaixa">
@@ -294,17 +259,14 @@
                         <option value="caixa03">Caixa 03</option>
                     </select>
                 </div>
-                
                 <div class="form-group">
                     <label><i class="fas fa-money-bill"></i> Valor do Recolhimento *</label>
                     <input type="text" id="recolhimentoValor" placeholder="R$ 0,00">
                 </div>
-                
                 <div class="form-group">
                     <label><i class="fas fa-envelope"></i> N° Envelope *</label>
                     <input type="text" id="recolhimentoEnvelope" placeholder="Digite ou escaneie o número do envelope">
                 </div>
-                
                 <div class="form-group">
                     <label><i class="fas fa-comment"></i> Observação</label>
                     <textarea id="recolhimentoObs" rows="2" placeholder="Observação (opcional)"></textarea>
@@ -312,7 +274,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-confirm" id="btnConfirmarRecolhimento">
-                    <i class="fas fa-check"></i> Confirmar Recolhimento
+                    <i class="fas fa-check"></i> Confirmar
                 </button>
                 <button class="btn-cancel" onclick="fecharModal('recolhimentoModal')">
                     <i class="fas fa-times"></i> Cancelar
@@ -350,4 +312,3 @@
     <script src="carrinho.js" type="module"></script>
 </body>
 </html>
-
