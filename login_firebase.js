@@ -367,7 +367,7 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             sucesso: true,
             precisaVerificar: true,
             email: email,
-            mensagem: '✅ Cadastro realizado! Enviamos um e-mail de confirmação. Por favor, verifique sua caixa de entrada (incluindo spam) e clique no link para verificar seu e-mail antes de fazer login.'
+            mensagem: '✅ Cadastro realizado! Enviamos um e-mail de confirmação pelo email valida_login@lojasite... Por favor, verifique sua caixa de entrada (incluindo spam) e clique no link para verificar seu e-mail antes de fazer login.'
         };
         
     } catch (error) {
@@ -544,3 +544,4 @@ console.log('📋 Funções disponíveis:', {
     fazerLogout: typeof fazerLogout,
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao
 });
+
