@@ -501,6 +501,12 @@ window.getLojaDaURL = getLojaDaURL;
 window.auth = auth;    
 window.loginDb = loginDb;    
 
-console.log('✅ Sistema de login carregado (com suporte a ADMIN, funcionários e clientes)');
+console.log('✅ Sistema de login carregado');
+console.log('📋 Funções disponíveis:', {
+    fazerLogin: typeof fazerLogin,
+    cadastrarCliente: typeof cadastrarCliente,
+    fazerLogout: typeof fazerLogout
+});
+
 
 
