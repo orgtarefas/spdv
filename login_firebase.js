@@ -416,24 +416,31 @@ auth.onAuthStateChanged(async (user) => {
         }
         
         // VERIFICAR SE É UM CADASTRO RECENTE
-        // (menos de 3 segundos - tempo suficiente para salvar no Firestore)
         const metadata = user.metadata;
         const creationTime = new Date(metadata.creationTime).getTime();
         const now = Date.now();
-        const isRecentSignUp = (now - creationTime) < 3000; // 3 segundos
+        const isRecentSignUp = (now - creationTime) < 3000;
         
         if (isRecentSignUp) {
             console.log('🕒 Cadastro recente detectado, aguardando criação do perfil...');
             
-            // Aguardar um pouco para o perfil ser criado
             setTimeout(async () => {
                 try {
-                    // Tentar buscar o perfil novamente
                     const adminCheck = await verificarAdmin(user.email);
                     
                     if (adminCheck.isAdmin) {
                         window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                            detail: { usuario: { ... } }
+                            detail: { 
+                                usuario: {
+                                    uid: user.uid,
+                                    email: user.email,
+                                    nome: adminCheck.dados.nome,
+                                    nivel: 'admin',
+                                    tipo: 'admin',
+                                    loja: lojaAtual
+                                },
+                                permissoes: { todas: true }
+                            }
                         }));
                         return;
                     }
@@ -444,8 +451,6 @@ auth.onAuthStateChanged(async (user) => {
                         window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                             detail: { usuario: perfil }
                         }));
-                    } else {
-                        console.log('⚠️ Perfil ainda não encontrado, aguardando mais...');
                     }
                 } catch (error) {
                     console.error('Erro ao buscar perfil após cadastro:', error);
@@ -455,14 +460,24 @@ auth.onAuthStateChanged(async (user) => {
             return;
         }
         
-        // FLUXO NORMAL PARA LOGINS ESTABELECIDOS
+        // FLUXO NORMAL
         try {
             const adminCheck = await verificarAdmin(user.email);
             
             if (adminCheck.isAdmin) {
                 console.log('✅ ADMIN logado');
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                    detail: { usuario: adminCheck }
+                    detail: { 
+                        usuario: {
+                            uid: user.uid,
+                            email: user.email,
+                            nome: adminCheck.dados.nome,
+                            nivel: 'admin',
+                            tipo: 'admin',
+                            loja: lojaAtual
+                        },
+                        permissoes: { todas: true }
+                    }
                 }));
                 return;
             }
@@ -492,21 +507,17 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 // ============================================
-// EXPOR FUNÇÕES
+// EXPOR FUNÇÕES E VARIÁVEIS GLOBALMENTE
 // ============================================
 window.fazerLogin = fazerLogin;
 window.cadastrarCliente = cadastrarCliente;
 window.fazerLogout = fazerLogout;
 window.getLojaDaURL = getLojaDaURL;
-window.auth = auth;    
-window.loginDb = loginDb;    
 
-console.log('✅ Sistema de login carregado');
-console.log('📋 Funções disponíveis:', {
-    fazerLogin: typeof fazerLogin,
-    cadastrarCliente: typeof cadastrarCliente,
-    fazerLogout: typeof fazerLogout
-});
+window.auth = auth;
+window.loginDb = loginDb;
+
+console.log('✅ Sistema de login carregado com sucesso!');
 
 
 
