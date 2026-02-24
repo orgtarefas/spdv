@@ -318,6 +318,19 @@ async function fazerLoginCliente() {
             document.getElementById('loginEmail').value = '';
             document.getElementById('loginSenha').value = '';
             
+            fecharModal('loginModal');
+            
+        } else if (resultado && resultado.precisaVerificar) {
+            // CASO ESPECÍFICO: Email não verificado
+            // Fechar modal de login e mostrar mensagem
+            fecharModal('loginModal');
+            
+            // Mostrar mensagem detalhada (já vem formatada do login_firebase)
+            mostrarMensagem(resultado.erro, 'warning', 10000);
+            
+            // Limpar campo de senha
+            document.getElementById('loginSenha').value = '';
+            
         } else {
             const mensagem = resultado?.erro || 'E-mail ou senha incorretos';
             mostrarMensagem(mensagem, 'error');
@@ -1354,6 +1367,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
