@@ -126,6 +126,33 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
 }
 
 // ============================================
+// FUNÇÃO PARA RECUPERAR SENHA
+// ============================================
+async function recuperarSenha(email) {
+    try {
+        await auth.sendPasswordResetEmail(email);
+        return {
+            sucesso: true,
+            mensagem: `Link de redefinição enviado para ${email}`
+        };
+    } catch (error) {
+        console.error('Erro ao recuperar senha:', error);
+        
+        let mensagem = 'Erro ao enviar link de redefinição.';
+        if (error.code === 'auth/user-not-found') {
+            mensagem = 'E-mail não encontrado.';
+        } else if (error.code === 'auth/invalid-email') {
+            mensagem = 'E-mail inválido.';
+        }
+        
+        return {
+            sucesso: false,
+            erro: mensagem
+        };
+    }
+}
+
+// ============================================
 // FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (SEM LOGIN)
 // ============================================
 async function reenviarEmailVerificacao(email) {
@@ -545,6 +572,7 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
 
