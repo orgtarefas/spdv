@@ -1,6 +1,5 @@
 // ============================================
 // CONFIGURAÇÃO DO FIREBASE DE LOGIN
-// Projeto: lojasite-ba36f
 // ============================================
 
 const loginFirebaseConfig = {
@@ -12,12 +11,11 @@ const loginFirebaseConfig = {
     appId: "1:1083157739430:web:5ed2d4261434c73a9e4167"
 };
 
-// Inicializar Firebase de login
 const loginApp = firebase.initializeApp(loginFirebaseConfig, 'loginApp');
 const auth = loginApp.auth();
 const loginDb = loginApp.firestore();
 
-// Configurar persistência para lembrar login
+// Configurar persistência
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 // Ativar App Check
@@ -38,7 +36,6 @@ try {
 // FUNÇÕES AUXILIARES
 // ============================================
 
-// Função para extrair loja da URL
 function getLojaDaURL() {
     const path = window.location.pathname;
     const match = path.match(/\/lojas\/([^\/]+)\//);
@@ -51,112 +48,80 @@ function getLojaDaURL() {
 }
 
 // ============================================
-// VERIFICAR SE É ADMIN (coleção admin)
+// CADASTRO DE CLIENTE COM CAMPOS SOLICITADOS
 // ============================================
-async function verificarAdmin(email) {
-    if (!auth.currentUser) {
-        return { isAdmin: false };
-    }
-    
+async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cidade, cep) {
     try {
-        const adminDoc = await loginDb.collection('usuarios').doc('admin').get();
+        const lojaAtual = getLojaDaURL();
         
-        if (adminDoc.exists) {
-            const adminData = adminDoc.data();
-            if (adminData[email]) {
-                return {
-                    isAdmin: true,
-                    dados: adminData[email]
-                };
-            }
-        }
-        
-        return { isAdmin: false };
-    } catch (error) {
-        console.error('Erro ao verificar admin:', error);
-        return { isAdmin: false };
-    }
-}
-
-// ============================================
-// BUSCAR PERFIL DO USUÁRIO
-// ============================================
-async function buscarPerfilUsuario(email, lojaId) {
-    if (!auth.currentUser) {
-        return { encontrado: false };
-    }
-    
-    try {
-        // Recarregar dados do usuário para garantir status mais recente
-        await auth.currentUser.reload();
-        const emailVerified = auth.currentUser.emailVerified;
-        
-        // 1️⃣ VERIFICAR SE É FUNCIONÁRIO
-        const funcDoc = await loginDb.collection('usuarios').doc(lojaId)
-                               .collection('funcionarios').doc(email).get();
-        
-        if (funcDoc.exists) {
-            const funcData = funcDoc.data();
-            
-            // SE O STATUS NO FIRESTORE FOR DIFERENTE DO AUTHENTICATION, ATUALIZAR
-            if (funcData.emailVerificado !== emailVerified) {
-                await loginDb.collection('usuarios').doc(lojaId)
-                       .collection('funcionarios').doc(email)
-                       .update({ 
-                           emailVerificado: emailVerified,
-                           ultima_sincronizacao: firebase.firestore.FieldValue.serverTimestamp()
-                       });
-                console.log('🔄 Campo emailVerificado corrigido para funcionário');
-            }
-            
+        if (!lojaAtual) {
             return {
-                encontrado: true,
-                tipo: 'funcionario',
-                perfil: funcData.perfil,
-                nome: funcData.nome,
-                email: email,
-                ativo: funcData.ativo,
-                emailVerificado: emailVerified, // USA O STATUS REAL
-                dados: funcData
+                sucesso: false,
+                erro: 'URL inválida - Loja não identificada'
             };
         }
         
-        // 2️⃣ VERIFICAR SE É CLIENTE
-        const clienteDoc = await loginDb.collection('usuarios').doc(lojaId)
-                                  .collection('clientes').doc(email).get();
+        console.log(`📝 Cadastrando cliente: ${email} na loja ${lojaAtual}`);
         
-        if (clienteDoc.exists) {
-            const clienteData = clienteDoc.data();
-            
-            // SE O STATUS NO FIRESTORE FOR DIFERENTE DO AUTHENTICATION, ATUALIZAR
-            if (clienteData.emailVerificado !== emailVerified) {
-                await loginDb.collection('usuarios').doc(lojaId)
-                       .collection('clientes').doc(email)
-                       .update({ 
-                           emailVerificado: emailVerified,
-                           ultima_sincronizacao: firebase.firestore.FieldValue.serverTimestamp()
-                       });
-                console.log('🔄 Campo emailVerificado corrigido para cliente');
-            }
-            
-            return {
-                encontrado: true,
-                tipo: 'cliente',
-                perfil: 'cliente',
-                nome: clienteData.nome,
-                email: email,
-                ativo: clienteData.ativo,
-                emailVerificado: emailVerified, // USA O STATUS REAL
-                dados: clienteData
-            };
-        }
+        // 1. CRIAR USUÁRIO NO AUTHENTICATION
+        const userCredential = await auth.createUserWithEmailAndPassword(email, senha);
+        const user = userCredential.user;
         
-        console.log('❌ Usuário não encontrado');
-        return { encontrado: false };
+        // 2. Atualizar perfil com nome
+        await user.updateProfile({ displayName: nome });
+        
+        // 3. ENVIAR EMAIL DE VERIFICAÇÃO
+        await user.sendEmailVerification();
+        
+        // 4. SALVAR NO FIRESTORE COM OS DOIS CAMPOS
+        const dadosCliente = {
+            nome: nome,
+            email: email,
+            telefone: telefone || '',
+            cpf: cpf || '',
+            endereco: endereco || '',
+            cidade: cidade || '',
+            cep: cep || '',
+            perfil: 'cliente',
+            ativo: true,
+            // ⚠️ CAMPOS IMPORTANTES PARA SUA IDEIA
+            emailVerificado: false,  // Começa como false
+            ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp(), // Agora
+            data_cadastro: firebase.firestore.FieldValue.serverTimestamp(),
+            uid: user.uid
+        };
+        
+        await loginDb.collection('usuarios').doc(lojaAtual)
+               .collection('clientes').doc(email).set(dadosCliente);
+        
+        // 5. FAZER LOGOUT (não queremos usuário logado sem verificação)
+        await auth.signOut();
+        
+        return {
+            sucesso: true,
+            precisaVerificar: true,
+            email: email,
+            mensagem: `✅ Cadastro realizado! Enviamos um e-mail para ${email}. 
+                       Você tem 30 minutos para verificar seu e-mail. 
+                       Após verificar, faça o login normalmente.`
+        };
         
     } catch (error) {
-        console.error('Erro ao buscar perfil:', error);
-        return { encontrado: false, erro: error.message };
+        console.error('❌ Erro no cadastro:', error);
+        
+        let mensagemErro = error.message;
+        if (error.code === 'auth/email-already-in-use') {
+            mensagemErro = 'E-mail já está em uso';
+        } else if (error.code === 'auth/weak-password') {
+            mensagemErro = 'Senha muito fraca. Use pelo menos 6 caracteres';
+        } else if (error.code === 'auth/invalid-email') {
+            mensagemErro = 'E-mail inválido';
+        }
+        
+        return {
+            sucesso: false,
+            erro: mensagemErro
+        };
     }
 }
 
@@ -165,22 +130,34 @@ async function buscarPerfilUsuario(email, lojaId) {
 // ============================================
 async function reenviarEmailVerificacao(email) {
     try {
+        const lojaAtual = getLojaDaURL();
         const user = auth.currentUser;
         
-        if (user && user.email === email) {
-            await user.sendEmailVerification();
-            return { 
-                sucesso: true,
-                mensagem: 'E-mail de verificação reenviado! Verifique sua caixa de entrada.'
-            };
-        } else {
+        if (!user || user.email !== email) {
             return { 
                 sucesso: false, 
-                erro: 'Usuário não está logado. Faça o login primeiro.' 
+                erro: 'Usuário não está logado. Faça login primeiro.' 
             };
         }
+        
+        // Reenviar email de verificação
+        await user.sendEmailVerification();
+        
+        // ATUALIZAR O CAMPO ultimo_envio_email_valida
+        await loginDb.collection('usuarios').doc(lojaAtual)
+               .collection('clientes').doc(email)
+               .update({
+                   ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp(),
+                   contador_envios: firebase.firestore.FieldValue.increment(1)
+               });
+        
+        return { 
+            sucesso: true,
+            mensagem: 'E-mail de verificação reenviado! Você tem mais 30 minutos.'
+        };
+        
     } catch (error) {
-        console.error('Erro ao reenviar verificação:', error);
+        console.error('Erro ao reenviar:', error);
         return { 
             sucesso: false, 
             erro: error.message 
@@ -198,16 +175,36 @@ async function fazerLogin(email, senha) {
         
         // VERIFICAR SE O EMAIL FOI VERIFICADO
         if (!user.emailVerified) {
-            // Manter o usuário logado apenas para poder reenviar o email
+            await auth.signOut();
+            
+            // Buscar dados do cliente para saber quando foi o último envio
+            const lojaAtual = getLojaDaURL();
+            const clienteDoc = await loginDb.collection('usuarios').doc(lojaAtual)
+                                   .collection('clientes').doc(email).get();
+            
+            if (clienteDoc.exists) {
+                const dados = clienteDoc.data();
+                const ultimoEnvio = dados.ultimo_envio_email_valida?.toDate?.() || new Date();
+                const minutosPassados = Math.round((new Date() - ultimoEnvio) / (1000 * 60));
+                
+                return {
+                    sucesso: false,
+                    precisaVerificar: true,
+                    email: email,
+                    minutosPassados: minutosPassados,
+                    erro: `E-mail não verificado. Seu e-mail foi enviado há ${minutosPassados} minutos. Você tem 30 minutos para verificar.`
+                };
+            }
+            
             return {
                 sucesso: false,
                 precisaVerificar: true,
                 email: email,
-                uid: user.uid,
-                erro: 'E-mail não verificado. Por favor, verifique sua caixa de entrada e confirme seu e-mail.'
+                erro: 'E-mail não verificado. Verifique sua caixa de entrada.'
             };
         }
         
+        // SE CHEGOU AQUI, EMAIL ESTÁ VERIFICADO
         const lojaAtual = getLojaDaURL();
         
         if (!lojaAtual) {
@@ -218,30 +215,8 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // Verificar se é admin
-        const adminCheck = await verificarAdmin(email);
-        
-        if (adminCheck.isAdmin) {
-            return {
-                sucesso: true,
-                usuario: {
-                    uid: user.uid,
-                    email: user.email,
-                    nome: adminCheck.dados.nome,
-                    nivel: 'admin',
-                    tipo: 'admin',
-                    loja: lojaAtual,
-                    emailVerificado: user.emailVerified
-                },
-                permissoes: { 
-                    todas: true,
-                    admin: true
-                }
-            };
-        }
-        
-        // Buscar perfil (funcionário ou cliente)
-        const perfil = await buscarPerfilUsuario(email, lojaAtual);
+        // BUSCAR PERFIL DO USUÁRIO
+        const perfil = await buscarPerfilUsuario(user.email, lojaAtual);
         
         if (!perfil.encontrado) {
             await auth.signOut();
@@ -259,49 +234,14 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // Atualizar último acesso
-        const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-        const collection = perfil.tipo === 'funcionario' ? 'funcionarios' : 'clientes';
+        // ATUALIZAR O CAMPO emailVerificado NO FIRESTORE PARA true
         await loginDb.collection('usuarios').doc(lojaAtual)
-               .collection(collection).doc(email)
-               .update({ ultimo_acesso: timestamp });
-        
-        // Definir permissões
-        let permissoes = {
-            visualizar_produtos: true,
-            fazer_compras: true
-        };
-        
-        if (perfil.tipo === 'funcionario') {
-            switch(perfil.perfil) {
-                case 'gerente':
-                    permissoes = {
-                        ...permissoes,
-                        editar_produtos: true,
-                        gerenciar_estoque: true,
-                        ver_relatorios: true,
-                        gerenciar_funcionarios: true,
-                        gerenciar_loja: true
-                    };
-                    break;
-                case 'supervisor':
-                    permissoes = {
-                        ...permissoes,
-                        editar_produtos: true,
-                        gerenciar_estoque: true,
-                        ver_relatorios: true
-                    };
-                    break;
-                case 'vendedor':
-                    permissoes = {
-                        ...permissoes,
-                        editar_produtos: false,
-                        gerenciar_estoque: false,
-                        ver_relatorios: false
-                    };
-                    break;
-            }
-        }
+               .collection('clientes').doc(email)
+               .update({
+                   emailVerificado: true,
+                   data_verificacao: firebase.firestore.FieldValue.serverTimestamp(),
+                   ultimo_login: firebase.firestore.FieldValue.serverTimestamp()
+               });
         
         return {
             sucesso: true,
@@ -309,13 +249,15 @@ async function fazerLogin(email, senha) {
                 uid: user.uid,
                 email: user.email,
                 nome: perfil.nome,
-                nivel: perfil.perfil,
-                tipo: perfil.tipo,
+                nivel: 'cliente',
+                tipo: 'cliente',
                 loja: lojaAtual,
-                emailVerificado: user.emailVerified,
-                dados: perfil.dados
+                emailVerificado: true
             },
-            permissoes: permissoes
+            permissoes: {
+                visualizar_produtos: true,
+                fazer_compras: true
+            }
         };
         
     } catch (error) {
@@ -340,100 +282,86 @@ async function fazerLogin(email, senha) {
 }
 
 // ============================================
-// CADASTRO DE CLIENTE COM VERIFICAÇÃO DE EMAIL
+// BUSCAR PERFIL DO USUÁRIO (CORRIGIDO)
 // ============================================
-async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cidade, cep) {
+async function buscarPerfilUsuario(email, lojaId) {
+    if (!auth.currentUser) {
+        return { encontrado: false };
+    }
+    
     try {
-        const lojaAtual = getLojaDaURL();
+        // Recarregar dados do usuário para garantir status mais recente
+        await auth.currentUser.reload();
+        const emailVerified = auth.currentUser.emailVerified;
         
-        if (!lojaAtual) {
+        // Buscar cliente
+        const clienteDoc = await loginDb.collection('usuarios').doc(lojaId)
+                                  .collection('clientes').doc(email).get();
+        
+        if (clienteDoc.exists) {
+            const clienteData = clienteDoc.data();
+            
+            // SE O STATUS NO FIRESTORE FOR DIFERENTE DO AUTHENTICATION, CORRIGIR
+            if (clienteData.emailVerificado !== emailVerified) {
+                await loginDb.collection('usuarios').doc(lojaId)
+                       .collection('clientes').doc(email)
+                       .update({ 
+                           emailVerificado: emailVerified,
+                           ultima_sincronizacao: firebase.firestore.FieldValue.serverTimestamp()
+                       });
+                console.log('🔄 Campo emailVerificado sincronizado');
+            }
+            
             return {
-                sucesso: false,
-                erro: 'URL inválida - Loja não identificada'
+                encontrado: true,
+                tipo: 'cliente',
+                perfil: 'cliente',
+                nome: clienteData.nome,
+                email: email,
+                ativo: clienteData.ativo,
+                emailVerificado: emailVerified, // USA O STATUS REAL
+                dados: clienteData
             };
         }
         
-        console.log(`📝 Cadastrando cliente: ${email} na loja ${lojaAtual}`);
+        return { encontrado: false };
         
-        // 1. CRIAR USUÁRIO
-        console.log('📝 Criando usuário no Authentication...');
-        const userCredential = await auth.createUserWithEmailAndPassword(email, senha);
-        const user = userCredential.user;
-        console.log(`✅ Usuário criado: ${user.uid}`);
+    } catch (error) {
+        console.error('Erro ao buscar perfil:', error);
+        return { encontrado: false, erro: error.message };
+    }
+}
+
+// ============================================
+// FUNÇÃO PARA VERIFICAR TEMPO RESTANTE
+// ============================================
+async function verificarTempoRestante(email) {
+    try {
+        const lojaAtual = getLojaDaURL();
+        const clienteDoc = await loginDb.collection('usuarios').doc(lojaAtual)
+                               .collection('clientes').doc(email).get();
         
-        // 2. Atualizar perfil com nome
-        await user.updateProfile({ displayName: nome });
+        if (!clienteDoc.exists) {
+            return { encontrado: false };
+        }
         
-        // 3. ENVIAR EMAIL DE VERIFICAÇÃO (SEM URL PERSONALIZADA)
-        console.log('📧 Enviando email de verificação...');
-        await user.sendEmailVerification(); // Sem parâmetros = usa domínio padrão do Firebase
-        
-        // 4. SALVAR NO FIRESTORE
-        console.log('📝 Salvando dados do cliente no Firestore...');
-        
-        await loginDb.collection('usuarios').doc(lojaAtual)
-               .collection('clientes').doc(email).set({
-            nome: nome,
-            email: email,
-            telefone: telefone || '',
-            cpf: cpf || '',
-            endereco: endereco || '',
-            cidade: cidade || '',
-            cep: cep || '',
-            perfil: 'cliente',
-            ativo: true,
-            emailVerificado: false,
-            data_cadastro: firebase.firestore.FieldValue.serverTimestamp(),
-            ultimo_acesso: null
-        });
-        
-        console.log(`✅ Cliente ${email} cadastrado com sucesso!`);
-        
-        // 5. FAZER LOGOUT PARA NÃO FICAR LOGADO
-        await auth.signOut();
+        const dados = clienteDoc.data();
+        const ultimoEnvio = dados.ultimo_envio_email_valida?.toDate?.() || new Date();
+        const agora = new Date();
+        const minutosPassados = Math.round((agora - ultimoEnvio) / (1000 * 60));
+        const minutosRestantes = Math.max(0, 30 - minutosPassados);
         
         return {
-            sucesso: true,
-            precisaVerificar: true,
-            email: email,
-            mensagem: '✅ Cadastro realizado! Enviamos um e-mail de confirmação pelo email valida_login@lojasite... Por favor, verifique sua caixa de entrada (incluindo spam) e clique no link para verificar seu e-mail antes de fazer login.'
+            encontrado: true,
+            emailVerificado: dados.emailVerificado,
+            minutosPassados,
+            minutosRestantes,
+            expirado: minutosPassados > 30 && !dados.emailVerificado
         };
         
     } catch (error) {
-        console.error('❌ Erro no cadastro:', error);
-        
-        let mensagemErro = error.message;
-        if (error.code === 'auth/email-already-in-use') {
-            mensagemErro = 'E-mail já está em uso';
-        } else if (error.code === 'auth/weak-password') {
-            mensagemErro = 'Senha muito fraca. Use pelo menos 6 caracteres';
-        } else if (error.code === 'auth/invalid-email') {
-            mensagemErro = 'E-mail inválido';
-        } else if (error.code === 'auth/unauthorized-continue-uri') {
-            mensagemErro = 'Erro de configuração do domínio. O e-mail ainda será enviado.';
-            
-            // Fallback: tentar enviar sem URL personalizada
-            try {
-                const user = auth.currentUser;
-                if (user) {
-                    await user.sendEmailVerification();
-                    await auth.signOut();
-                    return {
-                        sucesso: true,
-                        precisaVerificar: true,
-                        email: email,
-                        mensagem: '✅ Cadastro realizado! Verifique seu e-mail (incluindo spam) para confirmar.'
-                    };
-                }
-            } catch (fallbackError) {
-                console.error('Fallback também falhou:', fallbackError);
-            }
-        }
-        
-        return {
-            sucesso: false,
-            erro: mensagemErro
-        };
+        console.error('Erro ao verificar tempo:', error);
+        return { encontrado: false, erro: error.message };
     }
 }
 
@@ -451,26 +379,6 @@ async function fazerLogout() {
 }
 
 // ============================================
-// VERIFICAR STATUS DE VERIFICAÇÃO DE EMAIL
-// ============================================
-async function verificarStatusEmail(email) {
-    try {
-        const user = auth.currentUser;
-        if (user && user.email === email) {
-            await user.reload();
-            return {
-                verificado: user.emailVerified,
-                email: user.email
-            };
-        }
-        return { verificado: false };
-    } catch (error) {
-        console.error('Erro ao verificar status:', error);
-        return { verificado: false, erro: error.message };
-    }
-}
-
-// ============================================
 // LISTENER DE AUTENTICAÇÃO
 // ============================================
 auth.onAuthStateChanged(async (user) => {
@@ -478,9 +386,8 @@ auth.onAuthStateChanged(async (user) => {
         console.log('👤 Usuário autenticado:', user.email);
         console.log('📧 Email verificado:', user.emailVerified);
         
-        // SÓ PROSSEGUIR SE O EMAIL ESTIVER VERIFICADO
         if (!user.emailVerified) {
-            console.log('⚠️ Email não verificado. Aguardando verificação...');
+            console.log('⚠️ Email não verificado');
             window.dispatchEvent(new CustomEvent('usuarioNaoVerificado', { 
                 detail: { 
                     email: user.email,
@@ -498,56 +405,32 @@ auth.onAuthStateChanged(async (user) => {
         }
         
         try {
-            const adminCheck = await verificarAdmin(user.email);
-            
-            if (adminCheck.isAdmin) {
-                console.log('✅ ADMIN logado');
-                window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                    detail: { 
-                        usuario: {
-                            uid: user.uid,
-                            email: user.email,
-                            nome: adminCheck.dados.nome,
-                            nivel: 'admin',
-                            tipo: 'admin',
-                            loja: lojaAtual,
-                            emailVerificado: true
-                        },
-                        permissoes: { todas: true }
-                    }
-                }));
-                return;
-            }
-            
             const perfil = await buscarPerfilUsuario(user.email, lojaAtual);
             
             if (perfil.encontrado && perfil.ativo) {
-                console.log(`✅ ${perfil.tipo.toUpperCase()} logado:`, perfil.nome);
+                console.log(`✅ Cliente logado: ${perfil.nome}`);
+                
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                     detail: { 
                         usuario: perfil,
-                        permissoes: perfil.tipo === 'funcionario' ? {
-                            visualizar_produtos: true,
-                            fazer_compras: true,
-                            editar_produtos: perfil.perfil !== 'vendedor',
-                            gerenciar_estoque: perfil.perfil !== 'vendedor'
-                        } : {
+                        permissoes: {
                             visualizar_produtos: true,
                             fazer_compras: true
                         }
                     }
                 }));
             } else {
-                console.log('❌ Usuário não tem perfil nesta loja');
+                console.log('❌ Cliente não encontrado ou inativo');
                 await auth.signOut();
                 window.dispatchEvent(new CustomEvent('usuarioNaoAutorizado', { 
-                    detail: { erro: 'Usuário não cadastrado' }
+                    detail: { erro: 'Cliente não encontrado' }
                 }));
             }
         } catch (error) {
-            console.error('Erro no auth state changed:', error);
+            console.error('Erro no auth state:', error);
             await auth.signOut();
         }
+        
     } else {
         console.log('👤 Nenhum usuário logado');
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
@@ -562,16 +445,14 @@ window.cadastrarCliente = cadastrarCliente;
 window.fazerLogout = fazerLogout;
 window.getLojaDaURL = getLojaDaURL;
 window.reenviarEmailVerificacao = reenviarEmailVerificacao;
-window.verificarStatusEmail = verificarStatusEmail;
+window.verificarTempoRestante = verificarTempoRestante;
 window.auth = auth;    
 window.loginDb = loginDb;    
 
-console.log('✅ Sistema de login carregado');
+console.log('✅ Sistema de login carregado com campos de verificação');
 console.log('📋 Funções disponíveis:', {
     fazerLogin: typeof fazerLogin,
     cadastrarCliente: typeof cadastrarCliente,
-    fazerLogout: typeof fazerLogout,
-    reenviarEmailVerificacao: typeof reenviarEmailVerificacao
+    reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
+    verificarTempoRestante: typeof verificarTempoRestante
 });
-
-
