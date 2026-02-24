@@ -1,6 +1,12 @@
 // novo_clientes.js - Tela de Exposição de Produtos para Clientes (NOVO SISTEMA)
 console.log("🛒 Sistema PDV - Loja para Clientes (Nova Autenticação)");
 
+// VERIFICAR SE AS FUNÇÕES DE LOGIN ESTÃO DISPONÍVEIS
+if (typeof window.fazerLogin !== 'function') {
+    console.error('❌ CRÍTICO: funções de login não disponíveis!');
+    console.log('Verifique se login_firebase.js foi carregado antes deste script');
+}
+
 // ============================================
 // IMPORTAÇÕES
 // ============================================
@@ -1257,20 +1263,5 @@ window.verProdutoDetalhe = verProdutoDetalhe;
 window.adicionarAoCarrinho = adicionarAoCarrinho;
 window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
-window.fazerLogin = fazerLogin;
-window.cadastrarCliente = cadastrarCliente; 
-window.fazerLogout = fazerLogout;
-window.getLojaDaURL = getLojaDaURL;
-
-// Variáveis
-window.auth = auth;
-window.loginDb = loginDb;
-
-console.log('✅ Sistema de login carregado (com suporte a ADMIN, funcionários e clientes)');
-console.log('🔑 Funções exportadas:', {
-    fazerLogin: typeof window.fazerLogin,
-    cadastrarCliente: typeof window.cadastrarCliente,
-    fazerLogout: typeof window.fazerLogout
-});
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
