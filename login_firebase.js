@@ -433,7 +433,17 @@ auth.onAuthStateChanged(async (user) => {
                     
                     if (adminCheck.isAdmin) {
                         window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                            detail: { usuario: { ... } }
+                            detail: { 
+                                usuario: {
+                                    uid: user.uid,
+                                    email: user.email,
+                                    nome: adminCheck.dados.nome,
+                                    nivel: 'admin',
+                                    tipo: 'admin',
+                                    loja: lojaAtual
+                                },
+                                permissoes: { todas: true }
+                            }
                         }));
                         return;
                     }
@@ -506,4 +516,5 @@ console.log('📋 Funções disponíveis:', {
     fazerLogin: typeof fazerLogin,
     cadastrarCliente: typeof cadastrarCliente,
     fazerLogout: typeof fazerLogout
+
 });
