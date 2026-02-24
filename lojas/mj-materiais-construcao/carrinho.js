@@ -599,19 +599,29 @@ async function buscarProdutoPorCodigoBarras(codigo) {
     mostrarLoading('Buscando produto...');
     
     try {
-        const resultado = await lojaServices.buscarProdutoPorCodigoBarras(codigo);
+        // Buscar produto com estoque atualizado
+        const resultado = await lojaServices.buscarProdutoPorCodigoBarras(codigo, true); // true = buscar estoque atual
         
         if (resultado && resultado.success) {
             const produto = resultado.data;
-            const quantidade = parseInt(document.getElementById('itemQuantity')?.value || 1);
+            const quantidadeDesejada = parseInt(document.getElementById('itemQuantity')?.value || 1);
             
+            // Verificar estoque disponível
+            if (produto.quantidade < quantidadeDesejada) {
+                mostrarMensagem(`Estoque insuficiente! Disponível: ${produto.quantidade}`, 'warning');
+                esconderLoading();
+                return;
+            }
+            
+            // Adicionar informação de estoque no item
             const item = {
                 id: produto.id,
                 codigo: produto.codigo,
                 codigo_barras: produto.codigo_barras,
                 nome: produto.nome,
                 preco_unitario: produto.preco,
-                quantidade: quantidade,
+                quantidade: quantidadeDesejada,
+                quantidade_estoque: produto.quantidade, // Estoque atual para referência
                 imagem: produto.imagens?.thumbnail || produto.imagens?.principal,
                 unidade: produto.unidade_venda || produto.unidade || 'UN',
                 desconto: 0,
@@ -634,6 +644,41 @@ async function buscarProdutoPorCodigoBarras(codigo) {
     } catch (error) {
         console.error('Erro ao buscar produto:', error);
         mostrarMensagem('Erro ao buscar produto', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+async function verificarEstoqueAntesFinalizar() {
+    mostrarLoading('Verificando estoque...');
+    
+    try {
+        for (const item of carrinho.itens) {
+            // Buscar estoque atual do produto
+            const resultado = await lojaServices.buscarProdutoPorId(item.id);
+            
+            if (!resultado.success) {
+                mostrarMensagem(`Erro ao verificar estoque de ${item.nome}`, 'error');
+                return false;
+            }
+            
+            const produto = resultado.data;
+            
+            if (produto.quantidade < item.quantidade) {
+                mostrarMensagem(
+                    `Estoque insuficiente para ${item.nome}! Disponível: ${produto.quantidade}`, 
+                    'error'
+                );
+                return false;
+            }
+        }
+        
+        return true;
+        
+    } catch (error) {
+        console.error('Erro ao verificar estoque:', error);
+        mostrarMensagem('Erro ao verificar estoque', 'error');
+        return false;
     } finally {
         esconderLoading();
     }
@@ -974,6 +1019,9 @@ function abrirModalFinalizacao() {
     modal.style.display = 'block';
 }
 
+// ============================================
+// FUNÇÃO COMPLETA DE FINALIZAR VENDA
+// ============================================
 async function finalizarVenda() {
     if (!usuarioLogado) {
         fecharModal('finalizarModal');
@@ -981,17 +1029,34 @@ async function finalizarVenda() {
         return;
     }
     
+    // Verificar se há itens no carrinho
+    if (carrinho.itens.length === 0) {
+        mostrarMensagem('Carrinho vazio', 'warning');
+        fecharModal('finalizarModal');
+        return;
+    }
+    
+    // VALIDAÇÕES DOS CAMPOS OBRIGATÓRIOS
     const tipoEntrega = document.querySelector('input[name="tipoEntrega"]:checked')?.value;
     const formaPagamento = document.querySelector('input[name="payment"]:checked')?.value;
     
+    // Validar telefone
+    const telefone = document.getElementById('clienteTelefone')?.value.trim();
+    if (!telefone) {
+        mostrarMensagem('Telefone é obrigatório', 'warning');
+        return;
+    }
+    
+    // Validar entrega
     if (tipoEntrega === 'entrega') {
         const endereco = document.getElementById('clienteEndereco')?.value.trim();
         if (!endereco) {
-            mostrarMensagem('Preencha o endereço de entrega', 'warning');
+            mostrarMensagem('Endereço de entrega é obrigatório', 'warning');
             return;
         }
     }
     
+    // Validar pagamento em dinheiro
     if (formaPagamento === 'dinheiro') {
         const valorRecebidoInput = document.getElementById('valorRecebido');
         if (valorRecebidoInput) {
@@ -1003,8 +1068,35 @@ async function finalizarVenda() {
         }
     }
     
+    // VERIFICAR ESTOQUE ANTES DE PROSSEGUIR
+    mostrarLoading('Verificando estoque...');
+    
     try {
-        mostrarLoading('Processando...');
+        // Verificar estoque de cada item
+        for (const item of carrinho.itens) {
+            const resultado = await lojaServices.buscarProdutoPorId(item.id);
+            
+            if (!resultado.success) {
+                mostrarMensagem(`Erro ao verificar estoque de ${item.nome}`, 'error');
+                esconderLoading();
+                return;
+            }
+            
+            const produto = resultado.data;
+            
+            if (produto.quantidade < item.quantidade) {
+                mostrarMensagem(
+                    `❌ Estoque insuficiente para ${item.nome}!\nDisponível: ${produto.quantidade} | Solicitado: ${item.quantidade}`, 
+                    'error',
+                    5000
+                );
+                esconderLoading();
+                return;
+            }
+        }
+        
+        // PREPARAR DADOS DA VENDA
+        mostrarLoading('Processando venda...', 'Aguarde, não feche esta página...');
         fecharModal('finalizarModal');
         
         const numeroVenda = gerarNumeroVenda('V');
@@ -1012,10 +1104,15 @@ async function finalizarVenda() {
         const totalComEntrega = carrinho.total + taxaEntrega;
         const cpfCliente = document.getElementById('clienteCpf')?.value.replace(/\D/g, '') || '';
         
+        // Obter canal de venda selecionado
+        const canalVenda = document.querySelector('input[name="canalVenda"]:checked')?.value || 'online';
+        
+        // Montar objeto da venda
         const vendaData = {
             tipo: 'VENDA',
             numero: numeroVenda,
             data: new Date(),
+            canal_venda: canalVenda,
             itens: carrinho.itens.map(item => ({
                 produto_id: item.id,
                 codigo: item.codigo,
@@ -1026,7 +1123,8 @@ async function finalizarVenda() {
                 subtotal: item.subtotal,
                 desconto: item.desconto || 0,
                 desconto_valor: item.desconto_valor || 0,
-                unidade: item.unidade
+                unidade: item.unidade,
+                quantidade_estoque_antes: item.quantidade_estoque // Para auditoria
             })),
             subtotal: carrinho.subtotal,
             total: totalComEntrega,
@@ -1042,41 +1140,84 @@ async function finalizarVenda() {
             cliente: {
                 nome: document.getElementById('clienteNome')?.value || usuarioLogado.nome,
                 email: usuarioLogado.email,
-                telefone: document.getElementById('clienteTelefone')?.value.trim() || '',
+                telefone: telefone,
                 cpf: cpfCliente
             },
-            vendedor_id: usuarioLogado.uid,
-            vendedor_nome: usuarioLogado.nome,
-            vendedor_login: usuarioLogado.email,
+            vendedor: {
+                uid: usuarioLogado.uid,
+                nome: usuarioLogado.nome,
+                email: usuarioLogado.email,
+                perfil: usuarioLogado.nivel || usuarioLogado.perfil || usuarioLogado.tipo
+            },
             loja_id: lojaIdAtual,
+            loja_nome: dadosLoja?.nome || lojaIdAtual,
             status: 'concluida',
-            data_criacao: new Date()
+            data_criacao: new Date(),
+            data_conclusao: new Date()
         };
         
-        const resultado = await lojaServices.criarVenda(vendaData);
+        // USAR TRANSAÇÃO ATÔMICA PARA GARANTIR CONSISTÊNCIA
+        console.log('🔄 Iniciando transação atômica de venda...');
+        
+        // Chamar função de transação no lojaServices
+        const resultado = await lojaServices.criarVendaComTransacao(vendaData);
         
         if (!resultado || !resultado.success) {
-            throw new Error(resultado?.error || 'Erro ao salvar venda');
+            throw new Error(resultado?.error || 'Erro ao processar venda');
         }
         
-        for (const item of carrinho.itens) {
-            await lojaServices.atualizarEstoque(
-                item.id,
-                item.quantidade,
-                'saida'
-            );
-        }
+        // ATUALIZAR ESTOQUE (já deve ter sido feito na transação, mas garantimos)
+        console.log('✅ Venda registrada com sucesso. ID:', resultado.id);
         
+        // LIMPAR CARRINHO LOCAL E NO BANCO
         await lojaServices.limparCarrinhoUsuario(usuarioLogado.email);
         carrinho.itens = [];
         atualizarInterface();
         
-        mostrarMensagem(`Venda #${numeroVenda} finalizada com sucesso!`, 'success');
-        mostrarNotaFiscal({ ...vendaData, id: resultado.id });
+        // MOSTRAR NOTA FISCAL
+        const vendaCompleta = {
+            ...vendaData,
+            id: resultado.id,
+            numero: resultado.numero || numeroVenda
+        };
+        
+        mostrarNotaFiscal(vendaCompleta);
+        
+        // MENSAGEM DE SUCESSO
+        const mensagem = canalVenda === 'fisica' 
+            ? `✅ Venda #${resultado.numero || numeroVenda} finalizada com sucesso!`
+            : `✅ Compra #${resultado.numero || numeroVenda} realizada com sucesso!`;
+        
+        mostrarMensagem(mensagem, 'success', 5000);
+        
+        // Registrar no console para auditoria
+        console.log('📊 Venda concluída:', {
+            numero: resultado.numero || numeroVenda,
+            itens: carrinho.itens.length,
+            total: formatarMoeda(totalComEntrega),
+            canal: canalVenda,
+            pagamento: formaPagamento
+        });
         
     } catch (error) {
         console.error('❌ Erro ao finalizar venda:', error);
-        mostrarMensagem(`Erro ao finalizar venda: ${error.message}`, 'error');
+        
+        // Mensagem de erro amigável
+        let mensagemErro = 'Erro ao processar venda';
+        
+        if (error.message.includes('estoque')) {
+            mensagemErro = 'Estoque insuficiente para um ou mais produtos';
+        } else if (error.message.includes('transação')) {
+            mensagemErro = 'Erro de concorrência. Tente novamente.';
+        } else if (error.message.includes('permissão')) {
+            mensagemErro = 'Erro de permissão. Faça login novamente.';
+        }
+        
+        mostrarMensagem(`❌ ${mensagemErro}`, 'error', 5000);
+        
+        // Reabrir modal para tentar novamente
+        abrirModalFinalizacao();
+        
     } finally {
         esconderLoading();
     }
@@ -1320,3 +1461,4 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
