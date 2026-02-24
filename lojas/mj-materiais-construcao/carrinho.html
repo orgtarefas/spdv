@@ -14,7 +14,7 @@
             <div class="header-left">
                 <a href="novo_clientes.html" class="btn-back" id="btnVoltar">
                     <i class="fas fa-arrow-left"></i>
-                    Continuar Comprando
+                    Voltar
                 </a>
                 <div class="page-title">
                     <h1><i class="fas fa-shopping-cart"></i> Meu Carrinho</h1>
@@ -38,23 +38,46 @@
         <!-- Main Content -->
         <main class="content">
             <div class="pdv-container">
-                <!-- LADO ESQUERDO - ÁREA DE ENTRADA (para funcionários/admin) -->
-                <div class="pdv-left" id="pdvLeft" style="display: none;">
-                    <!-- Campo de Código de Barras -->
-                    <div class="barcode-section">
-                        <div class="section-header">
-                            <h3><i class="fas fa-barcode"></i> Adicionar Produto</h3>
-                            <button id="btnConsultarPreco" class="btn-consultar">
-                                <i class="fas fa-search-dollar"></i> Consultar
-                            </button>
+                <!-- LADO ESQUERDO - CONTROLES E INFORMAÇÕES -->
+                <div class="pdv-left">
+                    <!-- Informações da Loja -->
+                    <div class="loja-info">
+                        <div class="loja-logo">
+                            <img id="lojaLogo" src="" alt="Logo da Loja">
                         </div>
-                        
+                        <div class="loja-dados">
+                            <h2 id="lojaNome">Carregando...</h2>
+                            <p id="lojaEndereco"></p>
+                        </div>
+                    </div>
+
+                    <!-- Canal de Vendas (visível para todos) -->
+                    <div class="canal-vendas-section">
+                        <label class="canal-label"><i class="fas fa-store-alt"></i> Canal de Vendas:</label>
+                        <div class="canal-opcoes" id="canalOpcoes">
+                            <label class="canal-option">
+                                <input type="radio" name="canalVenda" value="online" checked>
+                                <span class="canal-icon"><i class="fas fa-globe"></i></span>
+                                <span class="canal-nome">Loja Online</span>
+                            </label>
+                            <label class="canal-option" id="canalFisicoOption" style="display: none;">
+                                <input type="radio" name="canalVenda" value="fisica">
+                                <span class="canal-icon"><i class="fas fa-store"></i></span>
+                                <span class="canal-nome">Loja Física</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Área de Código de Barras (apenas para funcionários/admin) -->
+                    <div class="barcode-section" id="barcodeSection" style="display: none;">
+                        <h3><i class="fas fa-barcode"></i> Código de Barras</h3>
                         <div class="barcode-input-group">
                             <div class="barcode-input-wrapper">
                                 <i class="fas fa-barcode"></i>
                                 <input type="text" id="barcodeInput" 
                                        placeholder="Digite ou escaneie o código..." 
-                                       autocomplete="off">
+                                       autocomplete="off"
+                                       maxlength="13">
                                 <button class="barcode-clear" id="barcodeClear">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -62,7 +85,7 @@
                             
                             <!-- Seletor de Quantidade -->
                             <div class="quantity-selector">
-                                <label for="itemQuantity">Qtd:</label>
+                                <label>Quantidade:</label>
                                 <div class="quantity-controls">
                                     <button type="button" class="qty-btn" onclick="alterarQuantidade(-1)">−</button>
                                     <input type="number" id="itemQuantity" value="1" min="1" max="999" step="1">
@@ -74,67 +97,57 @@
                                 <i class="fas fa-cart-plus"></i>
                                 Adicionar ao Carrinho
                             </button>
-                        </div>
-                    </div>
-                    
-                    <!-- RESUMO DO PEDIDO -->
-                    <div class="resumo-section">
-                        <div class="section-header">
-                            <h3><i class="fas fa-file-invoice"></i> Resumo do Pedido</h3>
-                        </div>
-                        
-                        <div class="resumo-card">
-                            <div class="resumo-linhas">
-                                <div class="resumo-row">
-                                    <span>Subtotal:</span>
-                                    <span id="subtotal">R$ 0,00</span>
-                                </div>
-                                
-                                <div class="resumo-row" id="descontoRow" style="display: none;">
-                                    <span>Descontos:</span>
-                                    <span id="descontoTotal">- R$ 0,00</span>
-                                </div>
-                                
-                                <div class="resumo-row total">
-                                    <span>TOTAL:</span>
-                                    <span id="total">R$ 0,00</span>
-                                </div>
-                            </div>
-                            
-                            <div class="resumo-actions">
-                                <button class="btn-finalize" id="btnFinalizar" disabled>
-                                    <i class="fas fa-check-circle"></i>
-                                    Finalizar Compra
-                                </button>
-                                
-                                <button class="btn-clear" id="btnLimparCarrinho" disabled>
-                                    <i class="fas fa-trash-alt"></i>
-                                    Limpar Carrinho
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- INFORMAÇÕES ADICIONAIS -->
-                    <div class="info-section">
-                        <div class="info-card">
-                            <h4><i class="fas fa-info-circle"></i> Informações</h4>
-                            <p><i class="fas fa-truck"></i> Frete será calculado na finalização</p>
-                            <p><i class="fas fa-credit-card"></i> Aceitamos diversas formas de pagamento</p>
-                            <p><i class="fas fa-store"></i> Retirada no local disponível</p>
+                            <small class="barcode-hint">Digite 13 dígitos para adicionar automaticamente</small>
                         </div>
                     </div>
 
-                    <!-- BOTÕES INFERIORES -->
-                    <div class="action-buttons-bottom">
-                        <a href="novo_clientes.html" class="btn-continue">
-                            <i class="fas fa-arrow-left"></i>
-                            Continuar Comprando
-                        </a>
+                    <!-- Imagem Ampliada do Produto Selecionado -->
+                    <div class="produto-selecionado" id="produtoSelecionado" style="display: none;">
+                        <h3><i class="fas fa-eye"></i> Produto Selecionado</h3>
+                        <div class="produto-ampliado">
+                            <div class="ampliado-imagem">
+                                <img id="ampliadoImagem" src="" alt="Produto">
+                            </div>
+                            <div class="ampliado-info">
+                                <h4 id="ampliadoNome">---</h4>
+                                <p id="ampliadoCodigo">---</p>
+                                <div class="ampliado-preco">
+                                    <span class="preco-label">Preço:</span>
+                                    <span class="preco-valor" id="ampliadoPreco">R$ 0,00</span>
+                                </div>
+                                <div class="ampliado-total">
+                                    <span class="total-label">Total:</span>
+                                    <span class="total-valor" id="ampliadoTotal">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botões de Ação -->
+                    <div class="action-buttons">
+                        <button class="btn-orcamento" id="btnImprimirOrcamento" disabled>
+                            <i class="fas fa-file-invoice"></i>
+                            Imprimir Orçamento
+                        </button>
+                        
+                        <button class="btn-caixa" id="btnRecolhimento" style="display: none;">
+                            <i class="fas fa-cash-register"></i>
+                            Recolhimento de Caixa
+                        </button>
+                        
+                        <button class="btn-clear" id="btnLimparCarrinho" disabled>
+                            <i class="fas fa-trash-alt"></i>
+                            Limpar Carrinho
+                        </button>
+                        
+                        <button class="btn-finalize" id="btnFinalizar" disabled>
+                            <i class="fas fa-check-circle"></i>
+                            Finalizar <span id="btnFinalizarTexto">Compra</span>
+                        </button>
                     </div>
                 </div>
                 
-                <!-- LADO DIREITO - LISTA DE PRODUTOS -->
+                <!-- LADO DIREITO - LISTA DE PRODUTOS DO CARRINHO -->
                 <div class="pdv-right">
                     <div class="cart-section">
                         <div class="section-header">
@@ -167,137 +180,19 @@
         </footer>
     </div>
 
-    <!-- MODAL DE FINALIZAÇÃO DE COMPRA -->
+    <!-- MODAL DE FINALIZAÇÃO DE COMPRA/VENDA -->
     <div id="finalizarModal" class="modal modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-check-circle"></i> Finalizar Compra</h3>
+                <h3 id="modalFinalizarTitulo"><i class="fas fa-check-circle"></i> Finalizar Compra</h3>
                 <button class="modal-close" onclick="fecharModal('finalizarModal')">&times;</button>
             </div>
-            <div class="modal-body">
-                <!-- RESUMO DA COMPRA -->
-                <div class="venda-resumo">
-                    <h4>Resumo do Pedido</h4>
-                    <div class="resumo-linha">
-                        <span>Total de Itens:</span>
-                        <span id="resumoTotalItens">0</span>
-                    </div>
-                    <div class="resumo-linha">
-                        <span>Subtotal:</span>
-                        <span id="resumoSubtotal">R$ 0,00</span>
-                    </div>
-                    <div class="resumo-linha total">
-                        <span>TOTAL:</span>
-                        <span id="resumoTotal">R$ 0,00</span>
-                    </div>
-                </div>
-
-                <!-- DADOS DO CLIENTE -->
-                <div class="cliente-section">
-                    <h4><i class="fas fa-user"></i> Dados do Cliente</h4>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-user"></i> Nome *</label>
-                        <input type="text" id="clienteNome" readonly class="readonly-field">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-envelope"></i> E-mail *</label>
-                        <input type="email" id="clienteEmail" readonly class="readonly-field">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-phone"></i> Telefone *</label>
-                        <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label><i class="fas fa-id-card"></i> CPF (opcional)</label>
-                        <input type="text" id="clienteCpf" placeholder="000.000.000-00">
-                    </div>
-                </div>
-
-                <!-- OPÇÕES DE ENTREGA -->
-                <div class="entrega-section">
-                    <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
-                    
-                    <div class="entrega-opcoes">
-                        <label class="entrega-option">
-                            <input type="radio" name="tipoEntrega" value="retirada" checked>
-                            <span class="entrega-icon"><i class="fas fa-store"></i></span>
-                            <span class="entrega-nome">Retirada na loja</span>
-                        </label>
-                        <label class="entrega-option">
-                            <input type="radio" name="tipoEntrega" value="entrega">
-                            <span class="entrega-icon"><i class="fas fa-home"></i></span>
-                            <span class="entrega-nome">Receber em casa</span>
-                        </label>
-                    </div>
-
-                    <div id="camposEntrega" style="display: none;">
-                        <div class="form-group">
-                            <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
-                            <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Cidade</label>
-                                <input type="text" id="clienteCidade" placeholder="Cidade">
-                            </div>
-                            <div class="form-group">
-                                <label>CEP</label>
-                                <input type="text" id="clienteCep" placeholder="00000-000">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
-                            <input type="text" id="taxaEntrega" value="R$ 0,00">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FORMAS DE PAGAMENTO -->
-                <div class="payment-section">
-                    <h4><i class="fas fa-credit-card"></i> Forma de Pagamento</h4>
-                    
-                    <div class="methods-grid">
-                        <label class="method-option">
-                            <input type="radio" name="payment" value="dinheiro" checked>
-                            <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
-                            <span class="method-name">Dinheiro</span>
-                        </label>
-                        <label class="method-option">
-                            <input type="radio" name="payment" value="pix">
-                            <span class="method-icon"><i class="fas fa-qrcode"></i></span>
-                            <span class="method-name">PIX</span>
-                        </label>
-                        <label class="method-option">
-                            <input type="radio" name="payment" value="debito">
-                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
-                            <span class="method-name">Débito</span>
-                        </label>
-                        <label class="method-option">
-                            <input type="radio" name="payment" value="credito">
-                            <span class="method-icon"><i class="fas fa-credit-card"></i></span>
-                            <span class="method-name">Crédito</span>
-                        </label>
-                    </div>
-
-                    <div id="trocoSection" style="display: none;">
-                        <div class="form-group">
-                            <label><i class="fas fa-calculator"></i> Valor Recebido</label>
-                            <input type="text" id="valorRecebido" placeholder="R$ 0,00">
-                        </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-exchange-alt"></i> Troco</label>
-                            <input type="text" id="valorTroco" placeholder="R$ 0,00" readonly>
-                        </div>
-                    </div>
-                </div>
+            <div class="modal-body" id="finalizarModalBody">
+                <!-- Conteúdo dinâmico via JavaScript -->
             </div>
             <div class="modal-footer">
-                <button class="btn-confirm" id="btnConfirmarVenda">
-                    <i class="fas fa-check"></i> Confirmar Compra
+                <button class="btn-confirm" id="btnConfirmarFinalizacao">
+                    <i class="fas fa-check"></i> Confirmar
                 </button>
                 <button class="btn-cancel" onclick="fecharModal('finalizarModal')">
                     <i class="fas fa-times"></i> Cancelar
@@ -367,6 +262,59 @@
             <div class="modal-footer">
                 <button class="btn-cancel" onclick="fecharModal('consultaPrecoModal')">
                     <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE RECOLHIMENTO DE CAIXA -->
+    <div id="recolhimentoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cash-register"></i> Recolhimento de Caixa</h3>
+                <button class="modal-close" onclick="fecharModal('recolhimentoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Login Operador</label>
+                    <input type="text" id="recolhimentoOperador" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Data/Hora</label>
+                    <input type="text" id="recolhimentoDataHora" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-cash-register"></i> Caixa *</label>
+                    <select id="recolhimentoCaixa">
+                        <option value="caixa01">Caixa 01</option>
+                        <option value="caixa02">Caixa 02</option>
+                        <option value="caixa03">Caixa 03</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-money-bill"></i> Valor do Recolhimento *</label>
+                    <input type="text" id="recolhimentoValor" placeholder="R$ 0,00">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> N° Envelope *</label>
+                    <input type="text" id="recolhimentoEnvelope" placeholder="Digite ou escaneie o número do envelope">
+                </div>
+                
+                <div class="form-group">
+                    <label><i class="fas fa-comment"></i> Observação</label>
+                    <textarea id="recolhimentoObs" rows="2" placeholder="Observação (opcional)"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-confirm" id="btnConfirmarRecolhimento">
+                    <i class="fas fa-check"></i> Confirmar Recolhimento
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('recolhimentoModal')">
+                    <i class="fas fa-times"></i> Cancelar
                 </button>
             </div>
         </div>
