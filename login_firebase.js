@@ -303,7 +303,7 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
         
         console.log(`📝 Cadastrando cliente: ${email} na loja ${lojaAtual}`);
         
-        // 1. CRIAR USUÁRIO (ISSO JÁ FAZ LOGIN)
+        // 1. CRIAR USUÁRIO
         console.log('📝 Criando usuário no Authentication...');
         const userCredential = await auth.createUserWithEmailAndPassword(email, senha);
         const user = userCredential.user;
@@ -312,8 +312,10 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
         // 2. Atualizar perfil com nome
         await user.updateProfile({ displayName: nome });
         
-        // 3. Salvar no Firestore
+        // 3. SALVAR NO FIRESTORE ANTES QUE O onAuthStateChanged DISPARE
         console.log('📝 Salvando dados do cliente no Firestore...');
+        
+        // Criar o documento do cliente
         await loginDb.collection('usuarios').doc(lojaAtual)
                .collection('clientes').doc(email).set({
             nome: nome,
@@ -331,6 +333,32 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
         
         console.log(`✅ Cliente ${email} cadastrado com sucesso!`);
         
+        // 4. AGORA SIM, DISPARAR EVENTO MANUALMENTE
+        setTimeout(() => {
+            // Disparar evento de login manualmente
+            window.dispatchEvent(new CustomEvent('usuarioLogado', {
+                detail: {
+                    usuario: {
+                        uid: user.uid,
+                        email: user.email,
+                        nome: nome,
+                        nivel: 'cliente',
+                        tipo: 'cliente',
+                        loja: lojaAtual,
+                        dados: {
+                            nome: nome,
+                            email: email,
+                            telefone: telefone
+                        }
+                    },
+                    permissoes: {
+                        visualizar_produtos: true,
+                        fazer_compras: true
+                    }
+                }
+            }));
+        }, 500);
+        
         return {
             sucesso: true,
             usuario: {
@@ -345,11 +373,6 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
     } catch (error) {
         console.error('❌ Erro no cadastro:', error);
         
-        // Se o usuário foi criado mas deu erro no Firestore, fazer logout
-        if (error.code === 'permission-denied') {
-            await auth.signOut();
-        }
-        
         let mensagemErro = error.message;
         if (error.code === 'auth/email-already-in-use') {
             mensagemErro = 'E-mail já está em uso';
@@ -357,8 +380,6 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             mensagemErro = 'Senha muito fraca. Use pelo menos 6 caracteres';
         } else if (error.code === 'auth/invalid-email') {
             mensagemErro = 'E-mail inválido';
-        } else if (error.code === 'permission-denied') {
-            mensagemErro = 'Erro de permissão no banco de dados';
         }
         
         return {
@@ -394,84 +415,64 @@ auth.onAuthStateChanged(async (user) => {
             return;
         }
         
+        // VERIFICAR SE É UM CADASTRO RECENTE
+        // (menos de 3 segundos - tempo suficiente para salvar no Firestore)
+        const metadata = user.metadata;
+        const creationTime = new Date(metadata.creationTime).getTime();
+        const now = Date.now();
+        const isRecentSignUp = (now - creationTime) < 3000; // 3 segundos
+        
+        if (isRecentSignUp) {
+            console.log('🕒 Cadastro recente detectado, aguardando criação do perfil...');
+            
+            // Aguardar um pouco para o perfil ser criado
+            setTimeout(async () => {
+                try {
+                    // Tentar buscar o perfil novamente
+                    const adminCheck = await verificarAdmin(user.email);
+                    
+                    if (adminCheck.isAdmin) {
+                        window.dispatchEvent(new CustomEvent('usuarioLogado', { 
+                            detail: { usuario: { ... } }
+                        }));
+                        return;
+                    }
+                    
+                    const perfil = await buscarPerfilUsuario(user.email, lojaAtual);
+                    
+                    if (perfil.encontrado) {
+                        window.dispatchEvent(new CustomEvent('usuarioLogado', { 
+                            detail: { usuario: perfil }
+                        }));
+                    } else {
+                        console.log('⚠️ Perfil ainda não encontrado, aguardando mais...');
+                    }
+                } catch (error) {
+                    console.error('Erro ao buscar perfil após cadastro:', error);
+                }
+            }, 2000);
+            
+            return;
+        }
+        
+        // FLUXO NORMAL PARA LOGINS ESTABELECIDOS
         try {
-            // 1️⃣ VERIFICAR SE É ADMIN
             const adminCheck = await verificarAdmin(user.email);
             
             if (adminCheck.isAdmin) {
                 console.log('✅ ADMIN logado');
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                    detail: {
-                        usuario: {
-                            uid: user.uid,
-                            email: user.email,
-                            nome: adminCheck.dados.nome,
-                            nivel: 'admin',
-                            tipo: 'admin',
-                            loja: lojaAtual
-                        },
-                        permissoes: { 
-                            todas: true,
-                            admin: true,
-                            visualizar_produtos: true,
-                            fazer_compras: true,
-                            editar_produtos: true,
-                            gerenciar_estoque: true,
-                            ver_relatorios: true,
-                            gerenciar_funcionarios: true,
-                            gerenciar_loja: true
-                        }
-                    }
+                    detail: { usuario: adminCheck }
                 }));
                 return;
             }
             
-            // 2️⃣ BUSCAR PERFIL (funcionário ou cliente)
             const perfil = await buscarPerfilUsuario(user.email, lojaAtual);
             
             if (perfil.encontrado && perfil.ativo) {
-                // Definir permissões
-                let permissoes = {
-                    visualizar_produtos: true,
-                    fazer_compras: true
-                };
-                
-                if (perfil.tipo === 'funcionario') {
-                    switch(perfil.perfil) {
-                        case 'gerente':
-                            permissoes = {
-                                ...permissoes,
-                                editar_produtos: true,
-                                gerenciar_estoque: true,
-                                ver_relatorios: true,
-                                gerenciar_funcionarios: true
-                            };
-                            break;
-                        case 'supervisor':
-                            permissoes = {
-                                ...permissoes,
-                                editar_produtos: true,
-                                gerenciar_estoque: true,
-                                ver_relatorios: true
-                            };
-                            break;
-                    }
-                }
-                
                 console.log(`✅ ${perfil.tipo.toUpperCase()} logado:`, perfil.nome);
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
-                    detail: {
-                        usuario: {
-                            uid: user.uid,
-                            email: user.email,
-                            nome: perfil.nome,
-                            nivel: perfil.perfil,
-                            tipo: perfil.tipo,
-                            loja: lojaAtual,
-                            dados: perfil.dados
-                        },
-                        permissoes: permissoes
-                    }
+                    detail: { usuario: perfil }
                 }));
             } else {
                 console.log('❌ Usuário não tem perfil nesta loja');
@@ -499,4 +500,5 @@ window.fazerLogout = fazerLogout;
 window.getLojaDaURL = getLojaDaURL;
 
 console.log('✅ Sistema de login carregado (com suporte a ADMIN, funcionários e clientes)');
+
 
