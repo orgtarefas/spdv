@@ -100,7 +100,7 @@ function extrairPerfil() {
 }
 
 // ============================================
-// FUNÇÃO PARA HABILITAR CAMPO DE CÓDIGO DE BARRAS
+// FUNÇÃO PARA HABILITAR CAMPOS BASEADO NO PERFIL
 // ============================================
 function habilitarCampoCodigoBarras(perfil) {
     console.log(`🔍 Verificando permissão para código de barras. Perfil: ${perfil}`);
@@ -113,13 +113,19 @@ function habilitarCampoCodigoBarras(perfil) {
     
     const canalFisicoOption = document.getElementById('canalFisicoOption');
     const btnRecolhimento = document.getElementById('btnRecolhimento');
+    const btnOrcamento = document.getElementById('btnImprimirOrcamento');
     
     if (canalFisicoOption) {
-        canalFisicoOption.style.display = temPermissao ? 'block' : 'none';
+        canalFisicoOption.style.display = temPermissao ? 'flex' : 'none';
     }
     
     if (btnRecolhimento) {
-        btnRecolhimento.style.display = temPermissao ? 'block' : 'none';
+        btnRecolhimento.style.display = temPermissao ? 'flex' : 'none';
+    }
+    
+    // 🔥 NOVO: Ocultar botão de orçamento para clientes
+    if (btnOrcamento) {
+        btnOrcamento.style.display = temPermissao ? 'flex' : 'none';
     }
     
     const btnFinalizarTexto = document.getElementById('btnFinalizarTexto');
@@ -548,7 +554,7 @@ function renderizarItens() {
 // ============================================
 // FUNÇÃO PARA SELECIONAR PRODUTO
 // ============================================
-window.selecionarProduto = function(index) {
+window.selecionarProduto = async function(index) {
     console.log(`🔍 Selecionando produto ${index}`);
     
     produtoSelecionadoIndex = index;
@@ -577,7 +583,38 @@ window.selecionarProduto = function(index) {
         if (ampliadoNome) ampliadoNome.textContent = produto.nome;
         if (ampliadoCodigo) ampliadoCodigo.textContent = produto.codigo || '---';
         if (ampliadoPreco) ampliadoPreco.textContent = formatarMoeda(produto.preco_unitario);
-        if (ampliadoEstoque) ampliadoEstoque.textContent = produto.quantidade_estoque || 'N/A';
+        
+        // 🔥 CORREÇÃO: Buscar estoque real do produto
+        try {
+            mostrarLoading('Buscando estoque...');
+            const resultado = await lojaServices.buscarProdutoPorId(produto.id);
+            if (resultado && resultado.success) {
+                const estoqueReal = resultado.data.quantidade || 0;
+                if (ampliadoEstoque) {
+                    ampliadoEstoque.textContent = estoqueReal;
+                    
+                    // Adicionar classe baseada no estoque
+                    ampliadoEstoque.className = 'estoque-valor';
+                    if (estoqueReal <= 0) {
+                        ampliadoEstoque.classList.add('critico');
+                    } else if (estoqueReal <= 5) {
+                        ampliadoEstoque.classList.add('baixo');
+                    }
+                }
+            } else {
+                if (ampliadoEstoque) {
+                    ampliadoEstoque.textContent = produto.quantidade_estoque || 'N/A';
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao buscar estoque:', error);
+            if (ampliadoEstoque) {
+                ampliadoEstoque.textContent = produto.quantidade_estoque || 'N/A';
+            }
+        } finally {
+            esconderLoading();
+        }
+        
         if (ampliadoTotal) ampliadoTotal.textContent = formatarMoeda(produto.subtotal);
     }
 };
@@ -1420,3 +1457,4 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
