@@ -190,7 +190,7 @@ function atualizarMenuPerfil() {
 }
 
 
-/// ============================================
+// ============================================
 // EVENTOS DO LOGIN
 // ============================================
 window.addEventListener('usuarioLogado', (event) => {
@@ -200,7 +200,7 @@ window.addEventListener('usuarioLogado', (event) => {
     dadosUsuario = usuario;
     
     console.log('✅ Usuário logado no clientes.js:', usuario);
-    console.log('🔑 Perfil:', usuario.nivel || usuario.tipo);
+    console.log('🔑 Perfil:', usuario.perfil || usuario.nivel || usuario.tipo);
     
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
@@ -209,9 +209,19 @@ window.addEventListener('usuarioLogado', (event) => {
     
     if (userName) {
         let tipoDisplay = '';
-        if (usuario.tipo === 'admin') tipoDisplay = ' (Admin)';
-        else if (usuario.tipo === 'funcionario') tipoDisplay = ` (${usuario.nivel})`;
-        else tipoDisplay = ' (Cliente)';
+        
+        // 🔥 CORREÇÃO AQUI: usar perfil, nivel ou tipo conforme disponível
+        const perfilExibicao = usuario.perfil || usuario.nivel || usuario.tipo;
+        
+        if (usuario.tipo === 'admin') {
+            tipoDisplay = ' (Admin)';
+        } else if (usuario.tipo === 'funcionario') {
+            // Capitalizar primeira letra do perfil
+            const perfilFormatado = perfilExibicao.charAt(0).toUpperCase() + perfilExibicao.slice(1);
+            tipoDisplay = ` (${perfilFormatado})`;
+        } else if (usuario.tipo === 'cliente') {
+            tipoDisplay = ' (Cliente)';
+        }
         
         userName.textContent = usuario.nome + tipoDisplay;
     }
@@ -1392,6 +1402,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
