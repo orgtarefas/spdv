@@ -165,19 +165,6 @@ async function reenviarEmailVerificacao(email) {
             };
         }
         
-        // 2️⃣ SEGUNDO: Fazer login temporário para reenviar o email
-        // Nota: Precisamos da senha para fazer login, mas não temos
-        // Solução alternativa: Usar link de verificação personalizado
-        
-        // Como não temos a senha, a melhor alternativa é usar o sendPasswordResetEmail
-        // para gerar um novo email de verificação indiretamente
-        
-        // Opção A: Enviar email de redefinição de senha (não é ideal)
-        // await auth.sendPasswordResetEmail(email);
-        
-        // Opção B: Usar Firebase Admin SDK (não disponível no cliente)
-        // Opção C: A melhor solução - enviar novo email de verificação via API REST
-        
         console.log('📧 Para reenviar email, use a função de recuperação de senha');
         
         return { 
@@ -485,4 +472,5 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
