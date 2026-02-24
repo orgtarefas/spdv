@@ -131,29 +131,58 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
 async function reenviarEmailVerificacao(email) {
     try {
         const lojaAtual = getLojaDaURL();
-        const user = auth.currentUser;
         
-        if (!user || user.email !== email) {
+        if (!lojaAtual) {
             return { 
                 sucesso: false, 
-                erro: 'Usuário não está logado. Faça login primeiro.' 
+                erro: 'Loja não identificada' 
             };
         }
         
-        // Reenviar email de verificação
-        await user.sendEmailVerification();
+        console.log(`📧 Tentando reenviar email para: ${email}`);
         
-        // ATUALIZAR O CAMPO ultimo_envio_email_valida
-        await loginDb.collection('usuarios').doc(lojaAtual)
-               .collection('clientes').doc(email)
-               .update({
-                   ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp(),
-                   contador_envios: firebase.firestore.FieldValue.increment(1)
-               });
+        // 1️⃣ PRIMEIRO: Buscar o UID do usuário no Firestore
+        const clienteQuery = await loginDb.collection('usuarios').doc(lojaAtual)
+            .collection('clientes')
+            .where('email', '==', email)
+            .limit(1)
+            .get();
+        
+        if (clienteQuery.empty) {
+            return { 
+                sucesso: false, 
+                erro: 'Usuário não encontrado' 
+            };
+        }
+        
+        const clienteData = clienteQuery.docs[0].data();
+        const uid = clienteData.uid;
+        
+        if (!uid) {
+            return { 
+                sucesso: false, 
+                erro: 'UID do usuário não encontrado' 
+            };
+        }
+        
+        // 2️⃣ SEGUNDO: Fazer login temporário para reenviar o email
+        // Nota: Precisamos da senha para fazer login, mas não temos
+        // Solução alternativa: Usar link de verificação personalizado
+        
+        // Como não temos a senha, a melhor alternativa é usar o sendPasswordResetEmail
+        // para gerar um novo email de verificação indiretamente
+        
+        // Opção A: Enviar email de redefinição de senha (não é ideal)
+        // await auth.sendPasswordResetEmail(email);
+        
+        // Opção B: Usar Firebase Admin SDK (não disponível no cliente)
+        // Opção C: A melhor solução - enviar novo email de verificação via API REST
+        
+        console.log('📧 Para reenviar email, use a função de recuperação de senha');
         
         return { 
-            sucesso: true,
-            mensagem: 'E-mail de verificação reenviado! Você tem mais 30 minutos.'
+            sucesso: false, 
+            erro: 'Para reenviar o email de verificação, use a opção "Esqueci minha senha" e faça login após redefinir.' 
         };
         
     } catch (error) {
@@ -456,3 +485,4 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
