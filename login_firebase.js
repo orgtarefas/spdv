@@ -507,3 +507,14 @@ auth.onAuthStateChanged(async (user) => {
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
     }
 });
+
+// Exportar funções globalmente
+window.fazerLogin = fazerLogin;
+window.cadastrarCliente = cadastrarCliente;
+window.fazerLogout = fazerLogout;
+window.verificarLojaAtiva = verificarLojaAtiva;
+window.getLojaDaURL = getLojaDaURL;
+window.auth = auth;
+window.db = db;
+
+console.log('✅ Sistema de login carregado com sucesso!');
