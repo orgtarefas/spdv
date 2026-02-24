@@ -24,6 +24,7 @@
             <div class="header-right">
                 <div class="user-info">
                     <span id="userName">Visitante</span>
+                    <span id="perfilBadge" class="perfil-badge" style="display: none;"></span>
                     <button id="btnLogout" class="btn-logout" style="display: none;">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
@@ -36,9 +37,46 @@
 
         <!-- Main Content -->
         <main class="content">
-            <div class="pdv-container"> <!-- Mantendo a classe pdv-container para compatibilidade com CSS -->
-                <!-- LADO ESQUERDO - RESUMO E FINALIZAÇÃO -->
-                <div class="pdv-left">
+            <div class="pdv-container">
+                <!-- LADO ESQUERDO - ÁREA DE ENTRADA (para funcionários/admin) -->
+                <div class="pdv-left" id="pdvLeft" style="display: none;">
+                    <!-- Campo de Código de Barras -->
+                    <div class="barcode-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-barcode"></i> Adicionar Produto</h3>
+                            <button id="btnConsultarPreco" class="btn-consultar">
+                                <i class="fas fa-search-dollar"></i> Consultar
+                            </button>
+                        </div>
+                        
+                        <div class="barcode-input-group">
+                            <div class="barcode-input-wrapper">
+                                <i class="fas fa-barcode"></i>
+                                <input type="text" id="barcodeInput" 
+                                       placeholder="Digite ou escaneie o código..." 
+                                       autocomplete="off">
+                                <button class="barcode-clear" id="barcodeClear">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Seletor de Quantidade -->
+                            <div class="quantity-selector">
+                                <label for="itemQuantity">Qtd:</label>
+                                <div class="quantity-controls">
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(-1)">−</button>
+                                    <input type="number" id="itemQuantity" value="1" min="1" max="999" step="1">
+                                    <button type="button" class="qty-btn" onclick="alterarQuantidade(1)">+</button>
+                                </div>
+                            </div>
+                            
+                            <button class="btn-add-barcode" id="btnAddBarcode">
+                                <i class="fas fa-cart-plus"></i>
+                                Adicionar ao Carrinho
+                            </button>
+                        </div>
+                    </div>
+                    
                     <!-- RESUMO DO PEDIDO -->
                     <div class="resumo-section">
                         <div class="section-header">
@@ -87,7 +125,7 @@
                         </div>
                     </div>
 
-                    <!-- BOTÕES ADICIONAIS -->
+                    <!-- BOTÕES INFERIORES -->
                     <div class="action-buttons-bottom">
                         <a href="novo_clientes.html" class="btn-continue">
                             <i class="fas fa-arrow-left"></i>
@@ -106,7 +144,7 @@
                             </div>
                         </div>
                         
-                        <!-- LISTA DE PRODUTOS (CARDS) -->
+                        <!-- LISTA DE PRODUTOS (CARDS COM IMAGENS) -->
                         <div class="cart-items-list" id="cartItemsList">
                             <div class="empty-cart">
                                 <i class="fas fa-shopping-cart"></i>
@@ -175,7 +213,7 @@
                     
                     <div class="form-group">
                         <label><i class="fas fa-id-card"></i> CPF (opcional)</label>
-                        <input type="text" id="clienteCpf" placeholder="000.000.000-00" onkeyup="mascaraCPF(this)">
+                        <input type="text" id="clienteCpf" placeholder="000.000.000-00">
                     </div>
                 </div>
 
@@ -213,7 +251,7 @@
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
-                            <input type="text" id="taxaEntrega" value="R$ 0,00" onkeyup="mascaraMoeda(this)">
+                            <input type="text" id="taxaEntrega" value="R$ 0,00">
                         </div>
                     </div>
                 </div>
@@ -248,7 +286,7 @@
                     <div id="trocoSection" style="display: none;">
                         <div class="form-group">
                             <label><i class="fas fa-calculator"></i> Valor Recebido</label>
-                            <input type="text" id="valorRecebido" placeholder="R$ 0,00" onkeyup="calcularTroco()">
+                            <input type="text" id="valorRecebido" placeholder="R$ 0,00">
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-exchange-alt"></i> Troco</label>
@@ -300,6 +338,34 @@
                     <i class="fas fa-print"></i> Imprimir
                 </button>
                 <button class="btn-cancel" onclick="fecharModal('notaFiscalModal')">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONSULTA DE PREÇO -->
+    <div id="consultaPrecoModal" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-search-dollar"></i> Consulta de Preços</h3>
+                <button class="modal-close" onclick="fecharModal('consultaPrecoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="consultaPrecoInput" placeholder="Digite código, nome ou código de barras...">
+                    <button class="search-clear" id="consultaPrecoClear">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="consulta-preco-results" id="consultaPrecoResults">
+                    <!-- Resultados serão carregados aqui -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="fecharModal('consultaPrecoModal')">
                     <i class="fas fa-times"></i> Fechar
                 </button>
             </div>
