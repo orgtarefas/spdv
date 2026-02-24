@@ -240,7 +240,7 @@ async function reenviarEmailVerificacao(email) {
 }
 
 // ============================================
-// FUNÇÃO PRINCIPAL DE LOGIN
+// FUNÇÃO PRINCIPAL DE LOGIN (MODIFICADA)
 // ============================================
 async function fazerLogin(email, senha) {
     try {
@@ -249,32 +249,38 @@ async function fazerLogin(email, senha) {
         
         // VERIFICAR SE O EMAIL FOI VERIFICADO
         if (!user.emailVerified) {
+            // REENVIAR EMAIL AUTOMATICAMENTE
+            let emailReenviado = false;
+            try {
+                await user.sendEmailVerification();
+                emailReenviado = true;
+                console.log('📧 Novo email de verificação enviado para:', email);
+                
+                // ATUALIZAR O TIMESTAMP NO FIRESTORE
+                const lojaAtual = getLojaDaURL();
+                await loginDb.collection('usuarios').doc(lojaAtual)
+                       .collection('clientes').doc(email)
+                       .update({
+                           ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp()
+                       });
+                
+            } catch (sendError) {
+                console.error('Erro ao reenviar email:', sendError);
+            }
+            
             await auth.signOut();
             
-            // Buscar dados do cliente para saber quando foi o último envio
-            const lojaAtual = getLojaDaURL();
-            const clienteDoc = await loginDb.collection('usuarios').doc(lojaAtual)
-                                   .collection('clientes').doc(email).get();
-            
-            if (clienteDoc.exists) {
-                const dados = clienteDoc.data();
-                const ultimoEnvio = dados.ultimo_envio_email_valida?.toDate?.() || new Date();
-                const minutosPassados = Math.round((new Date() - ultimoEnvio) / (1000 * 60));
-                
-                return {
-                    sucesso: false,
-                    precisaVerificar: true,
-                    email: email,
-                    minutosPassados: minutosPassados,
-                    erro: `E-mail não verificado. Seu e-mail foi enviado há ${minutosPassados} minutos. Você tem 30 minutos para verificar.`
-                };
-            }
+            // MENSAGEM PERSONALIZADA
+            const mensagem = emailReenviado 
+                ? `❌ Login não realizado: e-mail ainda não verificado.\n\n📧 Reenviamos um novo e-mail de validação para:\n${email}\n\nPor favor, verifique sua caixa de entrada (e spam) e clique no link de verificação antes de tentar logar novamente.`
+                : `❌ Login não realizado: e-mail ainda não verificado.\n\nEntre em contato com o suporte para reenviar o link de verificação.`;
             
             return {
                 sucesso: false,
                 precisaVerificar: true,
                 email: email,
-                erro: 'E-mail não verificado. Verifique sua caixa de entrada.'
+                emailReenviado: emailReenviado,
+                erro: mensagem
             };
         }
         
@@ -530,6 +536,7 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
 
