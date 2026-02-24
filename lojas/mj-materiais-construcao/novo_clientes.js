@@ -144,7 +144,8 @@ function configurarMenuPerfil() {
 function atualizarMenuPerfil() {
     if (!dadosUsuario) return;
     
-    const perfil = dadosUsuario.nivel || dadosUsuario.tipo;
+    // 🔥 CORREÇÃO: usar perfil, nivel ou tipo
+    const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
     console.log('🔍 Atualizando menu para perfil:', perfil);
     
     // Mapear quais itens devem aparecer para cada perfil
@@ -159,6 +160,8 @@ function atualizarMenuPerfil() {
     // Itens que devem aparecer para este perfil
     const itensPermitidos = permissoes[perfil] || [];
     
+    console.log('📋 Itens permitidos:', itensPermitidos);
+    
     // Mostrar/esconder itens
     const menuItems = {
         menuRelatorios: document.getElementById('menuRelatorios'),
@@ -170,8 +173,10 @@ function atualizarMenuPerfil() {
         if (element) {
             if (itensPermitidos.includes(id)) {
                 element.style.display = 'flex';
+                console.log(`✅ Mostrando item: ${id}`);
             } else {
                 element.style.display = 'none';
+                console.log(`❌ Escondendo item: ${id}`);
             }
         }
     }
@@ -188,7 +193,6 @@ function atualizarMenuPerfil() {
         menuLogout.style.display = 'flex';
     }
 }
-
 
 // ============================================
 // EVENTOS DO LOGIN
@@ -1402,6 +1406,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
