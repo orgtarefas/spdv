@@ -126,19 +126,38 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
 }
 
 // ============================================
-// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (VIA API REST - CORRIGIDA)
+// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (COM APP CHECK)
 // ============================================
 async function reenviarEmailVerificacao(email) {
     try {
         const lojaAtual = getLojaDaURL();
         
         console.log(`📧 Reenviando email de verificação para: ${email}`);
-               
+        
+        // OBTER TOKEN DO APP CHECK
+        let appCheckToken = null;
+        try {
+            const appCheck = loginApp.appCheck();
+            const tokenResult = await appCheck.getToken();
+            appCheckToken = tokenResult.token;
+            console.log('✅ Token App Check obtido');
+        } catch (tokenError) {
+            console.error('Erro ao obter token App Check:', tokenError);
+        }
+        
+        // Preparar headers
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        // Adicionar token se disponível
+        if (appCheckToken) {
+            headers['X-Firebase-AppCheck'] = appCheckToken;
+        }
+        
         const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${loginFirebaseConfig.apiKey}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             body: JSON.stringify({
                 requestType: 'VERIFY_EMAIL',
                 email: email,
@@ -151,25 +170,11 @@ async function reenviarEmailVerificacao(email) {
         if (!response.ok) {
             console.error('Erro na API:', data);
             
-            // Tratar erro específico
-            if (data.error?.message === 'MISSING_CONTINUE_URI') {
+            // Se for erro de App Check, dar mensagem mais amigável
+            if (data.error?.message === 'FIREBASE_APP_CHECK_TOKEN_INVALID') {
                 return { 
                     sucesso: false, 
-                    erro: 'URL de redirecionamento não configurada.' 
-                };
-            }
-            
-            if (data.error?.message === 'USER_NOT_FOUND') {
-                return { 
-                    sucesso: false, 
-                    erro: 'Usuário não encontrado.' 
-                };
-            }
-            
-            if (data.error?.message === 'INVALID_EMAIL') {
-                return { 
-                    sucesso: false, 
-                    erro: 'E-mail inválido.' 
+                    erro: 'Erro de segurança. Por favor, recarregue a página e tente novamente.' 
                 };
             }
             
@@ -178,9 +183,6 @@ async function reenviarEmailVerificacao(email) {
                 erro: data.error?.message || 'Erro ao reenviar e-mail' 
             };
         }
-        
-        // Se chegou aqui, o email foi enviado com sucesso
-        console.log('✅ Email reenviado com sucesso:', data);
         
         // ATUALIZAR O CAMPO ultimo_envio_email_valida no Firestore
         try {
@@ -506,6 +508,7 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
 
