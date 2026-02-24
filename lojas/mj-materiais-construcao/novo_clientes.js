@@ -307,6 +307,7 @@ async function fazerLoginCliente() {
         const resultado = await window.fazerLogin(email, senha);
         
         if (resultado && resultado.sucesso) {
+            // LOGIN BEM SUCEDIDO
             if (lembrar) {
                 localStorage.setItem('cliente_ultimo_email', email);
             } else {
@@ -320,22 +321,46 @@ async function fazerLoginCliente() {
             
             fecharModal('loginModal');
             
-        } else if (resultado && resultado.precisaVerificar) {
-            // CASO ESPECÍFICO: Email não verificado
-            // Fechar modal de login e mostrar mensagem
-            fecharModal('loginModal');
-            
-            // Mostrar mensagem detalhada (já vem formatada do login_firebase)
-            mostrarMensagem(resultado.erro, 'warning', 10000);
-            
-            // Limpar campo de senha
-            document.getElementById('loginSenha').value = '';
-            
         } else {
-            const mensagem = resultado?.erro || 'E-mail ou senha incorretos';
-            mostrarMensagem(mensagem, 'error');
-            document.getElementById('loginSenha').value = '';
-            document.getElementById('loginSenha').focus();
+            // TRATAR OS DIFERENTES TIPOS DE ERRO
+            
+            // CASO 1: EMAIL NÃO VERIFICADO
+            if (resultado.tipo === 'email_nao_verificado') {
+                mostrarMensagem(resultado.erro, 'warning', 6000);
+                document.getElementById('loginSenha').value = '';
+                
+            // CASO 2: EMAIL NÃO CADASTRADO
+            } else if (resultado.tipo === 'email_nao_cadastrado') {
+                // Mostrar mensagem com opção de cadastro
+                if (confirm(resultado.erro + ' Clique OK para se cadastrar.')) {
+                    fecharModal('loginModal');
+                    abrirModal('cadastroModal');
+                    document.getElementById('cadastroEmail').value = email;
+                }
+                document.getElementById('loginSenha').value = '';
+                
+            // CASO 3: SENHA INCORRETA
+            } else if (resultado.tipo === 'senha_incorreta') {
+                // Perguntar se quer redefinir senha
+                if (confirm(resultado.erro + ' Clique OK para receber o link de redefinição.')) {
+                    // Chamar função de recuperar senha
+                    mostrarLoading('Enviando link de redefinição...');
+                    try {
+                        await auth.sendPasswordResetEmail(resultado.email);
+                        mostrarMensagem(`Link de redefinição enviado para ${resultado.email}. Verifique sua caixa de entrada.`, 'success', 6000);
+                    } catch (resetError) {
+                        mostrarMensagem('Erro ao enviar link. Tente novamente.', 'error');
+                    } finally {
+                        esconderLoading();
+                    }
+                }
+                document.getElementById('loginSenha').value = '';
+                
+            // OUTROS ERROS
+            } else {
+                mostrarMensagem(resultado.erro, 'error');
+                document.getElementById('loginSenha').value = '';
+            }
         }
         
     } catch (error) {
@@ -1367,6 +1392,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
