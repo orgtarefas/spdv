@@ -301,38 +301,25 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             };
         }
         
-        // Verificar se já existe um admin
-        const adminCheck = await verificarAdmin(email);
-        if (adminCheck.isAdmin) {
-            return {
-                sucesso: false,
-                erro: 'Email reservado para administrador'
-            };
-        }
+        console.log(`📝 Cadastrando cliente: ${email} na loja ${lojaAtual}`);
         
-        // Verificar se já existe como funcionário
-        const funcCheck = await loginDb.collection('usuarios').doc(lojaAtual)
-                               .collection('funcionarios').doc(email).get();
-        if (funcCheck.exists) {
-            return {
-                sucesso: false,
-                erro: 'Email já cadastrado como funcionário'
-            };
-        }
-        
-        // Criar usuário
+        // 1. CRIAR USUÁRIO (ISSO JÁ FAZ LOGIN)
+        console.log('📝 Criando usuário no Authentication...');
         const userCredential = await auth.createUserWithEmailAndPassword(email, senha);
         const user = userCredential.user;
+        console.log(`✅ Usuário criado: ${user.uid}`);
         
+        // 2. Atualizar perfil com nome
         await user.updateProfile({ displayName: nome });
         
-        // Salvar na coleção de clientes
+        // 3. Salvar no Firestore
+        console.log('📝 Salvando dados do cliente no Firestore...');
         await loginDb.collection('usuarios').doc(lojaAtual)
                .collection('clientes').doc(email).set({
             nome: nome,
             email: email,
-            telefone: telefone,
-            cpf: cpf,
+            telefone: telefone || '',
+            cpf: cpf || '',
             endereco: endereco || '',
             cidade: cidade || '',
             cep: cep || '',
@@ -341,6 +328,8 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             data_cadastro: firebase.firestore.FieldValue.serverTimestamp(),
             ultimo_acesso: firebase.firestore.FieldValue.serverTimestamp()
         });
+        
+        console.log(`✅ Cliente ${email} cadastrado com sucesso!`);
         
         return {
             sucesso: true,
@@ -354,7 +343,12 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
         };
         
     } catch (error) {
-        console.error('Erro no cadastro:', error);
+        console.error('❌ Erro no cadastro:', error);
+        
+        // Se o usuário foi criado mas deu erro no Firestore, fazer logout
+        if (error.code === 'permission-denied') {
+            await auth.signOut();
+        }
         
         let mensagemErro = error.message;
         if (error.code === 'auth/email-already-in-use') {
@@ -363,6 +357,8 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             mensagemErro = 'Senha muito fraca. Use pelo menos 6 caracteres';
         } else if (error.code === 'auth/invalid-email') {
             mensagemErro = 'E-mail inválido';
+        } else if (error.code === 'permission-denied') {
+            mensagemErro = 'Erro de permissão no banco de dados';
         }
         
         return {
@@ -503,3 +499,4 @@ window.fazerLogout = fazerLogout;
 window.getLojaDaURL = getLojaDaURL;
 
 console.log('✅ Sistema de login carregado (com suporte a ADMIN, funcionários e clientes)');
+
