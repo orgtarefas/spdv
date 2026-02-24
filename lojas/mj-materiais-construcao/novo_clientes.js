@@ -1251,27 +1251,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 // ============================================
-// EXPOR FUNÇÕES GLOBAIS
+// EXPOR FUNÇÕES GLOBAIS (APENAS AS QUE EXISTEM NESTE ARQUIVO)
 // ============================================
 window.verProdutoDetalhe = verProdutoDetalhe;
 window.adicionarAoCarrinho = adicionarAoCarrinho;
 window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
-window.fazerLogin = fazerLogin;
-window.cadastrarCliente = cadastrarCliente; 
-window.fazerLogout = fazerLogout;
-window.getLojaDaURL = getLojaDaURL;
-
-// Variáveis
-window.auth = auth;
-window.loginDb = loginDb;
-
-console.log('✅ Sistema de login carregado (com suporte a ADMIN, funcionários e clientes)');
-console.log('🔑 Funções exportadas:', {
-    fazerLogin: typeof window.fazerLogin,
-    cadastrarCliente: typeof window.cadastrarCliente,
-    fazerLogout: typeof window.fazerLogout
-});
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
 
