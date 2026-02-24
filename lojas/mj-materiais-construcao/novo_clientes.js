@@ -365,8 +365,17 @@ async function fazerCadastroCliente() {
             nome, email, senha, telefoneLimpo, cpfLimpo, endereco, cidade, cep
         );
         
-        if (resultado.success) {
-            mostrarMensagem('Cadastro realizado com sucesso! Faça o login.', 'success');
+        if (resultado.sucesso) {
+            if (resultado.precisaVerificar) {
+                // Mostrar modal de verificação
+                document.getElementById('verificacaoEmail').textContent = resultado.email;
+                abrirModal('verificacaoEmailModal');
+                
+                mostrarMensagem(resultado.mensagem, 'success', 6000);
+            } else {
+                mostrarMensagem('Cadastro realizado com sucesso! Faça o login.', 'success');
+            }
+            
             fecharModal('cadastroModal');
             
             // Limpar formulário
@@ -381,16 +390,8 @@ async function fazerCadastroCliente() {
             document.getElementById('cadastroCep').value = '';
             document.getElementById('cadastroTermos').checked = false;
             
-            // Pré-preencher e-mail no login
-            const loginEmail = document.getElementById('loginEmail');
-            if (loginEmail) loginEmail.value = email;
-            
-            setTimeout(() => {
-                abrirModal('loginModal');
-            }, 500);
-            
         } else {
-            mostrarMensagem(resultado.message, 'error');
+            mostrarMensagem(resultado.erro, 'error');
         }
         
     } catch (error) {
@@ -1320,4 +1321,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
