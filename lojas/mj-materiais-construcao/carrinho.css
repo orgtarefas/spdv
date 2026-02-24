@@ -239,13 +239,14 @@ body {
 }
 
 /* ============================================ */
-/* CANAL DE VENDAS - ÍCONES EM CIMA, TEXTO EMBAIXO */
+/* CANAL DE VENDAS - ÍCONE EM CIMA, TEXTO EMBAIXO */
 /* ============================================ */
 .canal-vendas-section {
     background: var(--light);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 15px;
     margin-bottom: 20px;
+    width: 100%;
 }
 
 .canal-label {
@@ -264,21 +265,24 @@ body {
 .canal-opcoes {
     display: flex;
     gap: 15px;
-    justify-content: center;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .canal-option {
     flex: 1;
-    max-width: 120px;
     position: relative;
     cursor: pointer;
+    min-width: 0; /* Previne overflow */
 }
 
-.canal-option input {
+.canal-option input[type="radio"] {
     position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
+    margin: 0;
+    padding: 0;
 }
 
 .canal-option .canal-icon {
@@ -292,6 +296,8 @@ body {
     transition: all 0.3s ease;
     border: 2px solid transparent;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .canal-option .canal-icon i {
@@ -299,6 +305,7 @@ body {
     color: var(--gray-dark);
     margin-bottom: 8px;
     transition: all 0.3s ease;
+    display: block;
 }
 
 .canal-option .canal-nome {
@@ -307,51 +314,76 @@ body {
     color: var(--gray-dark);
     text-align: center;
     transition: all 0.3s ease;
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Hover effect */
 .canal-option:hover .canal-icon {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     border-color: var(--gray-light);
 }
 
 /* Estado checked */
-.canal-option input:checked + .canal-icon {
+.canal-option input[type="radio"]:checked + .canal-icon {
     background: var(--primary);
     border-color: var(--secondary);
     box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);
 }
 
-.canal-option input:checked + .canal-icon i {
+.canal-option input[type="radio"]:checked + .canal-icon i {
     color: var(--white);
 }
 
-.canal-option input:checked + .canal-icon .canal-nome {
+.canal-option input[type="radio"]:checked + .canal-icon .canal-nome {
     color: var(--white);
+}
+
+/* Garantir que o texto não quebre */
+.canal-option .canal-nome {
+    white-space: nowrap;
 }
 
 /* Responsivo */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
     .canal-opcoes {
-        flex-direction: row;
         gap: 10px;
     }
     
-    .canal-option {
-        max-width: none;
-    }
-    
     .canal-option .canal-icon {
-        padding: 12px 8px;
+        padding: 12px 5px;
     }
     
     .canal-option .canal-icon i {
         font-size: 24px;
+        margin-bottom: 5px;
     }
     
     .canal-option .canal-nome {
         font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .canal-vendas-section {
+        padding: 12px;
+    }
+    
+    .canal-opcoes {
+        flex-direction: row;
+        gap: 8px;
+    }
+    
+    .canal-option {
+        min-width: 0;
+    }
+    
+    .canal-option .canal-nome {
+        font-size: 11px;
     }
 }
 
@@ -1706,13 +1738,13 @@ body {
 /* LOGO NO HEADER */
 /* ============================================ */
 .logo-mini {
-    width: 50px;
-    height: 50px;
+    width: 80px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    margin-right: 5px;
+    margin-right: 15px;
     background: transparent;
     border: none;
     box-shadow: none;
@@ -1724,30 +1756,41 @@ body {
     object-fit: contain;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
-    image-rendering: pixelated;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
 }
 
-/* Versão maior para desktop */
-@media (min-width: 769px) {
+/* Versão ainda maior para desktop */
+@media (min-width: 1200px) {
     .logo-mini {
-        width: 60px;
-        height: 60px;
+        width: 100px;
+        height: 100px;
+        margin-right: 20px;
     }
 }
 
-/* Ajuste para telas pequenas */
+/* Ajuste para tablets */
+@media (min-width: 769px) and (max-width: 1199px) {
+    .logo-mini {
+        width: 90px;
+        height: 90px;
+    }
+}
+
+
+/* Ajuste para celular */
 @media (max-width: 768px) {
     .logo-mini {
-        width: 45px;
-        height: 45px;
+        width: 70px;
+        height: 70px;
+        margin-right: 10px;
     }
 }
 
-/* Efeito hover sutil */
+/* Efeito hover */
 .header-logo:hover {
     transform: scale(1.05);
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.2));
 }
 
 /* ============================================ */
@@ -1948,5 +1991,6 @@ body {
         padding: 10px;
     }
 }
+
 
 
