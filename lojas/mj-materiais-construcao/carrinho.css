@@ -238,33 +238,42 @@ body {
     color: var(--gray-dark);
 }
 
-/* Canal de Vendas */
+/* ============================================ */
+/* CANAL DE VENDAS - VERSÃO COMPACTA */
+/* ============================================ */
 .canal-vendas-section {
     background: var(--light);
-    border-radius: 10px;
-    padding: 15px;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
 .canal-label {
-    display: block;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--dark);
-    margin-bottom: 10px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .canal-label i {
     color: var(--primary);
-    margin-right: 5px;
+    font-size: 14px;
 }
 
 .canal-opcoes {
     display: flex;
-    gap: 15px;
+    gap: 10px;
+    margin: 0;
 }
 
 .canal-option {
-    flex: 1;
     position: relative;
     cursor: pointer;
 }
@@ -276,19 +285,19 @@ body {
 
 .canal-option .canal-icon {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    padding: 12px;
+    gap: 5px;
+    padding: 5px 12px;
     background: var(--white);
-    border-radius: var(--border-radius);
+    border-radius: 20px;
     transition: var(--transition);
-    border: 2px solid transparent;
+    border: 1px solid var(--gray-light);
+    font-size: 13px;
 }
 
 .canal-option .canal-icon i {
-    font-size: 24px;
+    font-size: 14px;
     color: var(--gray-dark);
-    margin-bottom: 5px;
 }
 
 .canal-option .canal-nome {
@@ -299,11 +308,33 @@ body {
 .canal-option input:checked + .canal-icon {
     background: var(--primary);
     border-color: var(--secondary);
+    color: var(--white);
 }
 
 .canal-option input:checked + .canal-icon i,
 .canal-option input:checked + .canal-icon .canal-nome {
     color: var(--white);
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+    .canal-vendas-section {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .canal-opcoes {
+        width: 100%;
+    }
+    
+    .canal-option {
+        flex: 1;
+    }
+    
+    .canal-option .canal-icon {
+        justify-content: center;
+    }
 }
 
 /* Seção de Código de Barras */
@@ -1657,38 +1688,48 @@ body {
 /* LOGO NO HEADER */
 /* ============================================ */
 .logo-mini {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    overflow: hidden;
-    background: var(--light);
-    border: 2px solid var(--primary-light);
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
     margin-right: 5px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .header-logo {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
 
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-@media (max-width: 768px) {
-    .header-left {
-        gap: 10px;
-    }
-    
+/* Versão maior para desktop */
+@media (min-width: 769px) {
     .logo-mini {
-        width: 35px;
-        height: 35px;
+        width: 60px;
+        height: 60px;
     }
+}
+
+/* Ajuste para telas pequenas */
+@media (max-width: 768px) {
+    .logo-mini {
+        width: 45px;
+        height: 45px;
+    }
+}
+
+/* Efeito hover sutil */
+.header-logo:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
 }
 
 /* ============================================ */
@@ -1889,3 +1930,4 @@ body {
         padding: 10px;
     }
 }
+
