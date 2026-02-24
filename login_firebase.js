@@ -126,15 +126,14 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
 }
 
 // ============================================
-// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (VIA API REST)
+// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (VIA API REST - CORRIGIDA)
 // ============================================
 async function reenviarEmailVerificacao(email) {
     try {
         const lojaAtual = getLojaDaURL();
         
         console.log(`📧 Reenviando email de verificação para: ${email}`);
-        
-        // Chamar a API REST do Firebase usando a apiKey que já existe
+               
         const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${loginFirebaseConfig.apiKey}`, {
             method: 'POST',
             headers: {
@@ -143,7 +142,7 @@ async function reenviarEmailVerificacao(email) {
             body: JSON.stringify({
                 requestType: 'VERIFY_EMAIL',
                 email: email,
-                continueUrl: window.location.href // URL para onde redirecionar após verificação
+                continueUrl: window.location.href
             })
         });
         
@@ -152,10 +151,25 @@ async function reenviarEmailVerificacao(email) {
         if (!response.ok) {
             console.error('Erro na API:', data);
             
-            if (data.error?.message === 'EMAIL_NOT_FOUND') {
+            // Tratar erro específico
+            if (data.error?.message === 'MISSING_CONTINUE_URI') {
                 return { 
                     sucesso: false, 
-                    erro: 'E-mail não encontrado. Faça um novo cadastro.' 
+                    erro: 'URL de redirecionamento não configurada.' 
+                };
+            }
+            
+            if (data.error?.message === 'USER_NOT_FOUND') {
+                return { 
+                    sucesso: false, 
+                    erro: 'Usuário não encontrado.' 
+                };
+            }
+            
+            if (data.error?.message === 'INVALID_EMAIL') {
+                return { 
+                    sucesso: false, 
+                    erro: 'E-mail inválido.' 
                 };
             }
             
@@ -164,6 +178,9 @@ async function reenviarEmailVerificacao(email) {
                 erro: data.error?.message || 'Erro ao reenviar e-mail' 
             };
         }
+        
+        // Se chegou aqui, o email foi enviado com sucesso
+        console.log('✅ Email reenviado com sucesso:', data);
         
         // ATUALIZAR O CAMPO ultimo_envio_email_valida no Firestore
         try {
@@ -489,6 +506,7 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
 
