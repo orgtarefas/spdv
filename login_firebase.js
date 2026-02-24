@@ -498,6 +498,8 @@ window.fazerLogin = fazerLogin;
 window.cadastrarCliente = cadastrarCliente;
 window.fazerLogout = fazerLogout;
 window.getLojaDaURL = getLojaDaURL;
+window.auth = auth;    
+window.loginDb = loginDb;    
 
 console.log('✅ Sistema de login carregado (com suporte a ADMIN, funcionários e clientes)');
 
