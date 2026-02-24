@@ -126,50 +126,67 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
 }
 
 // ============================================
-// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO
+// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (VIA API REST)
 // ============================================
 async function reenviarEmailVerificacao(email) {
     try {
         const lojaAtual = getLojaDaURL();
         
-        if (!lojaAtual) {
+        console.log(`📧 Reenviando email de verificação para: ${email}`);
+        
+        // Chamar a API REST do Firebase usando a apiKey que já existe
+        const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${loginFirebaseConfig.apiKey}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                requestType: 'VERIFY_EMAIL',
+                email: email,
+                continueUrl: window.location.href // URL para onde redirecionar após verificação
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error('Erro na API:', data);
+            
+            if (data.error?.message === 'EMAIL_NOT_FOUND') {
+                return { 
+                    sucesso: false, 
+                    erro: 'E-mail não encontrado. Faça um novo cadastro.' 
+                };
+            }
+            
             return { 
                 sucesso: false, 
-                erro: 'Loja não identificada' 
+                erro: data.error?.message || 'Erro ao reenviar e-mail' 
             };
         }
         
-        console.log(`📧 Tentando reenviar email para: ${email}`);
-        
-        // 1️⃣ PRIMEIRO: Buscar o UID do usuário no Firestore
-        const clienteQuery = await loginDb.collection('usuarios').doc(lojaAtual)
-            .collection('clientes')
-            .where('email', '==', email)
-            .limit(1)
-            .get();
-        
-        if (clienteQuery.empty) {
-            return { 
-                sucesso: false, 
-                erro: 'Usuário não encontrado' 
-            };
+        // ATUALIZAR O CAMPO ultimo_envio_email_valida no Firestore
+        try {
+            const clienteQuery = await loginDb.collection('usuarios').doc(lojaAtual)
+                .collection('clientes')
+                .where('email', '==', email)
+                .limit(1)
+                .get();
+            
+            if (!clienteQuery.empty) {
+                await clienteQuery.docs[0].ref.update({
+                    ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp(),
+                    contador_envios: firebase.firestore.FieldValue.increment(1)
+                });
+                console.log('✅ Campo ultimo_envio_email_valida atualizado');
+            }
+        } catch (firestoreError) {
+            console.error('Erro ao atualizar Firestore:', firestoreError);
         }
-        
-        const clienteData = clienteQuery.docs[0].data();
-        const uid = clienteData.uid;
-        
-        if (!uid) {
-            return { 
-                sucesso: false, 
-                erro: 'UID do usuário não encontrado' 
-            };
-        }
-        
-        console.log('📧 Para reenviar email, use a função de recuperação de senha');
         
         return { 
-            sucesso: false, 
-            erro: 'Para reenviar o email de verificação, use a opção "Esqueci minha senha" e faça login após redefinir.' 
+            sucesso: true,
+            mensagem: 'E-mail de verificação reenviado! Verifique sua caixa de entrada e spam.'
         };
         
     } catch (error) {
@@ -472,5 +489,6 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
