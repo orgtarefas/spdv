@@ -60,7 +60,7 @@ function carregarDadosLoja() {
             const footerLojaNome = document.getElementById('footerLojaNome');
             const lojaNome = document.getElementById('lojaNome');
             const lojaEndereco = document.getElementById('lojaEndereco');
-            const lojaLogo = document.getElementById('lojaLogo');
+            const headerLogo = document.getElementById('headerLogo');
             
             if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
             if (footerLojaNome) footerLojaNome.textContent = nomeLoja;
@@ -72,14 +72,14 @@ function carregarDadosLoja() {
                 lojaEndereco.textContent = enderecoStr;
             }
             
-            if (lojaLogo) {
-                lojaLogo.src = `/spdv/imagens/${lojaId}/logo.png`;
-                lojaLogo.onerror = () => {
-                    lojaLogo.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSIzMCIgY3k9IjI1IiByPSIxNSIgZmlsbD0iI2U3NGMzYyIgb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTE1IDQ1TDIwIDM1TDI1IDQwTDMwIDMwTDM1IDQwTDQwIDM1TDQ1IDQ1SDE1WiIgZmlsbD0iI2U3NGMzYyIgb3BhY2l0eT0iMC4xIi8+PHRleHQgeD0iMzAiIHk9IjUwIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IiM2Yzc1N2QiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkxPR088L3RleHQ+PC9zdmc+';
+            if (headerLogo) {
+                headerLogo.src = `/spdv/imagens/${lojaId}/logo.png`;
+                headerLogo.onerror = () => {
+                    headerLogo.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjE2IiByPSI4IiBmaWxsPSIjZTc0YzNjIiBvcGFjaXR5PSIwLjEiLz48cGF0aCBkPSJNMTAgMjhMMTUgMThMMjAgMjNMMjUgMTVMMzAgMjNMMzUgMjhIMTBaIiBmaWxsPSIjZTc0YzNjIiBvcGFjaXR5PSIwLjEiLz48dGV4dCB4PSIyMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI4IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5MT0dPPC90ZXh0Pjwvc3ZnPg==';
                 };
             }
             
-            document.title = `${nomeLoja} - Meu Carrinho`;
+            document.title = `${nomeLoja} - Carrinho de Compras`;
         }
     } catch (error) {
         console.error('❌ Erro ao carregar dados da loja:', error);
@@ -111,13 +111,8 @@ function habilitarCampoCodigoBarras(perfil) {
     
     console.log(`📋 Tem permissão para código de barras? ${temPermissao ? 'SIM' : 'NÃO'}`);
     
-    const barcodeSection = document.getElementById('barcodeSection');
     const canalFisicoOption = document.getElementById('canalFisicoOption');
     const btnRecolhimento = document.getElementById('btnRecolhimento');
-    
-    if (barcodeSection) {
-        barcodeSection.style.display = temPermissao ? 'block' : 'none';
-    }
     
     if (canalFisicoOption) {
         canalFisicoOption.style.display = temPermissao ? 'block' : 'none';
@@ -130,6 +125,12 @@ function habilitarCampoCodigoBarras(perfil) {
     const btnFinalizarTexto = document.getElementById('btnFinalizarTexto');
     if (btnFinalizarTexto) {
         btnFinalizarTexto.textContent = temPermissao ? 'Venda' : 'Compra';
+    }
+    
+    // Se não tiver permissão, garantir que Loja Online esteja selecionado
+    if (!temPermissao) {
+        const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
+        if (radioOnline) radioOnline.checked = true;
     }
 }
 
@@ -212,6 +213,10 @@ window.addEventListener('usuarioDeslogado', () => {
     
     const btnFinalizarTexto = document.getElementById('btnFinalizarTexto');
     if (btnFinalizarTexto) btnFinalizarTexto.textContent = 'Compra';
+    
+    // Garantir que Loja Online esteja selecionado
+    const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
+    if (radioOnline) radioOnline.checked = true;
     
     console.log('👤 Usuário deslogado');
 });
@@ -423,7 +428,7 @@ function atualizarInterface() {
     atualizarBotoes();
 }
 
-// ATUALIZAR RESUMO (NOVA FUNÇÃO)
+// ATUALIZAR RESUMO
 function atualizarResumo() {
     console.log('📊 Atualizando resumo...');
     
@@ -564,6 +569,7 @@ window.selecionarProduto = function(index) {
         const ampliadoNome = document.getElementById('ampliadoNome');
         const ampliadoCodigo = document.getElementById('ampliadoCodigo');
         const ampliadoPreco = document.getElementById('ampliadoPreco');
+        const ampliadoEstoque = document.getElementById('ampliadoEstoque');
         const ampliadoTotal = document.getElementById('ampliadoTotal');
         
         if (produtoSelecionadoEl) produtoSelecionadoEl.style.display = 'block';
@@ -571,6 +577,7 @@ window.selecionarProduto = function(index) {
         if (ampliadoNome) ampliadoNome.textContent = produto.nome;
         if (ampliadoCodigo) ampliadoCodigo.textContent = produto.codigo || '---';
         if (ampliadoPreco) ampliadoPreco.textContent = formatarMoeda(produto.preco_unitario);
+        if (ampliadoEstoque) ampliadoEstoque.textContent = produto.quantidade_estoque || 'N/A';
         if (ampliadoTotal) ampliadoTotal.textContent = formatarMoeda(produto.subtotal);
     }
 };
@@ -587,6 +594,15 @@ window.alterarQuantidade = function(index, delta) {
     }
 };
 
+window.alterarQuantidadeInput = function(delta) {
+    const input = document.getElementById('itemQuantity');
+    if (input) {
+        let valor = parseInt(input.value) || 1;
+        valor = Math.max(1, valor + delta);
+        input.value = valor;
+    }
+};
+
 // ============================================
 // FUNÇÃO DE CÓDIGO DE BARRAS
 // ============================================
@@ -599,29 +615,27 @@ async function buscarProdutoPorCodigoBarras(codigo) {
     mostrarLoading('Buscando produto...');
     
     try {
-        // Buscar produto com estoque atualizado
-        const resultado = await lojaServices.buscarProdutoPorCodigoBarras(codigo, true); // true = buscar estoque atual
+        const resultado = await lojaServices.buscarProdutoPorCodigoBarras(codigo);
         
         if (resultado && resultado.success) {
             const produto = resultado.data;
-            const quantidadeDesejada = parseInt(document.getElementById('itemQuantity')?.value || 1);
+            const quantidade = parseInt(document.getElementById('itemQuantity')?.value || 1);
             
-            // Verificar estoque disponível
-            if (produto.quantidade < quantidadeDesejada) {
+            // Verificar estoque
+            if (produto.quantidade < quantidade) {
                 mostrarMensagem(`Estoque insuficiente! Disponível: ${produto.quantidade}`, 'warning');
                 esconderLoading();
                 return;
             }
             
-            // Adicionar informação de estoque no item
             const item = {
                 id: produto.id,
                 codigo: produto.codigo,
                 codigo_barras: produto.codigo_barras,
                 nome: produto.nome,
                 preco_unitario: produto.preco,
-                quantidade: quantidadeDesejada,
-                quantidade_estoque: produto.quantidade, // Estoque atual para referência
+                quantidade: quantidade,
+                quantidade_estoque: produto.quantidade,
                 imagem: produto.imagens?.thumbnail || produto.imagens?.principal,
                 unidade: produto.unidade_venda || produto.unidade || 'UN',
                 desconto: 0,
@@ -636,7 +650,10 @@ async function buscarProdutoPorCodigoBarras(codigo) {
                 mostrarMensagem(`${produto.nome} adicionado ao carrinho`, 'success');
                 
                 const barcodeInput = document.getElementById('barcodeInput');
-                if (barcodeInput) barcodeInput.value = '';
+                if (barcodeInput) {
+                    barcodeInput.value = '';
+                    barcodeInput.focus();
+                }
             }
         } else {
             mostrarMensagem('Produto não encontrado', 'error');
@@ -649,38 +666,39 @@ async function buscarProdutoPorCodigoBarras(codigo) {
     }
 }
 
-async function verificarEstoqueAntesFinalizar() {
-    mostrarLoading('Verificando estoque...');
+// ============================================
+// CONTROLE DO CANAL DE VENDAS
+// ============================================
+function configurarCanalVendas() {
+    const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
+    const radioFisica = document.querySelector('input[name="canalVenda"][value="fisica"]');
+    const barcodeSection = document.getElementById('barcodeSection');
     
-    try {
-        for (const item of carrinho.itens) {
-            // Buscar estoque atual do produto
-            const resultado = await lojaServices.buscarProdutoPorId(item.id);
-            
-            if (!resultado.success) {
-                mostrarMensagem(`Erro ao verificar estoque de ${item.nome}`, 'error');
-                return false;
+    if (radioOnline && radioFisica && barcodeSection) {
+        radioOnline.addEventListener('change', function() {
+            if (this.checked) {
+                barcodeSection.style.display = 'none';
+                console.log('🌐 Modo Loja Online ativado');
             }
-            
-            const produto = resultado.data;
-            
-            if (produto.quantidade < item.quantidade) {
-                mostrarMensagem(
-                    `Estoque insuficiente para ${item.nome}! Disponível: ${produto.quantidade}`, 
-                    'error'
-                );
-                return false;
+        });
+        
+        radioFisica.addEventListener('change', function() {
+            if (this.checked) {
+                const perfil = extrairPerfil();
+                const perfisPermitidos = ['admin', 'gerente', 'supervisor', 'vendedor'];
+                const perfilLower = perfil ? perfil.toLowerCase() : '';
+                
+                if (perfisPermitidos.includes(perfilLower)) {
+                    barcodeSection.style.display = 'block';
+                    console.log('🏪 Modo Loja Física ativado');
+                    
+                    // Focar no input de código de barras
+                    setTimeout(() => {
+                        document.getElementById('barcodeInput')?.focus();
+                    }, 100);
+                }
             }
-        }
-        
-        return true;
-        
-    } catch (error) {
-        console.error('Erro ao verificar estoque:', error);
-        mostrarMensagem('Erro ao verificar estoque', 'error');
-        return false;
-    } finally {
-        esconderLoading();
+        });
     }
 }
 
@@ -768,7 +786,10 @@ function configurarEventos() {
     
     if (barcodeClear) {
         barcodeClear.addEventListener('click', () => {
-            if (barcodeInput) barcodeInput.value = '';
+            if (barcodeInput) {
+                barcodeInput.value = '';
+                barcodeInput.focus();
+            }
         });
     }
     
@@ -788,23 +809,8 @@ function configurarEventos() {
         btnOrcamento.addEventListener('click', gerarOrcamento);
     }
     
-    document.querySelectorAll('input[name="tipoEntrega"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const camposEntrega = document.getElementById('camposEntrega');
-            if (camposEntrega) {
-                camposEntrega.style.display = this.value === 'entrega' ? 'block' : 'none';
-            }
-        });
-    });
-    
-    document.querySelectorAll('input[name="payment"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const trocoSection = document.getElementById('trocoSection');
-            if (trocoSection) {
-                trocoSection.style.display = this.value === 'dinheiro' ? 'block' : 'none';
-            }
-        });
-    });
+    // Configurar canal de vendas
+    configurarCanalVendas();
     
     const btnConfirmarVenda = document.getElementById('btnConfirmarVenda');
     if (btnConfirmarVenda) {
@@ -1017,11 +1023,27 @@ function abrirModalFinalizacao() {
     
     body.innerHTML = html;
     modal.style.display = 'block';
+    
+    // Configurar eventos do modal
+    document.querySelectorAll('input[name="tipoEntrega"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const camposEntrega = document.getElementById('camposEntrega');
+            if (camposEntrega) {
+                camposEntrega.style.display = this.value === 'entrega' ? 'block' : 'none';
+            }
+        });
+    });
+    
+    document.querySelectorAll('input[name="payment"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const trocoSection = document.getElementById('trocoSection');
+            if (trocoSection) {
+                trocoSection.style.display = this.value === 'dinheiro' ? 'block' : 'none';
+            }
+        });
+    });
 }
 
-// ============================================
-// FUNÇÃO COMPLETA DE FINALIZAR VENDA
-// ============================================
 async function finalizarVenda() {
     if (!usuarioLogado) {
         fecharModal('finalizarModal');
@@ -1029,25 +1051,21 @@ async function finalizarVenda() {
         return;
     }
     
-    // Verificar se há itens no carrinho
     if (carrinho.itens.length === 0) {
         mostrarMensagem('Carrinho vazio', 'warning');
         fecharModal('finalizarModal');
         return;
     }
     
-    // VALIDAÇÕES DOS CAMPOS OBRIGATÓRIOS
     const tipoEntrega = document.querySelector('input[name="tipoEntrega"]:checked')?.value;
     const formaPagamento = document.querySelector('input[name="payment"]:checked')?.value;
     
-    // Validar telefone
     const telefone = document.getElementById('clienteTelefone')?.value.trim();
     if (!telefone) {
         mostrarMensagem('Telefone é obrigatório', 'warning');
         return;
     }
     
-    // Validar entrega
     if (tipoEntrega === 'entrega') {
         const endereco = document.getElementById('clienteEndereco')?.value.trim();
         if (!endereco) {
@@ -1056,7 +1074,6 @@ async function finalizarVenda() {
         }
     }
     
-    // Validar pagamento em dinheiro
     if (formaPagamento === 'dinheiro') {
         const valorRecebidoInput = document.getElementById('valorRecebido');
         if (valorRecebidoInput) {
@@ -1068,49 +1085,18 @@ async function finalizarVenda() {
         }
     }
     
-    // VERIFICAR ESTOQUE ANTES DE PROSSEGUIR
-    mostrarLoading('Verificando estoque...');
+    mostrarLoading('Processando venda...', 'Aguarde, não feche esta página...');
+    fecharModal('finalizarModal');
     
     try {
-        // Verificar estoque de cada item
-        for (const item of carrinho.itens) {
-            const resultado = await lojaServices.buscarProdutoPorId(item.id);
-            
-            if (!resultado.success) {
-                mostrarMensagem(`Erro ao verificar estoque de ${item.nome}`, 'error');
-                esconderLoading();
-                return;
-            }
-            
-            const produto = resultado.data;
-            
-            if (produto.quantidade < item.quantidade) {
-                mostrarMensagem(
-                    `❌ Estoque insuficiente para ${item.nome}!\nDisponível: ${produto.quantidade} | Solicitado: ${item.quantidade}`, 
-                    'error',
-                    5000
-                );
-                esconderLoading();
-                return;
-            }
-        }
-        
-        // PREPARAR DADOS DA VENDA
-        mostrarLoading('Processando venda...', 'Aguarde, não feche esta página...');
-        fecharModal('finalizarModal');
-        
-        const numeroVenda = gerarNumeroVenda('V');
+        const canalVenda = document.querySelector('input[name="canalVenda"]:checked')?.value || 'online';
         const taxaEntrega = parseFloat(document.getElementById('taxaEntrega')?.value.replace(/[^\d,]/g, '').replace(',', '.') || '0');
         const totalComEntrega = carrinho.total + taxaEntrega;
         const cpfCliente = document.getElementById('clienteCpf')?.value.replace(/\D/g, '') || '';
         
-        // Obter canal de venda selecionado
-        const canalVenda = document.querySelector('input[name="canalVenda"]:checked')?.value || 'online';
-        
-        // Montar objeto da venda
         const vendaData = {
             tipo: 'VENDA',
-            numero: numeroVenda,
+            numero: `V${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)}`,
             data: new Date(),
             canal_venda: canalVenda,
             itens: carrinho.itens.map(item => ({
@@ -1123,8 +1109,7 @@ async function finalizarVenda() {
                 subtotal: item.subtotal,
                 desconto: item.desconto || 0,
                 desconto_valor: item.desconto_valor || 0,
-                unidade: item.unidade,
-                quantidade_estoque_antes: item.quantidade_estoque // Para auditoria
+                unidade: item.unidade
             })),
             subtotal: carrinho.subtotal,
             total: totalComEntrega,
@@ -1156,66 +1141,39 @@ async function finalizarVenda() {
             data_conclusao: new Date()
         };
         
-        // USAR TRANSAÇÃO ATÔMICA PARA GARANTIR CONSISTÊNCIA
-        console.log('🔄 Iniciando transação atômica de venda...');
-        
-        // Chamar função de transação no lojaServices
-        const resultado = await lojaServices.criarVendaComTransacao(vendaData);
+        const resultado = await lojaServices.criarVenda(vendaData);
         
         if (!resultado || !resultado.success) {
             throw new Error(resultado?.error || 'Erro ao processar venda');
         }
         
-        // ATUALIZAR ESTOQUE (já deve ter sido feito na transação, mas garantimos)
-        console.log('✅ Venda registrada com sucesso. ID:', resultado.id);
-        
-        // LIMPAR CARRINHO LOCAL E NO BANCO
         await lojaServices.limparCarrinhoUsuario(usuarioLogado.email);
         carrinho.itens = [];
         atualizarInterface();
         
-        // MOSTRAR NOTA FISCAL
-        const vendaCompleta = {
+        mostrarNotaFiscal({
             ...vendaData,
             id: resultado.id,
-            numero: resultado.numero || numeroVenda
-        };
+            numero: resultado.numero || vendaData.numero
+        });
         
-        mostrarNotaFiscal(vendaCompleta);
-        
-        // MENSAGEM DE SUCESSO
         const mensagem = canalVenda === 'fisica' 
-            ? `✅ Venda #${resultado.numero || numeroVenda} finalizada com sucesso!`
-            : `✅ Compra #${resultado.numero || numeroVenda} realizada com sucesso!`;
+            ? `✅ Venda #${resultado.numero || vendaData.numero} finalizada com sucesso!`
+            : `✅ Compra #${resultado.numero || vendaData.numero} realizada com sucesso!`;
         
         mostrarMensagem(mensagem, 'success', 5000);
-        
-        // Registrar no console para auditoria
-        console.log('📊 Venda concluída:', {
-            numero: resultado.numero || numeroVenda,
-            itens: carrinho.itens.length,
-            total: formatarMoeda(totalComEntrega),
-            canal: canalVenda,
-            pagamento: formaPagamento
-        });
         
     } catch (error) {
         console.error('❌ Erro ao finalizar venda:', error);
         
-        // Mensagem de erro amigável
         let mensagemErro = 'Erro ao processar venda';
-        
-        if (error.message.includes('estoque')) {
-            mensagemErro = 'Estoque insuficiente para um ou mais produtos';
-        } else if (error.message.includes('transação')) {
-            mensagemErro = 'Erro de concorrência. Tente novamente.';
+        if (error.message.includes('Estoque insuficiente')) {
+            mensagemErro = error.message;
         } else if (error.message.includes('permissão')) {
             mensagemErro = 'Erro de permissão. Faça login novamente.';
         }
         
         mostrarMensagem(`❌ ${mensagemErro}`, 'error', 5000);
-        
-        // Reabrir modal para tentar novamente
         abrirModalFinalizacao();
         
     } finally {
@@ -1248,18 +1206,6 @@ function formatarMoeda(valor) {
         style: 'currency',
         currency: 'BRL'
     });
-}
-
-function gerarNumeroVenda(prefixo = 'V') {
-    const agora = new Date();
-    const ano = agora.getFullYear().toString().slice(-2);
-    const mes = (agora.getMonth() + 1).toString().padStart(2, '0');
-    const dia = agora.getDate().toString().padStart(2, '0');
-    const hora = agora.getHours().toString().padStart(2, '0');
-    const min = agora.getMinutes().toString().padStart(2, '0');
-    const seg = agora.getSeconds().toString().padStart(2, '0');
-    const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
-    return `${prefixo}${ano}${mes}${dia}${hora}${min}${seg}${random}`;
 }
 
 function mostrarNotaFiscal(venda) {
@@ -1343,11 +1289,15 @@ window.fecharModal = function(modalId) {
     }
 };
 
-function mostrarLoading(texto = 'Carregando...') {
+function mostrarLoading(titulo = 'Carregando...', detalhe = '') {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
         const h3 = loading.querySelector('h3');
-        if (h3) h3.textContent = texto;
+        const p = loading.querySelector('#loadingDetail') || loading.querySelector('p');
+        
+        if (h3) h3.textContent = titulo;
+        if (p && detalhe) p.textContent = detalhe;
+        
         loading.style.display = 'flex';
     }
 }
@@ -1438,6 +1388,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         carregarDadosLoja();
         configurarEventos();
         
+        // Garantir que Loja Online esteja selecionado inicialmente
+        const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
+        if (radioOnline) radioOnline.checked = true;
+        
+        // Esconder seção de código de barras inicialmente
+        const barcodeSection = document.getElementById('barcodeSection');
+        if (barcodeSection) barcodeSection.style.display = 'none';
+        
         if (window.auth?.currentUser) {
             console.log('👤 Usuário já logado detectado');
         }
@@ -1457,8 +1415,8 @@ window.removerItem = removerItem;
 window.limparCarrinho = limparCarrinho;
 window.selecionarProduto = selecionarProduto;
 window.alterarQuantidade = alterarQuantidade;
+window.alterarQuantidadeInput = alterarQuantidadeInput;
 window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
-
