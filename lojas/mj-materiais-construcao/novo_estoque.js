@@ -55,8 +55,14 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 function extrairPerfil() {
     if (!dadosUsuario) return null;
     
-    // Priorizar nivel, depois tipo
-    return dadosUsuario.nivel || dadosUsuario.tipo || null;
+    // 🔥 CORREÇÃO: Priorizar nivel, depois perfil, depois tipo
+    // O perfil do funcionário vem em "nivel" ou "perfil"
+    const perfil = dadosUsuario.nivel || dadosUsuario.perfil || dadosUsuario.tipo;
+    
+    console.log('📊 Dados do usuário:', dadosUsuario);
+    console.log('🎯 Perfil extraído:', perfil);
+    
+    return perfil;
 }
 
 // Configurar permissões baseado no perfil
@@ -65,7 +71,10 @@ function configurarPermissoes() {
     
     console.log(`🔧 Configurando permissões para perfil: ${perfilAtual}`);
     
-    switch(perfilAtual) {
+    // 🔥 Mapear todos os perfis possíveis
+    const perfilLower = perfilAtual ? perfilAtual.toLowerCase() : '';
+    
+    switch(perfilLower) {
         case 'admin':
         case 'gerente':
             permissoes = {
@@ -184,15 +193,26 @@ window.addEventListener('usuarioLogado', (event) => {
     dadosUsuario = usuario;
     
     console.log('✅ Usuário logado no estoque:', usuario);
-    console.log('🔑 Perfil:', usuario.nivel || usuario.tipo);
+    console.log('🔑 Nível:', usuario.nivel);
+    console.log('🔑 Perfil:', usuario.perfil);
+    console.log('🔑 Tipo:', usuario.tipo);
+    
+    // 🔥 CORREÇÃO: Extrair perfil corretamente
+    const perfilExibicao = usuario.nivel || usuario.perfil || usuario.tipo;
     
     if (userNameElement) {
         let tipoDisplay = '';
-        if (usuario.tipo === 'admin') tipoDisplay = ' (Admin)';
-        else if (usuario.tipo === 'funcionario') tipoDisplay = ` (${usuario.nivel})`;
-        else tipoDisplay = ' (Cliente)';
         
-        userNameElement.textContent = usuario.nome + tipoDisplay;
+        if (usuario.tipo === 'admin') {
+            tipoDisplay = ' (Admin)';
+        } else if (usuario.tipo === 'funcionario') {
+            const perfilFormatado = perfilExibicao.charAt(0).toUpperCase() + perfilExibicao.slice(1);
+            tipoDisplay = ` (${perfilFormatado})`;
+        } else if (usuario.tipo === 'cliente') {
+            tipoDisplay = ' (Cliente)';
+        }
+        
+        userNameElement.textContent = (usuario.nome || 'Usuário') + tipoDisplay;
     }
     
     // Configurar permissões baseadas no perfil
@@ -346,7 +366,8 @@ function configurarMenuPerfil() {
 function atualizarMenuPerfil() {
     if (!dadosUsuario) return;
     
-    const perfil = dadosUsuario.nivel || dadosUsuario.tipo;
+    // 🔥 CORREÇÃO: Usar extrairPerfil para consistência
+    const perfil = extrairPerfil();
     console.log('🔍 Atualizando menu para perfil:', perfil);
     
     // Mapear quais itens devem aparecer para cada perfil
@@ -358,7 +379,10 @@ function atualizarMenuPerfil() {
         'cliente': []
     };
     
-    const itensPermitidos = permissoesMenu[perfil] || [];
+    const perfilLower = perfil ? perfil.toLowerCase() : '';
+    const itensPermitidos = permissoesMenu[perfilLower] || [];
+    
+    console.log('📋 Itens permitidos para menu:', itensPermitidos);
     
     // Mostrar/esconder itens
     const menuItems = {
@@ -369,7 +393,13 @@ function atualizarMenuPerfil() {
     
     for (const [id, element] of Object.entries(menuItems)) {
         if (element) {
-            element.style.display = itensPermitidos.includes(id) ? 'flex' : 'none';
+            if (itensPermitidos.includes(id)) {
+                element.style.display = 'flex';
+                console.log(`✅ Mostrando item: ${id}`);
+            } else {
+                element.style.display = 'none';
+                console.log(`❌ Escondendo item: ${id}`);
+            }
         }
     }
     
@@ -2374,6 +2404,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
