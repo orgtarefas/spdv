@@ -126,7 +126,7 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
 }
 
 // ============================================
-// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (COM APP CHECK)
+// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO (CORRIGIDA)
 // ============================================
 async function reenviarEmailVerificacao(email) {
     try {
@@ -150,62 +150,29 @@ async function reenviarEmailVerificacao(email) {
             'Content-Type': 'application/json'
         };
         
-        // Adicionar token se disponível
         if (appCheckToken) {
             headers['X-Firebase-AppCheck'] = appCheckToken;
         }
         
-        const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${loginFirebaseConfig.apiKey}`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-                requestType: 'VERIFY_EMAIL',
-                email: email,
-                continueUrl: window.location.href
-            })
-        });
+        // IMPORTANTE: O requestType correto é 'VERIFY_EMAIL' mas precisamos do token do usuário
+        // Como não temos, vamos usar uma abordagem diferente
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-            console.error('Erro na API:', data);
-            
-            // Se for erro de App Check, dar mensagem mais amigável
-            if (data.error?.message === 'FIREBASE_APP_CHECK_TOKEN_INVALID') {
-                return { 
-                    sucesso: false, 
-                    erro: 'Erro de segurança. Por favor, recarregue a página e tente novamente.' 
-                };
-            }
-            
+        // Primeiro, verificar se o usuário existe
+        try {
+            await auth.fetchSignInMethodsForEmail(email);
+        } catch (error) {
             return { 
                 sucesso: false, 
-                erro: data.error?.message || 'Erro ao reenviar e-mail' 
+                erro: 'E-mail não encontrado no sistema.' 
             };
         }
         
-        // ATUALIZAR O CAMPO ultimo_envio_email_valida no Firestore
-        try {
-            const clienteQuery = await loginDb.collection('usuarios').doc(lojaAtual)
-                .collection('clientes')
-                .where('email', '==', email)
-                .limit(1)
-                .get();
-            
-            if (!clienteQuery.empty) {
-                await clienteQuery.docs[0].ref.update({
-                    ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp(),
-                    contador_envios: firebase.firestore.FieldValue.increment(1)
-                });
-                console.log('✅ Campo ultimo_envio_email_valida atualizado');
-            }
-        } catch (firestoreError) {
-            console.error('Erro ao atualizar Firestore:', firestoreError);
-        }
+        // A maneira MAIS SIMPLES: usar o próprio Firebase Auth
+        // Infelizmente, não há método público para reenviar email sem login
         
         return { 
-            sucesso: true,
-            mensagem: 'E-mail de verificação reenviado! Verifique sua caixa de entrada e spam.'
+            sucesso: false, 
+            erro: 'Para receber um novo link de verificação, tente fazer login com sua senha. Se o e-mail não estiver verificado, enviaremos automaticamente um novo link.' 
         };
         
     } catch (error) {
@@ -508,6 +475,7 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
 
