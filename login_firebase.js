@@ -299,7 +299,7 @@ async function fazerLogin(email, senha) {
                 sucesso: false,
                 tipo: 'email_nao_verificado',
                 email: email,
-                erro: 'E-mail ainda não verificado. Enviamos um novo link de verificação para seu e-mail.'
+                erro: `❌ Login não realizado: o e-mail ${email} ainda não foi verificado.\n\n📧 Enviamos um novo link de verificação para este e-mail.\nPor favor, verifique sua caixa de entrada (e spam) e clique no link antes de tentar logar novamente.`
             };
         }
         
@@ -314,22 +314,27 @@ async function fazerLogin(email, senha) {
             };
         }
         
-        // BUSCAR PERFIL DO USUÁRIO
-        const perfil = await buscarPerfilUsuario(user.email, lojaAtual);
+        // BUSCAR PERFIL DO USUÁRIO NO FIRESTORE
+        const clienteDoc = await loginDb.collection('usuarios').doc(lojaAtual)
+                               .collection('clientes').doc(email).get();
         
-        if (!perfil.encontrado) {
+        if (!clienteDoc.exists) {
+            // ISSO NÃO DEVERIA ACONTECER SE O FLUXO ESTIVER CORRETO
+            // MAS VAMOS TRATAR COMO ERRO GENÉRICO
             await auth.signOut();
             return {
                 sucesso: false,
-                erro: 'Usuário não cadastrado nesta loja'
+                erro: `❌ Erro inesperado. Por favor, faça um novo cadastro.`
             };
         }
         
-        if (perfil.ativo === false) {
+        const clienteData = clienteDoc.data();
+        
+        if (clienteData.ativo === false) {
             await auth.signOut();
             return {
                 sucesso: false,
-                erro: 'Usuário inativo'
+                erro: `❌ Usuário ${email} está inativo. Entre em contato com o suporte.`
             };
         }
         
@@ -347,7 +352,7 @@ async function fazerLogin(email, senha) {
             usuario: {
                 uid: user.uid,
                 email: user.email,
-                nome: perfil.nome,
+                nome: clienteData.nome,
                 nivel: 'cliente',
                 tipo: 'cliente',
                 loja: lojaAtual,
@@ -362,41 +367,65 @@ async function fazerLogin(email, senha) {
     } catch (error) {
         console.error('Erro no login:', error);
         
-        // CASO 1: EMAIL NÃO CADASTRADO
-        if (error.code === 'auth/user-not-found') {
-            return {
-                sucesso: false,
-                tipo: 'email_nao_cadastrado',
-                erro: 'E-mail não cadastrado. Deseja realizar um cadastro?'
-            };
+        // TRATAMENTO PARA CREDENCIAIS INVÁLIDAS (EMAIL OU SENHA INCORRETOS)
+        if (error.code === 'auth/invalid-credential') {
+            
+            // Verificar se o email existe no Firestore
+            try {
+                const lojaAtual = getLojaDaURL();
+                const clienteQuery = await loginDb.collection('usuarios').doc(lojaAtual)
+                    .collection('clientes')
+                    .where('email', '==', email)
+                    .limit(1)
+                    .get();
+                
+                if (clienteQuery.empty) {
+                    // EMAIL NÃO EXISTE NO FIRESTORE
+                    return {
+                        sucesso: false,
+                        tipo: 'email_nao_cadastrado',
+                        email: email,
+                        erro: `❌ O e-mail "${email}" não está cadastrado em nossa loja.\n\nDeseja realizar um cadastro?`
+                    };
+                } else {
+                    // EMAIL EXISTE, ENTÃO A SENHA ESTÁ ERRADA
+                    return {
+                        sucesso: false,
+                        tipo: 'senha_incorreta',
+                        email: email,
+                        erro: `❌ Senha incorreta para o e-mail "${email}".\n\nDeseja receber um link no e-mail para redefinir sua senha?`
+                    };
+                }
+            } catch (firestoreError) {
+                console.error('Erro ao verificar Firestore:', firestoreError);
+                return {
+                    sucesso: false,
+                    erro: `❌ Erro ao verificar o e-mail "${email}". Tente novamente.`
+                };
+            }
         }
         
-        // CASO 2: SENHA INCORRETA (EMAIL EXISTE)
-        if (error.code === 'auth/wrong-password') {
-            return {
-                sucesso: false,
-                tipo: 'senha_incorreta',
-                email: email,
-                erro: 'Senha incorreta. Deseja receber um link no e-mail para redefinir sua senha?'
-            };
-        }
-        
-        // CASO 3: EMAIL INVÁLIDO
+        // OUTROS ERROS
         if (error.code === 'auth/invalid-email') {
             return {
                 sucesso: false,
-                erro: 'E-mail inválido. Verifique o formato do e-mail.'
+                erro: `❌ O formato do e-mail "${email}" é inválido.`
             };
         }
-               
-        // OUTROS ERROS
+        
+        if (error.code === 'auth/too-many-requests') {
+            return {
+                sucesso: false,
+                erro: '❌ Muitas tentativas de login. Tente novamente mais tarde.'
+            };
+        }
+        
         return {
             sucesso: false,
-            erro: error.message
+            erro: `❌ Erro inesperado: ${error.message}`
         };
     }
 }
-
 // ============================================
 // BUSCAR PERFIL DO USUÁRIO (CORRIGIDO)
 // ============================================
@@ -572,6 +601,7 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarTempoRestante: typeof verificarTempoRestante
 });
+
 
 
 
