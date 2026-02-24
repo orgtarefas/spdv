@@ -239,41 +239,37 @@ body {
 }
 
 /* ============================================ */
-/* CANAL DE VENDAS - VERSÃO COMPACTA */
+/* CANAL DE VENDAS - ÍCONES EM CIMA, TEXTO EMBAIXO */
 /* ============================================ */
 .canal-vendas-section {
     background: var(--light);
-    border-radius: 8px;
-    padding: 8px 12px;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
 }
 
 .canal-label {
-    font-size: 13px;
+    display: block;
+    font-size: 14px;
     font-weight: 600;
     color: var(--dark);
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 5px;
+    margin-bottom: 15px;
 }
 
 .canal-label i {
     color: var(--primary);
-    font-size: 14px;
+    margin-right: 5px;
 }
 
 .canal-opcoes {
     display: flex;
-    gap: 10px;
-    margin: 0;
+    gap: 15px;
+    justify-content: center;
 }
 
 .canal-option {
+    flex: 1;
+    max-width: 120px;
     position: relative;
     cursor: pointer;
 }
@@ -281,59 +277,81 @@ body {
 .canal-option input {
     position: absolute;
     opacity: 0;
+    width: 0;
+    height: 0;
 }
 
 .canal-option .canal-icon {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 5px;
-    padding: 5px 12px;
+    justify-content: center;
+    padding: 15px 10px;
     background: var(--white);
-    border-radius: 20px;
-    transition: var(--transition);
-    border: 1px solid var(--gray-light);
-    font-size: 13px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .canal-option .canal-icon i {
-    font-size: 14px;
+    font-size: 28px;
     color: var(--gray-dark);
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
 }
 
 .canal-option .canal-nome {
     font-size: 13px;
+    font-weight: 500;
     color: var(--gray-dark);
+    text-align: center;
+    transition: all 0.3s ease;
 }
 
+/* Hover effect */
+.canal-option:hover .canal-icon {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    border-color: var(--gray-light);
+}
+
+/* Estado checked */
 .canal-option input:checked + .canal-icon {
     background: var(--primary);
     border-color: var(--secondary);
+    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);
+}
+
+.canal-option input:checked + .canal-icon i {
     color: var(--white);
 }
 
-.canal-option input:checked + .canal-icon i,
 .canal-option input:checked + .canal-icon .canal-nome {
     color: var(--white);
 }
 
 /* Responsivo */
 @media (max-width: 480px) {
-    .canal-vendas-section {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
     .canal-opcoes {
-        width: 100%;
+        flex-direction: row;
+        gap: 10px;
     }
     
     .canal-option {
-        flex: 1;
+        max-width: none;
     }
     
     .canal-option .canal-icon {
-        justify-content: center;
+        padding: 12px 8px;
+    }
+    
+    .canal-option .canal-icon i {
+        font-size: 24px;
+    }
+    
+    .canal-option .canal-nome {
+        font-size: 12px;
     }
 }
 
@@ -1930,4 +1948,5 @@ body {
         padding: 10px;
     }
 }
+
 
