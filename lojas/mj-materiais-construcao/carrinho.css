@@ -244,33 +244,19 @@ body {
 }
 
 /* ============================================ */
-/* CANAL DE VENDAS - ÍCONE E TEXTO NA MESMA LINHA */
+/* CANAL DE VENDAS - COMPACTADO */
 /* ============================================ */
 .canal-vendas-section {
     background: var(--light);
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 20px;
-    width: 100%;
-}
-
-.canal-label {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--dark);
+    border-radius: 10px;
+    padding: 8px;
     margin-bottom: 15px;
-}
-
-.canal-label i {
-    color: var(--primary);
-    margin-right: 5px;
+    width: 100%;
 }
 
 .canal-opcoes {
     display: flex;
-    gap: 15px;
-    justify-content: space-between;
+    gap: 8px;
     width: 100%;
 }
 
@@ -290,40 +276,40 @@ body {
     padding: 0;
 }
 
-/* 🔥 NOVO: Ícone e texto na mesma linha */
+/* Ícone e texto na mesma linha - mais compacto */
 .canal-option .canal-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 12px 10px;
+    gap: 6px;
+    padding: 8px 6px;
     background: var(--white);
-    border-radius: 10px;
-    transition: all 0.3s ease;
+    border-radius: 8px;
+    transition: all 0.2s ease;
     border: 2px solid transparent;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     width: 100%;
     box-sizing: border-box;
 }
 
 .canal-option .canal-icon i {
-    font-size: 20px;
+    font-size: 16px;
     color: var(--gray-dark);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .canal-option .canal-nome {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--gray-dark);
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     white-space: nowrap;
 }
 
 /* Hover effect */
 .canal-option:hover .canal-icon {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     border-color: var(--gray-light);
 }
 
@@ -331,7 +317,7 @@ body {
 .canal-option input[type="radio"]:checked + .canal-icon {
     background: var(--primary);
     border-color: var(--secondary);
-    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.2);
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.15);
 }
 
 .canal-option input[type="radio"]:checked + .canal-icon i,
@@ -340,40 +326,22 @@ body {
 }
 
 /* Responsivo */
-@media (max-width: 768px) {
-    .canal-opcoes {
-        gap: 10px;
-    }
-    
-    .canal-option .canal-icon {
-        padding: 10px 8px;
-    }
-    
-    .canal-option .canal-icon i {
-        font-size: 18px;
-    }
-    
-    .canal-option .canal-nome {
-        font-size: 13px;
-    }
-}
-
 @media (max-width: 480px) {
     .canal-vendas-section {
-        padding: 12px;
+        padding: 6px;
     }
     
     .canal-opcoes {
-        flex-direction: row;
-        gap: 8px;
+        gap: 5px;
     }
     
     .canal-option .canal-icon {
-        padding: 8px 6px;
+        padding: 6px 4px;
+        gap: 4px;
     }
     
     .canal-option .canal-icon i {
-        font-size: 16px;
+        font-size: 14px;
     }
     
     .canal-option .canal-nome {
@@ -381,7 +349,10 @@ body {
     }
 }
 
-/* Seção de Código de Barras */
+/* ============================================ */
+/* CÓDIGO DE BARRAS */
+/* ============================================ */
+
 .barcode-section {
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
     border-radius: 12px;
@@ -1985,6 +1956,7 @@ body {
         padding: 10px;
     }
 }
+
 
 
 
