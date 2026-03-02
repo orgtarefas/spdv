@@ -1958,7 +1958,14 @@ body {
 }
 
 
+/* Remove as setas internas do input number */
+.quantity-controls input[type="number"]::-webkit-inner-spin-button,
+.quantity-controls input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
 
-
-
-
+.quantity-controls input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+    appearance: textfield;
+}
