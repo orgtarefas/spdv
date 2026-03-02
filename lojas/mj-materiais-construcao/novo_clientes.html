@@ -386,80 +386,35 @@
     <!-- 2️⃣ SEGUNDO: Dados das lojas (module) -->
     <script type="module" src="/spdv/novo_lojas.js"></script>
     
-    <!-- 3️⃣ Script de inicialização com CARREGAMENTO SEQUENCIAL -->
-    <script type="module">
-        // ============================================
-        // CARREGAR SCRIPTS DA LOJA EM ORDEM
-        // ============================================
-        console.log('🚀 Iniciando carregamento dos scripts da loja...');
-        
+    <!-- 3️⃣ Script para definir a loja atual -->
+    <script>
         // Extrair lojaId da URL
-        const pathParts = window.location.pathname.split('/');
-        const lojaIndex = pathParts.indexOf('lojas');
-        let lojaId = null;
-        
-        if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
-            lojaId = pathParts[lojaIndex + 1];
-        } else {
-            console.error('❌ Não foi possível detectar loja da URL');
-            throw new Error('Loja não identificada');
-        }
-        
-        console.log(`📍 Loja detectada: ${lojaId}`);
-        window.lojaIdAtual = lojaId;
-        
-        // Função para carregar script com Promise
-        function loadScript(src, isModule = true) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                if (isModule) script.type = 'module';
-                script.onload = () => {
-                    console.log(`✅ Script carregado: ${src}`);
-                    resolve();
-                };
-                script.onerror = () => {
-                    console.error(`❌ Erro ao carregar: ${src}`);
-                    reject(new Error(`Falha ao carregar ${src}`));
-                };
-                document.body.appendChild(script);
-            });
-        }
-        
-        // Carregar scripts em sequência
-        async function initializeStore() {
-            try {
-                // 1️⃣ Primeiro o firebase_config (fundamental)
-                await loadScript(`/spdv/lojas/${lojaId}/novo_firebase_config.js`, true);
-                
-                // 2️⃣ Depois a imagem_api
-                await loadScript(`/spdv/lojas/${lojaId}/imagem_api.js`, true);
-                
-                // 3️⃣ Por último o clientes.js (que depende dos anteriores)
-                await loadScript(`/spdv/lojas/${lojaId}/novo_clientes.js`, true);
-                
-                console.log('🎉 Todos os scripts carregados com sucesso!');
-            } catch (error) {
-                console.error('❌ Erro fatal no carregamento:', error);
-                // Mostrar mensagem de erro na tela
-                const loading = document.getElementById('loadingOverlay');
-                if (loading) {
-                    loading.innerHTML = `
-                        <div class="loading-content">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #dc3545;"></i>
-                            <h3>Erro ao carregar loja</h3>
-                            <p>Por favor, recarregue a página</p>
-                        </div>
-                    `;
-                }
+        (function() {
+            const pathParts = window.location.pathname.split('/');
+            const lojaIndex = pathParts.indexOf('lojas');
+            let lojaId = null;
+            
+            if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
+                lojaId = pathParts[lojaIndex + 1];
+                console.log('📍 Loja detectada:', lojaId);
+                window.lojaIdAtual = lojaId;
+            } else {
+                console.error('❌ Loja não identificada na URL');
             }
-        }
-        
-        // Iniciar carregamento
-        initializeStore();
+        })();
     </script>
+    
+    <!-- 3️⃣ TERCEIRO: Config do Firebase da Loja (module) -->
+    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_firebase_config.js"></script>
+    
+    <!-- 4️⃣ QUARTO: Imagem API (module) -->
+    <script type="module" src="/spdv/lojas/mj-materiais-construcao/imagem_api.js"></script>
+    
+    <!-- 5️⃣ QUINTO: Script principal (module) -->
+    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_clientes.js"></script>
 </body>
 </html>
+
 
 
 
