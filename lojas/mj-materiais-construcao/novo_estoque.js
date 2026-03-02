@@ -10,26 +10,24 @@ import { imagemServices } from './imagem_api.js';
 async function verificarAcessoEstoque() {
     console.log("🔒 Verificando permissão de acesso ao estoque...");
     
-    // Verificar se tem dados do usuário
-    if (!lojaServices.usuario && !window.dadosUsuario) {
+    // Pegar dados do usuário de múltiplas fontes
+    const usuario = lojaServices?.usuario || 
+                   window.dadosUsuario || 
+                   window.auth?.currentUser;
+    
+    if (!usuario) {
         console.log("❌ Usuário não está logado");
         return false;
     }
-    
-    // Pegar dados do usuário
-    const usuario = lojaServices.usuario || window.dadosUsuario;
-    
-    if (!usuario) return false;
     
     // Extrair perfil
     const perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
     
     console.log(`👤 Perfil do usuário: ${perfil}`);
     
-    // Perfis que NÃO podem acessar estoque (clientes)
+    // Perfis que NÃO podem acessar estoque
     const perfisNegados = ['cliente', 'visitante', ''];
     
-    // Se for cliente, não pode acessar
     if (perfisNegados.includes(perfil)) {
         console.log("❌ Cliente tentando acessar estoque - acesso negado");
         return false;
@@ -47,33 +45,30 @@ async function verificarAcessoEstoque() {
     return true;
 }
 
-
 // ============================================
 // REDIRECIONAR PARA PÁGINA DE CLIENTES
 // ============================================
 function redirecionarParaClientes() {
-    const lojaId = lojaServices.lojaId;
+    console.log("🔄 Redirecionando para página de clientes...");
     
-    if (!lojaId) {
-        console.error("❌ ID da loja não encontrado");
+    // Tentar obter lojaId de várias fontes
+    const lojaId = lojaServices?.lojaId || 
+                  (window.location.pathname.match(/\/lojas\/([^\/]+)/) || [])[1];
+    
+    if (lojaId) {
+        window.location.href = `/spdv/lojas/${lojaId}/novo_clientes.html`;
+    } else {
         window.location.href = '../../login.html';
-        return;
     }
-    
-    // Montar URL da página de clientes
-    const urlClientes = `/spdv/lojas/${lojaId}/novo_clientes.html`;
-    
-    console.log(`🔄 Redirecionando cliente para: ${urlClientes}`);
-    window.location.href = urlClientes;
 }
 
 // ============================================
 // VERIFICAÇÃO BLOQUEANTE - EXECUTA IMEDIATAMENTE
 // ============================================
-(async function() {
-    console.log("🔒 Executando verificação bloqueante de acesso...");
+(function() {
+    console.log("🔒 Verificação bloqueante de acesso...");
     
-    // Mostrar loading
+    // MOSTRAR LOADING IMEDIATAMENTE
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
         loading.style.display = 'flex';
@@ -81,24 +76,51 @@ function redirecionarParaClientes() {
         if (h3) h3.textContent = 'Verificando acesso...';
     }
     
-    // Verificar acesso
-    const acessoPermitido = await verificarAcessoEstoque();
+    // VERIFICAÇÃO SÍNCRONA - USUÁRIO NÃO LOGADO
+    const naoLogado = !lojaServices?.usuario && 
+                     !window.dadosUsuario && 
+                     !window.auth?.currentUser;
     
-    if (!acessoPermitido) {
-        console.log("🚫 Acesso negado - Redirecionando imediatamente...");
-        // Redirecionar sem mostrar nada
-        redirecionarParaClientes();
+    if (naoLogado) {
+        console.log("🚫 Usuário não logado - Redirecionando imediatamente...");
+        
+        // Obter ID da loja da URL
+        const pathMatch = window.location.pathname.match(/\/lojas\/([^\/]+)/);
+        const lojaId = lojaServices?.lojaId || (pathMatch ? pathMatch[1] : null);
+        
+        if (lojaId) {
+            window.location.href = `/spdv/lojas/${lojaId}/novo_clientes.html`;
+        } else {
+            window.location.href = '../../login.html';
+        }
         return;
     }
     
-    // ✅ ACESSO PERMITIDO: Mostrar o conteúdo e continuar
-    console.log("✅ Acesso permitido, mostrando conteúdo...");
-    document.body.classList.add('acesso-permitido');
-    
-    // Esconder loading
-    if (loading) {
-        loading.style.display = 'none';
-    }
+    // SE TEM USUÁRIO, FAZ VERIFICAÇÃO ASSÍNCRONA DO PERFIL
+    (async function() {
+        try {
+            const acessoPermitido = await verificarAcessoEstoque();
+            
+            if (!acessoPermitido) {
+                console.log("🚫 Acesso negado - Redirecionando...");
+                redirecionarParaClientes();
+                return;
+            }
+            
+            // ✅ ACESSO PERMITIDO
+            console.log("✅ Acesso permitido, mostrando conteúdo...");
+            document.body.classList.add('acesso-permitido');
+            
+            // Esconder loading
+            if (loading) {
+                loading.style.display = 'none';
+            }
+            
+        } catch (error) {
+            console.error("❌ Erro na verificação:", error);
+            redirecionarParaClientes();
+        }
+    })();
 })();
 
 // ============================================
@@ -2471,6 +2493,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
