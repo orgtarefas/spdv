@@ -386,7 +386,7 @@
     <!-- 2️⃣ SEGUNDO: Dados das lojas (module) - CARREGAR PRIMEIRO -->
     <script type="module" src="/spdv/novo_lojas.js"></script>
     
-    <!-- 3️⃣ Script para detectar loja e carregar scripts específicos (AGORA COM DELAY) -->
+    <!-- 3️⃣ Script para detectar loja e carregar scripts específicos (ORDEM CORRETA) -->
     <script>
         (function() {
             // Extrair lojaId da URL
@@ -406,7 +406,7 @@
             // Salvar no window para acesso global
             window.lojaIdAtual = lojaId;
             
-            // Função para carregar script
+            // Função para carregar script e aguardar
             function loadScript(src, isModule = true) {
                 return new Promise((resolve, reject) => {
                     const script = document.createElement('script');
@@ -424,24 +424,24 @@
                 });
             }
             
-            // Carregar scripts em sequência, AGUARDANDO CADA UM
+            // Carregar scripts na ORDEM CORRETA
             async function loadScripts() {
                 try {
-                    // AGUARDAR 500ms para garantir que novo_lojas.js foi carregado
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // AGUARDAR novo_lojas.js ser processado
+                    await new Promise(resolve => setTimeout(resolve, 200));
                     
-                    console.log('🚀 Iniciando carregamento dos scripts da loja...');
+                    console.log('🚀 Carregando scripts em ordem...');
                     
-                    // 1️⃣ Primeiro carregar novo_firebase_config.js
+                    // 1️⃣ PRIMEIRO: novo_firebase_config.js (obrigatório para os outros)
                     await loadScript(`/spdv/lojas/${lojaId}/novo_firebase_config.js`, true);
                     
-                    // 2️⃣ Depois imagem_api.js
+                    // 2️⃣ SEGUNDO: imagem_api.js (depende do firebase_config)
                     await loadScript(`/spdv/lojas/${lojaId}/imagem_api.js`, true);
                     
-                    // 3️⃣ Por último novo_clientes.js
+                    // 3️⃣ TERCEIRO: novo_clientes.js (depende dos dois anteriores)
                     await loadScript(`/spdv/lojas/${lojaId}/novo_clientes.js`, true);
                     
-                    console.log('🎉 Todos os scripts carregados com sucesso!');
+                    console.log('🎉 Todos os scripts carregados na ordem correta!');
                 } catch (error) {
                     console.error('❌ Erro ao carregar scripts:', error);
                 }
@@ -453,6 +453,7 @@
     </script>
 </body>
 </html>
+
 
 
 
