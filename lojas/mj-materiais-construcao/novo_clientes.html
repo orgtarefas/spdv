@@ -386,14 +386,60 @@
     <!-- 2️⃣ SEGUNDO: Dados das lojas  (module) -->
     <script type="module" src="/spdv/novo_lojas.js"></script>
     
-    <!-- 3️⃣ TERCEIRO: Config do Firebase da Loja (module) -->
-    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_firebase_config.js"></script>
-    
-    <!-- 4️⃣ QUARTO: Imagem API (module) -->
-    <script type="module" src="/spdv/lojas/mj-materiais-construcao/imagem_api.js"></script>
-    
-    <!-- 5️⃣ QUINTO: Script principal (module) -->
-    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_clientes.js"></script>
+    <!-- 3️⃣ Script para detectar loja e carregar scripts específicos -->
+    <script>
+        (function() {
+            // Extrair lojaId da URL
+            const pathParts = window.location.pathname.split('/');
+            const lojaIndex = pathParts.indexOf('lojas');
+            let lojaId = null;
+            
+            if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
+                lojaId = pathParts[lojaIndex + 1];
+            } else {
+                console.error('❌ Não foi possível detectar loja da URL');
+                return;
+            }
+            
+            console.log(`📍 Loja detectada: ${lojaId}`);
+            
+            // Salvar no window para acesso global
+            window.lojaIdAtual = lojaId;
+            
+            // Função para carregar script
+            function loadScript(src, isModule = true) {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    if (isModule) script.type = 'module';
+                    script.onload = () => {
+                        console.log(`✅ Script carregado: ${src}`);
+                        resolve();
+                    };
+                    script.onerror = () => {
+                        console.error(`❌ Erro ao carregar: ${src}`);
+                        reject();
+                    };
+                    document.body.appendChild(script);
+                });
+            }
+            
+            // Carregar scripts em sequência
+            async function loadScripts() {
+                try {
+                    await loadScript(`/spdv/lojas/${lojaId}/novo_firebase_config.js`, true);
+                    await loadScript(`/spdv/lojas/${lojaId}/imagem_api.js`, true);
+                    await loadScript(`/spdv/lojas/${lojaId}/novo_clientes.js`, true);
+                } catch (error) {
+                    console.error('❌ Erro ao carregar scripts:', error);
+                }
+            }
+            
+            // Iniciar carregamento
+            loadScripts();
+        })();
+    </script>
 </body>
 </html>
+
 
