@@ -378,71 +378,84 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
     
-    <!-- ARQUIVOS DE CONFIGURAÇÃO - CAMINHOS ABSOLUTOS DA RAIZ -->
-    
     <!-- 1️⃣ PRIMEIRO: Login Firebase (NÃO é module) -->
     <script src="/spdv/login_firebase.js"></script>
     
-    <!-- 2️⃣ SEGUNDO: Extrair lojaId e carregar scripts da loja -->
+    <!-- 2️⃣ SEGUNDO: Carregar novo_lojas.js (global) -->
+    <script type="module" src="/spdv/novo_lojas.js"></script>
+    
+    <!-- 3️⃣ TERCEIRO: Extrair lojaId e carregar scripts da loja -->
     <script>
         (function() {
-            // EXTRAIR LOJA ID DA URL (PRIMEIRO PASSO)
+            // EXTRAIR LOJA ID DA URL
             const pathParts = window.location.pathname.split('/');
             const lojaIndex = pathParts.indexOf('lojas');
             
             if (lojaIndex === -1 || lojaIndex + 1 >= pathParts.length) {
                 console.error('❌ Loja não identificada na URL');
-                document.body.innerHTML = '<h1>Erro: Loja não identificada</h1>';
                 return;
             }
             
             const lojaId = pathParts[lojaIndex + 1];
             console.log(`📍 Loja detectada: ${lojaId}`);
             
-            // SALVAR NO WINDOW PARA ACESSO GLOBAL
+            // SALVAR NO WINDOW
             window.lojaIdAtual = lojaId;
             
-            // AGORA CARREGAR OS SCRIPTS DA LOJA (usando o lojaId)
-            const scripts = [
-                { src: `/spdv/lojas/${lojaId}/novo_firebase_config.js`, type: 'module' },
-                { src: `/spdv/lojas/${lojaId}/imagem_api.js`, type: 'module' },
-                { src: `/spdv/lojas/${lojaId}/novo_clientes.js`, type: 'module' }
-            ];
-            
-            // Função para carregar scripts em sequência
-            function carregarScripts(index) {
-                if (index >= scripts.length) {
-                    console.log('🎉 Todos os scripts da loja carregados!');
-                    return;
+            // FUNÇÃO PARA AGUARDAR getLojaConfig
+            function aguardarGetLojaConfig(callback) {
+                if (typeof window.getLojaConfig === 'function') {
+                    console.log('✅ getLojaConfig disponível');
+                    callback();
+                } else {
+                    console.log('⏳ Aguardando getLojaConfig...');
+                    setTimeout(() => aguardarGetLojaConfig(callback), 100);
                 }
-                
-                const script = document.createElement('script');
-                script.src = scripts[index].src;
-                script.type = scripts[index].type;
-                
-                script.onload = () => {
-                    console.log(`✅ Carregado: ${scripts[index].src}`);
-                    carregarScripts(index + 1);
-                };
-                
-                script.onerror = () => {
-                    console.error(`❌ Erro ao carregar: ${scripts[index].src}`);
-                    carregarScripts(index + 1); // Continua mesmo com erro
-                };
-                
-                document.body.appendChild(script);
             }
             
-            // INICIAR CARREGAMENTO
-            console.log(`🚀 Carregando scripts da loja ${lojaId}...`);
-            carregarScripts(0);
+            // CARREGAR SCRIPTS DA LOJA
+            function carregarScriptsLoja() {
+                const scripts = [
+                    `/spdv/lojas/${lojaId}/novo_firebase_config.js`,
+                    `/spdv/lojas/${lojaId}/imagem_api.js`,
+                    `/spdv/lojas/${lojaId}/novo_clientes.js`
+                ];
+                
+                let index = 0;
+                
+                function carregarProximo() {
+                    if (index >= scripts.length) {
+                        console.log('🎉 Todos os scripts carregados!');
+                        return;
+                    }
+                    
+                    const script = document.createElement('script');
+                    script.src = scripts[index];
+                    script.type = 'module';
+                    script.onload = () => {
+                        console.log(`✅ Carregado: ${scripts[index]}`);
+                        index++;
+                        carregarProximo();
+                    };
+                    script.onerror = () => {
+                        console.error(`❌ Erro: ${scripts[index]}`);
+                        index++;
+                        carregarProximo();
+                    };
+                    document.body.appendChild(script);
+                }
+                
+                console.log(`🚀 Carregando scripts da loja ${lojaId}...`);
+                carregarProximo();
+            }
+            
+            // AGUARDAR E INICIAR
+            aguardarGetLojaConfig(carregarScriptsLoja);
         })();
     </script>
-    
-    <!-- 3️⃣ TERCEIRO: Dados das lojas (module) - carregado por último -->
-    <script type="module" src="/spdv/novo_lojas.js"></script>
 </body>
 </html>
+
 
 
 
