@@ -281,9 +281,9 @@ function atualizarInterfacePermissoes() {
 }
 
 // ============================================
-// 2. EVENTOS DE LOGIN (adicionar no início do arquivo)
+// 2. EVENTOS DE LOGIN (CORRIGIDO)
 // ============================================
-window.addEventListener('usuarioLogado', (event) => {
+window.addEventListener('usuarioLogado', async (event) => {
     const { usuario } = event.detail;
     
     usuarioLogado = true;
@@ -294,7 +294,7 @@ window.addEventListener('usuarioLogado', (event) => {
     console.log('🔑 Perfil:', usuario.perfil);
     console.log('🔑 Tipo:', usuario.tipo);
     
-    // 🔥 CORREÇÃO: Extrair perfil corretamente
+    // Extrair perfil corretamente
     const perfilExibicao = usuario.nivel || usuario.perfil || usuario.tipo;
     
     if (userNameElement) {
@@ -312,75 +312,25 @@ window.addEventListener('usuarioLogado', (event) => {
         userNameElement.textContent = (usuario.nome || 'Usuário') + tipoDisplay;
     }
     
-    // Configurar permissões baseadas no perfil
+    // 🔥 CONFIGURAR PERMISSÕES PRIMEIRO
     configurarPermissoes();
     
-    // Re-renderizar produtos com as novas permissões
+    // 🔥 AGORA CARREGAR OS PRODUTOS
+    mostrarLoading('Carregando estoque...', 'Aguarde...');
+    await carregarDadosIniciais();
+    esconderLoading();
+    
+    // Re-renderizar produtos com as permissões corretas
     renderizarProdutos();
 });
 
-window.addEventListener('usuarioDeslogado', () => {
-    usuarioLogado = false;
-    dadosUsuario = null;
-    perfilAtual = null;
-    
-    console.log('👤 Usuário deslogado');
-    
-    if (userNameElement) {
-        userNameElement.textContent = 'Visitante';
-    }
-    
-    // Redirecionar para login
-    setTimeout(() => {
-        window.location.href = 'novo_clientes.html';
-    }, 1500);
-});
-
 // ============================================
-// 3. INICIALIZAÇÃO (MODIFICADA)
+// 3. INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página estoque carregada");
     
-    // Mostrar loading inicial
-    const loading = document.getElementById('loadingOverlay');
-    if (loading) {
-        loading.style.display = 'flex';
-        const h3 = loading.querySelector('h3');
-        if (h3) h3.textContent = 'Verificando acesso...';
-    }
-    
     try {
-        // 🔥 VERIFICAÇÃO DE ACESSO - CLIENTES SÃO REDIRECIONADOS
-        const acessoPermitido = await verificarAcessoEstoque();
-        
-        if (!acessoPermitido) {
-            console.log("🚫 Acesso negado - Redirecionando cliente...");
-            
-            // Mostrar mensagem
-            const alert = document.getElementById('messageAlert');
-            if (alert) {
-                alert.className = 'message-alert warning';
-                alert.style.display = 'block';
-                const text = alert.querySelector('.message-text');
-                if (text) text.textContent = 'Acesso restrito a funcionários. Redirecionando...';
-                
-                setTimeout(() => {
-                    alert.style.display = 'none';
-                }, 3000);
-            } else {
-                alert('Acesso restrito a funcionários. Redirecionando...');
-            }
-            
-            // Redirecionar após 2 segundos
-            setTimeout(() => {
-                redirecionarParaClientes();
-            }, 2000);
-            
-            return;
-        }
-        
-        // CONTINUAÇÃO NORMAL DO CÓDIGO (se tiver permissão)
         if (!lojaServices || !lojaServices.lojaId) {
             console.warn('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja. Redirecionando...', 'error');
@@ -395,17 +345,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         inicializarElementosDOM();
         atualizarInterfaceLoja();
         
-        // Se já estiver logado, pegar dados do window
-        if (window.dadosUsuario) {
-            usuarioLogado = true;
-            dadosUsuario = window.dadosUsuario;
-            perfilAtual = dadosUsuario.nivel || dadosUsuario.tipo;
-            
-            if (userNameElement) {
-                userNameElement.textContent = dadosUsuario.nome || 'Usuário';
-            }
-        }
-        
         // INICIALIZAR GERENCIADOR DE CÓDIGO DE BARRAS
         gerenciadorCodigoBarras = new GerenciadorCodigoBarras();
         window.gerenciadorCodigoBarras = gerenciadorCodigoBarras;
@@ -413,31 +352,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         configurarEventos();
         configurarMenuPerfil();
-        await carregarDadosIniciais();
         
-        // Configurar permissões (se já tiver usuário)
-        if (dadosUsuario) {
-            configurarPermissoes();
-        }
+        // 🔥 NÃO CARREGAR PRODUTOS AINDA - AGUARDAR LOGIN
         
         atualizarUltimaAtualizacao();
         setInterval(atualizarUltimaAtualizacao, 60000);
         
-        if (loading) loading.style.display = 'none';
-        
         verificarConfigImgBBCarregamento();
         
-        console.log("✅ Sistema de estoque pronto para uso");
+        console.log("✅ Sistema de estoque aguardando login...");
         
     } catch (error) {
         console.error("❌ Erro na inicialização:", error);
-        
-        if (loading) loading.style.display = 'none';
-        
-        // Em caso de erro, redirecionar também
-        setTimeout(() => {
-            redirecionarParaClientes();
-        }, 3000);
+        mostrarMensagem('Erro ao carregar sistema de estoque', 'error');
     }
 });
 
@@ -2544,6 +2471,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
