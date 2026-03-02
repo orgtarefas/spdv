@@ -386,53 +386,81 @@
     <!-- 2️⃣ SEGUNDO: Dados das lojas (module) -->
     <script type="module" src="/spdv/novo_lojas.js"></script>
     
-    <!-- 3️⃣ Script para carregar scripts da loja DINAMICAMENTE -->
-    <script>
-        (function() {
-            // EXTRAIR LOJA ID DA URL
-            const pathParts = window.location.pathname.split('/');
-            const lojaIndex = pathParts.indexOf('lojas');
-            let lojaId = null;
-            
-            if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
-                lojaId = pathParts[lojaIndex + 1];
-            } else {
-                console.error('❌ Não foi possível detectar loja da URL');
-                return;
-            }
-            
-            console.log(`📍 Loja detectada: ${lojaId}`);
-            
-            // SALVAR NO WINDOW PARA ACESSO GLOBAL
-            window.lojaIdAtual = lojaId;
-            
-            // FUNÇÃO PARA CARREGAR SCRIPT
-            function loadScript(src, isModule = true) {
+    <!-- 3️⃣ Script de inicialização com CARREGAMENTO SEQUENCIAL -->
+    <script type="module">
+        // ============================================
+        // CARREGAR SCRIPTS DA LOJA EM ORDEM
+        // ============================================
+        console.log('🚀 Iniciando carregamento dos scripts da loja...');
+        
+        // Extrair lojaId da URL
+        const pathParts = window.location.pathname.split('/');
+        const lojaIndex = pathParts.indexOf('lojas');
+        let lojaId = null;
+        
+        if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
+            lojaId = pathParts[lojaIndex + 1];
+        } else {
+            console.error('❌ Não foi possível detectar loja da URL');
+            throw new Error('Loja não identificada');
+        }
+        
+        console.log(`📍 Loja detectada: ${lojaId}`);
+        window.lojaIdAtual = lojaId;
+        
+        // Função para carregar script com Promise
+        function loadScript(src, isModule = true) {
+            return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = src;
                 if (isModule) script.type = 'module';
-                script.onload = () => console.log(`✅ Script carregado: ${src}`);
-                script.onerror = () => console.error(`❌ Erro ao carregar: ${src}`);
+                script.onload = () => {
+                    console.log(`✅ Script carregado: ${src}`);
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error(`❌ Erro ao carregar: ${src}`);
+                    reject(new Error(`Falha ao carregar ${src}`));
+                };
                 document.body.appendChild(script);
+            });
+        }
+        
+        // Carregar scripts em sequência
+        async function initializeStore() {
+            try {
+                // 1️⃣ Primeiro o firebase_config (fundamental)
+                await loadScript(`/spdv/lojas/${lojaId}/novo_firebase_config.js`, true);
+                
+                // 2️⃣ Depois a imagem_api
+                await loadScript(`/spdv/lojas/${lojaId}/imagem_api.js`, true);
+                
+                // 3️⃣ Por último o clientes.js (que depende dos anteriores)
+                await loadScript(`/spdv/lojas/${lojaId}/novo_clientes.js`, true);
+                
+                console.log('🎉 Todos os scripts carregados com sucesso!');
+            } catch (error) {
+                console.error('❌ Erro fatal no carregamento:', error);
+                // Mostrar mensagem de erro na tela
+                const loading = document.getElementById('loadingOverlay');
+                if (loading) {
+                    loading.innerHTML = `
+                        <div class="loading-content">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #dc3545;"></i>
+                            <h3>Erro ao carregar loja</h3>
+                            <p>Por favor, recarregue a página</p>
+                        </div>
+                    `;
+                }
             }
-            
-            // CARREGAR SCRIPTS DA LOJA
-            console.log('🚀 Carregando scripts da loja...');
-            
-            // 1️⃣ Config do Firebase da Loja
-            loadScript(`/spdv/lojas/${lojaId}/novo_firebase_config.js`, true);
-            
-            // 2️⃣ Imagem API
-            loadScript(`/spdv/lojas/${lojaId}/imagem_api.js`, true);
-            
-            // 3️⃣ Script principal (com um pequeno delay para garantir ordem)
-            setTimeout(() => {
-                loadScript(`/spdv/lojas/${lojaId}/novo_clientes.js`, true);
-            }, 200);
-        })();
+        }
+        
+        // Iniciar carregamento
+        initializeStore();
     </script>
 </body>
 </html>
+
 
 
 
