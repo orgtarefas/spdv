@@ -599,6 +599,10 @@ async function verificarTempoRestante(email) {
 // ============================================
 async function fazerLogout() {
     try {
+        // Limpar sessionStorage ao sair
+        sessionStorage.removeItem('usuarioInfo');
+        sessionStorage.removeItem('dadosUsuario'); // remover também o antigo por segurança
+        
         await auth.signOut();
         return { sucesso: true };
     } catch (error) {
@@ -608,7 +612,50 @@ async function fazerLogout() {
 }
 
 // ============================================
-// LISTENER DE AUTENTICAÇÃO (MODIFICADO)
+// FUNÇÃO PARA RECUPERAR INFORMAÇÕES BÁSICAS DO SESSIONSTORAGE
+// ============================================
+function getUsuarioInfo() {
+    try {
+        const info = sessionStorage.getItem('usuarioInfo');
+        return info ? JSON.parse(info) : null;
+    } catch (e) {
+        console.warn('⚠️ Erro ao recuperar info do sessionStorage:', e);
+        return null;
+    }
+}
+
+// ============================================
+// FUNÇÃO PARA VERIFICAR SE USUÁRIO TEM PERMISSÃO (sempre verifica no Firebase)
+// ============================================
+async function verificarPermissao(acao, email, lojaId) {
+    try {
+        // Sempre buscar perfil atualizado no Firebase
+        const perfil = await buscarPerfilUsuario(email, lojaId);
+        
+        if (!perfil.encontrado || !perfil.ativo) return false;
+        
+        // Lógica de permissões baseada no perfil
+        if (acao === 'estoque') {
+            return ['admin', 'gerente', 'supervisor', 'vendedor'].includes(perfil.perfil);
+        }
+        
+        if (acao === 'relatorios') {
+            return ['admin', 'gerente'].includes(perfil.perfil);
+        }
+        
+        if (acao === 'gestao_logins') {
+            return ['admin', 'gerente'].includes(perfil.perfil);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Erro ao verificar permissão:', error);
+        return false;
+    }
+}
+
+// ============================================
+// LISTENER DE AUTENTICAÇÃO (VERSÃO SEGURA)
 // ============================================
 auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -654,14 +701,26 @@ auth.onAuthStateChanged(async (user) => {
                     };
                 }
                 
-                // 🔥 SALVAR DADOS DO USUÁRIO GLOBALMENTE
+                // 🔥 SALVAR DADOS DO USUÁRIO GLOBALMENTE (APENAS NA MEMÓRIA)
                 window.dadosUsuario = perfil;
                 window.usuarioLogado = true;
                 
-                // 🔥 SALVAR NO SESSIONSTORAGE PARA COMPARTILHAR ENTRE PÁGINAS
+                // 🔥 ARMAZENAR APENAS INFORMAÇÕES NÃO SENSÍVEIS NO SESSIONSTORAGE
                 try {
-                    sessionStorage.setItem('dadosUsuario', JSON.stringify(perfil));
-                    console.log('✅ Dados do usuário salvos no sessionStorage');
+                    const infoBasica = {
+                        nome: perfil.nome,
+                        email: perfil.email,
+                        tipo: perfil.tipo,
+                        perfil: perfil.perfil,
+                        loja: lojaAtual
+                        // ⚠️ NÃO INCLUIR: uid, dados do Firebase, tokens, etc
+                    };
+                    sessionStorage.setItem('usuarioInfo', JSON.stringify(infoBasica));
+                    
+                    // Remover dados completos do sessionStorage por segurança
+                    sessionStorage.removeItem('dadosUsuario');
+                    
+                    console.log('✅ Informações básicas salvas no sessionStorage');
                 } catch (e) {
                     console.warn('⚠️ Erro ao salvar no sessionStorage:', e);
                 }
@@ -690,6 +749,7 @@ auth.onAuthStateChanged(async (user) => {
         // 🔥 LIMPAR DADOS DO USUÁRIO
         window.dadosUsuario = null;
         window.usuarioLogado = false;
+        sessionStorage.removeItem('usuarioInfo');
         sessionStorage.removeItem('dadosUsuario');
         
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
@@ -706,6 +766,8 @@ window.getLojaDaURL = getLojaDaURL;
 window.reenviarEmailVerificacao = reenviarEmailVerificacao;
 window.verificarTempoRestante = verificarTempoRestante;
 window.recuperarSenha = recuperarSenha;
+window.getUsuarioInfo = getUsuarioInfo;
+window.verificarPermissao = verificarPermissao;
 window.auth = auth;    
 window.loginDb = loginDb;    
 
@@ -714,6 +776,6 @@ console.log('📋 Funções disponíveis:', {
     fazerLogin: typeof fazerLogin,
     cadastrarCliente: typeof cadastrarCliente,
     recuperarSenha: typeof recuperarSenha,
-    reenviarEmailVerificacao: typeof reenviarEmailVerificacao
+    reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
+    verificarPermissao: typeof verificarPermissao
 });
-
