@@ -211,6 +211,10 @@ window.addEventListener('usuarioDeslogado', () => {
     const canalFisicoOption = document.getElementById('canalFisicoOption');
     const btnRecolhimento = document.getElementById('btnRecolhimento');
     const btnOrcamento = document.getElementById('btnImprimirOrcamento');
+
+    // Fechar dropdown se estiver aberto
+    const dropdown = document.getElementById('profileMenuDropdown');
+    if (dropdown) dropdown.classList.remove('show');
     
     if (userName) userName.textContent = 'Visitante';
     if (perfilBadge) perfilBadge.style.display = 'none';
@@ -1444,6 +1448,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         carregarDadosLoja();
         configurarEventos();
+
+        if (usuarioLogado) {
+            setTimeout(configurarMenuPerfil, 500);
+        }
         
         // Garantir que Loja Online esteja selecionado inicialmente
         const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
