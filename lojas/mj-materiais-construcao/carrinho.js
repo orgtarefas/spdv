@@ -1338,22 +1338,20 @@ function configurarMenuPerfil() {
     
     // Configurar ações dos itens do menu
     if (menuRelatorios) {
-        menuRelatorios.addEventListener('click', function(e) {
+        menuRelatorios.addEventListener('click', (e) => {
             e.preventDefault();
             finalDropdown.classList.remove('show');
             finalMenuBtn.classList.remove('active');
-            console.log('📊 Abrir relatórios');
-            window.location.href = 'relatorios.html';
+            alert('Em desenvolvimento');
         });
     }
     
     if (menuGestaoLogins) {
-        menuGestaoLogins.addEventListener('click', function(e) {
+        menuGestaoLogins.addEventListener('click', (e) => {
             e.preventDefault();
             finalDropdown.classList.remove('show');
             finalMenuBtn.classList.remove('active');
-            console.log('👥 Abrir gestão de logins');
-            window.location.href = 'gestao_logins.html';
+            alert('Em desenvolvimento');
         });
     }
     
@@ -1363,7 +1361,7 @@ function configurarMenuPerfil() {
             finalDropdown.classList.remove('show');
             finalMenuBtn.classList.remove('active');
             console.log('📦 Abrir estoque');
-            window.location.href = 'produtos.html';
+            window.location.href = 'estoque.html';
         });
     }
     
@@ -1619,6 +1617,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
