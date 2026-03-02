@@ -438,6 +438,9 @@ class LojaManager {
         }
     }
     
+    // ============================================
+    // BUSCAR PRODUTOS PARA VENDA (com log)
+    // ============================================
     async buscarProdutosParaVenda() {
         try {
             console.log(`🛒 Buscando produtos disponíveis para venda...`);
@@ -445,6 +448,7 @@ class LojaManager {
             const resultado = await this.buscarProdutos({ ativo: true });
             
             if (!resultado.success) {
+                console.error('❌ Erro ao buscar produtos:', resultado.error);
                 return resultado;
             }
             
@@ -453,6 +457,8 @@ class LojaManager {
             });
             
             console.log(`✅ ${produtosComEstoque.length} produtos disponíveis para venda`);
+            console.log('📋 Amostra:', produtosComEstoque.slice(0, 2));
+            
             return { 
                 success: true, 
                 data: produtosComEstoque 
@@ -1681,6 +1687,7 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
 
 
 
