@@ -126,5 +126,7 @@ function lojaTemImgBB(lojaId) {
 }
 
 export { LOJAS_CONFIG, getLojaConfig, getImgBBKey, lojaTemImgBB };
+window.getLojaConfig = getLojaConfig;
 console.log('✅ novo_lojas.js carregado SEM ALBUM');
+
 
