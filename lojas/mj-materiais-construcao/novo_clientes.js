@@ -27,6 +27,15 @@ import {
 import { getLojaConfig } from '/spdv/novo_lojas.js';
 
 // ============================================
+// DIAGNÓSTICO - ADICIONAR APÓS AS IMPORTAÇÕES
+// ============================================
+console.log('🔍 DIAGNÓSTICO INICIAL:');
+console.log('- lojaIdAtual:', lojaIdAtual);
+console.log('- window.lojaIdAtual:', window.lojaIdAtual);
+console.log('- lojaServices disponível?', !!lojaServices);
+console.log('- getLojaConfig disponível?', typeof window.getLojaConfig);
+
+// ============================================
 // CONSTANTES GLOBAIS
 // ============================================
 const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSIxMDAiIGN5PSI4MCIgcj0iNDAiIGZpbGw9IiNlNzRjM2MiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTUwIDE1MEw4MCAxMDBMMTEwIDEzMEwxNDAgODBMMTcwIDEzMEwyMDAgMTUwSDUwWiIgZmlsbD0iI2U3NGMzYyIgZmlsbC1vcGFjaXR5PSIwLjEiLz48dGV4dCB4PSIxMDAiIHk9IjE3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5TRU0gRk9UTzwvdGV4dD48L3N2Zz4=";
@@ -784,12 +793,23 @@ function renderizarChat() {
 // ============================================
 async function carregarProdutos() {
     try {
+        console.log('🔍 Carregando produtos...');
+        
+        if (!lojaServices || typeof lojaServices.buscarProdutosParaVenda !== 'function') {
+            console.error('❌ lojaServices não disponível');
+            return;
+        }
+        
         const resultado = await lojaServices.buscarProdutosParaVenda();
         
         if (resultado.success) {
             produtos = resultado.data;
             console.log(`✅ ${produtos.length} produtos carregados`);
+            
+            // Forçar renderização dos produtos em destaque
+            await carregarProdutosDestaque();
         } else {
+            console.error('❌ Erro ao carregar produtos:', resultado.error);
             produtos = [];
         }
     } catch (error) {
@@ -798,100 +818,14 @@ async function carregarProdutos() {
     }
 }
 
-async function carregarCategorias() {
-    try {
-        const resultado = await lojaServices.buscarCategorias();
-        
-        const categoriesGrid = document.getElementById('categoriesGrid');
-        if (!categoriesGrid) return;
-        
-        let categoriasList = resultado.success ? resultado.data : [];
-        
-        if (categoriasList.length === 0 && produtos.length > 0) {
-            const categoriasSet = new Set();
-            produtos.forEach(p => {
-                if (p.categoria) categoriasSet.add(p.categoria);
-            });
-            categoriasList = Array.from(categoriasSet).sort();
-        }
-        
-        if (categoriasList.length === 0) {
-            categoriasList = ['Todos os Produtos'];
-        }
-        
-        categorias = categoriasList;
-        
-        let slidesHtml = `
-            <div class="swiper-slide">
-                <div class="categoria-card" onclick="filtrarPorCategoria('todos')">
-                    <div class="categoria-icon">
-                        <i class="fas fa-th-large"></i>
-                    </div>
-                    <div class="categoria-info">
-                        <h4>Todos</h4>
-                        <p>${produtos.length} produtos</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        categoriasList.forEach(categoria => {
-            const count = produtos.filter(p => p.categoria === categoria).length;
-            slidesHtml += `
-                <div class="swiper-slide">
-                    <div class="categoria-card" onclick="filtrarPorCategoria('${categoria}')">
-                        <div class="categoria-icon">
-                            <i class="fas fa-tag"></i>
-                        </div>
-                        <div class="categoria-info">
-                            <h4>${categoria}</h4>
-                            <p>${count} produtos</p>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        categoriesGrid.innerHTML = slidesHtml;
-        
-        setTimeout(() => {
-            inicializarCarrosselCategorias();
-        }, 100);
-        
-    } catch (error) {
-        console.error("❌ Erro ao carregar categorias:", error);
-    }
-}
-
-function inicializarCarrosselCategorias() {
-    if (typeof Swiper === 'undefined') {
-        console.warn('⚠️ Swiper não está carregado');
+async function carregarProdutosDestaque() {
+    const featuredContainer = document.getElementById('featuredProducts');
+    if (!featuredContainer) {
+        console.error('❌ Container featuredProducts não encontrado');
         return;
     }
     
-    const categoriesSwiper = new Swiper('.categories-swiper', {
-        slidesPerView: 2,
-        spaceBetween: 10,
-        loop: true,
-        navigation: {
-            prevEl: '#categoriesPrev',
-            nextEl: '#categoriesNext',
-        },
-        breakpoints: {
-            480: { slidesPerView: 3, spaceBetween: 12 },
-            640: { slidesPerView: 4, spaceBetween: 15 },
-            768: { slidesPerView: 5, spaceBetween: 15 },
-            1024: { slidesPerView: 6, spaceBetween: 18 },
-            1280: { slidesPerView: 7, spaceBetween: 20 }
-        }
-    });
-    
-    console.log('✅ Carrossel de categorias inicializado');
-}
-
-async function carregarProdutosDestaque() {
-    const featuredContainer = document.getElementById('featuredProducts');
-    if (!featuredContainer) return;
+    console.log(`🔄 Renderizando ${produtos.length} produtos em destaque...`);
     
     if (produtos.length === 0) {
         featuredContainer.innerHTML = `
@@ -909,7 +843,7 @@ async function carregarProdutosDestaque() {
     
     let slidesHtml = '';
     produtos.slice(0, 20).forEach(produto => {
-        const imagem = obterURLImagem(produto, 'thumb');
+        const imagem = obterURLImagem(produto, 'thumb') || IMAGEM_PADRAO_BASE64;
         const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = (produto.quantidade || 0) > 0;
         
@@ -942,10 +876,39 @@ async function carregarProdutosDestaque() {
     
     featuredContainer.innerHTML = slidesHtml;
     
+    // Inicializar ou atualizar o Swiper
     setTimeout(() => {
         inicializarSwiper();
     }, 100);
 }
+
+function inicializarCarrosselCategorias() {
+    if (typeof Swiper === 'undefined') {
+        console.warn('⚠️ Swiper não está carregado');
+        return;
+    }
+    
+    const categoriesSwiper = new Swiper('.categories-swiper', {
+        slidesPerView: 2,
+        spaceBetween: 10,
+        loop: true,
+        navigation: {
+            prevEl: '#categoriesPrev',
+            nextEl: '#categoriesNext',
+        },
+        breakpoints: {
+            480: { slidesPerView: 3, spaceBetween: 12 },
+            640: { slidesPerView: 4, spaceBetween: 15 },
+            768: { slidesPerView: 5, spaceBetween: 15 },
+            1024: { slidesPerView: 6, spaceBetween: 18 },
+            1280: { slidesPerView: 7, spaceBetween: 20 }
+        }
+    });
+    
+    console.log('✅ Carrossel de categorias inicializado');
+}
+
+
 
 function inicializarSwiper() {
     if (typeof Swiper === 'undefined') return;
@@ -1459,6 +1422,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
