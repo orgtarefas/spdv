@@ -2,7 +2,7 @@
 console.log("🛒 Carrinho de Compras - Cliente Logado (Firebase)");
 
 import { lojaServices } from './novo_firebase_config.js';
-import { getLojaConfig } from '/spdv/lojas.js';
+import { getLojaConfig } from '/spdv/novo_lojas.js';
 
 // ============================================
 // VARIÁVEIS GLOBAIS
@@ -1617,6 +1617,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
