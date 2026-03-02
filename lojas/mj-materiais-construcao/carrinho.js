@@ -7,13 +7,24 @@ import { getLojaConfig } from '/spdv/novo_lojas.js';
 // ============================================
 // VERIFICAÇÃO DE ACESSO - REDIRECIONAR SE NÃO LOGADO
 // ============================================
-(function() {
+(async function() {
     console.log("🔒 Verificando acesso ao carrinho...");
+    
+    // Aguardar um momento para o login ser processado
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Verificar se usuário está logado (de múltiplas fontes)
     const usuarioLogado = window.auth?.currentUser || 
                          window.dadosUsuario || 
-                         lojaServices?.usuario;
+                         lojaServices?.usuario ||
+                         (() => {
+                             try {
+                                 const sessionData = sessionStorage.getItem('dadosUsuario');
+                                 return sessionData ? JSON.parse(sessionData) : null;
+                             } catch (e) {
+                                 return null;
+                             }
+                         })();
     
     if (!usuarioLogado) {
         console.log("🚫 Usuário não logado - Redirecionando para clientes...");
@@ -31,6 +42,17 @@ import { getLojaConfig } from '/spdv/novo_lojas.js';
     }
     
     console.log("✅ Usuário logado, acesso permitido ao carrinho");
+    
+    // Se temos dados no sessionStorage mas não nas variáveis, restaurar
+    try {
+        const sessionData = sessionStorage.getItem('dadosUsuario');
+        if (sessionData && !window.dadosUsuario) {
+            window.dadosUsuario = JSON.parse(sessionData);
+            console.log("✅ Dados do usuário restaurados do sessionStorage");
+        }
+    } catch (e) {
+        console.warn("⚠️ Erro ao restaurar dados:", e);
+    }
 })();
 
 // ============================================
@@ -1646,6 +1668,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
