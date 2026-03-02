@@ -267,6 +267,78 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
+
+    // ============================================
+    // BUSCAR PRODUTO POR CÓDIGO DE BARRAS
+    // ============================================
+    async buscarProdutoPorCodigoBarras(codigoBarras) {
+        console.log(`🔍 Buscando produto com código de barras: ${codigoBarras}`);
+        
+        try {
+            // Limpar o código (remover caracteres não numéricos)
+            const codigoLimpo = codigoBarras.replace(/\D/g, '');
+            
+            if (!codigoLimpo || codigoLimpo.length < 8) {
+                return {
+                    success: false,
+                    error: 'Código de barras inválido'
+                };
+            }
+            
+            // Buscar na coleção de produtos da loja
+            const produtosRef = collection(db, this.bancoEstoque);
+            const q = query(
+                produtosRef,
+                where('codigo_barras', '==', codigoLimpo),
+                limit(1)
+            );
+            
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                console.log('❌ Produto não encontrado com este código de barras');
+                return {
+                    success: false,
+                    error: 'Produto não encontrado'
+                };
+            }
+            
+            const produtoDoc = querySnapshot.docs[0];
+            const produto = {
+                id: produtoDoc.id,
+                ...produtoDoc.data()
+            };
+            
+            console.log('✅ Produto encontrado:', produto.nome);
+            
+            // Formatar dados do produto
+            const produtoFormatado = {
+                id: produto.id,
+                codigo: produto.codigo || produto.id.substring(0, 8),
+                codigo_barras: produto.codigo_barras,
+                nome: produto.nome,
+                preco: produto.preco_venda || produto.preco || 0,
+                quantidade: produto.quantidade || produto.estoque || 0,
+                unidade: produto.unidade_venda || produto.unidade || 'UN',
+                imagens: produto.imagens || {},
+                categoria: produto.categoria || '',
+                marca: produto.marca || '',
+                descricao: produto.descricao || ''
+            };
+            
+            return {
+                success: true,
+                data: produtoFormatado
+            };
+            
+        } catch (error) {
+            console.error('❌ Erro ao buscar produto por código de barras:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
     
     async buscarProdutoPorId(produtoId) {
         try {
@@ -1513,6 +1585,9 @@ const lojaServices = {
     excluirOrcamento: (id) => lojaManager.excluirOrcamento(id),
     atualizarVenda: (id, dados) => lojaManager.atualizarVenda(id, dados),
     
+    // 🔥 NOVA FUNÇÃO ADICIONADA AQUI
+    buscarProdutoPorCodigoBarras: (codigo) => lojaManager.buscarProdutoPorCodigoBarras(codigo),
+    
     // NOVOS MÉTODOS DE CARRINHO
     salvarCarrinhoUsuario: (email, itens) => lojaManager.salvarCarrinhoUsuario(email, itens),
     carregarCarrinhoUsuario: (email) => lojaManager.carregarCarrinhoUsuario(email),
@@ -1613,4 +1688,5 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
 
