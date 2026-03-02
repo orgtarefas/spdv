@@ -1342,7 +1342,7 @@ function configurarMenuPerfil() {
             e.preventDefault();
             finalDropdown.classList.remove('show');
             finalMenuBtn.classList.remove('active');
-            alert('Em desenvolvimento');
+            mostrarMensagem('Em desenvolvimento.', 'info');
         });
     }
     
@@ -1351,7 +1351,7 @@ function configurarMenuPerfil() {
             e.preventDefault();
             finalDropdown.classList.remove('show');
             finalMenuBtn.classList.remove('active');
-            alert('Em desenvolvimento');
+            mostrarMensagem('Em desenvolvimento.', 'info');
         });
     }
     
@@ -1617,6 +1617,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
