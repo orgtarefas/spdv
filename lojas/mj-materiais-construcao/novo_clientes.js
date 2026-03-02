@@ -789,7 +789,7 @@ function renderizarChat() {
 }
 
 // ============================================
-// FUNÇÕES DE PRODUTOS (COM DIAGNÓSTICO)
+// FUNÇÕES DE PRODUTOS
 // ============================================
 async function carregarProdutos() {
     console.log('🔍 INICIANDO carregarProdutos()');
@@ -810,11 +810,12 @@ async function carregarProdutos() {
         if (resultado && resultado.success) {
             produtos = resultado.data || [];
             console.log(`✅ ${produtos.length} produtos carregados`);
-            console.log('📋 Primeiro produto:', produtos[0]);
             
-            if (produtos.length === 0) {
+            if (produtos.length > 0) {
+                console.log('📋 Primeiro produto:', produtos[0]);
+                await carregarProdutosDestaque();
+            } else {
                 console.warn('⚠️ Nenhum produto retornado pela API');
-                // Mostrar mensagem na tela
                 const featuredContainer = document.getElementById('featuredProducts');
                 if (featuredContainer) {
                     featuredContainer.innerHTML = `
@@ -828,11 +829,7 @@ async function carregarProdutos() {
                         </div>
                     `;
                 }
-                return;
             }
-            
-            // Forçar renderização dos produtos em destaque
-            await carregarProdutosDestaque();
         } else {
             console.error('❌ Erro ao carregar produtos:', resultado?.error || 'Erro desconhecido');
             produtos = [];
@@ -1464,6 +1461,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
