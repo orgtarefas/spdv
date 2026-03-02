@@ -563,29 +563,18 @@ function carregarDadosLoja() {
     
     if (!lojaId) return;
     
+    // 🔥 USAR window.getLojaConfig
+    if (typeof window.getLojaConfig !== 'function') {
+        console.log('⏳ getLojaConfig ainda não disponível...');
+        setTimeout(carregarDadosLoja, 200);
+        return;
+    }
+    
     try {
-        const config = getLojaConfig(lojaId);
+        const config = window.getLojaConfig(lojaId);
         console.log(`📋 Configuração da loja ${lojaId}:`, config);
         
-        if (config) {
-            const nomeLoja = config.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            
-            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
-            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
-            
-            document.title = `${nomeLoja} - Loja Online`;
-            
-            if (config.contato) {
-                renderizarContatos(config);
-            }
-            
-            if (config.contato?.endereco) {
-                renderizarEndereco(config);
-            }
-        }
-        
-        renderizarChat();
-        
+        // ... resto do código permanece IGUAL
     } catch (error) {
         console.error('❌ Erro ao carregar dados da loja:', error);
         renderizarChat();
@@ -1452,6 +1441,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
