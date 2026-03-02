@@ -73,7 +73,7 @@ function redirecionarParaClientes() {
 (async function() {
     console.log("🔒 Executando verificação bloqueante de acesso...");
     
-    // Mostrar loading mínimo
+    // Mostrar loading
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
         loading.style.display = 'flex';
@@ -86,18 +86,19 @@ function redirecionarParaClientes() {
     
     if (!acessoPermitido) {
         console.log("🚫 Acesso negado - Redirecionando imediatamente...");
-        
-        // Redirecionar imediatamente sem mostrar nada
+        // Redirecionar sem mostrar nada
         redirecionarParaClientes();
         return;
     }
     
-    // Se tiver acesso, esconder loading e continuar
+    // ✅ ACESSO PERMITIDO: Mostrar o conteúdo e continuar
+    console.log("✅ Acesso permitido, mostrando conteúdo...");
+    document.body.classList.add('acesso-permitido');
+    
+    // Esconder loading
     if (loading) {
         loading.style.display = 'none';
     }
-    
-    console.log("✅ Acesso permitido, iniciando sistema de estoque...");
 })();
 
 // ============================================
@@ -2543,6 +2544,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
