@@ -383,13 +383,14 @@
     <!-- 1️⃣ PRIMEIRO: Login Firebase (NÃO é module) -->
     <script src="/spdv/login_firebase.js"></script>
     
-    <!-- 2️⃣ SEGUNDO: Dados das lojas  (module) -->
+    <!-- 2️⃣ SEGUNDO: Dados das lojas (module) -->
     <script type="module" src="/spdv/novo_lojas.js"></script>
     
-    <!-- 3️⃣ TERCEIRO: Config do Firebase da Loja (module) - CAMINHO DINÂMICO -->
-    <script type="module">
+    <!-- 3️⃣ Script para detectar loja e carregar scripts específicos -->
+    <script>
         // Detectar a loja atual pela URL
         (function() {
+            // Tentar obter lojaId da URL
             const pathParts = window.location.pathname.split('/');
             const lojaIndex = pathParts.indexOf('lojas');
             let lojaId = null;
@@ -397,30 +398,51 @@
             if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
                 lojaId = pathParts[lojaIndex + 1];
             } else {
-                console.warn('⚠️ Não foi possível detectar loja da URL, usando fallback');
-                lojaId = 'mj-materiais-construcao'; // fallback
+                console.error('❌ Não foi possível detectar loja da URL');
+                return;
             }
             
-            console.log(`📍 Detectando loja para scripts: ${lojaId}`);
+            console.log(`📍 Loja detectada para scripts: ${lojaId}`);
             
-            // Criar e carregar os scripts dinamicamente
+            // Salvar no window para acesso global
+            window.lojaIdAtual = lojaId;
+            
+            // Criar e carregar os scripts dinamicamente na ORDEM CORRETA
             const scripts = [
                 { src: `/spdv/lojas/${lojaId}/novo_firebase_config.js`, type: 'module' },
                 { src: `/spdv/lojas/${lojaId}/imagem_api.js`, type: 'module' },
                 { src: `/spdv/lojas/${lojaId}/novo_clientes.js`, type: 'module' }
             ];
             
-            scripts.forEach(scriptConfig => {
+            // Função para carregar script e executar próximo após carregar
+            function loadScript(index) {
+                if (index >= scripts.length) return;
+                
+                const scriptConfig = scripts[index];
                 const script = document.createElement('script');
                 script.src = scriptConfig.src;
                 if (scriptConfig.type) script.type = scriptConfig.type;
+                
+                script.onload = function() {
+                    console.log(`✅ Script carregado: ${scriptConfig.src}`);
+                    loadScript(index + 1); // Carrega o próximo
+                };
+                
+                script.onerror = function() {
+                    console.error(`❌ Erro ao carregar: ${scriptConfig.src}`);
+                    loadScript(index + 1); // Tenta o próximo mesmo com erro
+                };
+                
                 document.body.appendChild(script);
-                console.log(`✅ Script carregado: ${scriptConfig.src}`);
-            });
+            }
+            
+            // Começar a carregar os scripts em sequência
+            loadScript(0);
         })();
     </script>
 </body>
 </html>
+
 
 
 
