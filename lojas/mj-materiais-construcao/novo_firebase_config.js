@@ -106,7 +106,6 @@ class LojaManager {
      * Nome da coleção de carrinhos para a loja atual
      */
     get colecaoCarrinhos() {
-        // Ex: mj-materiais-construcao -> carrinhos_mj_materiais_construcao
         const lojaFormatada = this.lojaId.replace(/-/g, '_');
         return `carrinhos_${lojaFormatada}`;
     }
@@ -1687,6 +1686,7 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
 
 
 
