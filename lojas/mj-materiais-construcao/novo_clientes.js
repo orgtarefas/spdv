@@ -24,7 +24,7 @@ import {
     gerarImagemPlaceholderBase64
 } from './novo_firebase_config.js';
 
-import { getLojaConfig } from '/spdv/lojas.js';
+import { getLojaConfig } from '/spdv/novo_lojas.js';
 
 // ============================================
 // CONSTANTES GLOBAIS
@@ -1406,6 +1406,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
