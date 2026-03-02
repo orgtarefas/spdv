@@ -1,4 +1,23 @@
+/* ============================================ */
+/* ESCONDER CONTEÚDO ATÉ VERIFICAÇÃO DE ACESSO */
+/* ============================================ */
+body {
+    visibility: hidden; /* Esconde tudo inicialmente */
+}
+
+body.acesso-permitido {
+    visibility: visible; /* Mostra quando o acesso for permitido */
+}
+
+/* Mantém o loading visível durante a verificação */
+.loading-overlay {
+    visibility: visible !important;
+}
+
+/* ============================================ */
 /* estoque.css - Estilos completos */
+/* ============================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -2147,6 +2166,7 @@ body {
     max-width: 900px !important;
     width: 90% !important;
 }
+
 
 
 
