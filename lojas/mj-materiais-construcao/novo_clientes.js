@@ -1388,31 +1388,35 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 }
 
 // ============================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO (CORRIGIDA - EXECUTA IMEDIATAMENTE)
 // ============================================
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log("📄 Página clientes carregada (nova autenticação)");
+(async function() {
+    console.log("📄 Inicializando clientes.js imediatamente...");
     
     mostrarLoading('Carregando loja...');
     
     try {
-        extrairLojaIdDaURL();
-        configurarFavicon();
+        // Garantir que temos o lojaId
+        if (!lojaIdAtual) {
+            lojaIdAtual = window.lojaIdAtual || extrairLojaIdDaURL();
+        }
         
-        const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+        console.log(`📍 Loja ID: ${lojaIdAtual}`);
         
-        if (!lojaId) {
+        if (!lojaIdAtual) {
             console.error('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja', 'error');
-            setTimeout(() => window.location.href = '../../../login.html', 2000);
             return;
         }
         
-        console.log(`✅ Loja identificada: ${lojaId}`);
+        // Configurar favicon
+        configurarFavicon();
         
-        // Carregar dados da loja
+        // Carregar logo
         carregarLogoLoja();
-        carregarDadosLoja();
+        
+        // Carregar dados da loja (com retry)
+        await carregarDadosLoja();
         
         // Configurar eventos
         configurarEventos();
@@ -1430,7 +1434,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         mostrarMensagem('Erro ao carregar loja', 'error');
         esconderLoading();
     }
-});
+})();
 
 // ============================================
 // EXPOR FUNÇÕES GLOBAIS
@@ -1441,6 +1445,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
