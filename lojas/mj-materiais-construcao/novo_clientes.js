@@ -64,6 +64,20 @@ function extrairLojaIdDaURL() {
 }
 
 // ============================================
+// CONFIGURAR FAVICON DA LOJA
+// ============================================
+function configurarFavicon() {
+    const lojaId = extrairLojaIdDaURL();
+    if (lojaId) {
+        const favicon = document.getElementById('favicon');
+        if (favicon) {
+            favicon.href = `/spdv/imagens/${lojaId}/icone.ico`;
+            console.log(`✅ Favicon configurado para loja: ${lojaId}`);
+        }
+    }
+}
+
+// ============================================
 // FUNÇÕES DE MODAL
 // ============================================
 function abrirModal(modalId) {
@@ -1363,6 +1377,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     try {
         extrairLojaIdDaURL();
+        configurarFavicon();
         
         const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
         
@@ -1406,6 +1421,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
