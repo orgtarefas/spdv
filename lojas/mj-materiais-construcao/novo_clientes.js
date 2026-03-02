@@ -789,27 +789,52 @@ function renderizarChat() {
 }
 
 // ============================================
-// FUNÇÕES DE PRODUTOS
+// FUNÇÕES DE PRODUTOS (COM DIAGNÓSTICO)
 // ============================================
 async function carregarProdutos() {
+    console.log('🔍 INICIANDO carregarProdutos()');
+    console.log('- lojaServices disponível?', !!lojaServices);
+    console.log('- lojaServices.buscarProdutosParaVenda?', typeof lojaServices?.buscarProdutosParaVenda);
+    
     try {
-        console.log('🔍 Carregando produtos...');
-        
         if (!lojaServices || typeof lojaServices.buscarProdutosParaVenda !== 'function') {
-            console.error('❌ lojaServices não disponível');
+            console.error('❌ lojaServices não disponível ou método não existe');
             return;
         }
         
+        console.log('📦 Chamando lojaServices.buscarProdutosParaVenda()...');
         const resultado = await lojaServices.buscarProdutosParaVenda();
         
-        if (resultado.success) {
-            produtos = resultado.data;
+        console.log('📦 Resultado da busca:', resultado);
+        
+        if (resultado && resultado.success) {
+            produtos = resultado.data || [];
             console.log(`✅ ${produtos.length} produtos carregados`);
+            console.log('📋 Primeiro produto:', produtos[0]);
+            
+            if (produtos.length === 0) {
+                console.warn('⚠️ Nenhum produto retornado pela API');
+                // Mostrar mensagem na tela
+                const featuredContainer = document.getElementById('featuredProducts');
+                if (featuredContainer) {
+                    featuredContainer.innerHTML = `
+                        <div class="swiper-wrapper">
+                            <div class="swiper-slide">
+                                <div class="empty-products">
+                                    <i class="fas fa-box-open"></i>
+                                    <p>Nenhum produto disponível no momento</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                return;
+            }
             
             // Forçar renderização dos produtos em destaque
             await carregarProdutosDestaque();
         } else {
-            console.error('❌ Erro ao carregar produtos:', resultado.error);
+            console.error('❌ Erro ao carregar produtos:', resultado?.error || 'Erro desconhecido');
             produtos = [];
         }
     } catch (error) {
@@ -819,15 +844,20 @@ async function carregarProdutos() {
 }
 
 async function carregarProdutosDestaque() {
+    console.log('🎨 INICIANDO carregarProdutosDestaque()');
+    console.log('- produtos.length:', produtos.length);
+    
     const featuredContainer = document.getElementById('featuredProducts');
     if (!featuredContainer) {
-        console.error('❌ Container featuredProducts não encontrado');
+        console.error('❌ Container featuredProducts não encontrado!');
+        console.log('🔍 Elementos disponíveis:', document.getElementById('featuredProducts'));
         return;
     }
     
-    console.log(`🔄 Renderizando ${produtos.length} produtos em destaque...`);
+    console.log('✅ Container featuredProducts encontrado');
     
     if (produtos.length === 0) {
+        console.warn('⚠️ Nenhum produto para renderizar');
         featuredContainer.innerHTML = `
             <div class="swiper-wrapper">
                 <div class="swiper-slide">
@@ -841,8 +871,12 @@ async function carregarProdutosDestaque() {
         return;
     }
     
+    console.log(`🔄 Renderizando ${produtos.length} produtos em destaque...`);
+    
     let slidesHtml = '';
-    produtos.slice(0, 20).forEach(produto => {
+    produtos.slice(0, 20).forEach((produto, index) => {
+        console.log(`📦 Produto ${index + 1}:`, produto.nome);
+        
         const imagem = obterURLImagem(produto, 'thumb') || IMAGEM_PADRAO_BASE64;
         const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = (produto.quantidade || 0) > 0;
@@ -874,10 +908,13 @@ async function carregarProdutosDestaque() {
         `;
     });
     
+    console.log('📝 HTML gerado, tamanho:', slidesHtml.length);
     featuredContainer.innerHTML = slidesHtml;
+    console.log('✅ HTML inserido no container');
     
     // Inicializar ou atualizar o Swiper
     setTimeout(() => {
+        console.log('🔄 Inicializando Swiper...');
         inicializarSwiper();
     }, 100);
 }
@@ -1422,6 +1459,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
