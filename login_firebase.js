@@ -608,7 +608,7 @@ async function fazerLogout() {
 }
 
 // ============================================
-// LISTENER DE AUTENTICAÇÃO
+// LISTENER DE AUTENTICAÇÃO (MODIFICADO)
 // ============================================
 auth.onAuthStateChanged(async (user) => {
     if (user) {
@@ -654,6 +654,18 @@ auth.onAuthStateChanged(async (user) => {
                     };
                 }
                 
+                // 🔥 SALVAR DADOS DO USUÁRIO GLOBALMENTE
+                window.dadosUsuario = perfil;
+                window.usuarioLogado = true;
+                
+                // 🔥 SALVAR NO SESSIONSTORAGE PARA COMPARTILHAR ENTRE PÁGINAS
+                try {
+                    sessionStorage.setItem('dadosUsuario', JSON.stringify(perfil));
+                    console.log('✅ Dados do usuário salvos no sessionStorage');
+                } catch (e) {
+                    console.warn('⚠️ Erro ao salvar no sessionStorage:', e);
+                }
+                
                 window.dispatchEvent(new CustomEvent('usuarioLogado', { 
                     detail: { 
                         usuario: perfil,
@@ -674,6 +686,12 @@ auth.onAuthStateChanged(async (user) => {
         
     } else {
         console.log('👤 Nenhum usuário logado');
+        
+        // 🔥 LIMPAR DADOS DO USUÁRIO
+        window.dadosUsuario = null;
+        window.usuarioLogado = false;
+        sessionStorage.removeItem('dadosUsuario');
+        
         window.dispatchEvent(new CustomEvent('usuarioDeslogado'));
     }
 });
@@ -698,3 +716,4 @@ console.log('📋 Funções disponíveis:', {
     recuperarSenha: typeof recuperarSenha,
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao
 });
+
