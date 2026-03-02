@@ -13,7 +13,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { imagemServices } from './imagem_api.js';
-import { getLojaConfig } from '../../novo_lojas.js';
+import { getLojaConfig } from '/spdv/novo_lojas.js';
 
 const firebaseConfig = {
     apiKey: "AIzaSyDOXKEQqZQC3OuYjkc_Mg6-I-JvC_ZK7ag",
@@ -1687,6 +1687,7 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
 
 
 
