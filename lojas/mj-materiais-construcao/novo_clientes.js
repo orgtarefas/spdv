@@ -41,24 +41,6 @@ let dadosUsuario = null;
 let swiperInstance = null;
 let lojaIdAtual = null;
 
-
-// ============================================
-// DIAGNÓSTICO
-// ============================================
-console.log('🔍 DIAGNÓSTICO INICIAL:');
-console.log('- lojaIdAtual:', lojaIdAtual);
-console.log('- window.lojaIdAtual:', window.lojaIdAtual);
-console.log('- lojaServices disponível?', !!lojaServices);
-console.log('- getLojaConfig disponível?', typeof window.getLojaConfig);
-
-// ============================================
-// VERIFICAR LOJA ID
-// ============================================
-if (!lojaIdAtual) {
-    lojaIdAtual = window.lojaIdAtual || extrairLojaIdDaURL();
-    console.log(`📍 Loja ID no clientes.js: ${lojaIdAtual}`);
-}
-
 // ============================================
 // FUNÇÃO PARA EXTRAIR LOJA ID DA URL
 // ============================================
@@ -555,40 +537,15 @@ function getPlaceholderIcon() {
 }
 
 // ============================================
-// CARREGAR DADOS DA LOJA (com aguardo)
+// CARREGAR DADOS DA LOJA (do novo_lojas.js)
 // ============================================
-async function carregarDadosLoja() {
+function carregarDadosLoja() {
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     
-    if (!lojaId) {
-        console.warn('⚠️ Loja ID não disponível para carregar dados');
-        return;
-    }
-    
-    console.log(`🔍 Aguardando getLojaConfig para loja: ${lojaId}`);
-    
-    // Aguardar até que getLojaConfig esteja disponível (máx 3 segundos)
-    let tentativas = 0;
-    while (typeof window.getLojaConfig !== 'function' && tentativas < 30) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        tentativas++;
-    }
-    
-    if (typeof window.getLojaConfig !== 'function') {
-        console.error('❌ getLojaConfig não disponível após 3 segundos');
-        // Fallback: usar nome da loja baseado no ID
-        const nomeLoja = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        const lojaNomeHeader = document.getElementById('lojaNomeHeader');
-        if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
-        document.title = `${nomeLoja} - Loja Online`;
-        renderizarChat();
-        return;
-    }
-    
-    console.log('✅ getLojaConfig disponível, carregando dados...');
+    if (!lojaId) return;
     
     try {
-        const config = window.getLojaConfig(lojaId);
+        const config = getLojaConfig(lojaId);
         console.log(`📋 Configuração da loja ${lojaId}:`, config);
         
         if (config) {
@@ -606,12 +563,6 @@ async function carregarDadosLoja() {
             if (config.contato?.endereco) {
                 renderizarEndereco(config);
             }
-        } else {
-            console.warn('⚠️ Configuração não encontrada para loja:', lojaId);
-            const nomeLoja = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
-            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
-            document.title = `${nomeLoja} - Loja Online`;
         }
         
         renderizarChat();
@@ -792,46 +743,13 @@ function renderizarChat() {
 // FUNÇÕES DE PRODUTOS
 // ============================================
 async function carregarProdutos() {
-    console.log('🔍 INICIANDO carregarProdutos()');
-    console.log('- lojaServices disponível?', !!lojaServices);
-    console.log('- lojaServices.buscarProdutosParaVenda?', typeof lojaServices?.buscarProdutosParaVenda);
-    
     try {
-        if (!lojaServices || typeof lojaServices.buscarProdutosParaVenda !== 'function') {
-            console.error('❌ lojaServices não disponível ou método não existe');
-            return;
-        }
-        
-        console.log('📦 Chamando lojaServices.buscarProdutosParaVenda()...');
         const resultado = await lojaServices.buscarProdutosParaVenda();
         
-        console.log('📦 Resultado da busca:', resultado);
-        
-        if (resultado && resultado.success) {
-            produtos = resultado.data || [];
+        if (resultado.success) {
+            produtos = resultado.data;
             console.log(`✅ ${produtos.length} produtos carregados`);
-            
-            if (produtos.length > 0) {
-                console.log('📋 Primeiro produto:', produtos[0]);
-                await carregarProdutosDestaque();
-            } else {
-                console.warn('⚠️ Nenhum produto retornado pela API');
-                const featuredContainer = document.getElementById('featuredProducts');
-                if (featuredContainer) {
-                    featuredContainer.innerHTML = `
-                        <div class="swiper-wrapper">
-                            <div class="swiper-slide">
-                                <div class="empty-products">
-                                    <i class="fas fa-box-open"></i>
-                                    <p>Nenhum produto disponível no momento</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
         } else {
-            console.error('❌ Erro ao carregar produtos:', resultado?.error || 'Erro desconhecido');
             produtos = [];
         }
     } catch (error) {
@@ -840,21 +758,102 @@ async function carregarProdutos() {
     }
 }
 
-async function carregarProdutosDestaque() {
-    console.log('🎨 INICIANDO carregarProdutosDestaque()');
-    console.log('- produtos.length:', produtos.length);
-    
-    const featuredContainer = document.getElementById('featuredProducts');
-    if (!featuredContainer) {
-        console.error('❌ Container featuredProducts não encontrado!');
-        console.log('🔍 Elementos disponíveis:', document.getElementById('featuredProducts'));
+async function carregarCategorias() {
+    try {
+        const resultado = await lojaServices.buscarCategorias();
+        
+        const categoriesGrid = document.getElementById('categoriesGrid');
+        if (!categoriesGrid) return;
+        
+        let categoriasList = resultado.success ? resultado.data : [];
+        
+        if (categoriasList.length === 0 && produtos.length > 0) {
+            const categoriasSet = new Set();
+            produtos.forEach(p => {
+                if (p.categoria) categoriasSet.add(p.categoria);
+            });
+            categoriasList = Array.from(categoriasSet).sort();
+        }
+        
+        if (categoriasList.length === 0) {
+            categoriasList = ['Todos os Produtos'];
+        }
+        
+        categorias = categoriasList;
+        
+        let slidesHtml = `
+            <div class="swiper-slide">
+                <div class="categoria-card" onclick="filtrarPorCategoria('todos')">
+                    <div class="categoria-icon">
+                        <i class="fas fa-th-large"></i>
+                    </div>
+                    <div class="categoria-info">
+                        <h4>Todos</h4>
+                        <p>${produtos.length} produtos</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        categoriasList.forEach(categoria => {
+            const count = produtos.filter(p => p.categoria === categoria).length;
+            slidesHtml += `
+                <div class="swiper-slide">
+                    <div class="categoria-card" onclick="filtrarPorCategoria('${categoria}')">
+                        <div class="categoria-icon">
+                            <i class="fas fa-tag"></i>
+                        </div>
+                        <div class="categoria-info">
+                            <h4>${categoria}</h4>
+                            <p>${count} produtos</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        categoriesGrid.innerHTML = slidesHtml;
+        
+        setTimeout(() => {
+            inicializarCarrosselCategorias();
+        }, 100);
+        
+    } catch (error) {
+        console.error("❌ Erro ao carregar categorias:", error);
+    }
+}
+
+function inicializarCarrosselCategorias() {
+    if (typeof Swiper === 'undefined') {
+        console.warn('⚠️ Swiper não está carregado');
         return;
     }
     
-    console.log('✅ Container featuredProducts encontrado');
+    const categoriesSwiper = new Swiper('.categories-swiper', {
+        slidesPerView: 2,
+        spaceBetween: 10,
+        loop: true,
+        navigation: {
+            prevEl: '#categoriesPrev',
+            nextEl: '#categoriesNext',
+        },
+        breakpoints: {
+            480: { slidesPerView: 3, spaceBetween: 12 },
+            640: { slidesPerView: 4, spaceBetween: 15 },
+            768: { slidesPerView: 5, spaceBetween: 15 },
+            1024: { slidesPerView: 6, spaceBetween: 18 },
+            1280: { slidesPerView: 7, spaceBetween: 20 }
+        }
+    });
+    
+    console.log('✅ Carrossel de categorias inicializado');
+}
+
+async function carregarProdutosDestaque() {
+    const featuredContainer = document.getElementById('featuredProducts');
+    if (!featuredContainer) return;
     
     if (produtos.length === 0) {
-        console.warn('⚠️ Nenhum produto para renderizar');
         featuredContainer.innerHTML = `
             <div class="swiper-wrapper">
                 <div class="swiper-slide">
@@ -868,13 +867,9 @@ async function carregarProdutosDestaque() {
         return;
     }
     
-    console.log(`🔄 Renderizando ${produtos.length} produtos em destaque...`);
-    
     let slidesHtml = '';
-    produtos.slice(0, 20).forEach((produto, index) => {
-        console.log(`📦 Produto ${index + 1}:`, produto.nome);
-        
-        const imagem = obterURLImagem(produto, 'thumb') || IMAGEM_PADRAO_BASE64;
+    produtos.slice(0, 20).forEach(produto => {
+        const imagem = obterURLImagem(produto, 'thumb');
         const precoFormatado = formatarMoeda(produto.preco);
         const temEstoque = (produto.quantidade || 0) > 0;
         
@@ -905,44 +900,12 @@ async function carregarProdutosDestaque() {
         `;
     });
     
-    console.log('📝 HTML gerado, tamanho:', slidesHtml.length);
     featuredContainer.innerHTML = slidesHtml;
-    console.log('✅ HTML inserido no container');
     
-    // Inicializar ou atualizar o Swiper
     setTimeout(() => {
-        console.log('🔄 Inicializando Swiper...');
         inicializarSwiper();
     }, 100);
 }
-
-function inicializarCarrosselCategorias() {
-    if (typeof Swiper === 'undefined') {
-        console.warn('⚠️ Swiper não está carregado');
-        return;
-    }
-    
-    const categoriesSwiper = new Swiper('.categories-swiper', {
-        slidesPerView: 2,
-        spaceBetween: 10,
-        loop: true,
-        navigation: {
-            prevEl: '#categoriesPrev',
-            nextEl: '#categoriesNext',
-        },
-        breakpoints: {
-            480: { slidesPerView: 3, spaceBetween: 12 },
-            640: { slidesPerView: 4, spaceBetween: 15 },
-            768: { slidesPerView: 5, spaceBetween: 15 },
-            1024: { slidesPerView: 6, spaceBetween: 18 },
-            1280: { slidesPerView: 7, spaceBetween: 20 }
-        }
-    });
-    
-    console.log('✅ Carrossel de categorias inicializado');
-}
-
-
 
 function inicializarSwiper() {
     if (typeof Swiper === 'undefined') return;
@@ -1405,10 +1368,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 }
 
 // ============================================
-// INICIALIZAÇÃO (COM MAIS LOGS)
-// ============================================
-// ============================================
-// INICIALIZAÇÃO (CORRIGIDA)
+// INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página clientes carregada (nova autenticação)");
@@ -1416,38 +1376,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     mostrarLoading('Carregando loja...');
     
     try {
-        // Já temos lojaIdAtual do script anterior
-        console.log(`📍 Usando loja ID: ${lojaIdAtual}`);
+        extrairLojaIdDaURL();
+        configurarFavicon();
         
-        if (!lojaIdAtual) {
+        const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+        
+        if (!lojaId) {
             console.error('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja', 'error');
             setTimeout(() => window.location.href = '../../../login.html', 2000);
             return;
         }
         
-        // AGUARDAR lojaServices ESTAR DISPONÍVEL
-        let tentativas = 0;
-        while (!window.lojaServices && tentativas < 50) {
-            console.log(`⏳ Aguardando lojaServices... tentativa ${tentativas + 1}`);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            tentativas++;
-        }
-        
-        if (!window.lojaServices) {
-            console.error('❌ lojaServices não disponível após 5 segundos');
-            mostrarMensagem('Erro ao carregar serviços da loja', 'error');
-            esconderLoading();
-            return;
-        }
-        
-        console.log('✅ lojaServices disponível!');
-        
-        // Carregar logo
-        carregarLogoLoja();
+        console.log(`✅ Loja identificada: ${lojaId}`);
         
         // Carregar dados da loja
-        await carregarDadosLoja();
+        carregarLogoLoja();
+        carregarDadosLoja();
         
         // Configurar eventos
         configurarEventos();
@@ -1455,6 +1400,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Carregar produtos e categorias
         await carregarProdutos();
         await carregarCategorias();
+        await carregarProdutosDestaque();
         
         esconderLoading();
         console.log("✅ Loja clientes pronta!");
@@ -1475,22 +1421,3 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
