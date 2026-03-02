@@ -383,43 +383,67 @@
     <!-- 1️⃣ PRIMEIRO: Login Firebase (NÃO é module) -->
     <script src="/spdv/login_firebase.js"></script>
     
-    <!-- 2️⃣ SEGUNDO: Dados das lojas (module) -->
-    <script type="module" src="/spdv/novo_lojas.js"></script>
-    
-    <!-- 3️⃣ INJEÇÃO DINÂMICA DOS SCRIPTS DA LOJA -->
+    <!-- 2️⃣ SEGUNDO: Extrair lojaId e carregar scripts da loja -->
     <script>
         (function() {
-            // Extrair loja da URL
+            // EXTRAIR LOJA ID DA URL (PRIMEIRO PASSO)
             const pathParts = window.location.pathname.split('/');
             const lojaIndex = pathParts.indexOf('lojas');
-            let loja = '';
             
-            if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
-                loja = pathParts[lojaIndex + 1];
-                console.log(`📍 Loja detectada: ${loja}`);
-            } else {
+            if (lojaIndex === -1 || lojaIndex + 1 >= pathParts.length) {
                 console.error('❌ Loja não identificada na URL');
+                document.body.innerHTML = '<h1>Erro: Loja não identificada</h1>';
                 return;
             }
             
-            // Criar e adicionar os scripts com a loja correta
+            const lojaId = pathParts[lojaIndex + 1];
+            console.log(`📍 Loja detectada: ${lojaId}`);
+            
+            // SALVAR NO WINDOW PARA ACESSO GLOBAL
+            window.lojaIdAtual = lojaId;
+            
+            // AGORA CARREGAR OS SCRIPTS DA LOJA (usando o lojaId)
             const scripts = [
-                { src: `/spdv/lojas/${loja}/novo_firebase_config.js`, type: 'module' },
-                { src: `/spdv/lojas/${loja}/imagem_api.js`, type: 'module' },
-                { src: `/spdv/lojas/${loja}/novo_clientes.js`, type: 'module' }
+                { src: `/spdv/lojas/${lojaId}/novo_firebase_config.js`, type: 'module' },
+                { src: `/spdv/lojas/${lojaId}/imagem_api.js`, type: 'module' },
+                { src: `/spdv/lojas/${lojaId}/novo_clientes.js`, type: 'module' }
             ];
             
-            scripts.forEach(scriptConfig => {
+            // Função para carregar scripts em sequência
+            function carregarScripts(index) {
+                if (index >= scripts.length) {
+                    console.log('🎉 Todos os scripts da loja carregados!');
+                    return;
+                }
+                
                 const script = document.createElement('script');
-                script.src = scriptConfig.src;
-                script.type = scriptConfig.type;
+                script.src = scripts[index].src;
+                script.type = scripts[index].type;
+                
+                script.onload = () => {
+                    console.log(`✅ Carregado: ${scripts[index].src}`);
+                    carregarScripts(index + 1);
+                };
+                
+                script.onerror = () => {
+                    console.error(`❌ Erro ao carregar: ${scripts[index].src}`);
+                    carregarScripts(index + 1); // Continua mesmo com erro
+                };
+                
                 document.body.appendChild(script);
-                console.log(`✅ Script adicionado: ${scriptConfig.src}`);
-            });
+            }
+            
+            // INICIAR CARREGAMENTO
+            console.log(`🚀 Carregando scripts da loja ${lojaId}...`);
+            carregarScripts(0);
         })();
     </script>
+    
+    <!-- 3️⃣ TERCEIRO: Dados das lojas (module) - carregado por último -->
+    <script type="module" src="/spdv/novo_lojas.js"></script>
 </body>
 </html>
+
 
 
 
