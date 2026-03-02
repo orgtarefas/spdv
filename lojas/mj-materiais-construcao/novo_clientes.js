@@ -551,9 +551,21 @@ function getPlaceholderIcon() {
 function carregarDadosLoja() {
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     
-    if (!lojaId) return;
+    if (!lojaId) {
+        console.warn('⚠️ Loja ID não disponível para carregar dados');
+        return;
+    }
     
     try {
+        console.log(`🔍 Buscando configuração para loja: ${lojaId}`);
+        
+        // Verificar se getLojaConfig está disponível
+        if (typeof window.getLojaConfig !== 'function') {
+            console.warn('⚠️ getLojaConfig não disponível, aguardando...');
+            setTimeout(() => carregarDadosLoja(), 200);
+            return;
+        }
+        
         const config = getLojaConfig(lojaId);
         console.log(`📋 Configuração da loja ${lojaId}:`, config);
         
@@ -572,6 +584,13 @@ function carregarDadosLoja() {
             if (config.contato?.endereco) {
                 renderizarEndereco(config);
             }
+        } else {
+            console.warn('⚠️ Configuração não encontrada para loja:', lojaId);
+            // Usar nome da loja baseado no ID como fallback
+            const nomeLoja = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
+            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
+            document.title = `${nomeLoja} - Loja Online`;
         }
         
         renderizarChat();
@@ -1385,21 +1404,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     mostrarLoading('Carregando loja...');
     
     try {
-        extrairLojaIdDaURL();
-        configurarFavicon();
+        // Já temos lojaIdAtual do script anterior
+        console.log(`📍 Usando loja ID: ${lojaIdAtual}`);
         
-        const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-        
-        if (!lojaId) {
+        if (!lojaIdAtual) {
             console.error('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja', 'error');
             setTimeout(() => window.location.href = '../../../login.html', 2000);
             return;
         }
         
-        console.log(`✅ Loja identificada: ${lojaId}`);
+        // Pequeno delay para garantir que tudo esteja carregado
+        await new Promise(resolve => setTimeout(resolve, 100));
         
-        // Carregar dados da loja
+        // Carregar dados da loja (AGORA DEVE FUNCIONAR)
         carregarLogoLoja();
         carregarDadosLoja();
         
@@ -1430,6 +1448,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
