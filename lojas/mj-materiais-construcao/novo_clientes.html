@@ -406,7 +406,7 @@
             // Salvar no window para acesso global
             window.lojaIdAtual = lojaId;
             
-            // Função para carregar script
+            // Função para carregar script com Promise
             function loadScript(src, isModule = true) {
                 return new Promise((resolve, reject) => {
                     const script = document.createElement('script');
@@ -424,22 +424,30 @@
                 });
             }
             
-            // Carregar scripts em sequência
+            // Carregar scripts em sequência, AGUARDANDO cada um
             async function loadScripts() {
                 try {
+                    // 1️⃣ Primeiro carregar novo_firebase_config.js
                     await loadScript(`/spdv/lojas/${lojaId}/novo_firebase_config.js`, true);
+                    
+                    // 2️⃣ Depois imagem_api.js
                     await loadScript(`/spdv/lojas/${lojaId}/imagem_api.js`, true);
+                    
+                    // 3️⃣ Por último novo_clientes.js
                     await loadScript(`/spdv/lojas/${lojaId}/novo_clientes.js`, true);
+                    
+                    console.log('🎉 Todos os scripts carregados com sucesso!');
                 } catch (error) {
                     console.error('❌ Erro ao carregar scripts:', error);
                 }
             }
             
-            // Iniciar carregamento
-            loadScripts();
+            // PEQUENO DELAY para garantir que novo_lojas.js foi carregado
+            setTimeout(loadScripts, 100);
         })();
     </script>
 </body>
 </html>
+
 
 
