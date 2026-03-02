@@ -187,7 +187,7 @@ window.addEventListener('usuarioLogado', (event) => {
     console.log('🎯 Perfil para controle de permissões:', perfil);
     
     habilitarCampoCodigoBarras(perfil);
-    
+    setTimeout(configurarMenuPerfil, 500); // Configurar menu de perfil
     carregarCarrinhoDoUsuario();
 });
 
@@ -1260,6 +1260,135 @@ function gerarOrcamento() {
 }
 
 // ============================================
+// CONFIGURAR MENU DE PERFIL (3 PONTINHOS)
+// ============================================
+function configurarMenuPerfil() {
+    console.log('🔧 Configurando menu de perfil...');
+    
+    const menuBtn = document.getElementById('profileMenuBtn');
+    const dropdown = document.getElementById('profileMenuDropdown');
+    
+    if (!menuBtn || !dropdown) {
+        console.log('❌ Elementos do menu não encontrados');
+        return;
+    }
+    
+    console.log('✅ Elementos do menu encontrados');
+    
+    // Mostrar/esconder itens baseado no perfil
+    const perfil = extrairPerfil();
+    const perfisPermitidos = ['admin', 'gerente', 'supervisor'];
+    const perfilLower = perfil ? perfil.toLowerCase() : '';
+    const temAcessoTotal = perfisPermitidos.includes(perfilLower);
+    
+    const menuRelatorios = document.getElementById('menuRelatorios');
+    const menuGestaoLogins = document.getElementById('menuGestaoLogins');
+    const menuEstoque = document.getElementById('menuEstoque');
+    
+    if (menuRelatorios) {
+        menuRelatorios.style.display = temAcessoTotal ? 'flex' : 'none';
+    }
+    
+    if (menuGestaoLogins) {
+        menuGestaoLogins.style.display = temAcessoTotal ? 'flex' : 'none';
+    }
+    
+    if (menuEstoque) {
+        // Vendedores também podem ver estoque
+        menuEstoque.style.display = (temAcessoTotal || perfilLower === 'vendedor') ? 'flex' : 'none';
+    }
+    
+    // Remover event listeners antigos
+    const newMenuBtn = menuBtn.cloneNode(true);
+    menuBtn.parentNode.replaceChild(newMenuBtn, menuBtn);
+    
+    // Reatribuir variáveis com os novos elementos
+    const finalMenuBtn = document.getElementById('profileMenuBtn');
+    const finalDropdown = document.getElementById('profileMenuDropdown');
+    
+    // Abrir/fechar menu ao clicar no botão
+    finalMenuBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('🔹 Botão do menu clicado');
+        
+        // Toggle da classe show
+        finalDropdown.classList.toggle('show');
+        
+        // Toggle classe active no botão
+        this.classList.toggle('active');
+    });
+    
+    // Fechar menu ao clicar fora
+    document.addEventListener('click', function(e) {
+        if (!finalMenuBtn.contains(e.target) && !finalDropdown.contains(e.target)) {
+            finalDropdown.classList.remove('show');
+            finalMenuBtn.classList.remove('active');
+        }
+    });
+    
+    // Fechar menu ao pressionar ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            finalDropdown.classList.remove('show');
+            finalMenuBtn.classList.remove('active');
+        }
+    });
+    
+    // Configurar ações dos itens do menu
+    if (menuRelatorios) {
+        menuRelatorios.addEventListener('click', function(e) {
+            e.preventDefault();
+            finalDropdown.classList.remove('show');
+            finalMenuBtn.classList.remove('active');
+            console.log('📊 Abrir relatórios');
+            window.location.href = 'relatorios.html';
+        });
+    }
+    
+    if (menuGestaoLogins) {
+        menuGestaoLogins.addEventListener('click', function(e) {
+            e.preventDefault();
+            finalDropdown.classList.remove('show');
+            finalMenuBtn.classList.remove('active');
+            console.log('👥 Abrir gestão de logins');
+            window.location.href = 'gestao_logins.html';
+        });
+    }
+    
+    if (menuEstoque) {
+        menuEstoque.addEventListener('click', function(e) {
+            e.preventDefault();
+            finalDropdown.classList.remove('show');
+            finalMenuBtn.classList.remove('active');
+            console.log('📦 Abrir estoque');
+            window.location.href = 'produtos.html';
+        });
+    }
+    
+    const menuLogout = document.getElementById('menuLogout');
+    if (menuLogout) {
+        menuLogout.addEventListener('click', function(e) {
+            e.preventDefault();
+            finalDropdown.classList.remove('show');
+            finalMenuBtn.classList.remove('active');
+            
+            if (confirm('Deseja realmente sair?')) {
+                if (window.fazerLogout) {
+                    window.fazerLogout();
+                } else {
+                    window.location.href = 'novo_clientes.html';
+                }
+            }
+        });
+    }
+    
+    console.log('✅ Menu de perfil configurado');
+}
+
+
+// ============================================
 // FUNÇÕES UTILITÁRIAS
 // ============================================
 function formatarMoeda(valor) {
@@ -1490,6 +1619,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
