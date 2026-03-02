@@ -404,44 +404,37 @@
             
             console.log(`📍 Loja detectada para scripts: ${lojaId}`);
             
-            // Salvar no window para acesso global
+            // Salvar no window para acesso global (ANTES de carregar scripts)
             window.lojaIdAtual = lojaId;
             
-            // Criar e carregar os scripts dinamicamente na ORDEM CORRETA
+            // Criar e carregar os scripts dinamicamente
             const scripts = [
                 { src: `/spdv/lojas/${lojaId}/novo_firebase_config.js`, type: 'module' },
                 { src: `/spdv/lojas/${lojaId}/imagem_api.js`, type: 'module' },
                 { src: `/spdv/lojas/${lojaId}/novo_clientes.js`, type: 'module' }
             ];
             
-            // Função para carregar script e executar próximo após carregar
-            function loadScript(index) {
-                if (index >= scripts.length) return;
-                
-                const scriptConfig = scripts[index];
-                const script = document.createElement('script');
-                script.src = scriptConfig.src;
-                if (scriptConfig.type) script.type = scriptConfig.type;
-                
-                script.onload = function() {
-                    console.log(`✅ Script carregado: ${scriptConfig.src}`);
-                    loadScript(index + 1); // Carrega o próximo
-                };
-                
-                script.onerror = function() {
-                    console.error(`❌ Erro ao carregar: ${scriptConfig.src}`);
-                    loadScript(index + 1); // Tenta o próximo mesmo com erro
-                };
-                
-                document.body.appendChild(script);
+            // Função para carregar script
+            function loadScripts() {
+                scripts.forEach(scriptConfig => {
+                    const script = document.createElement('script');
+                    script.src = scriptConfig.src;
+                    if (scriptConfig.type) script.type = scriptConfig.type;
+                    
+                    script.onload = () => console.log(`✅ Script carregado: ${scriptConfig.src}`);
+                    script.onerror = () => console.error(`❌ Erro ao carregar: ${scriptConfig.src}`);
+                    
+                    document.body.appendChild(script);
+                });
             }
             
-            // Começar a carregar os scripts em sequência
-            loadScript(0);
+            // Pequeno delay para garantir que window.lojaIdAtual esteja definido
+            setTimeout(loadScripts, 50);
         })();
     </script>
 </body>
 </html>
+
 
 
 
