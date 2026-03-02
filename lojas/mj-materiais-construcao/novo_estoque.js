@@ -10,9 +10,6 @@ import { imagemServices } from './imagem_api.js';
 async function verificarAcessoEstoque() {
     console.log("🔒 Verificando permissão de acesso ao estoque...");
     
-    // Aguardar um momento para carregar os dados do usuário
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
     // Verificar se tem dados do usuário
     if (!lojaServices.usuario && !window.dadosUsuario) {
         console.log("❌ Usuário não está logado");
@@ -50,6 +47,7 @@ async function verificarAcessoEstoque() {
     return true;
 }
 
+
 // ============================================
 // REDIRECIONAR PARA PÁGINA DE CLIENTES
 // ============================================
@@ -69,6 +67,38 @@ function redirecionarParaClientes() {
     window.location.href = urlClientes;
 }
 
+// ============================================
+// VERIFICAÇÃO BLOQUEANTE - EXECUTA IMEDIATAMENTE
+// ============================================
+(async function() {
+    console.log("🔒 Executando verificação bloqueante de acesso...");
+    
+    // Mostrar loading mínimo
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) {
+        loading.style.display = 'flex';
+        const h3 = loading.querySelector('h3');
+        if (h3) h3.textContent = 'Verificando acesso...';
+    }
+    
+    // Verificar acesso
+    const acessoPermitido = await verificarAcessoEstoque();
+    
+    if (!acessoPermitido) {
+        console.log("🚫 Acesso negado - Redirecionando imediatamente...");
+        
+        // Redirecionar imediatamente sem mostrar nada
+        redirecionarParaClientes();
+        return;
+    }
+    
+    // Se tiver acesso, esconder loading e continuar
+    if (loading) {
+        loading.style.display = 'none';
+    }
+    
+    console.log("✅ Acesso permitido, iniciando sistema de estoque...");
+})();
 
 // ============================================
 // VARIÁVEIS GLOBAIS
@@ -2513,6 +2543,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
