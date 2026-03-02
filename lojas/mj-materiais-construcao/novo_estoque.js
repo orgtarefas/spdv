@@ -5,6 +5,30 @@ import { lojaServices, db } from './novo_firebase_config.js';
 import { imagemServices } from './imagem_api.js';
 
 // ============================================
+// RECUPERAR DADOS DO USUÁRIO DO SESSIONSTORAGE
+// ============================================
+try {
+    const dadosSalvos = sessionStorage.getItem('dadosUsuario');
+    if (dadosSalvos) {
+        const dados = JSON.parse(dadosSalvos);
+        window.dadosUsuario = dados;
+        
+        // 🔥 TAMBÉM ATUALIZAR O lojaServices SE ELE EXISTIR
+        if (lojaServices) {
+            lojaServices.usuario = dados;
+        }
+        
+        console.log('✅ Dados do usuário recuperados do sessionStorage:', dados.nome);
+        console.log('👤 Perfil:', dados.perfil);
+        console.log('🔑 Tipo:', dados.tipo);
+    } else {
+        console.log('ℹ️ Nenhum dado de usuário no sessionStorage');
+    }
+} catch (e) {
+    console.warn('⚠️ Erro ao recuperar dados do usuário:', e);
+}
+
+// ============================================
 // VERIFICAÇÃO DE ACESSO - REDIRECIONAR CLIENTES
 // ============================================
 async function verificarAcessoEstoque() {
@@ -2493,6 +2517,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
