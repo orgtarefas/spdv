@@ -81,14 +81,7 @@ class LojaManager {
                 this.lojaId = pathParts[lojaIndex + 1];
                 this.config = getLojaConfig(this.lojaId);
                 this.imgbbKey = this.config?.imgbb_api_key;
-                
-                this.usuario = {
-                    login: 'dev_user',
-                    nome: 'Usuário Desenvolvimento',
-                    perfil: 'admin',
-                    id: 'dev_001'
-                };
-                
+                                
                 console.log(`📍 Loja detectada da URL: ${this.lojaId}`);
                 console.log(`🔑 Chave ImgBB: ${this.imgbbKey ? 'Configurada' : 'Não configurada'}`);
                 return;
@@ -1688,5 +1681,6 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
 
 
