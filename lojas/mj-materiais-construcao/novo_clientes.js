@@ -1407,12 +1407,11 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 // ============================================
 // INICIALIZAÇÃO (COM MAIS LOGS)
 // ============================================
+// ============================================
+// INICIALIZAÇÃO (CORRIGIDA)
+// ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página clientes carregada (nova autenticação)");
-    console.log("🔍 Verificando elementos DOM:");
-    console.log("- featuredProducts existe?", !!document.getElementById('featuredProducts'));
-    console.log("- lojaLogo existe?", !!document.getElementById('lojaLogo'));
-    console.log("- lojaNomeHeader existe?", !!document.getElementById('lojaNomeHeader'));
     
     mostrarLoading('Carregando loja...');
     
@@ -1427,19 +1426,34 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        console.log("🔄 Carregando logo...");
+        // AGUARDAR lojaServices ESTAR DISPONÍVEL
+        let tentativas = 0;
+        while (!window.lojaServices && tentativas < 50) {
+            console.log(`⏳ Aguardando lojaServices... tentativa ${tentativas + 1}`);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            tentativas++;
+        }
+        
+        if (!window.lojaServices) {
+            console.error('❌ lojaServices não disponível após 5 segundos');
+            mostrarMensagem('Erro ao carregar serviços da loja', 'error');
+            esconderLoading();
+            return;
+        }
+        
+        console.log('✅ lojaServices disponível!');
+        
+        // Carregar logo
         carregarLogoLoja();
         
-        console.log("🔄 Carregando dados da loja...");
+        // Carregar dados da loja
         await carregarDadosLoja();
         
-        console.log("🔄 Configurando eventos...");
+        // Configurar eventos
         configurarEventos();
         
-        console.log("🔄 Carregando produtos...");
+        // Carregar produtos e categorias
         await carregarProdutos();
-        
-        console.log("🔄 Carregando categorias...");
         await carregarCategorias();
         
         esconderLoading();
@@ -1461,6 +1475,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
