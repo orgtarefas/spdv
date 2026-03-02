@@ -119,13 +119,13 @@ function habilitarCampoCodigoBarras(perfil) {
         canalFisicoOption.style.display = temPermissao ? 'flex' : 'none';
     }
     
+    // NÃO mostrar mais os botões aqui - eles serão controlados pelo canal de vendas
     if (btnRecolhimento) {
-        btnRecolhimento.style.display = temPermissao ? 'flex' : 'none';
+        btnRecolhimento.style.display = 'none'; // Inicialmente oculto
     }
     
-    // 🔥 BOTÃO DE ORÇAMENTO - APARECE APENAS PARA FUNCIONÁRIOS/ADMIN
     if (btnOrcamento) {
-        btnOrcamento.style.display = temPermissao ? 'flex' : 'none';
+        btnOrcamento.style.display = 'none'; // Inicialmente oculto
     }
     
     const btnFinalizarTexto = document.getElementById('btnFinalizarTexto');
@@ -192,7 +192,7 @@ window.addEventListener('usuarioLogado', (event) => {
 });
 
 // ============================================
-// EVENTO USUÁRIO DESLOGADO (CORRIGIDO)
+// EVENTO USUÁRIO DESLOGADO
 // ============================================
 window.addEventListener('usuarioDeslogado', () => {
     usuarioLogado = null;
@@ -210,7 +210,7 @@ window.addEventListener('usuarioDeslogado', () => {
     const barcodeSection = document.getElementById('barcodeSection');
     const canalFisicoOption = document.getElementById('canalFisicoOption');
     const btnRecolhimento = document.getElementById('btnRecolhimento');
-    const btnOrcamento = document.getElementById('btnImprimirOrcamento'); // 🔥 ADICIONADO
+    const btnOrcamento = document.getElementById('btnImprimirOrcamento');
     
     if (userName) userName.textContent = 'Visitante';
     if (perfilBadge) perfilBadge.style.display = 'none';
@@ -218,9 +218,12 @@ window.addEventListener('usuarioDeslogado', () => {
     if (btnLogin) btnLogin.style.display = 'inline-flex';
     if (barcodeSection) barcodeSection.style.display = 'none';
     if (canalFisicoOption) canalFisicoOption.style.display = 'none';
-    if (btnRecolhimento) btnRecolhimento.style.display = 'none';
     
-    // 🔥 GARANTIR QUE O BOTÃO DE ORÇAMENTO SUMIU
+    // 🔥 GARANTIR QUE OS BOTÕES SUMIRAM
+    if (btnRecolhimento) {
+        btnRecolhimento.style.display = 'none';
+    }
+    
     if (btnOrcamento) {
         btnOrcamento.style.display = 'none';
     }
@@ -232,15 +235,6 @@ window.addEventListener('usuarioDeslogado', () => {
     if (radioOnline) radioOnline.checked = true;
     
     console.log('👤 Usuário deslogado - todos os botões de funcionário ocultos');
-});
-
-window.addEventListener('usuarioNaoAutorizado', (event) => {
-    const erro = event.detail?.erro || 'Acesso negado';
-    mostrarMensagem(erro, 'error');
-    
-    usuarioLogado = null;
-    carrinho.itens = [];
-    atualizarInterface();
 });
 
 // ============================================
@@ -717,12 +711,20 @@ function configurarCanalVendas() {
     const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
     const radioFisica = document.querySelector('input[name="canalVenda"][value="fisica"]');
     const barcodeSection = document.getElementById('barcodeSection');
+    const btnRecolhimento = document.getElementById('btnRecolhimento');
+    const btnOrcamento = document.getElementById('btnImprimirOrcamento');
     
     if (radioOnline && radioFisica && barcodeSection) {
         radioOnline.addEventListener('change', function() {
             if (this.checked) {
+                // Modo Loja Online
                 barcodeSection.style.display = 'none';
-                console.log('🌐 Modo Loja Online ativado');
+                
+                // 🔥 ESCONDER BOTÕES ESPECÍFICOS DA LOJA FÍSICA
+                if (btnRecolhimento) btnRecolhimento.style.display = 'none';
+                if (btnOrcamento) btnOrcamento.style.display = 'none';
+                
+                console.log('🌐 Modo Loja Online ativado - Botões de loja física ocultos');
             }
         });
         
@@ -733,13 +735,24 @@ function configurarCanalVendas() {
                 const perfilLower = perfil ? perfil.toLowerCase() : '';
                 
                 if (perfisPermitidos.includes(perfilLower)) {
+                    // Modo Loja Física - mostrar tudo
                     barcodeSection.style.display = 'block';
-                    console.log('🏪 Modo Loja Física ativado');
+                    
+                    // 🔥 MOSTRAR BOTÕES ESPECÍFICOS DA LOJA FÍSICA
+                    if (btnRecolhimento) btnRecolhimento.style.display = 'flex';
+                    if (btnOrcamento) btnOrcamento.style.display = 'flex';
+                    
+                    console.log('🏪 Modo Loja Física ativado - Todos os botões visíveis');
                     
                     // Focar no input de código de barras
                     setTimeout(() => {
                         document.getElementById('barcodeInput')?.focus();
                     }, 100);
+                } else {
+                    // Se não tiver permissão, volta para online
+                    radioOnline.checked = true;
+                    radioOnline.dispatchEvent(new Event('change'));
+                    mostrarMensagem('Você não tem permissão para usar o modo Loja Física', 'warning');
                 }
             }
         });
@@ -1436,9 +1449,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
         if (radioOnline) radioOnline.checked = true;
         
-        // Esconder seção de código de barras inicialmente
+        // Esconder seção de código de barras e botões da loja física inicialmente
         const barcodeSection = document.getElementById('barcodeSection');
+        const btnRecolhimento = document.getElementById('btnRecolhimento');
+        const btnOrcamento = document.getElementById('btnImprimirOrcamento');
+        
         if (barcodeSection) barcodeSection.style.display = 'none';
+        if (btnRecolhimento) btnRecolhimento.style.display = 'none';
+        if (btnOrcamento) btnOrcamento.style.display = 'none';
         
         if (window.auth?.currentUser) {
             console.log('👤 Usuário já logado detectado');
@@ -1464,6 +1482,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
