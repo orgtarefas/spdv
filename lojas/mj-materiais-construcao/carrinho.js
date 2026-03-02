@@ -5,6 +5,35 @@ import { lojaServices } from './novo_firebase_config.js';
 import { getLojaConfig } from '/spdv/novo_lojas.js';
 
 // ============================================
+// VERIFICAÇÃO DE ACESSO - REDIRECIONAR SE NÃO LOGADO
+// ============================================
+(function() {
+    console.log("🔒 Verificando acesso ao carrinho...");
+    
+    // Verificar se usuário está logado (de múltiplas fontes)
+    const usuarioLogado = window.auth?.currentUser || 
+                         window.dadosUsuario || 
+                         lojaServices?.usuario;
+    
+    if (!usuarioLogado) {
+        console.log("🚫 Usuário não logado - Redirecionando para clientes...");
+        
+        // Extrair lojaId da URL
+        const pathMatch = window.location.pathname.match(/\/spdv\/lojas\/([^\/]+)\//);
+        const lojaId = pathMatch ? pathMatch[1] : null;
+        
+        if (lojaId) {
+            window.location.href = `/spdv/lojas/${lojaId}/novo_clientes.html`;
+        } else {
+            window.location.href = 'novo_clientes.html';
+        }
+        return;
+    }
+    
+    console.log("✅ Usuário logado, acesso permitido ao carrinho");
+})();
+
+// ============================================
 // VARIÁVEIS GLOBAIS
 // ============================================
 let carrinho = {
@@ -1617,6 +1646,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
