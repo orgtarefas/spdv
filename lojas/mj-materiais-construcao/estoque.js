@@ -5,6 +5,62 @@ import { lojaServices, db } from './firebase_config.js';
 import { imagemServices } from './imagem_api.js';
 
 // ============================================
+// VERIFICAÇÃO DE ACESSO - APENAS FUNCIONÁRIOS
+// ============================================
+async function verificarAcessoEstoque() {
+    console.log("🔒 Verificando permissão de acesso ao estoque...");
+    
+    // Verificar se o usuário está logado
+    if (!lojaServices.usuario) {
+        console.log("❌ Usuário não está logado");
+        return false;
+    }
+    
+    // Extrair perfil do usuário
+    const perfil = (lojaServices.usuario.nivel || 
+                    lojaServices.usuario.perfil || 
+                    lojaServices.usuario.tipo || 
+                    '').toLowerCase();
+    
+    console.log(`👤 Perfil do usuário: ${perfil}`);
+    
+    // Perfis permitidos para acessar estoque
+    const perfisPermitidos = ['admin', 'gerente', 'supervisor', 'vendedor'];
+    
+    // Verificar se tem permissão
+    const temPermissao = perfisPermitidos.includes(perfil);
+    
+    if (!temPermissao) {
+        console.log("❌ Usuário sem permissão para acessar estoque");
+        return false;
+    }
+    
+    console.log("✅ Acesso ao estoque permitido");
+    return true;
+}
+
+// ============================================
+// REDIRECIONAR PARA CLIENTES
+// ============================================
+function redirecionarParaClientes() {
+    const lojaId = lojaServices.lojaId;
+    
+    if (!lojaId) {
+        console.error("❌ ID da loja não encontrado");
+        window.location.href = '../../login.html';
+        return;
+    }
+    
+    // Montar URL da página de clientes
+    const urlClientes = `/spdv/lojas/${lojaId}/novo_clientes.html`;
+    
+    console.log(`🔄 Redirecionando para: ${urlClientes}`);
+    window.location.href = urlClientes;
+}
+
+
+
+// ============================================
 // VARIÁVEIS GLOBAIS
 // ============================================
 let produtos = [];
@@ -39,7 +95,7 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página estoque carregada");
     
-    mostrarLoading('Inicializando estoque...', 'Carregando configurações...');
+    mostrarLoading('Verificando acesso...', 'Aguarde...');
     
     try {
         if (!lojaServices || !lojaServices.lojaId) {
@@ -48,6 +104,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             setTimeout(() => {
                 window.location.href = '../../login.html';
             }, 2000);
+            return;
+        }
+        
+        // 🔥 VERIFICAÇÃO DE ACESSO
+        const acessoPermitido = await verificarAcessoEstoque();
+        
+        if (!acessoPermitido) {
+            console.log("🚫 Acesso negado - Redirecionando para página de clientes");
+            mostrarMensagem('Acesso restrito a funcionários', 'warning', 3000);
+            
+            setTimeout(() => {
+                redirecionarParaClientes();
+            }, 3000);
+            
+            esconderLoading();
             return;
         }
         
@@ -75,6 +146,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error("❌ Erro na inicialização:", error);
         mostrarMensagem('Erro ao carregar sistema de estoque', 'error');
         esconderLoading();
+        
+        // Em caso de erro, redirecionar também
+        setTimeout(() => {
+            redirecionarParaClientes();
+        }, 3000);
     }
 });
 
@@ -2369,6 +2445,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
