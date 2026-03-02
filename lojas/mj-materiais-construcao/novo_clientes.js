@@ -758,8 +758,18 @@ async function carregarProdutos() {
     }
 }
 
+// ============================================
+// CARREGAR CATEGORIAS
+// ============================================
 async function carregarCategorias() {
+    console.log('🔍 INICIANDO carregarCategorias()');
+    
     try {
+        if (!lojaServices || typeof lojaServices.buscarCategorias !== 'function') {
+            console.error('❌ lojaServices.buscarCategorias não disponível');
+            return;
+        }
+        
         const resultado = await lojaServices.buscarCategorias();
         
         const categoriesGrid = document.getElementById('categoriesGrid');
@@ -796,20 +806,22 @@ async function carregarCategorias() {
         `;
         
         categoriasList.forEach(categoria => {
-            const count = produtos.filter(p => p.categoria === categoria).length;
-            slidesHtml += `
-                <div class="swiper-slide">
-                    <div class="categoria-card" onclick="filtrarPorCategoria('${categoria}')">
-                        <div class="categoria-icon">
-                            <i class="fas fa-tag"></i>
-                        </div>
-                        <div class="categoria-info">
-                            <h4>${categoria}</h4>
-                            <p>${count} produtos</p>
+            if (categoria !== 'Todos os Produtos') {
+                const count = produtos.filter(p => p.categoria === categoria).length;
+                slidesHtml += `
+                    <div class="swiper-slide">
+                        <div class="categoria-card" onclick="filtrarPorCategoria('${categoria.replace(/'/g, "\\'")}')">
+                            <div class="categoria-icon">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <div class="categoria-info">
+                                <h4>${categoria}</h4>
+                                <p>${count} produtos</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         });
         
         categoriesGrid.innerHTML = slidesHtml;
@@ -1421,3 +1433,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
