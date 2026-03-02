@@ -546,9 +546,9 @@ function getPlaceholderIcon() {
 }
 
 // ============================================
-// CARREGAR DADOS DA LOJA (do novo_lojas.js)
+// CARREGAR DADOS DA LOJA (com aguardo)
 // ============================================
-function carregarDadosLoja() {
+async function carregarDadosLoja() {
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     
     if (!lojaId) {
@@ -556,17 +556,30 @@ function carregarDadosLoja() {
         return;
     }
     
+    console.log(`🔍 Aguardando getLojaConfig para loja: ${lojaId}`);
+    
+    // Aguardar até que getLojaConfig esteja disponível (máx 3 segundos)
+    let tentativas = 0;
+    while (typeof window.getLojaConfig !== 'function' && tentativas < 30) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        tentativas++;
+    }
+    
+    if (typeof window.getLojaConfig !== 'function') {
+        console.error('❌ getLojaConfig não disponível após 3 segundos');
+        // Fallback: usar nome da loja baseado no ID
+        const nomeLoja = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const lojaNomeHeader = document.getElementById('lojaNomeHeader');
+        if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
+        document.title = `${nomeLoja} - Loja Online`;
+        renderizarChat();
+        return;
+    }
+    
+    console.log('✅ getLojaConfig disponível, carregando dados...');
+    
     try {
-        console.log(`🔍 Buscando configuração para loja: ${lojaId}`);
-        
-        // Verificar se getLojaConfig está disponível
-        if (typeof window.getLojaConfig !== 'function') {
-            console.warn('⚠️ getLojaConfig não disponível, aguardando...');
-            setTimeout(() => carregarDadosLoja(), 200);
-            return;
-        }
-        
-        const config = getLojaConfig(lojaId);
+        const config = window.getLojaConfig(lojaId);
         console.log(`📋 Configuração da loja ${lojaId}:`, config);
         
         if (config) {
@@ -586,7 +599,6 @@ function carregarDadosLoja() {
             }
         } else {
             console.warn('⚠️ Configuração não encontrada para loja:', lojaId);
-            // Usar nome da loja baseado no ID como fallback
             const nomeLoja = lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             const lojaNomeHeader = document.getElementById('lojaNomeHeader');
             if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
@@ -1414,12 +1426,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        // Pequeno delay para garantir que tudo esteja carregado
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Carregar dados da loja (AGORA DEVE FUNCIONAR)
+        // Carregar logo (não depende de getLojaConfig)
         carregarLogoLoja();
-        carregarDadosLoja();
+        
+        // Carregar dados da loja (agora com aguardo)
+        await carregarDadosLoja();
         
         // Configurar eventos
         configurarEventos();
@@ -1448,6 +1459,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
