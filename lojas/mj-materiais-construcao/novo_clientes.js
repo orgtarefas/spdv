@@ -42,6 +42,27 @@ let swiperInstance = null;
 let lojaIdAtual = null;
 
 // ============================================
+// VERIFICAR LOJA ID E CONFIG
+// ============================================
+if (!lojaIdAtual) {
+    lojaIdAtual = window.lojaIdAtual || extrairLojaIdDaURL();
+    console.log(`📍 Loja ID no clientes.js: ${lojaIdAtual}`);
+}
+
+// Aguardar getLojaConfig estar disponível
+if (typeof window.getLojaConfig !== 'function') {
+    console.log('⏳ Aguardando getLojaConfig...');
+    // Criar um intervalo para verificar
+    const checkInterval = setInterval(() => {
+        if (typeof window.getLojaConfig === 'function') {
+            console.log('✅ getLojaConfig disponível');
+            clearInterval(checkInterval);
+            // Se precisar, pode chamar alguma função aqui
+        }
+    }, 100);
+}
+
+// ============================================
 // FUNÇÃO PARA EXTRAIR LOJA ID DA URL
 // ============================================
 function extrairLojaIdDaURL() {
@@ -1433,4 +1454,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
