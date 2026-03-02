@@ -386,34 +386,41 @@
     <!-- 2️⃣ SEGUNDO: Dados das lojas (module) -->
     <script type="module" src="/spdv/novo_lojas.js"></script>
     
-    <!-- 3️⃣ Script para definir a loja atual -->
+    <!-- 3️⃣ INJEÇÃO DINÂMICA DOS SCRIPTS DA LOJA -->
     <script>
-        // Extrair lojaId da URL
         (function() {
+            // Extrair loja da URL
             const pathParts = window.location.pathname.split('/');
             const lojaIndex = pathParts.indexOf('lojas');
-            let lojaId = null;
+            let loja = '';
             
             if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
-                lojaId = pathParts[lojaIndex + 1];
-                console.log('📍 Loja detectada:', lojaId);
-                window.lojaIdAtual = lojaId;
+                loja = pathParts[lojaIndex + 1];
+                console.log(`📍 Loja detectada: ${loja}`);
             } else {
                 console.error('❌ Loja não identificada na URL');
+                return;
             }
+            
+            // Criar e adicionar os scripts com a loja correta
+            const scripts = [
+                { src: `/spdv/lojas/${loja}/novo_firebase_config.js`, type: 'module' },
+                { src: `/spdv/lojas/${loja}/imagem_api.js`, type: 'module' },
+                { src: `/spdv/lojas/${loja}/novo_clientes.js`, type: 'module' }
+            ];
+            
+            scripts.forEach(scriptConfig => {
+                const script = document.createElement('script');
+                script.src = scriptConfig.src;
+                script.type = scriptConfig.type;
+                document.body.appendChild(script);
+                console.log(`✅ Script adicionado: ${scriptConfig.src}`);
+            });
         })();
     </script>
-    
-    <!-- 3️⃣ TERCEIRO: Config do Firebase da Loja (module) -->
-    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_firebase_config.js"></script>
-    
-    <!-- 4️⃣ QUARTO: Imagem API (module) -->
-    <script type="module" src="/spdv/lojas/mj-materiais-construcao/imagem_api.js"></script>
-    
-    <!-- 5️⃣ QUINTO: Script principal (module) -->
-    <script type="module" src="/spdv/lojas/mj-materiais-construcao/novo_clientes.js"></script>
 </body>
 </html>
+
 
 
 
