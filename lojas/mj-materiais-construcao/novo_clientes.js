@@ -1408,10 +1408,14 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 }
 
 // ============================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO (COM MAIS LOGS)
 // ============================================
 document.addEventListener('DOMContentLoaded', async function() {
     console.log("📄 Página clientes carregada (nova autenticação)");
+    console.log("🔍 Verificando elementos DOM:");
+    console.log("- featuredProducts existe?", !!document.getElementById('featuredProducts'));
+    console.log("- lojaLogo existe?", !!document.getElementById('lojaLogo'));
+    console.log("- lojaNomeHeader existe?", !!document.getElementById('lojaNomeHeader'));
     
     mostrarLoading('Carregando loja...');
     
@@ -1426,19 +1430,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
         
-        // Carregar logo (não depende de getLojaConfig)
+        console.log("🔄 Carregando logo...");
         carregarLogoLoja();
         
-        // Carregar dados da loja (agora com aguardo)
+        console.log("🔄 Carregando dados da loja...");
         await carregarDadosLoja();
         
-        // Configurar eventos
+        console.log("🔄 Configurando eventos...");
         configurarEventos();
         
-        // Carregar produtos e categorias
+        console.log("🔄 Carregando produtos...");
         await carregarProdutos();
+        
+        console.log("🔄 Carregando categorias...");
         await carregarCategorias();
-        await carregarProdutosDestaque();
         
         esconderLoading();
         console.log("✅ Loja clientes pronta!");
@@ -1459,6 +1464,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
