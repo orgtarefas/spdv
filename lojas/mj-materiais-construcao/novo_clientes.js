@@ -556,17 +556,23 @@ function getPlaceholderIcon() {
 }
 
 // ============================================
-// CARREGAR DADOS DA LOJA (do novo_lojas.js)
+// CARREGAR DADOS DA LOJA (COM RETRY)
 // ============================================
-function carregarDadosLoja() {
+async function carregarDadosLoja() {
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
     
     if (!lojaId) return;
     
-    // 🔥 USAR window.getLojaConfig
+    // Aguardar getLojaConfig com retry
+    let tentativas = 0;
+    while (typeof window.getLojaConfig !== 'function' && tentativas < 30) {
+        console.log(`⏳ Aguardando getLojaConfig... tentativa ${tentativas + 1}`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+        tentativas++;
+    }
+    
     if (typeof window.getLojaConfig !== 'function') {
-        console.log('⏳ getLojaConfig ainda não disponível...');
-        setTimeout(carregarDadosLoja, 200);
+        console.error('❌ getLojaConfig não disponível');
         return;
     }
     
@@ -574,7 +580,25 @@ function carregarDadosLoja() {
         const config = window.getLojaConfig(lojaId);
         console.log(`📋 Configuração da loja ${lojaId}:`, config);
         
-        // ... resto do código permanece IGUAL
+        if (config) {
+            const nomeLoja = config.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            const lojaNomeHeader = document.getElementById('lojaNomeHeader');
+            if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
+            
+            document.title = `${nomeLoja} - Loja Online`;
+            
+            if (config.contato) {
+                renderizarContatos(config);
+            }
+            
+            if (config.contato?.endereco) {
+                renderizarEndereco(config);
+            }
+        }
+        
+        renderizarChat();
+        
     } catch (error) {
         console.error('❌ Erro ao carregar dados da loja:', error);
         renderizarChat();
@@ -1445,6 +1469,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ novo_clientes.js carregado com sucesso!");
+
 
 
 
