@@ -1361,7 +1361,7 @@ function configurarMenuPerfil() {
             finalDropdown.classList.remove('show');
             finalMenuBtn.classList.remove('active');
             console.log('📦 Abrir estoque');
-            window.location.href = 'estoque.html';
+            window.location.href = 'novo_estoque.html';
         });
     }
     
@@ -1617,6 +1617,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
