@@ -30,11 +30,11 @@ import { getLojaConfig } from '/spdv/novo_lojas.js';
         console.log("🚫 Usuário não logado - Redirecionando para clientes...");
         
         // Extrair lojaId da URL
-        const pathMatch = window.location.pathname.match(/\/spdv\/lojas\/([^\/]+)\//);
+        const pathMatch = window.location.pathname.match(/\/spdv\/loja\/([^\/]+)\//);
         const lojaId = pathMatch ? pathMatch[1] : null;
         
         if (lojaId) {
-            window.location.href = `/spdv/lojas/${lojaId}/index.html`;
+            window.location.href = `/spdv/loja/${lojaId}/index.html`;
         } else {
             window.location.href = 'index.html';
         }
@@ -75,7 +75,7 @@ let produtoSelecionadoIndex = -1;
 // ============================================
 function extrairLojaIdDaURL() {
     const pathname = window.location.pathname;
-    const match = pathname.match(/\/spdv\/lojas\/([^\/]+)\//);
+    const match = pathname.match(/\/spdv\/loja\/([^\/]+)\//);
     if (match && match[1]) {
         lojaIdAtual = match[1];
         console.log(`✅ Loja ID extraída da URL: ${lojaIdAtual}`);
@@ -1668,6 +1668,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
