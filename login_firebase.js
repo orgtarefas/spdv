@@ -41,7 +41,7 @@ try {
 // Função para extrair loja da URL
 function getLojaDaURL() {
     const path = window.location.pathname;
-    const match = path.match(/\/lojas\/([^\/]+)\//);
+    const match = path.match(/\/loja\/([^\/]+)\//);
     if (match && match[1]) {
         return match[1];
     }
@@ -779,3 +779,4 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarPermissao: typeof verificarPermissao
 });
+
