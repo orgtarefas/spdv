@@ -76,7 +76,7 @@ class LojaManager {
             }
             
             const pathParts = window.location.pathname.split('/');
-            const lojaIndex = pathParts.indexOf('lojas');
+            const lojaIndex = pathParts.indexOf('loja');
             if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
                 this.lojaId = pathParts[lojaIndex + 1];
                 this.config = getLojaConfig(this.lojaId);
@@ -141,7 +141,7 @@ class LojaManager {
                 };
             }
             
-            const lojaRef = doc(db, "lojas", this.lojaId);
+            const lojaRef = doc(db, "loja", this.lojaId);
             const lojaDoc = await getDoc(lojaRef);
             
             if (lojaDoc.exists()) {
@@ -1686,6 +1686,7 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
 
 
 
