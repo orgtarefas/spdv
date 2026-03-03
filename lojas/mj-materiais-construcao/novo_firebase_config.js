@@ -1543,7 +1543,7 @@ class LojaManager {
     logout() {
         sessionStorage.removeItem('pdv_sessao_temporaria');
         localStorage.removeItem('pdv_sessao_backup');
-        window.location.href = '../../login.html';
+        window.location.href = '../../index.html';
     }
     
     formatarMoeda(valor) {
@@ -1686,6 +1686,7 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
 
 
 
