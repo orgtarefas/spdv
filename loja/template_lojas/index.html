@@ -413,12 +413,14 @@
                 }
             }
             
-            // CARREGAR SCRIPTS DA LOJA
+            // CARREGAR SCRIPTS DA LOJA - VERSÃO UNIVERSAL
             function carregarScriptsLoja() {
+                // Determinar o caminho base baseado na localização do index.html
+                // Se estamos em /loja/nome-da-loja/, o caminho base é './'
                 const scripts = [
-                    `../../loja/${lojaId}/novo_firebase_config.js`,
-                    `../../loja/${lojaId}/imagem_api.js`,
-                    `../../loja/${lojaId}/index.js`
+                    `novo_firebase_config.js`,  // Mesma pasta do index.html
+                    `imagem_api.js`,             // Mesma pasta do index.html
+                    `index.js`                   // Mesma pasta do index.html
                 ];
                 
                 let index = 0;
@@ -430,7 +432,7 @@
                     }
                     
                     const script = document.createElement('script');
-                    script.src = scripts[index];
+                    script.src = scripts[index]; // Caminho relativo à pasta atual
                     script.type = 'module';
                     script.onload = () => {
                         console.log(`✅ Carregado: ${scripts[index]}`);
@@ -438,9 +440,24 @@
                         carregarProximo();
                     };
                     script.onerror = () => {
-                        console.error(`❌ Erro: ${scripts[index]}`);
-                        index++;
-                        carregarProximo();
+                        console.error(`❌ Erro ao carregar: ${scripts[index]}`);
+                        console.log(`Tentando caminho alternativo: ../../loja/${lojaId}/${scripts[index]}`);
+                        
+                        // Fallback: tentar caminho absoluto
+                        const scriptFallback = document.createElement('script');
+                        scriptFallback.src = `../../loja/${lojaId}/${scripts[index]}`;
+                        scriptFallback.type = 'module';
+                        scriptFallback.onload = () => {
+                            console.log(`✅ Carregado (fallback): ${scripts[index]}`);
+                            index++;
+                            carregarProximo();
+                        };
+                        scriptFallback.onerror = () => {
+                            console.error(`❌ Falha total ao carregar: ${scripts[index]}`);
+                            index++;
+                            carregarProximo();
+                        };
+                        document.body.appendChild(scriptFallback);
                     };
                     document.body.appendChild(script);
                 }
@@ -455,6 +472,7 @@
     </script>
 </body>
 </html>
+
 
 
 
