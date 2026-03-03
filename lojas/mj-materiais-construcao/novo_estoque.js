@@ -155,7 +155,7 @@ function redirecionarParaClientes() {
     if (lojaId) {
         window.location.href = `/spdv/lojas/${lojaId}/index.html`;
     } else {
-        window.location.href = '../../login.html';
+        window.location.href = '../../index.html';
     }
 }
 
@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             console.warn('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja. Redirecionando...', 'error');
             setTimeout(() => {
-                window.location.href = '../../login.html';
+                window.location.href = '../../index.html';
             }, 2000);
             return;
         }
@@ -2574,6 +2574,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
