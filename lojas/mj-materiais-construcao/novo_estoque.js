@@ -153,7 +153,7 @@ function redirecionarParaClientes() {
                   (window.location.pathname.match(/\/lojas\/([^\/]+)/) || [])[1];
     
     if (lojaId) {
-        window.location.href = `/spdv/lojas/${lojaId}/novo_clientes.html`;
+        window.location.href = `/spdv/lojas/${lojaId}/index.html`;
     } else {
         window.location.href = '../../login.html';
     }
@@ -2574,6 +2574,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
