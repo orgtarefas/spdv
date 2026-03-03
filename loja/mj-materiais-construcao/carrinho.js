@@ -2,7 +2,7 @@
 console.log("🛒 Carrinho de Compras - Cliente Logado (Firebase)");
 
 import { lojaServices } from './novo_firebase_config.js';
-import { getLojaConfig } from '/spdv/novo_lojas.js';
+import { getLojaConfig } from '../../novo_lojas.js';
 
 // ============================================
 // VERIFICAÇÃO DE ACESSO - REDIRECIONAR SE NÃO LOGADO
@@ -34,7 +34,7 @@ import { getLojaConfig } from '/spdv/novo_lojas.js';
         const lojaId = pathMatch ? pathMatch[1] : null;
         
         if (lojaId) {
-            window.location.href = `/spdv/loja/${lojaId}/index.html`;
+            window.location.href = `../../loja/${lojaId}/index.html`;
         } else {
             window.location.href = 'index.html';
         }
@@ -124,7 +124,7 @@ function carregarDadosLoja() {
             }
             
             if (headerLogo) {
-                headerLogo.src = `/spdv/imagens/${lojaId}/logo.png`;
+                headerLogo.src = `../../imagens/${lojaId}/logo.png`;
                 headerLogo.onerror = () => {
                     headerLogo.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiNmMGYxZjIiLz48Y2lyY2xlIGN4PSIyMCIgY3k9IjE2IiByPSI4IiBmaWxsPSIjZTc0YzNjIiBvcGFjaXR5PSIwLjEiLz48cGF0aCBkPSJNMTAgMjhMMTUgMThMMjAgMjNMMjUgMTVMMzAgMjNMMzUgMjhIMTBaIiBmaWxsPSIjZTc0YzNjIiBvcGFjaXR5PSIwLjEiLz48dGV4dCB4PSIyMCIgeT0iMzIiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSI4IiBmaWxsPSIjNmM3NTdkIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5MT0dPPC90ZXh0Pjwvc3ZnPg==';
                 };
@@ -1668,6 +1668,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
