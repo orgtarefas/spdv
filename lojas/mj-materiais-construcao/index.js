@@ -65,7 +65,7 @@ if (typeof window.getLojaConfig !== 'function') {
 // ============================================
 function extrairLojaIdDaURL() {
     const pathname = window.location.pathname;
-    const match = pathname.match(/\/spdv\/lojas\/([^\/]+)\//);
+    const match = pathname.match(/\/spdv\/loja\/([^\/]+)\//);
     if (match && match[1]) {
         lojaIdAtual = match[1];
         console.log(`✅ Loja ID extraída da URL: ${lojaIdAtual}`);
@@ -1469,6 +1469,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
