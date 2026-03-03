@@ -21,8 +21,7 @@ const LOJAS_CONFIG = {
             },    
         },
         banco_estoque: 'estoque_template_exibicao',
-        banco_vendas: 'vendas_template_exibicao',
-        imgbb_api_key: 'f2973e71970b37c834a7f8eb5d5eeec4'
+        banco_vendas: 'vendas_template_exibicao'
     },
     
     // Loja 1: MJ Materiais de Construção
@@ -45,8 +44,7 @@ const LOJAS_CONFIG = {
             },    
         },
         banco_estoque: 'estoque_mj_construcoes',
-        banco_vendas: 'vendas_mj_construcoes',
-        imgbb_api_key: '8600da39f5f43e08ade42fb77f880d9d'
+        banco_vendas: 'vendas_mj_construcoes'
     },
     
     // Loja 2: Açaí Ponto 11
@@ -69,8 +67,7 @@ const LOJAS_CONFIG = {
             },    
         },
         banco_estoque: 'estoque_acai_ponto_11',
-        banco_vendas: 'vendas_acai_ponto_11',
-        imgbb_api_key: '44efee2efa10458a73a2dc535098c9e4'
+        banco_vendas: 'vendas_acai_ponto_11'
     },
 
     // Loja 3: Teste Operacional
@@ -93,8 +90,7 @@ const LOJAS_CONFIG = {
             },    
         },
         banco_estoque: 'estoque_teste_operacional',
-        banco_vendas: 'vendas_teste_operacional',
-        imgbb_api_key: '8672a2a27a3fc040c576910255d18dc0'
+        banco_vendas: 'vendas_teste_operacional'
     }
 };
 
@@ -128,5 +124,6 @@ function lojaTemImgBB(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig, getImgBBKey, lojaTemImgBB };
 window.getLojaConfig = getLojaConfig;
 console.log('✅ novo_lojas.js carregado SEM ALBUM');
+
 
 
