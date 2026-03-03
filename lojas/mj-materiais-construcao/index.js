@@ -163,7 +163,7 @@ function configurarMenuPerfil() {
         e.preventDefault();
         if (dadosUsuario) {
             // Passar o perfil como parâmetro na URL
-            window.location.href = `novo_estoque.html?perfil=${dadosUsuario.nivel || dadosUsuario.tipo}`;
+            window.location.href = `estoque.html?perfil=${dadosUsuario.nivel || dadosUsuario.tipo}`;
         }
     });
     
@@ -1469,6 +1469,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
