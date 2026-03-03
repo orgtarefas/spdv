@@ -34,9 +34,9 @@ import { getLojaConfig } from '/spdv/novo_lojas.js';
         const lojaId = pathMatch ? pathMatch[1] : null;
         
         if (lojaId) {
-            window.location.href = `/spdv/lojas/${lojaId}/novo_clientes.html`;
+            window.location.href = `/spdv/lojas/${lojaId}/index.html`;
         } else {
-            window.location.href = 'novo_clientes.html';
+            window.location.href = 'index.html';
         }
         return;
     }
@@ -549,7 +549,7 @@ function renderizarItens() {
                 <i class="fas fa-shopping-cart"></i>
                 <p>Faça login para ver seu carrinho</p>
                 <small>Você precisa estar logado para acessar o carrinho</small>
-                <button class="btn-login-cart" onclick="window.location.href='novo_clientes.html'">
+                <button class="btn-login-cart" onclick="window.location.href='index.html'">
                     <i class="fas fa-sign-in-alt"></i> Fazer Login
                 </button>
             </div>
@@ -563,7 +563,7 @@ function renderizarItens() {
                 <i class="fas fa-shopping-cart"></i>
                 <p>Seu carrinho está vazio</p>
                 <small>Adicione produtos para continuar</small>
-                <a href="novo_clientes.html" class="btn-continue">Continuar Comprando</a>
+                <a href="index.html" class="btn-continue">Continuar Comprando</a>
             </div>
         `;
         return;
@@ -1427,7 +1427,7 @@ function configurarMenuPerfil() {
                 if (window.fazerLogout) {
                     window.fazerLogout();
                 } else {
-                    window.location.href = 'novo_clientes.html';
+                    window.location.href = 'index.html';
                 }
             }
         });
@@ -1668,6 +1668,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
