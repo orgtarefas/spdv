@@ -90,7 +90,7 @@ function configurarFavicon() {
     if (lojaId) {
         const favicon = document.getElementById('favicon');
         if (favicon) {
-            favicon.href = `/spdv/imagens/${lojaId}/icone.ico`;
+            favicon.href = `../../imagens/${lojaId}/icone.ico`;
             console.log(`✅ Favicon configurado para loja: ${lojaId}`);
         }
     }
@@ -534,7 +534,7 @@ function carregarLogoLoja() {
         return;
     }
     
-    const logoPath = `/spdv/imagens/${lojaId}/logo.png`;
+    const logoPath = `../../imagens/${lojaId}/logo.png`;
     console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
     
     const testImg = new Image();
@@ -619,7 +619,7 @@ function renderizarContatos(dadosLoja) {
     
     const contato = dadosLoja.contato;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
+    const basePath = `../../imagens/${lojaId}/`;
     const placeholder = getPlaceholderIcon();
     
     let html = '';
@@ -699,7 +699,7 @@ function renderizarEndereco(dadosLoja) {
     
     const endereco = dadosLoja.contato.endereco;
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
+    const basePath = `../../imagens/${lojaId}/`;
     const placeholder = getPlaceholderIcon();
     
     const ruaNumeroBairro = [];
@@ -746,7 +746,7 @@ function renderizarChat() {
     if (!footerChat) return;
     
     const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
-    const basePath = `/spdv/imagens/${lojaId}/`;
+    const basePath = `../../imagens/${lojaId}/`;
     const placeholder = getPlaceholderIcon();
     
     footerChat.innerHTML = `
@@ -1469,6 +1469,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
