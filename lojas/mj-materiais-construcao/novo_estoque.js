@@ -1,4 +1,4 @@
-// novo_estoque.js - SISTEMA DE ESTOQUE COM CONTROLE DE PERFIL
+// estoque.js - SISTEMA DE ESTOQUE COM CONTROLE DE PERFIL
 console.log("📦 Sistema de Estoque - Iniciando...");
 
 import { lojaServices, db } from './novo_firebase_config.js';
@@ -2574,6 +2574,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
