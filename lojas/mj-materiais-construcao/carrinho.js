@@ -1620,7 +1620,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!lojaIdAtual) {
             console.error('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja', 'error');
-            setTimeout(() => window.location.href = '../../../login.html', 2000);
+            setTimeout(() => window.location.href = '../../../index.html', 2000);
             return;
         }
         
@@ -1668,6 +1668,7 @@ window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
 
 console.log("✅ carrinho.js carregado com sucesso!");
+
 
 
 
