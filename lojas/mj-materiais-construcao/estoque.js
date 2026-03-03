@@ -150,10 +150,10 @@ function redirecionarParaClientes() {
     // Tentar obter lojaId de várias fontes
     const lojaId = lojaServices?.lojaId || 
                   window.lojaIdAtual ||
-                  (window.location.pathname.match(/\/lojas\/([^\/]+)/) || [])[1];
+                  (window.location.pathname.match(/\/loja\/([^\/]+)/) || [])[1];
     
     if (lojaId) {
-        window.location.href = `/spdv/lojas/${lojaId}/index.html`;
+        window.location.href = `/spdv/loja/${lojaId}/index.html`;
     } else {
         window.location.href = '../../index.html';
     }
@@ -2574,6 +2574,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
