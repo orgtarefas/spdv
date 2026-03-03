@@ -389,7 +389,7 @@
         (function() {
             // EXTRAIR LOJA ID DA URL
             const pathParts = window.location.pathname.split('/');
-            const lojaIndex = pathParts.indexOf('lojas');
+            const lojaIndex = pathParts.indexOf('loja');
             
             if (lojaIndex === -1 || lojaIndex + 1 >= pathParts.length) {
                 console.error('❌ Loja não identificada na URL');
@@ -416,9 +416,9 @@
             // CARREGAR SCRIPTS DA LOJA
             function carregarScriptsLoja() {
                 const scripts = [
-                    `/spdv/lojas/${lojaId}/novo_firebase_config.js`,
-                    `/spdv/lojas/${lojaId}/imagem_api.js`,
-                    `/spdv/lojas/${lojaId}/index.js`
+                    `/spdv/loja/${lojaId}/novo_firebase_config.js`,
+                    `/spdv/loja/${lojaId}/imagem_api.js`,
+                    `/spdv/loja/${lojaId}/index.js`
                 ];
                 
                 let index = 0;
@@ -455,6 +455,7 @@
     </script>
 </body>
 </html>
+
 
 
 
