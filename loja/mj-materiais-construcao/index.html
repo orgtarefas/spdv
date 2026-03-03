@@ -379,10 +379,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
     
     <!-- 1️⃣ PRIMEIRO: Login Firebase (NÃO é module) -->
-    <script src="/spdv/login_firebase.js"></script>
+    <script src="../../login_firebase.js"></script>
     
     <!-- 2️⃣ SEGUNDO: Carregar novo_lojas.js (global) -->
-    <script type="module" src="/spdv/novo_lojas.js"></script>
+    <script type="module" src="../../novo_lojas.js"></script>
     
     <!-- 3️⃣ TERCEIRO: Extrair lojaId e carregar scripts da loja -->
     <script>
@@ -416,9 +416,9 @@
             // CARREGAR SCRIPTS DA LOJA
             function carregarScriptsLoja() {
                 const scripts = [
-                    `/spdv/loja/${lojaId}/novo_firebase_config.js`,
-                    `/spdv/loja/${lojaId}/imagem_api.js`,
-                    `/spdv/loja/${lojaId}/index.js`
+                    `../../loja/${lojaId}/novo_firebase_config.js`,
+                    `../../loja/${lojaId}/imagem_api.js`,
+                    `../../loja/${lojaId}/index.js`
                 ];
                 
                 let index = 0;
@@ -455,6 +455,7 @@
     </script>
 </body>
 </html>
+
 
 
 
