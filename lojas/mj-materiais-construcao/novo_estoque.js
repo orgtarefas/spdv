@@ -4,25 +4,56 @@ console.log("📦 Sistema de Estoque - Iniciando...");
 import { lojaServices, db } from './novo_firebase_config.js';
 import { imagemServices } from './imagem_api.js';
 
+// LOG DIAGNÓSTICO - VERIFICAR TODAS AS FONTES DE DADOS
+console.log('🔍 DIAGNÓSTICO DE LOGIN:');
+console.log('window.dadosUsuario:', window.dadosUsuario);
+console.log('sessionStorage usuarioInfo:', sessionStorage.getItem('usuarioInfo'));
+console.log('lojaServices.usuario:', lojaServices?.usuario);
+console.log('window.auth.currentUser:', window.auth?.currentUser?.email);
+
 // ============================================
 // RECUPERAR DADOS DO USUÁRIO DO SESSIONSTORAGE
 // ============================================
 try {
-    const dadosSalvos = sessionStorage.getItem('dadosUsuario');
-    if (dadosSalvos) {
-        const dados = JSON.parse(dadosSalvos);
-        window.dadosUsuario = dados;
+    // 🔥 PRIMEIRO: Tentar ler do usuarioInfo (formato atual do login_firebase.js)
+    const usuarioInfo = sessionStorage.getItem('usuarioInfo');
+    if (usuarioInfo) {
+        const dados = JSON.parse(usuarioInfo);
+        window.dadosUsuario = {
+            nome: dados.nome,
+            email: dados.email,
+            tipo: dados.tipo,
+            nivel: dados.perfil, // Mapear perfil para nivel
+            perfil: dados.perfil,
+            loja: dados.loja
+        };
         
         // 🔥 TAMBÉM ATUALIZAR O lojaServices SE ELE EXISTIR
         if (lojaServices) {
-            lojaServices.usuario = dados;
+            lojaServices.usuario = window.dadosUsuario;
         }
         
-        console.log('✅ Dados do usuário recuperados do sessionStorage:', dados.nome);
-        console.log('👤 Perfil:', dados.perfil);
-        console.log('🔑 Tipo:', dados.tipo);
-    } else {
-        console.log('ℹ️ Nenhum dado de usuário no sessionStorage');
+        console.log('✅ Dados do usuário recuperados do usuarioInfo:', window.dadosUsuario.nome);
+        console.log('👤 Perfil:', window.dadosUsuario.perfil);
+        console.log('🔑 Tipo:', window.dadosUsuario.tipo);
+    } 
+    // 🔥 SEGUNDO: Tentar ler do dadosUsuario antigo (caso exista)
+    else {
+        const dadosSalvos = sessionStorage.getItem('dadosUsuario');
+        if (dadosSalvos) {
+            const dados = JSON.parse(dadosSalvos);
+            window.dadosUsuario = dados;
+            
+            if (lojaServices) {
+                lojaServices.usuario = dados;
+            }
+            
+            console.log('✅ Dados do usuário recuperados do dadosUsuario (legado):', dados.nome);
+            console.log('👤 Perfil:', dados.perfil);
+            console.log('🔑 Tipo:', dados.tipo);
+        } else {
+            console.log('ℹ️ Nenhum dado de usuário no sessionStorage');
+        }
     }
 } catch (e) {
     console.warn('⚠️ Erro ao recuperar dados do usuário:', e);
@@ -34,39 +65,80 @@ try {
 async function verificarAcessoEstoque() {
     console.log("🔒 Verificando permissão de acesso ao estoque...");
     
-    // Pegar dados do usuário de múltiplas fontes
-    const usuario = lojaServices?.usuario || 
-                   window.dadosUsuario || 
-                   window.auth?.currentUser;
+    // 🔥 VERIFICAR TODAS AS FONTES POSSÍVEIS DE DADOS DO USUÁRIO
+    let usuario = null;
+    let perfil = '';
+    
+    // 1. Verificar dadosUsuario do window (mais confiável)
+    if (window.dadosUsuario) {
+        usuario = window.dadosUsuario;
+        perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
+        console.log("📊 Dados do window.dadosUsuario:", usuario);
+        console.log(`👤 Perfil window: ${perfil}`);
+    }
+    
+    // 2. Verificar sessionStorage
+    if (!usuario) {
+        try {
+            const dadosSalvos = sessionStorage.getItem('usuarioInfo');
+            if (dadosSalvos) {
+                const dados = JSON.parse(dadosSalvos);
+                usuario = dados;
+                perfil = (dados.perfil || dados.tipo || '').toLowerCase();
+                console.log("📊 Dados do sessionStorage (usuarioInfo):", dados);
+                console.log(`👤 Perfil sessionStorage: ${perfil}`);
+            }
+        } catch (e) {
+            console.warn('⚠️ Erro ao ler sessionStorage:', e);
+        }
+    }
+    
+    // 3. Verificar lojaServices
+    if (!usuario && lojaServices?.usuario) {
+        usuario = lojaServices.usuario;
+        perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
+        console.log("📊 Dados do lojaServices:", usuario);
+        console.log(`👤 Perfil lojaServices: ${perfil}`);
+    }
+    
+    // 4. Verificar auth.currentUser como último recurso
+    if (!usuario && window.auth?.currentUser) {
+        const user = window.auth.currentUser;
+        console.log("📊 Usuário auth:", user.email);
+        perfil = 'cliente'; // fallback
+    }
     
     if (!usuario) {
-        console.log("❌ Usuário não está logado");
+        console.log("❌ Usuário não está logado em nenhuma fonte");
         return false;
     }
     
-    // Extrair perfil
-    const perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
-    
-    console.log(`👤 Perfil do usuário: ${perfil}`);
-    
-    // Perfis que NÃO podem acessar estoque
+    // 🔥 PERFIS QUE PODEM ACESSAR ESTOQUE
+    const perfisPermitidos = ['admin', 'gerente', 'supervisor', 'vendedor'];
     const perfisNegados = ['cliente', 'visitante', ''];
     
+    console.log(`👤 Verificando perfil: "${perfil}"`);
+    
+    // Verificar se é admin (admin tem acesso a tudo)
+    if (perfil === 'admin') {
+        console.log("✅ Admin - acesso total permitido");
+        return true;
+    }
+    
+    // Verificar se é funcionário permitido
+    if (perfisPermitidos.includes(perfil)) {
+        console.log(`✅ Funcionário ${perfil} - acesso permitido`);
+        return true;
+    }
+    
+    // Verificar se é cliente negado
     if (perfisNegados.includes(perfil)) {
-        console.log("❌ Cliente tentando acessar estoque - acesso negado");
+        console.log(`❌ Cliente/Visitante - acesso negado`);
         return false;
     }
     
-    // Perfis permitidos
-    const perfisPermitidos = ['admin', 'gerente', 'supervisor', 'vendedor'];
-    
-    if (!perfisPermitidos.includes(perfil)) {
-        console.log("❌ Perfil não autorizado:", perfil);
-        return false;
-    }
-    
-    console.log("✅ Acesso ao estoque permitido para:", perfil);
-    return true;
+    console.log(`❌ Perfil não autorizado: ${perfil}`);
+    return false;
 }
 
 // ============================================
@@ -77,6 +149,7 @@ function redirecionarParaClientes() {
     
     // Tentar obter lojaId de várias fontes
     const lojaId = lojaServices?.lojaId || 
+                  window.lojaIdAtual ||
                   (window.location.pathname.match(/\/lojas\/([^\/]+)/) || [])[1];
     
     if (lojaId) {
@@ -100,27 +173,7 @@ function redirecionarParaClientes() {
         if (h3) h3.textContent = 'Verificando acesso...';
     }
     
-    // VERIFICAÇÃO SÍNCRONA - USUÁRIO NÃO LOGADO
-    const naoLogado = !lojaServices?.usuario && 
-                     !window.dadosUsuario && 
-                     !window.auth?.currentUser;
-    
-    if (naoLogado) {
-        console.log("🚫 Usuário não logado - Redirecionando imediatamente...");
-        
-        // Obter ID da loja da URL
-        const pathMatch = window.location.pathname.match(/\/lojas\/([^\/]+)/);
-        const lojaId = lojaServices?.lojaId || (pathMatch ? pathMatch[1] : null);
-        
-        if (lojaId) {
-            window.location.href = `/spdv/lojas/${lojaId}/novo_clientes.html`;
-        } else {
-            window.location.href = '../../login.html';
-        }
-        return;
-    }
-    
-    // SE TEM USUÁRIO, FAZ VERIFICAÇÃO ASSÍNCRONA DO PERFIL
+    // 🔥 FUNÇÃO ASSÍNCRONA PARA VERIFICAR ACESSO
     (async function() {
         try {
             const acessoPermitido = await verificarAcessoEstoque();
@@ -196,14 +249,18 @@ const IMAGEM_PADRAO_BASE64 = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBo
 
 // Extrair perfil dos dados do usuário
 function extrairPerfil() {
-    if (!dadosUsuario) return null;
+    if (!dadosUsuario) {
+        // Tentar pegar do window novamente
+        dadosUsuario = window.dadosUsuario || null;
+        if (!dadosUsuario) return null;
+    }
     
-    // 🔥 CORREÇÃO: Priorizar nivel, depois perfil, depois tipo
-    // O perfil do funcionário vem em "nivel" ou "perfil"
-    const perfil = dadosUsuario.nivel || dadosUsuario.perfil || dadosUsuario.tipo;
+    console.log('📊 Dados completos do usuário em extrairPerfil:', dadosUsuario);
     
-    console.log('📊 Dados do usuário:', dadosUsuario);
-    console.log('🎯 Perfil extraído:', perfil);
+    // 🔥 PRIORIDADE: nivel > perfil > tipo
+    const perfil = dadosUsuario.nivel || dadosUsuario.perfil || dadosUsuario.tipo || '';
+    
+    console.log(`🎯 Perfil extraído: "${perfil}"`);
     
     return perfil;
 }
@@ -2517,6 +2574,7 @@ class GerenciadorCodigoBarras {
         }
     }
 }
+
 
 
 
