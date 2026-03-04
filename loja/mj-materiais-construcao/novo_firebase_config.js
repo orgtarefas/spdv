@@ -1541,6 +1541,49 @@ class LojaManager {
             return { success: false, error: error.message };
         }
     }
+
+    // ============================================
+    // 🔥 NOVA FUNÇÃO: BUSCAR CHAVE IMGBB DO FIRESTORE
+    // ============================================
+    async buscarChaveImgBB() {
+        if (!this.lojaId) {
+            console.error('❌ Loja ID não disponível para buscar chave ImgBB');
+            return null;
+        }
+        
+        try {
+            console.log(`🔍 Buscando chave ImgBB para loja: ${this.lojaId} no Firebase...`);
+            
+            // Buscar no Firestore (coleção 'configuracoes_loja')
+            const docRef = doc(db, 'configuracoes_loja', this.lojaId);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                const dados = docSnap.data();
+                const chave = dados.imgbb_api_key || null;
+                
+                if (chave) {
+                    console.log(`✅ Chave ImgBB encontrada para ${this.lojaId}`);
+                    console.log(`🔑 Chave: ${chave.substring(0, 8)}...`);
+                    
+                    // Atualizar a propriedade da classe
+                    this.imgbbKey = chave;
+                    
+                    return chave;
+                } else {
+                    console.log(`⚠️ Nenhuma chave ImgBB configurada para ${this.lojaId} no Firebase`);
+                    return null;
+                }
+            } else {
+                console.log(`⚠️ Documento configuracoes_loja/${this.lojaId} não encontrado no Firestore`);
+                return null;
+            }
+            
+        } catch (error) {
+            console.error(`❌ Erro ao buscar chave ImgBB:`, error);
+            return null;
+        }
+    }
     
     logout() {
         sessionStorage.removeItem('pdv_sessao_temporaria');
@@ -1595,6 +1638,9 @@ const lojaServices = {
     adicionarItemAoCarrinho: (email, item) => lojaManager.adicionarItemAoCarrinho(email, item),
     removerItemDoCarrinho: (email, produtoId) => lojaManager.removerItemDoCarrinho(email, produtoId),
     atualizarQuantidadeItem: (email, produtoId, quantidade) => lojaManager.atualizarQuantidadeItem(email, produtoId, quantidade),
+    
+    // 🔥 NOVA FUNÇÃO: BUSCAR CHAVE IMGBB
+    buscarChaveImgBB: () => lojaManager.buscarChaveImgBB(),
     
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
@@ -1688,4 +1734,3 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
-
