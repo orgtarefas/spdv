@@ -211,6 +211,8 @@ class LojaManager {
             .replace(/\bacai\b/gi, 'Açaí')
             .replace(/\bpadaria\b/gi, 'Padaria');
     }
+
+    
     
     async buscarProdutos(filtro = {}) {
         try {
@@ -1686,13 +1688,4 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
-
-
-
-
-
-
-
-
-
 
