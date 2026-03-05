@@ -92,6 +92,29 @@ const LOJAS_CONFIG = {
         banco_estoque: 'estoque_teste_operacional',
         banco_vendas: 'vendas_teste_operacional'
     }
+
+    // Loja 4: Casa do Borracheiro
+    'casa-do-borracheiro': {
+        nome: 'Casa do Borracheiro',
+        contato: {
+            telefone: '',
+            whatsapp: '(71)99999-9999',
+            instagram: '@casa.doborracheiro',   
+            email: 'contatos@lojasite.com.br',       
+            endereco: {
+                rua: 'Estrada Campinas de Pirajá',
+                numero: '2548',
+                complemento: 'Térreo, Loja 03',
+                bairro: 'Campinas de Pirajá',
+                cidade: 'Salvador',
+                uf: 'BA',
+                cep: '41295-720'
+                
+            },    
+        },
+        banco_estoque: 'estoque_casa_do_borracheiro',
+        banco_vendas: 'vendas_casa_do_borracheiro'
+    }
 };
 
 function getLojaConfig(lojaId) {
@@ -124,6 +147,7 @@ function lojaTemImgBB(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig, getImgBBKey, lojaTemImgBB };
 window.getLojaConfig = getLojaConfig;
 console.log('✅ novo_lojas.js carregado SEM ALBUM');
+
 
 
 
