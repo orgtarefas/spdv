@@ -91,7 +91,7 @@ const LOJAS_CONFIG = {
         },
         banco_estoque: 'estoque_teste_operacional',
         banco_vendas: 'vendas_teste_operacional'
-    }
+    },
 
     // Loja 4: Casa do Borracheiro
     'casa-do-borracheiro': {
@@ -147,6 +147,7 @@ function lojaTemImgBB(lojaId) {
 export { LOJAS_CONFIG, getLojaConfig, getImgBBKey, lojaTemImgBB };
 window.getLojaConfig = getLojaConfig;
 console.log('✅ novo_lojas.js carregado SEM ALBUM');
+
 
 
 
