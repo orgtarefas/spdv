@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=yes">
-    <title>Agendamentos - Loja Online</title>
+    <title>Gestão de Agendamentos - Loja</title>
     
     <!-- Favicon -->
     <link id="favicon" rel="icon" href="" type="image/x-icon">
@@ -16,7 +16,6 @@
     <div class="container">
         <!-- Header -->
         <header class="main-header">
-            <!-- Linha Superior: Logo, Pesquisa, Usuário -->
             <div class="header-top">
                 <!-- Esquerda: Logo -->
                 <div class="header-left">
@@ -24,100 +23,280 @@
                         <img src="" alt="Logo da Loja" class="logo-img" id="lojaLogo">
                         <div class="logo-text">
                             <h1 id="lojaNomeHeader">Carregando...</h1>
-                            <p class="subtitle">Sistema de Agendamentos</p>
+                            <p class="subtitle">Gestão de Agendamentos</p>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Centro: Informações -->
+                <!-- Centro: Título da Página -->
                 <div class="header-center">
-                    <div class="agendamento-titulo">
-                        <i class="fas fa-clock"></i>
-                        <h2>Painel de Agendamentos</h2>
+                    <div class="page-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h2>Painel do Lojista</h2>
                     </div>
                 </div>
                 
-                <!-- Direita: Botão Voltar -->
+                <!-- Direita: Informações do Usuário e Voltar -->
                 <div class="header-right">
-                    <button class="btn-voltar" id="btnVoltar">
-                        <i class="fas fa-arrow-left"></i> Voltar
-                    </button>
+                    <div class="user-info">
+                        <span id="userName">Carregando...</span>
+                        <button class="btn-voltar" id="btnVoltar">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
 
-        <!-- Painel de Agendamento -->
-        <div class="agendamento-full-painel">
-            <!-- Chamando Agora (Destaque) -->
-            <div class="chamando-destaque" id="chamandoDestaque">
-                <div class="chamando-content">
-                    <span class="chamando-label">CHAMANDO AGORA</span>
-                    <span class="chamando-senha" id="chamandoSenha">---</span>
-                    <span class="chamando-cliente" id="chamandoCliente">---</span>
-                </div>
+        <!-- Conteúdo Principal -->
+        <div class="gestao-container">
+            <!-- Abas de Navegação -->
+            <div class="gestao-tabs">
+                <button class="tab-btn active" data-tab="fila">
+                    <i class="fas fa-users"></i> Fila de Atendimento
+                </button>
+                <button class="tab-btn" data-tab="servicos">
+                    <i class="fas fa-cut"></i> Serviços
+                </button>
+                <button class="tab-btn" data-tab="historico">
+                    <i class="fas fa-history"></i> Histórico
+                </button>
+                <button class="tab-btn" data-tab="config">
+                    <i class="fas fa-cog"></i> Configurações
+                </button>
             </div>
 
-            <!-- Fila de Agendamentos -->
-            <div class="fila-container">
-                <div class="fila-header">
-                    <h3><i class="fas fa-users"></i> Fila de Agendamentos</h3>
-                    <div class="fila-stats">
-                        <span class="stats-item" id="totalNaFila">0</span>
-                        <span class="stats-label">na fila</span>
+            <!-- TAB 1: FILA DE ATENDIMENTO -->
+            <div class="tab-content active" id="tab-fila">
+                <div class="fila-painel">
+                    <!-- Coluna 1: Em Atendimento -->
+                    <div class="fila-coluna">
+                        <div class="coluna-header status-atendimento">
+                            <i class="fas fa-user-check"></i>
+                            <h3>Em Atendimento</h3>
+                            <span class="coluna-badge" id="emAtendimentoBadge">0</span>
+                        </div>
+                        <div class="coluna-content lista-em-atendimento" id="emAtendimentoLista">
+                            <div class="empty-state">
+                                <i class="fas fa-user-clock"></i>
+                                <p>Nenhum atendimento no momento</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coluna 2: Chamar Próximo -->
+                    <div class="fila-coluna destaque">
+                        <div class="coluna-header chamar-proximo">
+                            <i class="fas fa-bell"></i>
+                            <h3>Chamar Próximo</h3>
+                        </div>
+                        <div class="coluna-content centro" id="proximoFilaCard">
+                            <div class="proximo-info">
+                                <span class="label">Próximo da fila:</span>
+                                <span class="valor" id="proximoFilaSenha">---</span>
+                                <span class="cliente" id="proximoFilaCliente">---</span>
+                            </div>
+                            <button class="btn-chamar" id="btnChamarProximo" disabled>
+                                <i class="fas fa-bell"></i> Chamar Próximo
+                            </button>
+                            <button class="btn-chamar" id="btnChamarNovamente" style="display: none;">
+                                <i class="fas fa-volume-up"></i> Chamar Novamente
+                            </button>
+                        </div>
+                        <div class="coluna-footer">
+                            Último chamado: <span id="ultimoChamadoInfo">---</span>
+                        </div>
+                    </div>
+
+                    <!-- Coluna 3: Aguardando -->
+                    <div class="fila-coluna">
+                        <div class="coluna-header status-aguardando">
+                            <i class="fas fa-clock"></i>
+                            <h3>Aguardando</h3>
+                            <span class="coluna-badge" id="aguardandoBadge">0</span>
+                        </div>
+                        <div class="coluna-content lista-aguardando" id="aguardandoLista">
+                            <div class="empty-state">
+                                <i class="fas fa-smile"></i>
+                                <p>Fila vazia</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="fila-lista" id="filaLista">
-                    <div class="empty-fila">
-                        <i class="fas fa-check-circle"></i>
-                        <p>Fila vazia no momento</p>
+                <!-- Painel de Ações Rápidas -->
+                <div class="acoes-rapidas">
+                    <button class="btn-acao" id="btnReagendar">
+                        <i class="fas fa-calendar-check"></i> Reagendar
+                    </button>
+                    <button class="btn-acao" id="btnCancelar">
+                        <i class="fas fa-times-circle"></i> Cancelar
+                    </button>
+                    <button class="btn-acao" id="btnConcluir">
+                        <i class="fas fa-check-circle"></i> Concluir
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 2: SERVIÇOS -->
+            <div class="tab-content" id="tab-servicos">
+                <div class="servicos-header">
+                    <h3><i class="fas fa-cut"></i> Serviços Oferecidos</h3>
+                    <button class="btn-novo" id="btnNovoServico">
+                        <i class="fas fa-plus"></i> Novo Serviço
+                    </button>
+                </div>
+
+                <div class="servicos-grid" id="servicosGrid">
+                    <!-- Cards serão inseridos via JS -->
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Carregando serviços...</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Histórico de Chamados -->
-            <div class="historico-container">
+            <!-- TAB 3: HISTÓRICO -->
+            <div class="tab-content" id="tab-historico">
                 <div class="historico-header">
-                    <h3><i class="fas fa-history"></i> Últimos Chamados</h3>
+                    <h3><i class="fas fa-history"></i> Histórico de Atendimentos</h3>
+                    <div class="filtros-periodo">
+                        <button class="filtro-btn active" data-periodo="hoje">Hoje</button>
+                        <button class="filtro-btn" data-periodo="semana">Esta Semana</button>
+                        <button class="filtro-btn" data-periodo="mes">Este Mês</button>
+                    </div>
                 </div>
 
-                <div class="historico-lista" id="historicoLista">
-                    <div class="empty-historico">
-                        <i class="fas fa-history"></i>
-                        <p>Nenhum chamado no histórico</p>
+                <div class="tabela-historico" id="tabelaHistorico">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Senha</th>
+                                <th>Cliente</th>
+                                <th>Serviço</th>
+                                <th>Data/Hora</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historicoBody">
+                            <tr class="empty-row">
+                                <td colspan="6">Nenhum histórico encontrado</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: CONFIGURAÇÕES -->
+            <div class="tab-content" id="tab-config">
+                <div class="config-section">
+                    <h3><i class="fas fa-clock"></i> Horário de Funcionamento</h3>
+                    
+                    <div class="horarios-grid" id="horariosGrid">
+                        <!-- Dias da semana serão inseridos via JS -->
                     </div>
+
+                    <h3><i class="fas fa-cog"></i> Configurações Gerais</h3>
+                    
+                    <div class="config-gerais">
+                        <div class="config-item">
+                            <label>
+                                <input type="checkbox" id="configNotificacao"> 
+                                Notificar quando houver novos agendamentos
+                            </label>
+                        </div>
+                        <div class="config-item">
+                            <label>
+                                <input type="checkbox" id="configSom"> 
+                                Tocar som ao chamar próximo
+                            </label>
+                        </div>
+                        <div class="config-item">
+                            <label>
+                                <input type="checkbox" id="configAutoChamar"> 
+                                Chamar automaticamente próximo ao concluir
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn-salvar-config" id="btnSalvarConfig">
+                        <i class="fas fa-save"></i> Salvar Configurações
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Footer -->
-        <footer class="main-footer">
-            <div class="footer-content">
-                <div class="footer-contacts">
-                    <h4>Atendimento</h4>
-                    <div class="contact-grid" id="contactGrid">
-                        <div class="loading-contacts">
-                            <div class="spinner-small"></div>
+    <!-- MODAL: Novo/Editar Serviço -->
+    <div id="servicoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="servicoModalTitulo"><i class="fas fa-cut"></i> Novo Serviço</h3>
+                <button class="modal-close" onclick="fecharModal('servicoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="servicoForm">
+                    <div class="form-group">
+                        <label>Nome do Serviço *</label>
+                        <input type="text" id="servicoNome" placeholder="Ex: Corte de Cabelo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea id="servicoDescricao" rows="2" placeholder="Descrição do serviço..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label>Duração (min) *</label>
+                            <input type="number" id="servicoDuracao" value="30" min="5" step="5" required>
+                        </div>
+                        <div class="form-group half">
+                            <label>Preço (R$) *</label>
+                            <input type="number" id="servicoPreco" value="0.00" min="0" step="0.01" required>
                         </div>
                     </div>
-                </div>
-        
-                <div class="footer-address">
-                    <h4>Endereço</h4>
-                    <div id="addressGrid">
-                        <div class="loading-address">
-                            <div class="spinner-small"></div>
-                        </div>
+                    <div class="form-group">
+                        <label>Ícone</label>
+                        <select id="servicoIcone">
+                            <option value="cut">Corte (✂️)</option>
+                            <option value="user">Barba (🧔)</option>
+                            <option value="magic">Combo (✨)</option>
+                            <option value="eye">Sobrancelha (👁️)</option>
+                            <option value="clock">Tempo (⏰)</option>
+                            <option value="heart">Coração (❤️)</option>
+                        </select>
                     </div>
-                </div>
-        
-                <div class="footer-chat"></div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="servicoAtivo" checked> Serviço Ativo
+                        </label>
+                    </div>
+                </form>
             </div>
-        
-            <div class="footer-copyright">
-                <p>© EVOTL - Sistema de Agendamentos</p>
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="fecharModal('servicoModal')">Cancelar</button>
+                <button class="btn-salvar" id="btnSalvarServico">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
             </div>
-        </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: Confirmar Ação -->
+    <div id="confirmarModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3 id="confirmarTitulo"><i class="fas fa-question-circle"></i> Confirmar Ação</h3>
+                <button class="modal-close" onclick="fecharModal('confirmarModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmarMensagem">Tem certeza que deseja realizar esta ação?</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="fecharModal('confirmarModal')">Não</button>
+                <button class="btn-confirmar" id="btnConfirmarAcao">Sim</button>
+            </div>
+        </div>
     </div>
 
     <!-- Loading Overlay -->
@@ -139,13 +318,10 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    
-    <!-- Firebase (compat version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
-    <!-- Scripts da loja -->
     <script src="../../login_firebase.js"></script>
     <script type="module" src="../../novo_lojas.js"></script>
     <script type="module" src="agendamento.js"></script>
