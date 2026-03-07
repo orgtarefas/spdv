@@ -51,22 +51,140 @@ let unsubscribeAgendamentos = null;
 let unsubscribeFuturos = null;
 
 // ============================================
-// VERIFICAR PERMISSÃO DE ACESSO
+// RECUPERAR DADOS DO USUÁRIO DO SESSIONSTORAGE
+// ============================================
+try {
+    // 🔥 PRIMEIRO: Tentar ler do usuarioInfo (formato atual do login_firebase.js)
+    const usuarioInfo = sessionStorage.getItem('usuarioInfo');
+    if (usuarioInfo) {
+        const dados = JSON.parse(usuarioInfo);
+        window.dadosUsuario = {
+            nome: dados.nome,
+            email: dados.email,
+            tipo: dados.tipo,
+            nivel: dados.perfil, // Mapear perfil para nivel
+            perfil: dados.perfil,
+            loja: dados.loja
+        };
+        
+        dadosUsuario = window.dadosUsuario;
+        usuarioLogado = true;
+        
+        console.log('✅ Dados do usuário recuperados do usuarioInfo:', window.dadosUsuario.nome);
+        console.log('👤 Perfil:', window.dadosUsuario.perfil);
+        console.log('🔑 Tipo:', window.dadosUsuario.tipo);
+    } 
+    // 🔥 SEGUNDO: Tentar ler do dadosUsuario antigo (caso exista)
+    else {
+        const dadosSalvos = sessionStorage.getItem('dadosUsuario');
+        if (dadosSalvos) {
+            const dados = JSON.parse(dadosSalvos);
+            window.dadosUsuario = dados;
+            dadosUsuario = dados;
+            usuarioLogado = true;
+            
+            console.log('✅ Dados do usuário recuperados do dadosUsuario (legado):', dados.nome);
+            console.log('👤 Perfil:', dados.perfil);
+            console.log('🔑 Tipo:', dados.tipo);
+        } else {
+            console.log('ℹ️ Nenhum dado de usuário no sessionStorage');
+        }
+    }
+} catch (e) {
+    console.warn('⚠️ Erro ao recuperar dados do usuário:', e);
+}
+
+// ============================================
+// VERIFICAR PERMISSÃO DE ACESSO (BASEADO NO ESTOQUE.JS)
 // ============================================
 function verificarPermissaoAcesso() {
-    // Se não estiver logado, redireciona
-    if (!usuarioLogado || !dadosUsuario) {
-        console.log('⛔ Usuário não logado, redirecionando...');
-        window.location.href = 'index.html';
+    console.log("🔒 Verificando permissão de acesso ao agendamento...");
+    
+    // 🔥 VERIFICAR TODAS AS FONTES POSSÍVEIS DE DADOS DO USUÁRIO
+    let usuario = null;
+    let perfil = '';
+    let tipo = '';
+    
+    // 1. Verificar dadosUsuario do window (mais confiável)
+    if (window.dadosUsuario) {
+        usuario = window.dadosUsuario;
+        perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
+        tipo = (usuario.tipo || '').toLowerCase();
+        console.log("📊 Dados do window.dadosUsuario:", usuario);
+        console.log(`👤 Perfil window: ${perfil}`);
+        console.log(`👤 Tipo window: ${tipo}`);
+    }
+    
+    // 2. Verificar sessionStorage
+    if (!usuario) {
+        try {
+            const dadosSalvos = sessionStorage.getItem('usuarioInfo');
+            if (dadosSalvos) {
+                const dados = JSON.parse(dadosSalvos);
+                usuario = dados;
+                perfil = (dados.perfil || dados.tipo || '').toLowerCase();
+                tipo = (dados.tipo || '').toLowerCase();
+                console.log("📊 Dados do sessionStorage (usuarioInfo):", dados);
+                console.log(`👤 Perfil sessionStorage: ${perfil}`);
+                console.log(`👤 Tipo sessionStorage: ${tipo}`);
+            }
+        } catch (e) {
+            console.warn('⚠️ Erro ao ler sessionStorage:', e);
+        }
+    }
+    
+    // 3. Verificar lojaServices
+    if (!usuario && lojaServices?.usuario) {
+        usuario = lojaServices.usuario;
+        perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
+        tipo = (usuario.tipo || '').toLowerCase();
+        console.log("📊 Dados do lojaServices:", usuario);
+        console.log(`👤 Perfil lojaServices: ${perfil}`);
+        console.log(`👤 Tipo lojaServices: ${tipo}`);
+    }
+    
+    // 4. Verificar auth.currentUser como último recurso
+    if (!usuario && window.auth?.currentUser) {
+        const user = window.auth.currentUser;
+        console.log("📊 Usuário auth:", user.email);
+        perfil = 'cliente'; // fallback
+        tipo = 'cliente';
+    }
+    
+    if (!usuario) {
+        console.log("❌ Usuário não está logado em nenhuma fonte");
+        mostrarMensagem('Faça login para acessar esta página', 'warning');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
         return false;
     }
     
-    // Verificar se é admin ou funcionário (não cliente)
-    const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
-    const tipo = dadosUsuario.tipo;
+    // 🔥 ATUALIZAR VARIÁVEIS GLOBAIS
+    dadosUsuario = usuario;
+    usuarioLogado = true;
     
-    if (tipo === 'cliente' || perfil === 'cliente') {
-        console.log('⛔ Cliente não tem permissão para acessar esta página');
+    // 🔥 PERFIS QUE PODEM ACESSAR AGENDAMENTO (baseado no estoque.js)
+    const perfisPermitidos = ['admin', 'gerente', 'supervisor', 'vendedor'];
+    const perfisNegados = ['cliente', 'visitante', ''];
+    
+    console.log(`👤 Verificando perfil: "${perfil}", tipo: "${tipo}"`);
+    
+    // Verificar se é admin (admin tem acesso a tudo)
+    if (perfil === 'admin' || tipo === 'admin') {
+        console.log("✅ Admin - acesso total permitido");
+        return true;
+    }
+    
+    // Verificar se é funcionário permitido
+    if (perfisPermitidos.includes(perfil) || (tipo === 'funcionario' && perfisPermitidos.includes(perfil))) {
+        console.log(`✅ Funcionário ${perfil} - acesso permitido`);
+        return true;
+    }
+    
+    // Verificar se é cliente negado
+    if (perfisNegados.includes(perfil) || tipo === 'cliente') {
+        console.log(`❌ Cliente/Visitante - acesso negado`);
         mostrarMensagem('Acesso restrito a funcionários', 'error');
         setTimeout(() => {
             window.location.href = 'index.html';
@@ -74,7 +192,136 @@ function verificarPermissaoAcesso() {
         return false;
     }
     
-    return true;
+    console.log(`❌ Perfil não autorizado: ${perfil}`);
+    mostrarMensagem('Acesso restrito a funcionários', 'error');
+    setTimeout(() => {
+        window.location.href = 'index.html';
+    }, 2000);
+    return false;
+}
+
+// ============================================
+// REDIRECIONAR PARA PÁGINA DE CLIENTES
+// ============================================
+function redirecionarParaClientes() {
+    console.log("🔄 Redirecionando para página de clientes...");
+    
+    // Tentar obter lojaId de várias fontes
+    const lojaId = lojaServices?.lojaId || 
+                  window.lojaIdAtual ||
+                  lojaIdAtual ||
+                  (window.location.pathname.match(/\/loja\/([^\/]+)/) || [])[1];
+    
+    if (lojaId) {
+        window.location.href = `../../loja/${lojaId}/index.html`;
+    } else {
+        window.location.href = '../../index.html';
+    }
+}
+
+// ============================================
+// VERIFICAÇÃO BLOQUEANTE - EXECUTA IMEDIATAMENTE
+// ============================================
+(function() {
+    console.log("🔒 Verificação bloqueante de acesso ao agendamento...");
+    
+    // MOSTRAR LOADING IMEDIATAMENTE
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) {
+        loading.style.display = 'flex';
+        const h3 = loading.querySelector('h3');
+        if (h3) h3.textContent = 'Verificando acesso...';
+    }
+    
+    // 🔥 FUNÇÃO ASSÍNCRONA PARA VERIFICAR ACESSO
+    (async function() {
+        try {
+            const acessoPermitido = verificarPermissaoAcesso();
+            
+            if (!acessoPermitido) {
+                console.log("🚫 Acesso negado - Redirecionando...");
+                redirecionarParaClientes();
+                return;
+            }
+            
+            // ✅ ACESSO PERMITIDO
+            console.log("✅ Acesso permitido, mostrando conteúdo...");
+            document.body.classList.add('acesso-permitido');
+            
+            // Esconder loading
+            if (loading) {
+                loading.style.display = 'none';
+            }
+            
+            // Inicializar o resto do sistema
+            inicializarSistema();
+            
+        } catch (error) {
+            console.error("❌ Erro na verificação:", error);
+            redirecionarParaClientes();
+        }
+    })();
+})();
+
+// ============================================
+// FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO
+// ============================================
+async function inicializarSistema() {
+    console.log("📄 Inicializando página de agendamentos...");
+    
+    mostrarLoading('Carregando sistema...');
+    
+    try {
+        // Extrair loja ID
+        lojaIdAtual = extrairLojaIdDaURL();
+        
+        if (!lojaIdAtual) {
+            console.error('❌ Loja não identificada');
+            mostrarMensagem('Erro ao identificar a loja', 'error');
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+            return;
+        }
+        
+        // Configurar favicon e logo
+        configurarFavicon();
+        carregarLogoLoja();
+        
+        // Carregar configurações
+        await carregarConfiguracoesLoja();
+        await carregarHorariosFuncionamento();
+        
+        // Configurar eventos
+        configurarEventos();
+        
+        // Atualizar nome do usuário na interface
+        if (dadosUsuario) {
+            const userNameElement = document.getElementById('userName');
+            if (userNameElement) {
+                let tipoDisplay = '';
+                
+                if (dadosUsuario.tipo === 'admin') {
+                    tipoDisplay = ' (Admin)';
+                } else if (dadosUsuario.tipo === 'funcionario') {
+                    const perfilFormatado = (dadosUsuario.perfil || dadosUsuario.nivel || '').charAt(0).toUpperCase() + 
+                                           (dadosUsuario.perfil || dadosUsuario.nivel || '').slice(1);
+                    tipoDisplay = ` (${perfilFormatado})`;
+                }
+                
+                userNameElement.textContent = (dadosUsuario.nome || 'Usuário') + tipoDisplay;
+            }
+        }
+        
+        // Iniciar escuta de agendamentos
+        iniciarEscutaAgendamentos();
+        
+        esconderLoading();
+        console.log("✅ Sistema de agendamentos pronto!");
+        
+    } catch (error) {
+        console.error("❌ Erro na inicialização:", error);
+        mostrarMensagem('Erro ao carregar sistema', 'error');
+        esconderLoading();
+    }
 }
 
 // ============================================
@@ -97,6 +344,51 @@ function extrairLojaIdDaURL() {
     
     console.warn('⚠️ Não foi possível extrair loja ID da URL');
     return null;
+}
+
+// ============================================
+// CONFIGURAR FAVICON
+// ============================================
+function configurarFavicon() {
+    const lojaId = extrairLojaIdDaURL();
+    if (lojaId) {
+        const favicon = document.getElementById('favicon');
+        if (favicon) {
+            favicon.href = `../../imagens/${lojaId}/icone.ico`;
+            console.log(`✅ Favicon configurado para loja: ${lojaId}`);
+        }
+    }
+}
+
+// ============================================
+// CARREGAR LOGO DA LOJA
+// ============================================
+function carregarLogoLoja() {
+    const logoImg = document.getElementById('lojaLogo');
+    if (!logoImg) return;
+    
+    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
+    
+    if (!lojaId) {
+        logoImg.src = LOGO_PLACEHOLDER;
+        return;
+    }
+    
+    const logoPath = `../../imagens/${lojaId}/logo.png`;
+    console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
+    
+    const testImg = new Image();
+    testImg.onload = function() {
+        console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
+        logoImg.src = logoPath;
+    };
+    
+    testImg.onerror = function() {
+        console.log(`ℹ️ Logo não encontrada, usando placeholder`);
+        logoImg.src = LOGO_PLACEHOLDER;
+    };
+    
+    testImg.src = logoPath;
 }
 
 // ============================================
@@ -130,34 +422,6 @@ async function carregarConfiguracoesLoja() {
     } catch (error) {
         console.error('❌ Erro ao carregar configurações:', error);
         return configLoja;
-    }
-}
-
-// ============================================
-// SALVAR CONFIGURAÇÕES DA LOJA
-// ============================================
-async function salvarConfiguracoesLoja(novasConfig) {
-    if (!lojaIdAtual || !window.loginDb) return false;
-    
-    try {
-        const configRef = window.loginDb
-            .collection('configuracoes')
-            .doc(lojaIdAtual)
-            .collection('agendamento')
-            .doc('config');
-        
-        await configRef.update(novasConfig);
-        
-        configLoja = {
-            ...configLoja,
-            ...novasConfig
-        };
-        
-        console.log('✅ Configurações salvas');
-        return true;
-    } catch (error) {
-        console.error('❌ Erro ao salvar configurações:', error);
-        return false;
     }
 }
 
@@ -257,60 +521,6 @@ async function carregarHorariosFuncionamento() {
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
     }
-}
-
-// ============================================
-// RENDERIZAR EXCEÇÕES
-// ============================================
-function renderizarExcecoes(excecoes) {
-    const container = document.getElementById('excecoesLista');
-    
-    if (!excecoes || excecoes.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <p>Nenhuma exceção cadastrada</p>
-            </div>
-        `;
-        return;
-    }
-    
-    // Ordenar por data
-    excecoes.sort((a, b) => new Date(a.data) - new Date(b.data));
-    
-    let html = '';
-    excecoes.forEach(exc => {
-        const data = new Date(exc.data);
-        const dataFormatada = data.toLocaleDateString('pt-BR');
-        
-        let tipoTexto = '';
-        switch(exc.tipo) {
-            case 'feriado': tipoTexto = '🔴 Feriado'; break;
-            case 'horario_especial': tipoTexto = '🟡 Horário Especial'; break;
-            case 'capacidade_extra': tipoTexto = '🟢 Capacidade Extra'; break;
-            case 'capacidade_reduzida': tipoTexto = '🟠 Capacidade Reduzida'; break;
-        }
-        
-        html += `
-            <div class="excecao-item" data-data="${exc.data}">
-                <div class="excecao-info">
-                    <span class="excecao-data">${dataFormatada}</span>
-                    <span class="excecao-tipo">${tipoTexto}</span>
-                    <span class="excecao-desc">${exc.observacao || ''}</span>
-                </div>
-                <div class="excecao-acoes">
-                    <button class="btn-editar-excecao" onclick="editarExcecao('${exc.data}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-excluir-excecao" onclick="excluirExcecao('${exc.data}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    container.innerHTML = html;
 }
 
 // ============================================
@@ -1009,56 +1219,6 @@ function configurarEventos() {
 }
 
 // ============================================
-// SALVAR CONFIGURAÇÕES DE FUNCIONAMENTO
-// ============================================
-async function salvarConfigFuncionamento() {
-    const horarios = {};
-    
-    document.querySelectorAll('.horario-card').forEach(card => {
-        const dia = card.dataset.dia;
-        const aberto = card.querySelector('.toggle-dia').checked;
-        
-        horarios[dia] = {
-            aberto,
-            abertura: card.querySelector('.abertura')?.value || '10:00',
-            fechamento: card.querySelector('.fechamento')?.value || '18:00',
-            intervaloInicio: card.querySelector('.intervalo-inicio')?.value || '13:00',
-            intervaloFim: card.querySelector('.intervalo-fim')?.value || '14:00',
-            maxClientes: parseInt(card.querySelector('.max-clientes')?.value) || 30
-        };
-    });
-    
-    try {
-        mostrarLoading('Salvando configurações...');
-        
-        const horariosRef = window.loginDb
-            .collection('configuracoes')
-            .doc(lojaIdAtual)
-            .collection('agendamento')
-            .doc('horarios');
-        
-        await setDoc(horariosRef, horarios);
-        
-        // Salvar limite geral
-        configLoja.maxClientesDia = parseInt(document.getElementById('maxClientesDia').value);
-        configLoja.maxSimultaneos = parseInt(document.getElementById('maxSimultaneos').value);
-        
-        await salvarConfiguracoesLoja({
-            maxClientesDia: configLoja.maxClientesDia,
-            maxSimultaneos: configLoja.maxSimultaneos
-        });
-        
-        mostrarMensagem('Configurações salvas com sucesso!', 'success');
-        
-    } catch (error) {
-        console.error('❌ Erro ao salvar:', error);
-        mostrarMensagem('Erro ao salvar configurações', 'error');
-    } finally {
-        esconderLoading();
-    }
-}
-
-// ============================================
 // FUNÇÕES UTILITÁRIAS
 // ============================================
 function mostrarLoading(mensagem = 'Carregando...') {
@@ -1116,75 +1276,47 @@ window.addEventListener('usuarioLogado', (event) => {
     
     usuarioLogado = true;
     dadosUsuario = usuario;
+    window.dadosUsuario = usuario;
     
-    console.log('✅ Usuário logado:', usuario.email);
-    document.getElementById('userName').textContent = usuario.nome;
+    console.log('✅ Usuário logado no agendamento:', usuario.email);
+    console.log('🔑 Tipo:', usuario.tipo);
+    console.log('🔑 Perfil:', usuario.perfil || usuario.nivel);
+    
+    const userNameElement = document.getElementById('userName');
+    if (userNameElement) {
+        let tipoDisplay = '';
+        
+        if (usuario.tipo === 'admin') {
+            tipoDisplay = ' (Admin)';
+        } else if (usuario.tipo === 'funcionario') {
+            const perfilFormatado = (usuario.perfil || usuario.nivel || '').charAt(0).toUpperCase() + 
+                                   (usuario.perfil || usuario.nivel || '').slice(1);
+            tipoDisplay = ` (${perfilFormatado})`;
+        }
+        
+        userNameElement.textContent = (usuario.nome || 'Usuário') + tipoDisplay;
+    }
     
     // Verificar permissão
-    verificarPermissaoAcesso();
+    if (!verificarPermissaoAcesso()) {
+        redirecionarParaClientes();
+    }
 });
 
 window.addEventListener('usuarioDeslogado', () => {
     usuarioLogado = false;
     dadosUsuario = null;
+    window.dadosUsuario = null;
     console.log('👤 Usuário deslogado');
-    window.location.href = 'index.html';
+    redirecionarParaClientes();
 });
-
-// ============================================
-// INICIALIZAÇÃO
-// ============================================
-(async function() {
-    console.log("📄 Inicializando página de agendamentos...");
-    
-    mostrarLoading('Carregando sistema...');
-    
-    try {
-        // Extrair loja ID
-        lojaIdAtual = extrairLojaIdDaURL();
-        
-        if (!lojaIdAtual) {
-            console.error('❌ Loja não identificada');
-            mostrarMensagem('Erro ao identificar a loja', 'error');
-            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
-            return;
-        }
-        
-        // Configurar favicon e logo
-        configurarFavicon();
-        carregarLogoLoja();
-        
-        // Carregar configurações
-        await carregarConfiguracoesLoja();
-        await carregarHorariosFuncionamento();
-        
-        // Verificar permissão (se já estiver logado)
-        if (usuarioLogado) {
-            if (!verificarPermissaoAcesso()) return;
-        }
-        
-        // Configurar eventos
-        configurarEventos();
-        
-        // Iniciar escuta de agendamentos
-        iniciarEscutaAgendamentos();
-        
-        esconderLoading();
-        console.log("✅ Sistema de agendamentos pronto!");
-        
-    } catch (error) {
-        console.error("❌ Erro na inicialização:", error);
-        mostrarMensagem('Erro ao carregar sistema', 'error');
-        esconderLoading();
-    }
-})();
 
 // ============================================
 // FUNÇÕES AUXILIARES (a serem implementadas)
 // ============================================
-function configurarFavicon() { /* ... */ }
-function carregarLogoLoja() { /* ... */ }
+function renderizarExcecoes(excecoes) { /* ... */ }
 function abrirModalAgendamento() { /* ... */ }
+function salvarConfigFuncionamento() { /* ... */ }
 function salvarExcecao() { /* ... */ }
 function editarExcecao(data) { /* ... */ }
 function excluirExcecao(data) { /* ... */ }
