@@ -44,6 +44,7 @@ let lojaIdAtual = null;
 // ============================================
 let agendamentoHabilitado = false;
 let agendamentosAtivos = [];
+let unsubscribeAgendamentos = null;
 let intervaloAtualizacaoAgendamento = null;
 
 // ============================================
@@ -113,6 +114,7 @@ async function verificarAgendamentoHabilitado() {
     }
 }
 
+
 // ============================================
 // MOSTRAR/ESCONDER CONTAINER DE AGENDAMENTO
 // ============================================
@@ -153,6 +155,10 @@ function iniciarEscutaAgendamentos() {
             
             agendamentosAtivos = agendamentos;
             renderizarPainelAgendamento();
+            // Inicializar carrossel após renderizar
+            setTimeout(() => {
+                inicializarCarrosselAgendamento();
+            }, 100);
             
         }, (error) => {
             console.error('❌ Erro na escuta de agendamentos:', error);
@@ -164,7 +170,7 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO
+// RENDERIZAR PAINEL DE AGENDAMENTO (VERSÃO CARROSSEL)
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -182,19 +188,40 @@ function renderizarPainelAgendamento() {
         .filter(a => a.status === 'concluido')
         .slice(0, 5);
     
+    // Encontrar senha do usuário logado
+    let minhaSenha = null;
+    if (usuarioLogado && dadosUsuario) {
+        minhaSenha = agendamentosAtivos.find(a => 
+            a.cliente_email === dadosUsuario.email && 
+            (a.status === 'aguardando' || a.status === 'chamando')
+        );
+    }
+    
+    // Atualizar badge do total na fila
+    const totalFilaBadge = document.getElementById('totalFilaBadge');
+    if (totalFilaBadge) {
+        totalFilaBadge.textContent = proximos.length;
+    }
+    
+    // Mostrar/esconder slide "Minha Senha"
+    const minhaSenhaSlide = document.getElementById('minhaSenhaSlide');
+    if (minhaSenhaSlide) {
+        minhaSenhaSlide.style.display = usuarioLogado ? 'block' : 'none';
+    }
+    
     // Renderizar "Chamando Agora"
-    const chamandoEl = document.getElementById('chamandoAgora');
+    const chamandoEl = document.getElementById('chamandoAgoraCard');
     if (chamandoEl) {
         if (chamandoAgora) {
             chamandoEl.innerHTML = `
-                <div class="fila-item chamando">
-                    <span class="fila-senha">${chamandoAgora.senha || '---'}</span>
-                    <div class="fila-info">
-                        <span class="fila-nome">${chamandoAgora.cliente_nome || 'Cliente'}</span>
-                        <span class="fila-servico">
+                <div class="fila-item-card chamando">
+                    <span class="fila-senha-card">${chamandoAgora.senha || '---'}</span>
+                    <div class="fila-info-card">
+                        <span class="fila-nome-card">${chamandoAgora.cliente_nome || 'Cliente'}</span>
+                        <span class="fila-servico-card">
                             <i class="fas fa-cut"></i> ${chamandoAgora.servico || 'Serviço'}
                         </span>
-                        <span class="fila-status chamando">CHAMANDO AGORA</span>
+                        <span class="fila-status-card chamando">CHAMANDO AGORA</span>
                     </div>
                 </div>
             `;
@@ -209,22 +236,20 @@ function renderizarPainelAgendamento() {
     }
     
     // Renderizar "Próximos da Fila"
-    const proximosEl = document.getElementById('proximosFila');
+    const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
         if (proximos.length > 0) {
             let html = '';
-            proximos.forEach(item => {
+            proximos.forEach((item, index) => {
                 html += `
-                    <div class="fila-item">
-                        <span class="fila-senha">${item.senha || '---'}</span>
-                        <div class="fila-info">
-                            <span class="fila-nome">${item.cliente_nome || 'Cliente'}</span>
-                            <span class="fila-servico">
+                    <div class="fila-item-card aguardando">
+                        <span class="fila-senha-card">${item.senha || '---'}</span>
+                        <div class="fila-info-card">
+                            <span class="fila-nome-card">${item.cliente_nome || 'Cliente'}</span>
+                            <span class="fila-servico-card">
                                 <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
                             </span>
-                            <span class="fila-horario">
-                                <i class="far fa-clock"></i> ${item.horario || 'Aguardando'}
-                            </span>
+                            <span class="fila-status-card aguardando">${index === 0 ? 'PRÓXIMO' : `#${index + 1}`}</span>
                         </div>
                     </div>
                 `;
@@ -241,22 +266,20 @@ function renderizarPainelAgendamento() {
     }
     
     // Renderizar "Últimos Chamados"
-    const ultimosEl = document.getElementById('ultimosChamados');
+    const ultimosEl = document.getElementById('ultimosChamadosCard');
     if (ultimosEl) {
         if (ultimos.length > 0) {
             let html = '';
             ultimos.forEach(item => {
                 html += `
-                    <div class="fila-item ultimo">
-                        <span class="fila-senha">${item.senha || '---'}</span>
-                        <div class="fila-info">
-                            <span class="fila-nome">${item.cliente_nome || 'Cliente'}</span>
-                            <span class="fila-servico">
+                    <div class="fila-item-card concluido">
+                        <span class="fila-senha-card">${item.senha || '---'}</span>
+                        <div class="fila-info-card">
+                            <span class="fila-nome-card">${item.cliente_nome || 'Cliente'}</span>
+                            <span class="fila-servico-card">
                                 <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
                             </span>
-                            <span class="fila-horario">
-                                <i class="far fa-check-circle"></i> ${item.horario_conclusao || 'Concluído'}
-                            </span>
+                            <span class="fila-status-card concluido">Concluído</span>
                         </div>
                     </div>
                 `;
@@ -269,6 +292,44 @@ function renderizarPainelAgendamento() {
                     <p>Nenhum histórico</p>
                 </div>
             `;
+        }
+    }
+    
+    // Renderizar "Minha Senha"
+    const minhaSenhaEl = document.getElementById('minhaSenhaCard');
+    if (minhaSenhaEl && usuarioLogado) {
+        if (minhaSenha) {
+            // Calcular posição na fila
+            const posicao = proximos.findIndex(p => p.id === minhaSenha.id) + 1;
+            
+            minhaSenhaEl.innerHTML = `
+                <div class="minha-senha-destaque">
+                    <div class="minha-senha-numero">${minhaSenha.senha}</div>
+                    <div class="minha-senha-info">
+                        <p><strong>Serviço:</strong> ${minhaSenha.servico}</p>
+                        <p><strong>Horário:</strong> ${minhaSenha.horario || 'Aguardando'}</p>
+                    </div>
+                    ${minhaSenha.status === 'chamando' 
+                        ? '<span class="minha-senha-posicao chamando">🔔 SUA VEZ! Dirija-se ao balcão</span>'
+                        : `<span class="minha-senha-posicao">Sua posição na fila: ${posicao}</span>`
+                    }
+                </div>
+            `;
+        } else {
+            minhaSenhaEl.innerHTML = `
+                <div class="empty-agendamento">
+                    <i class="fas fa-smile"></i>
+                    <p>Você não possui agendamento ativo</p>
+                    <button class="btn-agendar-pequeno" id="btnAgendarRapido">
+                        <i class="fas fa-calendar-plus"></i> Agendar agora
+                    </button>
+                </div>
+            `;
+            
+            // Adicionar evento ao botão de agendamento rápido
+            document.getElementById('btnAgendarRapido')?.addEventListener('click', () => {
+                abrirModalAgendamento();
+            });
         }
     }
 }
@@ -287,6 +348,58 @@ function pararEscutaAgendamentos() {
         clearInterval(intervaloAtualizacaoAgendamento);
         intervaloAtualizacaoAgendamento = null;
     }
+}
+
+// ============================================
+// INICIALIZAR CARROSSEL DE AGENDAMENTO
+// ============================================
+let agendamentoSwiper = null;
+
+function inicializarCarrosselAgendamento() {
+    if (typeof Swiper === 'undefined') {
+        console.warn('⚠️ Swiper não está carregado');
+        return;
+    }
+    
+    if (agendamentoSwiper) {
+        agendamentoSwiper.destroy(true, true);
+    }
+    
+    agendamentoSwiper = new Swiper('.agendamento-swiper', {
+        slidesPerView: 1,
+        spaceBetween: 15,
+        loop: false,
+        autoplay: false,
+        pagination: {
+            el: '.agendamento-pagination',
+            clickable: true,
+        },
+        navigation: {
+            prevEl: '#agendamentoPrev',
+            nextEl: '#agendamentoNext',
+        },
+        breakpoints: {
+            480: { slidesPerView: 2, spaceBetween: 15 },
+            768: { slidesPerView: 3, spaceBetween: 20 },
+            1024: { slidesPerView: 4, spaceBetween: 20 },
+        },
+    });
+    
+    console.log('✅ Carrossel de agendamento inicializado');
+}
+
+// ============================================
+// ABRIR MODAL DE AGENDAMENTO
+// ============================================
+function abrirModalAgendamento() {
+    if (!usuarioLogado || !dadosUsuario) {
+        mostrarMensagem('Faça login para fazer um agendamento', 'warning');
+        abrirModal('loginModal');
+        return;
+    }
+    
+    // Redirecionar para a página de agendamento (ou abrir modal)
+    window.location.href = 'agendamento.html?novo=true';
 }
 
 // ============================================
@@ -445,6 +558,14 @@ window.addEventListener('usuarioLogado', (event) => {
     
     console.log('✅ Usuário logado no clientes.js:', usuario);
     console.log('🔑 Perfil:', usuario.perfil || usuario.nivel || usuario.tipo);
+
+    // 🔥 NOVO: Re-renderizar agendamento para mostrar "Minha Senha"
+    if (agendamentoHabilitado) {
+        renderizarPainelAgendamento();
+        setTimeout(() => {
+            inicializarCarrosselAgendamento();
+        }, 100);
+    }
     
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
@@ -488,6 +609,14 @@ window.addEventListener('usuarioDeslogado', () => {
     dadosUsuario = null;
     
     console.log('👤 Usuário deslogado');
+
+    // 🔥 NOVO: Re-renderizar agendamento para esconder "Minha Senha"
+    if (agendamentoHabilitado) {
+        renderizarPainelAgendamento();
+        setTimeout(() => {
+            inicializarCarrosselAgendamento();
+        }, 100);
+    }
     
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
@@ -1580,8 +1709,20 @@ function configurarEventos() {
     configurarMenuPerfil();
     
     // ============================================
-    // 🔥 NOVO: Evento do botão "Ver Agendamentos Completos"
+    // 🔥 EVENTOS DE AGENDAMENTO
     // ============================================
+    
+    // Botão "Fazer Agendamento"
+    document.getElementById('btnAbrirAgendamento')?.addEventListener('click', () => {
+        if (!usuarioLogado) {
+            mostrarMensagem('Faça login para fazer um agendamento', 'warning');
+            abrirModal('loginModal');
+            return;
+        }
+        abrirModalAgendamento();
+    });
+    
+    // Botão "Ver Fila Completa"
     document.getElementById('btnVerAgendamento')?.addEventListener('click', () => {
         window.location.href = 'agendamento.html';
     });
@@ -1691,3 +1832,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
