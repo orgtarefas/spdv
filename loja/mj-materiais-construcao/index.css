@@ -2516,3 +2516,126 @@ body {
         height: 36px;
     }
 }
+
+/* Botões de agendamento */
+.agendamento-footer {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.btn-agendar {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.btn-agendar:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-agendar:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-ver-agendamento {
+    background: #1e293b;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
+    border: 1px solid transparent;
+}
+
+.btn-ver-agendamento:hover {
+    background: #ff6b00;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255,107,0,0.3);
+}
+
+/* Modal de Agendamento */
+.modal-agendamento {
+    max-width: 500px;
+}
+
+.servico-opcao {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.servico-opcao:hover {
+    border-color: #ff6b00;
+    background: #fff9f0;
+}
+
+.servico-opcao.selecionado {
+    border-color: #ff6b00;
+    background: #fff9f0;
+    box-shadow: 0 2px 8px rgba(255,107,0,0.1);
+}
+
+.servico-icon {
+    width: 50px;
+    height: 50px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    color: #ff6b00;
+}
+
+.servico-info {
+    flex: 1;
+}
+
+.servico-info h4 {
+    margin: 0 0 5px 0;
+    font-size: 1.1rem;
+    color: #1e293b;
+}
+
+.servico-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.servico-preco {
+    font-weight: bold;
+    color: #28a745;
+    font-size: 1.2rem;
+}
+
