@@ -122,6 +122,7 @@ window.fecharModal = function(modalId) {
 // ============================================
 
 // Configurar menu de perfil
+// Configurar menu de perfil
 function configurarMenuPerfil() {
     const menuBtn = document.getElementById('profileMenuBtn');
     const dropdown = document.getElementById('profileMenuDropdown');
@@ -167,6 +168,12 @@ function configurarMenuPerfil() {
         }
     });
     
+    // 🔥 NOVO: Gestão de Agendamento
+    document.getElementById('menuGestaoAgendamento')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = 'agendamento.html?modo=gestao';
+    });
+    
     document.getElementById('menuLogout')?.addEventListener('click', (e) => {
         e.preventDefault();
         fazerLogoutCliente();
@@ -180,6 +187,7 @@ function atualizarMenuPerfil() {
     // 🔥 CORREÇÃO: usar perfil, nivel ou tipo
     const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
     console.log('🔍 Atualizando menu para perfil:', perfil);
+    console.log('📅 Agendamento habilitado?', agendamentoHabilitado);
     
     // Mapear quais itens devem aparecer para cada perfil
     const permissoes = {
@@ -195,29 +203,44 @@ function atualizarMenuPerfil() {
     
     console.log('📋 Itens permitidos:', itensPermitidos);
     
-    // Mostrar/esconder itens
+    // Mostrar/esconder itens padrão
     const menuItems = {
         menuRelatorios: document.getElementById('menuRelatorios'),
         menuGestaoLogins: document.getElementById('menuGestaoLogins'),
-        menuEstoque: document.getElementById('menuEstoque')
+        menuEstoque: document.getElementById('menuEstoque'),
+        // 🔥 NOVO: Gestão de Agendamento
+        menuGestaoAgendamento: document.getElementById('menuGestaoAgendamento')
     };
     
     for (const [id, element] of Object.entries(menuItems)) {
         if (element) {
-            if (itensPermitidos.includes(id)) {
-                element.style.display = 'flex';
-                console.log(`✅ Mostrando item: ${id}`);
+            // Gestão de Agendamento tem regra especial: só aparece se habilitado E perfil for funcionário/admin
+            if (id === 'menuGestaoAgendamento') {
+                if (agendamentoHabilitado && perfil !== 'cliente') {
+                    element.style.display = 'flex';
+                    console.log(`✅ Mostrando item: ${id} (agendamento habilitado)`);
+                } else {
+                    element.style.display = 'none';
+                    console.log(`❌ Escondendo item: ${id} (agendamento: ${agendamentoHabilitado}, perfil: ${perfil})`);
+                }
             } else {
-                element.style.display = 'none';
-                console.log(`❌ Escondendo item: ${id}`);
+                // Itens normais seguem as permissões
+                if (itensPermitidos.includes(id)) {
+                    element.style.display = 'flex';
+                    console.log(`✅ Mostrando item: ${id}`);
+                } else {
+                    element.style.display = 'none';
+                    console.log(`❌ Escondendo item: ${id}`);
+                }
             }
         }
     }
     
-    // Mostrar/esconder divisor
+    // Mostrar/esconder divisor (mostra se houver algum item visível além do logout)
     const divisor = document.querySelector('.menu-divider');
     if (divisor) {
-        divisor.style.display = itensPermitidos.length > 0 ? 'block' : 'none';
+        const itensVisiveis = Object.values(menuItems).filter(el => el && el.style.display === 'flex').length;
+        divisor.style.display = itensVisiveis > 0 ? 'block' : 'none';
     }
     
     // Sempre mostrar o logout quando logado
@@ -1442,6 +1465,18 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
         // Carregar dados da loja (com retry)
         await carregarDadosLoja();
         
+        // ============================================
+        // 🔥 CÓDIGO PARA VERIFICAR AGENDAMENTO 🔥
+        // ============================================
+        agendamentoHabilitado = await verificarAgendamentoHabilitado();
+        console.log(`📅 Agendamento habilitado para esta loja? ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
+        toggleAgendamentoContainer(agendamentoHabilitado);
+
+        if (agendamentoHabilitado) {
+            iniciarEscutaAgendamentos();
+        }
+        // ============================================
+        
         // Configurar eventos
         configurarEventos();
         
@@ -1469,6 +1504,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
