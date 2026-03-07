@@ -130,7 +130,7 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- NOVO: Atendimento Agendado (CARROSSEL DO CLIENTE) -->
+        <!-- ATENDIMENTO AGENDADO - CARROSSEL DO CLIENTE -->
         <!-- ============================================ -->
         <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
             <div class="agendamento-header">
@@ -161,7 +161,7 @@
                                     </div>
                                 </div>
                                 <div class="card-footer">
-                                    <i class="fas fa-volume-up"></i> Atenção: próximos chamados
+                                    <i class="fas fa-volume-up"></i> Último chamado: <span id="ultimoChamadoHora">--:--</span>
                                 </div>
                             </div>
                         </div>
@@ -181,12 +181,33 @@
                                     </div>
                                 </div>
                                 <div class="card-footer">
-                                    <i class="fas fa-clock"></i> <span id="totalFilaTexto">0</span> pessoas na fila
+                                    <i class="fas fa-clock"></i> 
+                                    <span id="totalFilaTexto">0</span> pessoas na fila • 
+                                    <span id="tempoMedioEspera">0</span> min médio
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Slide 3: MEU AGENDAMENTO (só aparece se logado) -->
+                        <!-- Slide 3: PRÓXIMOS DA FILA (Prévia) -->
+                        <div class="swiper-slide">
+                            <div class="agendamento-card proximos-card">
+                                <div class="card-header">
+                                    <i class="fas fa-arrow-right"></i>
+                                    <h3>Próximos Atendimentos</h3>
+                                </div>
+                                <div class="card-content" id="proximosPrevistosCard">
+                                    <div class="empty-agendamento">
+                                        <i class="fas fa-smile"></i>
+                                        <p>Veja quem vem a seguir</p>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <i class="fas fa-arrow-right"></i> Deslize para ver todos
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slide 4: MEU AGENDAMENTO (só aparece se logado) -->
                         <div class="swiper-slide" id="minhaSenhaSlide" style="display: none;">
                             <div class="agendamento-card minha-senha-card">
                                 <div class="card-header">
@@ -202,6 +223,10 @@
                                         </button>
                                     </div>
                                 </div>
+                                <div class="card-footer" id="minhaSenhaFooter" style="display: none;">
+                                    <i class="fas fa-clock"></i> 
+                                    <span id="minhaPosicao"></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -212,8 +237,47 @@
                 </button>
             </div>
 
-            <!-- Paginação -->
-            <div class="swiper-pagination agendamento-pagination"></div>
+            <!-- Paginação e Indicadores -->
+            <div class="agendamento-footer-info">
+                <div class="swiper-pagination agendamento-pagination"></div>
+                <div class="agendamento-status" id="agendamentoStatus">
+                    <span class="status-indicator online"></span>
+                    <span>Atendimento em tempo real</span>
+                </div>
+            </div>
+
+            <!-- Modal de Agendamento Rápido (opcional) -->
+            <div id="agendamentoRapidoModal" class="modal" style="display: none;">
+                <div class="modal-content modal-small">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
+                        <button class="modal-close" onclick="fecharModal('agendamentoRapidoModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="agendamento-rapido-form">
+                            <div class="form-group">
+                                <label><i class="fas fa-cut"></i> Serviço</label>
+                                <select id="servicoSelect" class="form-select">
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar"></i> Data</label>
+                                <input type="date" id="agendamentoData" class="form-input" min="">
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-clock"></i> Horário</label>
+                                <select id="agendamentoHorario" class="form-select">
+                                    <option value="">Selecione...</option>
+                                </select>
+                            </div>
+                            <button class="btn-confirmar-agendamento" id="btnConfirmarAgendamento">
+                                <i class="fas fa-check"></i> Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Modal de Consulta Rápida -->
@@ -559,5 +623,6 @@
     </script>
 </body>
 </html>
+
 
 
