@@ -1,4 +1,4 @@
-// agendamento.js - Sistema Completo de Gestão de Agendamentos
+ // agendamento.js - Sistema Completo de Gestão de Agendamentos
 console.log("📅 Inicializando sistema de agendamentos...");
 
 // ============================================
@@ -30,11 +30,11 @@ const LOGO_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/200
 let lojaIdAtual = null;
 let dadosUsuario = null;
 let usuarioLogado = false;
-
-// Dados de agendamento
 let agendamentosAtivos = [];
 let agendamentosFuturos = [];
 let agendamentosHistorico = [];
+let unsubscribeAgendamentos = null;
+let unsubscribeFuturos = null;
 
 // Configurações da loja
 let configLoja = {
@@ -46,158 +46,127 @@ let configLoja = {
     mensagemNotificacao: "Olá {cliente}, sua senha {senha} está como PRÓXIMO A ATENDER. Por favor, dirija-se ao estabelecimento."
 };
 
-// Listeners
-let unsubscribeAgendamentos = null;
-let unsubscribeFuturos = null;
-
 // ============================================
-// RECUPERAR DADOS DO USUÁRIO DO SESSIONSTORAGE
+// OBTER LOJA ID DA URL
 // ============================================
-try {
-    // 🔥 PRIMEIRO: Tentar ler do usuarioInfo (formato atual do login_firebase.js)
-    const usuarioInfo = sessionStorage.getItem('usuarioInfo');
-    if (usuarioInfo) {
-        const dados = JSON.parse(usuarioInfo);
-        window.dadosUsuario = {
-            nome: dados.nome,
-            email: dados.email,
-            tipo: dados.tipo,
-            nivel: dados.perfil, // Mapear perfil para nivel
-            perfil: dados.perfil,
-            loja: dados.loja
-        };
-        
-        dadosUsuario = window.dadosUsuario;
-        usuarioLogado = true;
-        
-        console.log('✅ Dados do usuário recuperados do usuarioInfo:', window.dadosUsuario.nome);
-        console.log('👤 Perfil:', window.dadosUsuario.perfil);
-        console.log('🔑 Tipo:', window.dadosUsuario.tipo);
-    } 
-    // 🔥 SEGUNDO: Tentar ler do dadosUsuario antigo (caso exista)
-    else {
-        const dadosSalvos = sessionStorage.getItem('dadosUsuario');
-        if (dadosSalvos) {
-            const dados = JSON.parse(dadosSalvos);
-            window.dadosUsuario = dados;
-            dadosUsuario = dados;
-            usuarioLogado = true;
-            
-            console.log('✅ Dados do usuário recuperados do dadosUsuario (legado):', dados.nome);
-            console.log('👤 Perfil:', dados.perfil);
-            console.log('🔑 Tipo:', dados.tipo);
-        } else {
-            console.log('ℹ️ Nenhum dado de usuário no sessionStorage');
-        }
+function obterLojaIdDaURL() {
+    const pathname = window.location.pathname;
+    const match = pathname.match(/\/spdv\/loja\/([^\/]+)\//);
+    if (match && match[1]) {
+        lojaIdAtual = match[1];
+        console.log(`📍 Loja ID: ${lojaIdAtual}`);
+        return lojaIdAtual;
     }
-} catch (e) {
-    console.warn('⚠️ Erro ao recuperar dados do usuário:', e);
+    
+    if (window.lojaServices && window.lojaServices.lojaId) {
+        lojaIdAtual = window.lojaServices.lojaId;
+        console.log(`📍 Loja ID do lojaServices: ${lojaIdAtual}`);
+        return lojaIdAtual;
+    }
+    
+    console.error('❌ Não foi possível identificar a loja');
+    return null;
 }
 
 // ============================================
-// VERIFICAR PERMISSÃO DE ACESSO (BASEADO NO ESTOQUE.JS)
+// VERIFICAR PERMISSÃO DE ACESSO NO BANCO
 // ============================================
-function verificarPermissaoAcesso() {
-    console.log("🔒 Verificando permissão de acesso ao agendamento...");
+async function verificarPermissaoAcesso() {
+    console.log("🔒 Verificando permissão de acesso no banco de dados...");
     
-    // 🔥 VERIFICAR TODAS AS FONTES POSSÍVEIS DE DADOS DO USUÁRIO
-    let usuario = null;
-    let perfil = '';
-    let tipo = '';
-    
-    // 1. Verificar dadosUsuario do window (mais confiável)
-    if (window.dadosUsuario) {
-        usuario = window.dadosUsuario;
-        perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
-        tipo = (usuario.tipo || '').toLowerCase();
-        console.log("📊 Dados do window.dadosUsuario:", usuario);
-        console.log(`👤 Perfil window: ${perfil}`);
-        console.log(`👤 Tipo window: ${tipo}`);
-    }
-    
-    // 2. Verificar sessionStorage
-    if (!usuario) {
-        try {
-            const dadosSalvos = sessionStorage.getItem('usuarioInfo');
-            if (dadosSalvos) {
-                const dados = JSON.parse(dadosSalvos);
-                usuario = dados;
-                perfil = (dados.perfil || dados.tipo || '').toLowerCase();
-                tipo = (dados.tipo || '').toLowerCase();
-                console.log("📊 Dados do sessionStorage (usuarioInfo):", dados);
-                console.log(`👤 Perfil sessionStorage: ${perfil}`);
-                console.log(`👤 Tipo sessionStorage: ${tipo}`);
-            }
-        } catch (e) {
-            console.warn('⚠️ Erro ao ler sessionStorage:', e);
+    try {
+        // Verificar se está logado no Firebase Auth
+        if (!window.auth || !window.auth.currentUser) {
+            console.log("❌ Usuário não está logado no Firebase Auth");
+            return false;
         }
-    }
-    
-    // 3. Verificar lojaServices
-    if (!usuario && lojaServices?.usuario) {
-        usuario = lojaServices.usuario;
-        perfil = (usuario.nivel || usuario.perfil || usuario.tipo || '').toLowerCase();
-        tipo = (usuario.tipo || '').toLowerCase();
-        console.log("📊 Dados do lojaServices:", usuario);
-        console.log(`👤 Perfil lojaServices: ${perfil}`);
-        console.log(`👤 Tipo lojaServices: ${tipo}`);
-    }
-    
-    // 4. Verificar auth.currentUser como último recurso
-    if (!usuario && window.auth?.currentUser) {
+        
         const user = window.auth.currentUser;
-        console.log("📊 Usuário auth:", user.email);
-        perfil = 'cliente'; // fallback
-        tipo = 'cliente';
-    }
-    
-    if (!usuario) {
-        console.log("❌ Usuário não está logado em nenhuma fonte");
-        mostrarMensagem('Faça login para acessar esta página', 'warning');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 2000);
+        const email = user.email;
+        
+        if (!lojaIdAtual || !email) {
+            console.log("❌ Loja ou email não identificado");
+            return false;
+        }
+        
+        console.log(`🔍 Verificando permissão para ${email} na loja ${lojaIdAtual}`);
+        
+        // 🔥 VERIFICAR SE É ADMIN GLOBAL (coleção admin)
+        const adminDoc = await window.loginDb
+            .collection('usuarios')
+            .doc('admin')
+            .get();
+        
+        if (adminDoc.exists) {
+            const adminData = adminDoc.data();
+            if (adminData[email]) {
+                console.log("✅ Usuário é ADMIN global - acesso permitido");
+                
+                // Salvar dados do usuário
+                dadosUsuario = {
+                    email: email,
+                    nome: adminData[email].nome || 'Admin',
+                    tipo: 'admin',
+                    perfil: 'admin',
+                    uid: user.uid
+                };
+                usuarioLogado = true;
+                
+                return true;
+            }
+        }
+        
+        // 🔥 VERIFICAR SE É FUNCIONÁRIO DA LOJA
+        const funcDoc = await window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('funcionarios')
+            .doc(email)
+            .get();
+        
+        if (funcDoc.exists) {
+            const funcData = funcDoc.data();
+            
+            if (funcData.ativo === false) {
+                console.log("❌ Funcionário inativo");
+                return false;
+            }
+            
+            console.log(`✅ Funcionário ${funcData.perfil} - acesso permitido`);
+            
+            // Salvar dados do usuário
+            dadosUsuario = {
+                email: email,
+                nome: funcData.nome,
+                tipo: 'funcionario',
+                perfil: funcData.perfil,
+                uid: user.uid
+            };
+            usuarioLogado = true;
+            
+            return true;
+        }
+        
+        // 🔥 VERIFICAR SE É CLIENTE (NEGAR ACESSO)
+        const clienteDoc = await window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('clientes')
+            .doc(email)
+            .get();
+        
+        if (clienteDoc.exists) {
+            console.log("❌ Cliente não tem permissão para acessar");
+            return false;
+        }
+        
+        console.log("❌ Usuário não encontrado em nenhuma categoria");
+        return false;
+        
+    } catch (error) {
+        console.error("❌ Erro ao verificar permissão:", error);
         return false;
     }
-    
-    // 🔥 ATUALIZAR VARIÁVEIS GLOBAIS
-    dadosUsuario = usuario;
-    usuarioLogado = true;
-    
-    // 🔥 PERFIS QUE PODEM ACESSAR AGENDAMENTO (baseado no estoque.js)
-    const perfisPermitidos = ['admin', 'gerente', 'supervisor', 'vendedor'];
-    const perfisNegados = ['cliente', 'visitante', ''];
-    
-    console.log(`👤 Verificando perfil: "${perfil}", tipo: "${tipo}"`);
-    
-    // Verificar se é admin (admin tem acesso a tudo)
-    if (perfil === 'admin' || tipo === 'admin') {
-        console.log("✅ Admin - acesso total permitido");
-        return true;
-    }
-    
-    // Verificar se é funcionário permitido
-    if (perfisPermitidos.includes(perfil) || (tipo === 'funcionario' && perfisPermitidos.includes(perfil))) {
-        console.log(`✅ Funcionário ${perfil} - acesso permitido`);
-        return true;
-    }
-    
-    // Verificar se é cliente negado
-    if (perfisNegados.includes(perfil) || tipo === 'cliente') {
-        console.log(`❌ Cliente/Visitante - acesso negado`);
-        mostrarMensagem('Acesso restrito a funcionários', 'error');
-        setTimeout(() => {
-            window.location.href = 'index.html';
-        }, 2000);
-        return false;
-    }
-    
-    console.log(`❌ Perfil não autorizado: ${perfil}`);
-    mostrarMensagem('Acesso restrito a funcionários', 'error');
-    setTimeout(() => {
-        window.location.href = 'index.html';
-    }, 2000);
-    return false;
 }
 
 // ============================================
@@ -205,24 +174,13 @@ function verificarPermissaoAcesso() {
 // ============================================
 function redirecionarParaClientes() {
     console.log("🔄 Redirecionando para página de clientes...");
-    
-    // Tentar obter lojaId de várias fontes
-    const lojaId = lojaServices?.lojaId || 
-                  window.lojaIdAtual ||
-                  lojaIdAtual ||
-                  (window.location.pathname.match(/\/loja\/([^\/]+)/) || [])[1];
-    
-    if (lojaId) {
-        window.location.href = `../../loja/${lojaId}/index.html`;
-    } else {
-        window.location.href = '../../index.html';
-    }
+    window.location.href = 'index.html';
 }
 
 // ============================================
 // VERIFICAÇÃO BLOQUEANTE - EXECUTA IMEDIATAMENTE
 // ============================================
-(function() {
+(async function() {
     console.log("🔒 Verificação bloqueante de acesso ao agendamento...");
     
     // MOSTRAR LOADING IMEDIATAMENTE
@@ -230,56 +188,50 @@ function redirecionarParaClientes() {
     if (loading) {
         loading.style.display = 'flex';
         const h3 = loading.querySelector('h3');
-        if (h3) h3.textContent = 'Verificando acesso...';
+        if (h3) h3.textContent = 'Verificando permissões...';
     }
     
-    // 🔥 FUNÇÃO ASSÍNCRONA PARA VERIFICAR ACESSO
-    (async function() {
-        try {
-            const acessoPermitido = verificarPermissaoAcesso();
-            
-            if (!acessoPermitido) {
-                console.log("🚫 Acesso negado - Redirecionando...");
-                redirecionarParaClientes();
-                return;
-            }
-            
-            // ✅ ACESSO PERMITIDO
-            console.log("✅ Acesso permitido, mostrando conteúdo...");
-            document.body.classList.add('acesso-permitido');
-            
-            // Esconder loading
-            if (loading) {
-                loading.style.display = 'none';
-            }
-            
-            // Inicializar o resto do sistema
-            inicializarSistema();
-            
-        } catch (error) {
-            console.error("❌ Erro na verificação:", error);
-            redirecionarParaClientes();
-        }
-    })();
-})();
-
-// ============================================
-// FUNÇÃO PRINCIPAL DE INICIALIZAÇÃO
-// ============================================
-async function inicializarSistema() {
-    console.log("📄 Inicializando página de agendamentos...");
-    
-    mostrarLoading('Carregando sistema...');
-    
     try {
-        // Extrair loja ID
-        lojaIdAtual = extrairLojaIdDaURL();
+        // Obter loja ID
+        lojaIdAtual = obterLojaIdDaURL();
         
         if (!lojaIdAtual) {
             console.error('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja', 'error');
             setTimeout(() => { window.location.href = 'index.html'; }, 2000);
             return;
+        }
+        
+        // Aguardar um pouco para o Firebase Auth inicializar
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verificar permissão no banco
+        const acessoPermitido = await verificarPermissaoAcesso();
+        
+        if (!acessoPermitido) {
+            console.log("🚫 Acesso negado - Redirecionando...");
+            mostrarMensagem('Acesso restrito a funcionários', 'error', 3000);
+            setTimeout(() => {
+                redirecionarParaClientes();
+            }, 2000);
+            return;
+        }
+        
+        // ✅ ACESSO PERMITIDO
+        console.log("✅ Acesso permitido, carregando sistema...");
+        console.log("👤 Usuário:", dadosUsuario);
+        
+        // Atualizar nome na interface
+        const userNameElement = document.getElementById('userName');
+        if (userNameElement) {
+            let tipoDisplay = '';
+            if (dadosUsuario.tipo === 'admin') {
+                tipoDisplay = ' (Admin)';
+            } else if (dadosUsuario.tipo === 'funcionario') {
+                const perfilFormatado = dadosUsuario.perfil.charAt(0).toUpperCase() + dadosUsuario.perfil.slice(1);
+                tipoDisplay = ` (${perfilFormatado})`;
+            }
+            userNameElement.textContent = (dadosUsuario.nome || 'Usuário') + tipoDisplay;
         }
         
         // Configurar favicon e logo
@@ -293,69 +245,34 @@ async function inicializarSistema() {
         // Configurar eventos
         configurarEventos();
         
-        // Atualizar nome do usuário na interface
-        if (dadosUsuario) {
-            const userNameElement = document.getElementById('userName');
-            if (userNameElement) {
-                let tipoDisplay = '';
-                
-                if (dadosUsuario.tipo === 'admin') {
-                    tipoDisplay = ' (Admin)';
-                } else if (dadosUsuario.tipo === 'funcionario') {
-                    const perfilFormatado = (dadosUsuario.perfil || dadosUsuario.nivel || '').charAt(0).toUpperCase() + 
-                                           (dadosUsuario.perfil || dadosUsuario.nivel || '').slice(1);
-                    tipoDisplay = ` (${perfilFormatado})`;
-                }
-                
-                userNameElement.textContent = (dadosUsuario.nome || 'Usuário') + tipoDisplay;
-            }
-        }
-        
         // Iniciar escuta de agendamentos
         iniciarEscutaAgendamentos();
         
-        esconderLoading();
+        // Esconder loading
+        if (loading) {
+            loading.style.display = 'none';
+        }
+        
         console.log("✅ Sistema de agendamentos pronto!");
         
     } catch (error) {
-        console.error("❌ Erro na inicialização:", error);
+        console.error("❌ Erro na verificação:", error);
         mostrarMensagem('Erro ao carregar sistema', 'error');
-        esconderLoading();
+        setTimeout(() => {
+            redirecionarParaClientes();
+        }, 2000);
     }
-}
-
-// ============================================
-// EXTRAIR LOJA ID DA URL
-// ============================================
-function extrairLojaIdDaURL() {
-    const pathname = window.location.pathname;
-    const match = pathname.match(/\/spdv\/loja\/([^\/]+)\//);
-    if (match && match[1]) {
-        lojaIdAtual = match[1];
-        console.log(`✅ Loja ID extraída da URL: ${lojaIdAtual}`);
-        return lojaIdAtual;
-    }
-    
-    if (window.lojaServices && window.lojaServices.lojaId) {
-        lojaIdAtual = window.lojaServices.lojaId;
-        console.log(`✅ Loja ID do lojaServices: ${lojaIdAtual}`);
-        return lojaIdAtual;
-    }
-    
-    console.warn('⚠️ Não foi possível extrair loja ID da URL');
-    return null;
-}
+})();
 
 // ============================================
 // CONFIGURAR FAVICON
 // ============================================
 function configurarFavicon() {
-    const lojaId = extrairLojaIdDaURL();
-    if (lojaId) {
+    if (lojaIdAtual) {
         const favicon = document.getElementById('favicon');
         if (favicon) {
-            favicon.href = `../../imagens/${lojaId}/icone.ico`;
-            console.log(`✅ Favicon configurado para loja: ${lojaId}`);
+            favicon.href = `../../imagens/${lojaIdAtual}/icone.ico`;
+            console.log(`✅ Favicon configurado para loja: ${lojaIdAtual}`);
         }
     }
 }
@@ -367,14 +284,12 @@ function carregarLogoLoja() {
     const logoImg = document.getElementById('lojaLogo');
     if (!logoImg) return;
     
-    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
-    
-    if (!lojaId) {
+    if (!lojaIdAtual) {
         logoImg.src = LOGO_PLACEHOLDER;
         return;
     }
     
-    const logoPath = `../../imagens/${lojaId}/logo.png`;
+    const logoPath = `../../imagens/${lojaIdAtual}/logo.png`;
     console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
     
     const testImg = new Image();
@@ -541,12 +456,15 @@ function iniciarEscutaAgendamentos() {
         const amanha = new Date(hoje);
         amanha.setDate(amanha.getDate() + 1);
         
+        const hojeStr = hoje.toISOString().split('T')[0];
+        const amanhaStr = amanha.toISOString().split('T')[0];
+        
         const ativosRef = window.loginDb
             .collection('agendamentos')
             .doc(lojaIdAtual)
             .collection('ativos')
-            .where('data', '>=', hoje.toISOString().split('T')[0])
-            .where('data', '<', amanha.toISOString().split('T')[0])
+            .where('data', '>=', hojeStr)
+            .where('data', '<', amanhaStr)
             .orderBy('senha', 'asc');
         
         unsubscribeAgendamentos = ativosRef.onSnapshot((snapshot) => {
@@ -570,6 +488,7 @@ function iniciarEscutaAgendamentos() {
             .collection('agendamentos')
             .doc(lojaIdAtual)
             .collection('futuros')
+            .where('data', '>=', amanhaStr)
             .orderBy('data', 'asc')
             .orderBy('horario', 'asc');
         
@@ -1269,62 +1188,74 @@ window.fecharModal = function(modalId) {
 };
 
 // ============================================
-// EVENTOS DE LOGIN
+// EVENTOS DE LOGIN (do Firebase Auth)
 // ============================================
-window.addEventListener('usuarioLogado', (event) => {
+window.addEventListener('usuarioLogado', async (event) => {
     const { usuario } = event.detail;
     
-    usuarioLogado = true;
-    dadosUsuario = usuario;
-    window.dadosUsuario = usuario;
+    console.log('✅ EVENTO: usuário logado no agendamento');
+    console.log('📧 Email:', usuario.email);
     
-    console.log('✅ Usuário logado no agendamento:', usuario.email);
-    console.log('🔑 Tipo:', usuario.tipo);
-    console.log('🔑 Perfil:', usuario.perfil || usuario.nivel);
-    
-    const userNameElement = document.getElementById('userName');
-    if (userNameElement) {
-        let tipoDisplay = '';
-        
-        if (usuario.tipo === 'admin') {
-            tipoDisplay = ' (Admin)';
-        } else if (usuario.tipo === 'funcionario') {
-            const perfilFormatado = (usuario.perfil || usuario.nivel || '').charAt(0).toUpperCase() + 
-                                   (usuario.perfil || usuario.nivel || '').slice(1);
-            tipoDisplay = ` (${perfilFormatado})`;
-        }
-        
-        userNameElement.textContent = (usuario.nome || 'Usuário') + tipoDisplay;
-    }
-    
-    // Verificar permissão
-    if (!verificarPermissaoAcesso()) {
-        redirecionarParaClientes();
+    // Já estamos na página, apenas atualizar se necessário
+    if (!dadosUsuario) {
+        // Recarregar a página para aplicar as permissões
+        window.location.reload();
     }
 });
 
 window.addEventListener('usuarioDeslogado', () => {
-    usuarioLogado = false;
-    dadosUsuario = null;
-    window.dadosUsuario = null;
-    console.log('👤 Usuário deslogado');
-    redirecionarParaClientes();
+    console.log('👤 EVENTO: usuário deslogado');
+    
+    // Redirecionar para index
+    window.location.href = 'index.html';
 });
 
 // ============================================
 // FUNÇÕES AUXILIARES (a serem implementadas)
 // ============================================
-function renderizarExcecoes(excecoes) { /* ... */ }
-function abrirModalAgendamento() { /* ... */ }
-function salvarConfigFuncionamento() { /* ... */ }
-function salvarExcecao() { /* ... */ }
-function editarExcecao(data) { /* ... */ }
-function excluirExcecao(data) { /* ... */ }
-function validarAgendamentoFuturo(id) { /* ... */ }
-function editarAgendamentoFuturo(id) { /* ... */ }
-function excluirAgendamentoFuturo(id) { /* ... */ }
-function chamarCliente(id) { /* ... */ }
-function editarAgendamento(id) { /* ... */ }
+function renderizarExcecoes(excecoes) {
+    console.log('Renderizar exceções:', excecoes);
+}
+
+function abrirModalAgendamento() {
+    console.log('Abrir modal de agendamento');
+}
+
+function salvarConfigFuncionamento() {
+    console.log('Salvar configurações de funcionamento');
+}
+
+function salvarExcecao() {
+    console.log('Salvar exceção');
+}
+
+function editarExcecao(data) {
+    console.log('Editar exceção:', data);
+}
+
+function excluirExcecao(data) {
+    console.log('Excluir exceção:', data);
+}
+
+function validarAgendamentoFuturo(id) {
+    console.log('Validar agendamento futuro:', id);
+}
+
+function editarAgendamentoFuturo(id) {
+    console.log('Editar agendamento futuro:', id);
+}
+
+function excluirAgendamentoFuturo(id) {
+    console.log('Excluir agendamento futuro:', id);
+}
+
+function chamarCliente(id) {
+    console.log('Chamar cliente:', id);
+}
+
+function editarAgendamento(id) {
+    console.log('Editar agendamento:', id);
+}
 
 // Limpar ao sair
 window.addEventListener('beforeunload', () => {
