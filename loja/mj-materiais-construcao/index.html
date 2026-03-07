@@ -129,6 +129,69 @@
             </div>
         </div>
 
+        <!-- ============================================ -->
+        <!-- NOVO: Atendimento Agendado (Painel de Senhas) -->
+        <!-- ============================================ -->
+        <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
+            <h2><i class="fas fa-clock"></i> Atendimento Agendado</h2>
+            
+            <div class="agendamento-painel">
+                <!-- Chamando Agora -->
+                <div class="agendamento-coluna chamando-agora">
+                    <div class="coluna-header">
+                        <i class="fas fa-bell"></i>
+                        <h3>Chamando Agora</h3>
+                    </div>
+                    <div class="coluna-content" id="chamandoAgora">
+                        <div class="empty-agendamento">
+                            <i class="fas fa-check-circle"></i>
+                            <p>Nenhum chamado no momento</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Próximos da Fila -->
+                <div class="agendamento-coluna proximos-fila">
+                    <div class="coluna-header">
+                        <i class="fas fa-users"></i>
+                        <h3>Próximos da Fila</h3>
+                    </div>
+                    <div class="coluna-content" id="proximosFila">
+                        <div class="empty-agendamento">
+                            <i class="fas fa-users"></i>
+                            <p>Fila vazia</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Últimos Chamados -->
+                <div class="agendamento-coluna ultimos-chamados">
+                    <div class="coluna-header">
+                        <i class="fas fa-history"></i>
+                        <h3>Últimos Chamados</h3>
+                    </div>
+                    <div class="coluna-content" id="ultimosChamados">
+                        <div class="empty-agendamento">
+                            <i class="fas fa-history"></i>
+                            <p>Nenhum histórico</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="agendamento-footer">
+                <button class="btn-agendar" id="btnAbrirAgendamento">
+                    <i class="fas fa-calendar-plus"></i>
+                    Fazer Agendamento
+                </button>
+                <button class="btn-ver-agendamento" id="btnVerAgendamento">
+                    <i class="fas fa-calendar-alt"></i>
+                    Ver Fila Completa
+                </button>
+            </div>
+        </div>
+
         <!-- Modal de Consulta Rápida -->
         <div id="quickSearchModal" class="modal">
             <div class="modal-content">
@@ -472,20 +535,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
