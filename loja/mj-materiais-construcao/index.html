@@ -130,66 +130,105 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- NOVO: Atendimento Agendado (Painel de Senhas) -->
+        <!-- NOVO: Atendimento Agendado (Carrossel de Senhas) -->
         <!-- ============================================ -->
         <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
-            <h2><i class="fas fa-clock"></i> Atendimento Agendado</h2>
+            <div class="agendamento-header">
+                <h2><i class="fas fa-clock"></i> Atendimento Agendado</h2>
+                <div class="agendamento-header-buttons">
+                    <button class="btn-agendar" id="btnAbrirAgendamento">
+                        <i class="fas fa-calendar-plus"></i> Agendar
+                    </button>
+                    <button class="btn-ver-agendamento" id="btnVerAgendamento">
+                        <i class="fas fa-calendar-alt"></i> Ver Fila
+                    </button>
+                </div>
+            </div>
             
-            <div class="agendamento-painel">
-                <!-- Chamando Agora -->
-                <div class="agendamento-coluna chamando-agora">
-                    <div class="coluna-header">
-                        <i class="fas fa-bell"></i>
-                        <h3>Chamando Agora</h3>
-                    </div>
-                    <div class="coluna-content" id="chamandoAgora">
-                        <div class="empty-agendamento">
-                            <i class="fas fa-check-circle"></i>
-                            <p>Nenhum chamado no momento</p>
+            <div class="carousel-container agendamento-carousel">
+                <button class="carousel-arrow prev" id="agendamentoPrev">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="swiper agendamento-swiper">
+                    <div class="swiper-wrapper" id="agendamentoSlides">
+                        <!-- Chamando Agora (Slide 1) -->
+                        <div class="swiper-slide">
+                            <div class="agendamento-card chamando-card">
+                                <div class="card-header">
+                                    <i class="fas fa-bell"></i>
+                                    <h3>Chamando Agora</h3>
+                                </div>
+                                <div class="card-content" id="chamandoAgoraCard">
+                                    <div class="empty-agendamento">
+                                        <i class="fas fa-check-circle"></i>
+                                        <p>Nenhum chamado no momento</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Próximos da Fila -->
-                <div class="agendamento-coluna proximos-fila">
-                    <div class="coluna-header">
-                        <i class="fas fa-users"></i>
-                        <h3>Próximos da Fila</h3>
-                    </div>
-                    <div class="coluna-content" id="proximosFila">
-                        <div class="empty-agendamento">
-                            <i class="fas fa-users"></i>
-                            <p>Fila vazia</p>
+                        <!-- Próximos da Fila (Slide 2) -->
+                        <div class="swiper-slide">
+                            <div class="agendamento-card fila-card">
+                                <div class="card-header">
+                                    <i class="fas fa-users"></i>
+                                    <h3>Próximos da Fila</h3>
+                                    <span class="card-badge" id="totalFilaBadge">0</span>
+                                </div>
+                                <div class="card-content" id="proximosFilaCard">
+                                    <div class="empty-agendamento">
+                                        <i class="fas fa-users"></i>
+                                        <p>Fila vazia</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Últimos Chamados -->
-                <div class="agendamento-coluna ultimos-chamados">
-                    <div class="coluna-header">
-                        <i class="fas fa-history"></i>
-                        <h3>Últimos Chamados</h3>
-                    </div>
-                    <div class="coluna-content" id="ultimosChamados">
-                        <div class="empty-agendamento">
-                            <i class="fas fa-history"></i>
-                            <p>Nenhum histórico</p>
+                        <!-- Últimos Chamados (Slide 3) -->
+                        <div class="swiper-slide">
+                            <div class="agendamento-card historico-card">
+                                <div class="card-header">
+                                    <i class="fas fa-history"></i>
+                                    <h3>Últimos Chamados</h3>
+                                </div>
+                                <div class="card-content" id="ultimosChamadosCard">
+                                    <div class="empty-agendamento">
+                                        <i class="fas fa-history"></i>
+                                        <p>Nenhum histórico</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Minha Senha (Slide 4 - só aparece se logado) -->
+                        <div class="swiper-slide" id="minhaSenhaSlide" style="display: none;">
+                            <div class="agendamento-card minha-senha-card">
+                                <div class="card-header">
+                                    <i class="fas fa-ticket-alt"></i>
+                                    <h3>Minha Senha</h3>
+                                </div>
+                                <div class="card-content" id="minhaSenhaCard">
+                                    <div class="empty-agendamento">
+                                        <i class="fas fa-smile"></i>
+                                        <p>Você não possui agendamento ativo</p>
+                                        <button class="btn-agendar-pequeno" id="btnAgendarRapido">
+                                            <i class="fas fa-calendar-plus"></i> Agendar agora
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+                
+                <button class="carousel-arrow next" id="agendamentoNext">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
 
-            <!-- Botões de Ação -->
-            <div class="agendamento-footer">
-                <button class="btn-agendar" id="btnAbrirAgendamento">
-                    <i class="fas fa-calendar-plus"></i>
-                    Fazer Agendamento
-                </button>
-                <button class="btn-ver-agendamento" id="btnVerAgendamento">
-                    <i class="fas fa-calendar-alt"></i>
-                    Ver Fila Completa
-                </button>
-            </div>
+            <!-- Paginação do Swiper -->
+            <div class="swiper-pagination agendamento-pagination"></div>
         </div>
 
         <!-- Modal de Consulta Rápida -->
@@ -535,3 +574,4 @@
     </script>
 </body>
 </html>
+
