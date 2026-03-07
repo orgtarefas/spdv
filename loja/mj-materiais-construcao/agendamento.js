@@ -202,8 +202,27 @@ function redirecionarParaClientes() {
             return;
         }
         
-        // Aguardar um pouco para o Firebase Auth inicializar
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // AGUARDAR FIREBASE AUTH INICIALIZAR (até 5 segundos)
+        let tentativas = 0;
+        const maxTentativas = 10;
+        
+        while (tentativas < maxTentativas) {
+            if (window.auth && window.auth.currentUser) {
+                console.log('✅ Firebase Auth inicializado:', window.auth.currentUser.email);
+                break;
+            }
+            console.log(`⏳ Aguardando Firebase Auth... tentativa ${tentativas + 1}/${maxTentativas}`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            tentativas++;
+        }
+        
+        // Verificar se conseguiu obter o usuário
+        if (!window.auth || !window.auth.currentUser) {
+            console.log('❌ Firebase Auth não inicializado após timeout');
+            mostrarMensagem('Faça login para acessar esta página', 'warning');
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+            return;
+        }
         
         // Verificar permissão no banco
         const acessoPermitido = await verificarPermissaoAcesso();
@@ -212,7 +231,7 @@ function redirecionarParaClientes() {
             console.log("🚫 Acesso negado - Redirecionando...");
             mostrarMensagem('Acesso restrito a funcionários', 'error', 3000);
             setTimeout(() => {
-                redirecionarParaClientes();
+                window.location.href = 'index.html';
             }, 2000);
             return;
         }
@@ -259,7 +278,7 @@ function redirecionarParaClientes() {
         console.error("❌ Erro na verificação:", error);
         mostrarMensagem('Erro ao carregar sistema', 'error');
         setTimeout(() => {
-            redirecionarParaClientes();
+            window.location.href = 'index.html';
         }, 2000);
     }
 })();
