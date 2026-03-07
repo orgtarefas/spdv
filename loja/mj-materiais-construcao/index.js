@@ -403,6 +403,63 @@ function abrirModalAgendamento() {
 }
 
 // ============================================
+// CONTROLE DO CARROSSEL HORIZONTAL
+// ============================================
+function inicializarScrollHorizontal() {
+    const track = document.getElementById('proximasSenhasTrack');
+    const scrollContainer = document.getElementById('proximasSenhasScroll');
+    const prevBtn = document.getElementById('proximasSenhasPrev');
+    const nextBtn = document.getElementById('proximasSenhasNext');
+    const dots = document.querySelectorAll('.scroll-dot');
+    
+    if (!track || !scrollContainer) return;
+    
+    const scrollAmount = 200; // Quantidade de pixels para scrollar
+    
+    prevBtn?.addEventListener('click', () => {
+        scrollContainer.scrollBy({
+            left: -scrollAmount,
+            behavior: 'smooth'
+        });
+    });
+    
+    nextBtn?.addEventListener('click', () => {
+        scrollContainer.scrollBy({
+            left: scrollAmount,
+            behavior: 'smooth'
+        });
+    });
+    
+    // Atualizar indicadores de scroll
+    scrollContainer.addEventListener('scroll', () => {
+        const scrollLeft = scrollContainer.scrollLeft;
+        const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+        
+        // Atualizar dots baseado na posição
+        if (dots.length > 0) {
+            const scrollPercent = scrollLeft / maxScroll;
+            const activeDot = Math.floor(scrollPercent * dots.length);
+            
+            dots.forEach((dot, index) => {
+                if (index === activeDot) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+        
+        // Habilitar/desabilitar botões
+        if (prevBtn) {
+            prevBtn.disabled = scrollLeft <= 0;
+        }
+        if (nextBtn) {
+            nextBtn.disabled = scrollLeft >= maxScroll - 5;
+        }
+    });
+}
+
+// ============================================
 // CONFIGURAR FAVICON DA LOJA
 // ============================================
 function configurarFavicon() {
@@ -1832,4 +1889,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
