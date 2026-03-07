@@ -1621,3 +1621,61 @@ input:checked + .toggle-slider:before {
         margin: 10px;
     }
 }
+
+/* Estilos para os checkboxes */
+.card-atendimento {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.card-checkbox {
+    padding: 0 5px;
+}
+
+.card-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.atendimento-acoes {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.btn-acao-footer {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+    background: #f8f9fa;
+    color: #1e293b;
+    border: 1px solid #e9ecef;
+}
+
+.btn-acao-footer:hover {
+    background: #e9ecef;
+}
+
+.btn-acao-footer.btn-concluir {
+    background: #28a745;
+    color: white;
+    border: none;
+}
+
+.btn-acao-footer.btn-concluir:hover:not(:disabled) {
+    background: #218838;
+}
+
+.btn-acao-footer.btn-concluir:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
