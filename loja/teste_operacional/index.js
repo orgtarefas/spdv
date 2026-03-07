@@ -40,6 +40,14 @@ let swiperInstance = null;
 let lojaIdAtual = null;
 
 // ============================================
+// VARIÁVEL GLOBAL PARA AGENDAMENTO
+// ============================================
+let agendamentoHabilitado = false;
+let agendamentosAtivos = [];
+let unsubscribeAgendamentos = null;
+let intervaloAtualizacaoAgendamento = null;
+
+// ============================================
 // VERIFICAR LOJA ID E CONFIG
 // ============================================
 if (!lojaIdAtual) {
@@ -1504,6 +1512,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
