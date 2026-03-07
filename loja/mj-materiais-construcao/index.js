@@ -170,32 +170,24 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO (VERSÃO CARROSSEL)
+// RENDERIZAR PAINEL DE AGENDAMENTO
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
     
+    console.log('📅 Renderizando painel de agendamento...');
+    console.log('Agendamentos ativos:', agendamentosAtivos);
+    
     // Encontrar quem está sendo chamado agora
     const chamandoAgora = agendamentosAtivos.find(a => a.status === 'chamando');
     
-    // Filtrar os que estão aguardando (próximos)
+    // Filtrar os que estão aguardando (próximos a atender)
     const proximos = agendamentosAtivos
         .filter(a => a.status === 'aguardando')
         .sort((a, b) => (a.senha || '').localeCompare(b.senha || ''));
     
-    // Últimos 5 chamados (histórico)
-    const ultimos = agendamentosAtivos
-        .filter(a => a.status === 'concluido')
-        .slice(0, 5);
-    
-    // Encontrar senha do usuário logado
-    let minhaSenha = null;
-    if (usuarioLogado && dadosUsuario) {
-        minhaSenha = agendamentosAtivos.find(a => 
-            a.cliente_email === dadosUsuario.email && 
-            (a.status === 'aguardando' || a.status === 'chamando')
-        );
-    }
+    console.log('Chamando agora:', chamandoAgora);
+    console.log('Próximos a atender:', proximos);
     
     // Atualizar badge do total na fila
     const totalFilaBadge = document.getElementById('totalFilaBadge');
@@ -203,25 +195,28 @@ function renderizarPainelAgendamento() {
         totalFilaBadge.textContent = proximos.length;
     }
     
-    // Mostrar/esconder slide "Minha Senha"
-    const minhaSenhaSlide = document.getElementById('minhaSenhaSlide');
-    if (minhaSenhaSlide) {
-        minhaSenhaSlide.style.display = usuarioLogado ? 'block' : 'none';
+    const totalFilaTexto = document.getElementById('totalFilaTexto');
+    if (totalFilaTexto) {
+        totalFilaTexto.textContent = proximos.length;
     }
     
-    // Renderizar "Chamando Agora"
+    // Atualizar última hora chamada
+    const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
+    if (ultimoChamadoHora && chamandoAgora) {
+        const agora = new Date();
+        ultimoChamadoHora.textContent = agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Renderizar "EM ATENDIMENTO"
     const chamandoEl = document.getElementById('chamandoAgoraCard');
     if (chamandoEl) {
         if (chamandoAgora) {
             chamandoEl.innerHTML = `
-                <div class="fila-item-card chamando">
-                    <span class="fila-senha-card">${chamandoAgora.senha || '---'}</span>
-                    <div class="fila-info-card">
-                        <span class="fila-nome-card">${chamandoAgora.cliente_nome || 'Cliente'}</span>
-                        <span class="fila-servico-card">
-                            <i class="fas fa-cut"></i> ${chamandoAgora.servico || 'Serviço'}
-                        </span>
-                        <span class="fila-status-card chamando">CHAMANDO AGORA</span>
+                <div class="card-chamando-destaque">
+                    <div class="senha-grande">${chamandoAgora.senha || '---'}</div>
+                    <div class="cliente-nome">${chamandoAgora.cliente_nome || 'Cliente'}</div>
+                    <div class="servico-nome">
+                        <i class="fas fa-cut"></i> ${chamandoAgora.servico || 'Serviço'}
                     </div>
                 </div>
             `;
@@ -235,21 +230,21 @@ function renderizarPainelAgendamento() {
         }
     }
     
-    // Renderizar "Próximos da Fila"
+    // Renderizar "PRÓXIMOS A ATENDER" (lista vertical)
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
         if (proximos.length > 0) {
             let html = '';
             proximos.forEach((item, index) => {
+                const isUrgente = index === 0 ? 'urgente' : '';
                 html += `
-                    <div class="fila-item-card aguardando">
-                        <span class="fila-senha-card">${item.senha || '---'}</span>
-                        <div class="fila-info-card">
-                            <span class="fila-nome-card">${item.cliente_nome || 'Cliente'}</span>
-                            <span class="fila-servico-card">
+                    <div class="item-fila-vertical ${isUrgente}">
+                        <span class="senha-numero">${item.senha || '---'}</span>
+                        <div class="senha-info">
+                            <span class="senha-cliente">${item.cliente_nome || 'Cliente'}</span>
+                            <span class="senha-servico">
                                 <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
                             </span>
-                            <span class="fila-status-card aguardando">${index === 0 ? 'PRÓXIMO' : `#${index + 1}`}</span>
                         </div>
                     </div>
                 `;
@@ -265,73 +260,172 @@ function renderizarPainelAgendamento() {
         }
     }
     
-    // Renderizar "Últimos Chamados"
-    const ultimosEl = document.getElementById('ultimosChamadosCard');
-    if (ultimosEl) {
-        if (ultimos.length > 0) {
+    // Renderizar "Outros na Fila" (carrossel horizontal)
+    const proximosTrack = document.getElementById('proximasSenhasTrack');
+    if (proximosTrack) {
+        if (proximos.length > 0) {
             let html = '';
-            ultimos.forEach(item => {
+            proximos.forEach((item, index) => {
+                const posicao = index + 1;
+                const classeUrgente = index === 0 ? 'urgente' : '';
+                
                 html += `
-                    <div class="fila-item-card concluido">
-                        <span class="fila-senha-card">${item.senha || '---'}</span>
-                        <div class="fila-info-card">
-                            <span class="fila-nome-card">${item.cliente_nome || 'Cliente'}</span>
-                            <span class="fila-servico-card">
-                                <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
-                            </span>
-                            <span class="fila-status-card concluido">Concluído</span>
+                    <div class="proximo-card ${classeUrgente}">
+                        <div class="senha-numero">${item.senha || '---'}</div>
+                        <div class="senha-cliente">${item.cliente_nome || 'Cliente'}</div>
+                        <div class="senha-servico">
+                            <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
                         </div>
+                        <span class="senha-posicao">${posicao}° na fila</span>
                     </div>
                 `;
             });
-            ultimosEl.innerHTML = html;
+            proximosTrack.innerHTML = html;
+            
+            // Atualizar dots do carrossel
+            atualizarDotsScroll(proximos.length);
         } else {
-            ultimosEl.innerHTML = `
-                <div class="empty-agendamento">
-                    <i class="fas fa-history"></i>
-                    <p>Nenhum histórico</p>
-                </div>
-            `;
+            // Manter placeholders quando não há dados
+            let placeholders = '';
+            for (let i = 0; i < 4; i++) {
+                placeholders += `
+                    <div class="proximo-card-placeholder">
+                        <div class="senha-numero">--</div>
+                        <div class="senha-info">
+                            <span class="senha-cliente">Aguardando...</span>
+                            <span class="senha-servico">---</span>
+                        </div>
+                    </div>
+                `;
+            }
+            proximosTrack.innerHTML = placeholders;
         }
     }
     
-    // Renderizar "Minha Senha"
-    const minhaSenhaEl = document.getElementById('minhaSenhaCard');
-    if (minhaSenhaEl && usuarioLogado) {
+    // Renderizar "Minha Senha" (se usuário logado)
+    const minhaSenhaContainer = document.getElementById('minhaSenhaContainer');
+    if (minhaSenhaContainer && usuarioLogado && dadosUsuario) {
+        const minhaSenha = agendamentosAtivos.find(a => 
+            a.cliente_email === dadosUsuario.email && 
+            (a.status === 'aguardando' || a.status === 'chamando')
+        );
+        
         if (minhaSenha) {
-            // Calcular posição na fila
-            const posicao = proximos.findIndex(p => p.id === minhaSenha.id) + 1;
+            const statusTexto = minhaSenha.status === 'chamando' ? 'SUA VEZ!' : 'Aguardando';
+            const statusClass = minhaSenha.status === 'chamando' ? 'chamando' : '';
             
-            minhaSenhaEl.innerHTML = `
-                <div class="minha-senha-destaque">
-                    <div class="minha-senha-numero">${minhaSenha.senha}</div>
-                    <div class="minha-senha-info">
-                        <p><strong>Serviço:</strong> ${minhaSenha.servico}</p>
-                        <p><strong>Horário:</strong> ${minhaSenha.horario || 'Aguardando'}</p>
-                    </div>
-                    ${minhaSenha.status === 'chamando' 
-                        ? '<span class="minha-senha-posicao chamando">🔔 SUA VEZ! Dirija-se ao balcão</span>'
-                        : `<span class="minha-senha-posicao">Sua posição na fila: ${posicao}</span>`
-                    }
-                </div>
-            `;
+            document.getElementById('minhaSenhaNumero').textContent = minhaSenha.senha || '---';
+            document.getElementById('minhaSenhaStatus').textContent = statusTexto;
+            document.getElementById('minhaSenhaStatus').className = `minha-senha-status ${statusClass}`;
+            minhaSenhaContainer.style.display = 'block';
         } else {
-            minhaSenhaEl.innerHTML = `
-                <div class="empty-agendamento">
-                    <i class="fas fa-smile"></i>
-                    <p>Você não possui agendamento ativo</p>
-                    <button class="btn-agendar-pequeno" id="btnAgendarRapido">
-                        <i class="fas fa-calendar-plus"></i> Agendar agora
-                    </button>
-                </div>
-            `;
-            
-            // Adicionar evento ao botão de agendamento rápido
-            document.getElementById('btnAgendarRapido')?.addEventListener('click', () => {
-                abrirModalAgendamento();
+            minhaSenhaContainer.style.display = 'none';
+        }
+    } else if (minhaSenhaContainer) {
+        minhaSenhaContainer.style.display = 'none';
+    }
+    
+    // Inicializar scroll horizontal após renderizar
+    setTimeout(() => {
+        inicializarScrollHorizontal();
+    }, 100);
+}
+
+// ============================================
+// FUNÇÃO PARA ATUALIZAR DOTS DO SCROLL
+// ============================================
+function atualizarDotsScroll(totalItens) {
+    const dotsContainer = document.getElementById('scrollDots');
+    if (!dotsContainer) return;
+    
+    // Calcular número de dots baseado na quantidade de itens
+    const numDots = Math.min(totalItens, 5); // Máximo 5 dots
+    
+    let dotsHtml = '';
+    for (let i = 0; i < numDots; i++) {
+        dotsHtml += `<span class="dot ${i === 0 ? 'active' : ''}"></span>`;
+    }
+    
+    dotsContainer.innerHTML = dotsHtml;
+}
+
+// ============================================
+// FUNÇÃO CORRIGIDA PARA INICIALIZAR SCROLL HORIZONTAL
+// ============================================
+function inicializarScrollHorizontal() {
+    const track = document.getElementById('proximasSenhasTrack');
+    const scrollContainer = document.getElementById('proximasSenhasScroll');
+    const prevBtn = document.getElementById('proximasSenhasPrev');
+    const nextBtn = document.getElementById('proximasSenhasNext');
+    const dots = document.querySelectorAll('.scroll-dot');
+    
+    if (!track || !scrollContainer) return;
+    
+    const scrollAmount = 200; // Quantidade de pixels para scrollar
+    
+    // Remover listeners antigos
+    if (prevBtn) {
+        prevBtn.replaceWith(prevBtn.cloneNode(true));
+        const newPrevBtn = document.getElementById('proximasSenhasPrev');
+        if (newPrevBtn) {
+            newPrevBtn.addEventListener('click', () => {
+                scrollContainer.scrollBy({
+                    left: -scrollAmount,
+                    behavior: 'smooth'
+                });
             });
         }
     }
+    
+    if (nextBtn) {
+        nextBtn.replaceWith(nextBtn.cloneNode(true));
+        const newNextBtn = document.getElementById('proximasSenhasNext');
+        if (newNextBtn) {
+            newNextBtn.addEventListener('click', () => {
+                scrollContainer.scrollBy({
+                    left: scrollAmount,
+                    behavior: 'smooth'
+                });
+            });
+        }
+    }
+    
+    // Atualizar indicadores de scroll
+    scrollContainer.addEventListener('scroll', () => {
+        const scrollLeft = scrollContainer.scrollLeft;
+        const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+        
+        // Atualizar dots baseado na posição
+        const newDots = document.querySelectorAll('.scroll-indicator-dots .dot');
+        if (newDots.length > 0 && maxScroll > 0) {
+            const scrollPercent = scrollLeft / maxScroll;
+            const activeDot = Math.floor(scrollPercent * newDots.length);
+            
+            newDots.forEach((dot, index) => {
+                if (index === activeDot) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+        
+        // Habilitar/desabilitar botões
+        const currentPrevBtn = document.getElementById('proximasSenhasPrev');
+        const currentNextBtn = document.getElementById('proximasSenhasNext');
+        
+        if (currentPrevBtn) {
+            currentPrevBtn.disabled = scrollLeft <= 0;
+        }
+        if (currentNextBtn) {
+            currentNextBtn.disabled = scrollLeft >= maxScroll - 5;
+        }
+    });
+    
+    // Trigger scroll event para inicializar estado dos botões
+    setTimeout(() => {
+        scrollContainer.dispatchEvent(new Event('scroll'));
+    }, 100);
 }
 
 // ============================================
@@ -1889,6 +1983,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
