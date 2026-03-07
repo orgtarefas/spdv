@@ -1270,13 +1270,18 @@ function configurarEventos() {
         window.location.href = 'index.html';
     });
     
-    // Botão chamar próximo
-    document.getElementById('btnChamarProximo')?.addEventListener('click', chamarProximo);
-    
     // Botão novo agendamento
     document.getElementById('btnNovoAgendamento')?.addEventListener('click', () => {
         abrirModalAgendamento();
     });
+    
+    // 🔥 BOTÃO CONFIGURAR SERVIÇO (JÁ TEM onclick no HTML, mas pode ter listener também)
+    document.getElementById('btnConfigServico')?.addEventListener('click', () => {
+        abrirModalConfigServico();
+    });
+    
+    // 🔥 BOTÃO SALVAR CONFIGURAÇÃO DO SERVIÇO
+    document.getElementById('btnSalvarConfigServico')?.addEventListener('click', salvarConfigServico);
     
     // Botão pausar
     document.getElementById('btnPausarAtendimento')?.addEventListener('click', () => {
