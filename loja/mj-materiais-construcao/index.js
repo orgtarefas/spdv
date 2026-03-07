@@ -102,7 +102,7 @@ async function verificarAgendamentoHabilitado() {
         // Buscar no Firestore do projeto de login (coleção 'loja')
         if (window.loginDb) {
             const lojaDoc = await window.loginDb
-                .collection('loja')
+                .collection('lojas')
                 .doc(lojaId)
                 .get();
             
@@ -1964,3 +1964,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
