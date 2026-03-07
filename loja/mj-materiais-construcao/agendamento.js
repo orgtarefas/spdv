@@ -614,7 +614,7 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE FILA (3 COLUNAS)
+// RENDERIZAR PAINEL DE FILA (COM CHECKBOX)
 // ============================================
 function renderizarPainelFila() {
     // Filtrar por status
@@ -628,13 +628,16 @@ function renderizarPainelFila() {
     document.getElementById('outrosBadge').textContent = outros.length;
     document.getElementById('filaTotalBadge').textContent = proximos.length + outros.length;
     
-    // Renderizar EM ATENDIMENTO
+    // Renderizar EM ATENDIMENTO (COM CHECKBOX)
     const emAtendimentoLista = document.getElementById('emAtendimentoLista');
     if (emAtendimento.length > 0) {
         let html = '';
         emAtendimento.forEach(item => {
             html += `
                 <div class="card-atendimento" data-id="${item.id}">
+                    <div class="card-checkbox">
+                        <input type="checkbox" class="checkbox-atendimento" data-id="${item.id}">
+                    </div>
                     <div class="info">
                         <h4>${item.cliente_nome}</h4>
                         <div>
@@ -642,15 +645,13 @@ function renderizarPainelFila() {
                             <span class="servico">${item.servico}</span>
                         </div>
                     </div>
-                    <div class="acoes">
-                        <button class="btn-acao-card" onclick="concluirAtendimento('${item.id}')" title="Concluir">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    </div>
                 </div>
             `;
         });
         emAtendimentoLista.innerHTML = html;
+        
+        // Configurar eventos dos checkboxes
+        configurarCheckboxesAtendimento();
     } else {
         emAtendimentoLista.innerHTML = `
             <div class="empty-state">
@@ -675,17 +676,14 @@ function renderizarPainelFila() {
                         </span>
                     </div>
                     <div class="acoes">
-                        <button class="btn-acao-card" onclick="chamarCliente('${item.id}')" title="Chamar">
-                            <i class="fas fa-bell"></i>
+                        <button class="btn-acao-card" onclick="editarAgendamento('${item.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
                         </button>
                     </div>
                 </div>
             `;
         });
         proximosLista.innerHTML = html;
-        
-        // Habilitar botão chamar próximo
-        document.getElementById('btnChamarProximo').disabled = false;
     } else {
         proximosLista.innerHTML = `
             <div class="empty-state">
@@ -693,7 +691,6 @@ function renderizarPainelFila() {
                 <p>Fila vazia</p>
             </div>
         `;
-        document.getElementById('btnChamarProximo').disabled = true;
     }
     
     // Renderizar OUTROS NA FILA
@@ -877,54 +874,6 @@ async function chamarProximo() {
     }
 }
 
-// ============================================
-// CONCLUIR ATENDIMENTO
-// ============================================
-async function concluirAtendimento(id) {
-    if (!window.loginDb || !lojaIdAtual) return;
-    
-    try {
-        mostrarLoading('Concluindo atendimento...');
-        
-        const agRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('ativos')
-            .doc(id);
-        
-        // Mover para histórico
-        const agDoc = await agRef.get();
-        const dados = agDoc.data();
-        
-        const historicoRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('historico')
-            .doc(id);
-        
-        await setDoc(historicoRef, {
-            ...dados,
-            status: 'concluido',
-            data_conclusao: serverTimestamp()
-        });
-        
-        // Remover dos ativos
-        await deleteDoc(agRef);
-        
-        mostrarMensagem('Atendimento concluído com sucesso!', 'success');
-        
-        // Chamar próximo automaticamente
-        setTimeout(() => {
-            chamarProximo();
-        }, 500);
-        
-    } catch (error) {
-        console.error('❌ Erro ao concluir:', error);
-        mostrarMensagem('Erro ao concluir atendimento', 'error');
-    } finally {
-        esconderLoading();
-    }
-}
 
 // ============================================
 // VALIDAR AGENDAMENTO
@@ -1177,6 +1126,184 @@ async function retomarAtendimento() {
         
     } catch (error) {
         console.error('❌ Erro ao retomar:', error);
+    }
+}
+
+// ============================================
+// CONFIGURAR CHECKBOXES DE ATENDIMENTO
+// ============================================
+function configurarCheckboxesAtendimento() {
+    const checkboxes = document.querySelectorAll('.checkbox-atendimento');
+    const btnConcluir = document.getElementById('btnConcluirSelecionados');
+    const btnSelecionarTodos = document.getElementById('btnSelecionarTodosAtendimento');
+    
+    if (!checkboxes.length || !btnConcluir) return;
+    
+    // Atualizar estado do botão conforme checkboxes
+    function atualizarBotaoConcluir() {
+        const selecionados = document.querySelectorAll('.checkbox-atendimento:checked');
+        btnConcluir.disabled = selecionados.length === 0;
+        
+        if (selecionados.length > 0) {
+            btnConcluir.innerHTML = `<i class="fas fa-check-circle"></i> Concluir ${selecionados.length} selecionado(s)`;
+        } else {
+            btnConcluir.innerHTML = `<i class="fas fa-check-circle"></i> Concluir Selecionados`;
+        }
+    }
+    
+    // Evento de cada checkbox
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', atualizarBotaoConcluir);
+    });
+    
+    // Botão selecionar todos
+    if (btnSelecionarTodos) {
+        btnSelecionarTodos.addEventListener('click', () => {
+            const todosSelecionados = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !todosSelecionados);
+            atualizarBotaoConcluir();
+            
+            btnSelecionarTodos.innerHTML = todosSelecionados ? 
+                '<i class="fas fa-check-double"></i> Selecionar Todos' : 
+                '<i class="fas fa-times"></i> Desmarcar Todos';
+        });
+    }
+    
+    // Botão concluir selecionados
+    btnConcluir.addEventListener('click', async () => {
+        const selecionados = Array.from(document.querySelectorAll('.checkbox-atendimento:checked'))
+            .map(cb => cb.dataset.id);
+        
+        if (selecionados.length === 0) return;
+        
+        if (confirm(`Concluir ${selecionados.length} atendimento(s)?`)) {
+            await concluirMultiplosAtendimentos(selecionados);
+        }
+    });
+}
+
+// ============================================
+// CONCLUIR MÚLTIPLOS ATENDIMENTOS
+// ============================================
+async function concluirMultiplosAtendimentos(ids) {
+    if (!window.loginDb || !lojaIdAtual || !ids || ids.length === 0) {
+        mostrarMensagem('Nenhum atendimento selecionado', 'warning');
+        return;
+    }
+    
+    try {
+        mostrarLoading(`Concluindo ${ids.length} atendimento(s)...`);
+        
+        let concluidos = 0;
+        let erros = 0;
+        
+        for (const id of ids) {
+            try {
+                const agRef = window.loginDb
+                    .collection('agendamentos')
+                    .doc(lojaIdAtual)
+                    .collection('ativos')
+                    .doc(id);
+                
+                const agDoc = await agRef.get();
+                
+                if (!agDoc.exists) {
+                    console.warn(`⚠️ Agendamento ${id} não encontrado`);
+                    erros++;
+                    continue;
+                }
+                
+                const dados = agDoc.data();
+                
+                // Mover para histórico
+                const historicoRef = window.loginDb
+                    .collection('agendamentos')
+                    .doc(lojaIdAtual)
+                    .collection('historico')
+                    .doc(id);
+                
+                await setDoc(historicoRef, {
+                    ...dados,
+                    status: 'concluido',
+                    data_conclusao: serverTimestamp(),
+                    concluido_por: dadosUsuario?.email || 'sistema',
+                    concluido_em: new Date().toISOString()
+                });
+                
+                // Remover dos ativos
+                await deleteDoc(agRef);
+                
+                concluidos++;
+                
+            } catch (itemError) {
+                console.error(`❌ Erro ao concluir agendamento ${id}:`, itemError);
+                erros++;
+            }
+        }
+        
+        // Mensagem de resultado
+        if (concluidos > 0) {
+            mostrarMensagem(`${concluidos} atendimento(s) concluído(s) com sucesso!${erros > 0 ? ` (${erros} erro(s))` : ''}`, 'success');
+        } else {
+            mostrarMensagem('Nenhum atendimento foi concluído', 'error');
+        }
+        
+        // Chamar próximo automaticamente (o primeiro da fila)
+        setTimeout(() => {
+            const proximo = agendamentosAtivos.find(a => 
+                a.status === 'aguardando' && a.validado === true
+            );
+            if (proximo) {
+                chamarProximo(proximo.id);
+            }
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Erro ao concluir múltiplos atendimentos:', error);
+        mostrarMensagem('Erro ao concluir atendimentos: ' + error.message, 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// CHAMAR PRÓXIMO (AUTOMÁTICO)
+// ============================================
+async function chamarProximo(id) {
+    if (!window.loginDb || !lojaIdAtual || !id) {
+        console.error('❌ Dados insuficientes para chamar próximo');
+        return;
+    }
+    
+    try {
+        console.log(`🔔 Chamando agendamento ID: ${id}`);
+        
+        const agRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('ativos')
+            .doc(id);
+        
+        await updateDoc(agRef, {
+            status: 'chamando',
+            data_chamada: serverTimestamp()
+        });
+        
+        // Buscar dados do agendamento para mostrar mensagem
+        const agendamento = agendamentosAtivos.find(a => a.id === id);
+        
+        if (agendamento) {
+            mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome} - Senha ${agendamento.senha}`, 'success');
+            
+            // Enviar notificação se configurado
+            if (configLoja.notificacoesAtivas && agendamento.cliente_whatsapp) {
+                await enviarNotificacaoProximo(agendamento);
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao chamar próximo:', error);
+        mostrarMensagem('Erro ao chamar próximo cliente', 'error');
     }
 }
 
