@@ -99,13 +99,24 @@ async function verificarAgendamentoHabilitado() {
     if (!lojaId) return false;
     
     try {
-        // Usar o novo método do lojaServices
-        if (typeof lojaServices?.verificarAgendamentoHabilitado === 'function') {
-            agendamentoHabilitado = await lojaServices.verificarAgendamentoHabilitado();
-            console.log(`📅 Agendamento habilitado para esta loja? ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
-            return agendamentoHabilitado;
+        // Buscar no Firestore do projeto de login (coleção 'loja')
+        if (window.loginDb) {
+            const lojaDoc = await window.loginDb
+                .collection('loja')
+                .doc(lojaId)
+                .get();
+            
+            if (lojaDoc.exists) {
+                const dados = lojaDoc.data();
+                const habilitado = dados.habilitar_agendamento === true;
+                console.log(`📅 Agendamento habilitado no Firestore: ${habilitado ? 'SIM' : 'NÃO'}`);
+                return habilitado;
+            } else {
+                console.log(`⚠️ Documento da loja não encontrado no Firestore: ${lojaId}`);
+                return false;
+            }
         } else {
-            console.log('📅 Método verificarAgendamentoHabilitado não disponível');
+            console.log('📅 loginDb não disponível, agendamento desabilitado');
             return false;
         }
     } catch (error) {
@@ -113,7 +124,6 @@ async function verificarAgendamentoHabilitado() {
         return false;
     }
 }
-
 
 // ============================================
 // MOSTRAR/ESCONDER CONTAINER DE AGENDAMENTO
@@ -135,8 +145,13 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
+        // Verificar se loginDb está disponível
+        if (!window.loginDb) {
+            console.error('❌ loginDb não disponível para escuta de agendamentos');
+            return;
+        }
+        
         // Referência para a coleção de agendamentos no Firestore
-        // A estrutura será: agendamentos/{lojaId}/ativos/{documentos}
         const agendamentosRef = window.loginDb
             .collection('agendamentos')
             .doc(lojaIdAtual)
@@ -350,50 +365,48 @@ function atualizarDotsScroll(totalItens) {
 }
 
 // ============================================
-// FUNÇÃO CORRIGIDA PARA INICIALIZAR SCROLL HORIZONTAL
+// FUNÇÃO ÚNICA E CORRIGIDA PARA INICIALIZAR SCROLL HORIZONTAL
 // ============================================
 function inicializarScrollHorizontal() {
     const track = document.getElementById('proximasSenhasTrack');
     const scrollContainer = document.getElementById('proximasSenhasScroll');
     const prevBtn = document.getElementById('proximasSenhasPrev');
     const nextBtn = document.getElementById('proximasSenhasNext');
-    const dots = document.querySelectorAll('.scroll-dot');
     
     if (!track || !scrollContainer) return;
     
     const scrollAmount = 200; // Quantidade de pixels para scrollar
     
-    // Remover listeners antigos
+    // Remover listeners antigos para evitar duplicação
     if (prevBtn) {
-        prevBtn.replaceWith(prevBtn.cloneNode(true));
-        const newPrevBtn = document.getElementById('proximasSenhasPrev');
-        if (newPrevBtn) {
-            newPrevBtn.addEventListener('click', () => {
-                scrollContainer.scrollBy({
-                    left: -scrollAmount,
-                    behavior: 'smooth'
-                });
+        const newPrevBtn = prevBtn.cloneNode(true);
+        prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+        newPrevBtn.addEventListener('click', () => {
+            scrollContainer.scrollBy({
+                left: -scrollAmount,
+                behavior: 'smooth'
             });
-        }
+        });
     }
     
     if (nextBtn) {
-        nextBtn.replaceWith(nextBtn.cloneNode(true));
-        const newNextBtn = document.getElementById('proximasSenhasNext');
-        if (newNextBtn) {
-            newNextBtn.addEventListener('click', () => {
-                scrollContainer.scrollBy({
-                    left: scrollAmount,
-                    behavior: 'smooth'
-                });
+        const newNextBtn = nextBtn.cloneNode(true);
+        nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+        newNextBtn.addEventListener('click', () => {
+            scrollContainer.scrollBy({
+                left: scrollAmount,
+                behavior: 'smooth'
             });
-        }
+        });
     }
     
-    // Atualizar indicadores de scroll
-    scrollContainer.addEventListener('scroll', () => {
-        const scrollLeft = scrollContainer.scrollLeft;
-        const maxScroll = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+    // Remover listener antigo de scroll e adicionar novo
+    const newScrollContainer = scrollContainer.cloneNode(true);
+    scrollContainer.parentNode.replaceChild(newScrollContainer, scrollContainer);
+    
+    newScrollContainer.addEventListener('scroll', () => {
+        const scrollLeft = newScrollContainer.scrollLeft;
+        const maxScroll = newScrollContainer.scrollWidth - newScrollContainer.clientWidth;
         
         // Atualizar dots baseado na posição
         const newDots = document.querySelectorAll('.scroll-indicator-dots .dot');
@@ -424,8 +437,11 @@ function inicializarScrollHorizontal() {
     
     // Trigger scroll event para inicializar estado dos botões
     setTimeout(() => {
-        scrollContainer.dispatchEvent(new Event('scroll'));
+        newScrollContainer.dispatchEvent(new Event('scroll'));
     }, 100);
+    
+    // Atualizar a referência global
+    document.getElementById('proximasSenhasScroll') = newScrollContainer;
 }
 
 // ============================================
@@ -495,7 +511,6 @@ function abrirModalAgendamento() {
     // Redirecionar para a página de agendamento (ou abrir modal)
     window.location.href = 'agendamento.html?novo=true';
 }
-
 
 // ============================================
 // CONFIGURAR FAVICON DA LOJA
@@ -582,6 +597,12 @@ function configurarMenuPerfil() {
         }
     });
     
+    // 🔥 NOVO: Gestão de Agendamento
+    document.getElementById('menuGestaoAgendamento')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = 'agendamento.html?modo=gestao';
+    });
+    
     document.getElementById('menuLogout')?.addEventListener('click', (e) => {
         e.preventDefault();
         fazerLogoutCliente();
@@ -595,6 +616,7 @@ function atualizarMenuPerfil() {
     // 🔥 CORREÇÃO: usar perfil, nivel ou tipo
     const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
     console.log('🔍 Atualizando menu para perfil:', perfil);
+    console.log('📅 Agendamento habilitado?', agendamentoHabilitado);
     
     // Mapear quais itens devem aparecer para cada perfil
     const permissoes = {
@@ -610,29 +632,44 @@ function atualizarMenuPerfil() {
     
     console.log('📋 Itens permitidos:', itensPermitidos);
     
-    // Mostrar/esconder itens
+    // Mostrar/esconder itens padrão
     const menuItems = {
         menuRelatorios: document.getElementById('menuRelatorios'),
         menuGestaoLogins: document.getElementById('menuGestaoLogins'),
-        menuEstoque: document.getElementById('menuEstoque')
+        menuEstoque: document.getElementById('menuEstoque'),
+        // 🔥 NOVO: Gestão de Agendamento
+        menuGestaoAgendamento: document.getElementById('menuGestaoAgendamento')
     };
     
     for (const [id, element] of Object.entries(menuItems)) {
         if (element) {
-            if (itensPermitidos.includes(id)) {
-                element.style.display = 'flex';
-                console.log(`✅ Mostrando item: ${id}`);
+            // Gestão de Agendamento tem regra especial: só aparece se habilitado E perfil for funcionário/admin
+            if (id === 'menuGestaoAgendamento') {
+                if (agendamentoHabilitado && perfil !== 'cliente') {
+                    element.style.display = 'flex';
+                    console.log(`✅ Mostrando item: ${id} (agendamento habilitado)`);
+                } else {
+                    element.style.display = 'none';
+                    console.log(`❌ Escondendo item: ${id} (agendamento: ${agendamentoHabilitado}, perfil: ${perfil})`);
+                }
             } else {
-                element.style.display = 'none';
-                console.log(`❌ Escondendo item: ${id}`);
+                // Itens normais seguem as permissões
+                if (itensPermitidos.includes(id)) {
+                    element.style.display = 'flex';
+                    console.log(`✅ Mostrando item: ${id}`);
+                } else {
+                    element.style.display = 'none';
+                    console.log(`❌ Escondendo item: ${id}`);
+                }
             }
         }
     }
     
-    // Mostrar/esconder divisor
+    // Mostrar/esconder divisor (mostra se houver algum item visível além do logout)
     const divisor = document.querySelector('.menu-divider');
     if (divisor) {
-        divisor.style.display = itensPermitidos.length > 0 ? 'block' : 'none';
+        const itensVisiveis = Object.values(menuItems).filter(el => el && el.style.display === 'flex').length;
+        divisor.style.display = itensVisiveis > 0 ? 'block' : 'none';
     }
     
     // Sempre mostrar o logout quando logado
@@ -733,7 +770,6 @@ window.addEventListener('usuarioDeslogado', () => {
     });
     document.querySelector('.menu-divider').style.display = 'none';
 });
-
 
 window.addEventListener('usuarioNaoAutorizado', (event) => {
     const erro = event.detail?.erro || 'Acesso negado';
@@ -1893,9 +1929,10 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
         await carregarDadosLoja();
         
         // 🔥 NOVO: Verificar se agendamento está habilitado
-        const agendamentoHabilitado = await verificarAgendamentoHabilitado();
+        agendamentoHabilitado = await verificarAgendamentoHabilitado();
+        console.log(`📅 Agendamento habilitado para esta loja? ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
         toggleAgendamentoContainer(agendamentoHabilitado);
-        
+
         if (agendamentoHabilitado) {
             iniciarEscutaAgendamentos();
         }
@@ -1927,8 +1964,3 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
-
-
-
-
-
