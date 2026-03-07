@@ -360,7 +360,7 @@ async function carregarConfiguracoesLoja() {
 }
 
 // ============================================
-// CARREGAR HORÁRIOS DE FUNCIONAMENTO
+// CARREGAR HORÁRIOS DE FUNCIONAMENTO (SEM ÍNDICES)
 // ============================================
 async function carregarHorariosFuncionamento() {
     if (!lojaIdAtual || !window.loginDb) return;
@@ -450,7 +450,28 @@ async function carregarHorariosFuncionamento() {
             
             if (excecoesDoc.exists) {
                 renderizarExcecoes(excecoesDoc.data().lista || []);
+            } else {
+                // Criar lista vazia se não existir
+                await excecoesRef.set({ lista: [] });
             }
+        } else {
+            // Criar horários padrão se não existir
+            const horariosPadrao = {};
+            diasSemana.forEach(dia => {
+                horariosPadrao[dia.id] = {
+                    aberto: dia.id !== 'domingo',
+                    abertura: '10:00',
+                    fechamento: '18:00',
+                    intervaloInicio: '13:00',
+                    intervaloFim: '14:00',
+                    maxClientes: 30
+                };
+            });
+            
+            await horariosRef.set(horariosPadrao);
+            
+            // Recarregar a página para mostrar os horários
+            window.location.reload();
         }
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
@@ -458,7 +479,7 @@ async function carregarHorariosFuncionamento() {
 }
 
 // ============================================
-// INICIAR ESCUTA DE AGENDAMENTOS
+// INICIAR ESCUTA DE AGENDAMENTOS (SEM ÍNDICES)
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!lojaIdAtual || !window.loginDb) {
@@ -466,25 +487,14 @@ function iniciarEscutaAgendamentos() {
         return;
     }
     
-    console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
+    console.log('📅 Iniciando escuta em tempo real dos agendamentos (sem índices)...');
     
     try {
-        // Agendamentos Ativos (hoje)
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        const amanha = new Date(hoje);
-        amanha.setDate(amanha.getDate() + 1);
-        
-        const hojeStr = hoje.toISOString().split('T')[0];
-        const amanhaStr = amanha.toISOString().split('T')[0];
-        
+        // 🔥 ATIVOS: Buscar sem orderBy ou apenas com um campo
         const ativosRef = window.loginDb
             .collection('agendamentos')
             .doc(lojaIdAtual)
-            .collection('ativos')
-            .where('data', '>=', hojeStr)
-            .where('data', '<', amanhaStr)
-            .orderBy('senha', 'asc');
+            .collection('ativos');
         
         unsubscribeAgendamentos = ativosRef.onSnapshot((snapshot) => {
             const agendamentos = [];
@@ -495,6 +505,18 @@ function iniciarEscutaAgendamentos() {
                 });
             });
             
+            // 🔥 ORDENAR MANUALMENTE no JavaScript
+            agendamentos.sort((a, b) => {
+                // Primeiro por status (chamando > aguardando)
+                if (a.status === 'chamando' && b.status !== 'chamando') return -1;
+                if (a.status !== 'chamando' && b.status === 'chamando') return 1;
+                
+                // Depois por senha (numérica)
+                const senhaA = parseInt(a.senha) || 0;
+                const senhaB = parseInt(b.senha) || 0;
+                return senhaA - senhaB;
+            });
+            
             agendamentosAtivos = agendamentos;
             renderizarPainelFila();
             
@@ -502,14 +524,11 @@ function iniciarEscutaAgendamentos() {
             console.error('❌ Erro na escuta de ativos:', error);
         });
         
-        // Agendamentos Futuros
+        // 🔥 FUTUROS: Buscar sem orderBy ou apenas com um campo
         const futurosRef = window.loginDb
             .collection('agendamentos')
             .doc(lojaIdAtual)
-            .collection('futuros')
-            .where('data', '>=', amanhaStr)
-            .orderBy('data', 'asc')
-            .orderBy('horario', 'asc');
+            .collection('futuros');
         
         unsubscribeFuturos = futurosRef.onSnapshot((snapshot) => {
             const futuros = [];
@@ -518,6 +537,19 @@ function iniciarEscutaAgendamentos() {
                     id: doc.id,
                     ...doc.data()
                 });
+            });
+            
+            // 🔥 ORDENAR MANUALMENTE no JavaScript
+            futuros.sort((a, b) => {
+                // Por data
+                if (a.data < b.data) return -1;
+                if (a.data > b.data) return 1;
+                
+                // Mesma data, por horário
+                if (a.horario < b.horario) return -1;
+                if (a.horario > b.horario) return 1;
+                
+                return 0;
             });
             
             agendamentosFuturos = futuros;
