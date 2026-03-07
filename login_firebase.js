@@ -20,19 +20,151 @@ const loginDb = loginApp.firestore();
 // Configurar persistência para lembrar login
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-// Ativar App Check
-try {
-    const appCheck = loginApp.appCheck();
-    appCheck.activate(
-        new firebase.appCheck.ReCaptchaEnterpriseProvider(
+// Ativar App Check - VERSÃO CRÍTICA COM VERIFICAÇÃO
+(async function() {
+    console.log('🔒 Inicializando App Check (modo crítico)...');
+    
+    try {
+        // Verificar dependências
+        if (typeof firebase.appCheck !== 'function') {
+            throw new Error('Firebase App Check SDK não carregado');
+        }
+        
+        // Obter instância
+        const appCheck = firebase.appCheck(loginApp);
+        
+        if (!appCheck) {
+            throw new Error('Falha ao obter instância do App Check');
+        }
+        
+        // Verificar provedor
+        if (typeof firebase.appCheck.ReCaptchaEnterpriseProvider !== 'function') {
+            throw new Error('ReCaptchaEnterpriseProvider não disponível');
+        }
+        
+        // Configurar provedor
+        const provider = new firebase.appCheck.ReCaptchaEnterpriseProvider(
             "6LdqQnUsAAAAAOnjtu0Avi_0WubZw0iYS20DjL6b"
-        ),
-        true
-    );
-    console.log('✅ App Check ativado no projeto de login');
-} catch (error) {
-    console.error('❌ Erro ao ativar App Check no login:', error);
-}
+        );
+        
+        // Ativar
+        appCheck.activate(provider, true);
+        
+        console.log('✅ App Check ativado, aguardando token...');
+        
+        // Aguardar token por até 5 segundos
+        let token = null;
+        let tentativas = 0;
+        
+        while (tentativas < 5) {
+            try {
+                token = await appCheck.getToken();
+                if (token && token.token) {
+                    console.log('✅ Token App Check válido obtido');
+                    break;
+                }
+            } catch (e) {
+                console.log(`⏳ Tentativa ${tentativas + 1}/5 falhou, aguardando...`);
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            tentativas++;
+        }
+        
+        if (!token || !token.token) {
+            throw new Error('Não foi possível obter token do App Check após 5 tentativas');
+        }
+        
+        console.log('🔒 App Check funcionando corretamente - Sistema seguro');
+        
+    } catch (error) {
+        console.error('❌ ERRO FATAL NO APP CHECK:', error);
+        
+        // Mensagem detalhada
+        const errorDetails = `
+            ═══════════════════════════════════════
+            🔴 ERRO DE SEGURANÇA - APP CHECK FALHOU
+            ═══════════════════════════════════════
+            
+            📍 Erro: ${error.message}
+            📍 Hora: ${new Date().toLocaleString()}
+            📍 Página: ${window.location.href}
+            
+            O App Check é obrigatório para proteger o sistema
+            contra acessos não autorizados.
+            
+            ⚠️ O sistema será interrompido por segurança.
+            
+            Entre em contato com o suporte técnico
+            informando este erro.
+        `;
+        
+        console.error(errorDetails);
+        alert(errorDetails);
+        
+        // Interromper completamente o sistema
+        document.body.innerHTML = `
+            <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                font-family: Arial, sans-serif;
+                text-align: center;
+                padding: 20px;
+                background: #f8f9fa;
+            ">
+                <div style="
+                    background: white;
+                    padding: 40px;
+                    border-radius: 20px;
+                    box-shadow: 0 10px 30px rgba(220,53,69,0.2);
+                    border-left: 5px solid #dc3545;
+                    max-width: 500px;
+                ">
+                    <h1 style="color: #dc3545; margin-bottom: 20px;">
+                        🔒 ERRO DE SEGURANÇA
+                    </h1>
+                    <p style="color: #1e293b; font-size: 18px; margin-bottom: 20px;">
+                        O App Check não pôde ser ativado corretamente.
+                    </p>
+                    <p style="color: #64748b; margin-bottom: 30px;">
+                        O sistema foi interrompido por questões de segurança.<br>
+                        Por favor, contate o suporte técnico.
+                    </p>
+                    <div style="
+                        background: #f8f9fa;
+                        padding: 15px;
+                        border-radius: 10px;
+                        text-align: left;
+                        font-family: monospace;
+                        font-size: 12px;
+                        color: #64748b;
+                        margin-bottom: 20px;
+                    ">
+                        <strong>Erro:</strong> ${error.message}
+                    </div>
+                    <button onclick="window.location.reload()" style="
+                        background: #dc3545;
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">
+                        Tentar Novamente
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Parar execução
+        throw new Error('App Check falhou - Sistema interrompido');
+    }
+})();
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -779,5 +911,6 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarPermissao: typeof verificarPermissao
 });
+
 
 
