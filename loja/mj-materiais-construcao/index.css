@@ -2517,27 +2517,57 @@ body {
     }
 }
 
-/* Botões de agendamento */
-.agendamento-footer {
+/* ============================================
+   CARROSSEL DE AGENDAMENTO (ESTILO SWIPER)
+   ============================================ */
+
+.agendamento-section {
+    margin: 30px 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.agendamento-header {
     display: flex;
-    gap: 15px;
-    justify-content: center;
-    margin-top: 25px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
     flex-wrap: wrap;
+    gap: 15px;
+}
+
+.agendamento-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    color: #1e293b;
+    margin: 0;
+}
+
+.agendamento-header h2 i {
+    color: #ff6b00;
+}
+
+.agendamento-header-buttons {
+    display: flex;
+    gap: 10px;
 }
 
 .btn-agendar {
     background: #28a745;
     color: white;
     border: none;
-    padding: 12px 30px;
+    padding: 8px 20px;
     border-radius: 30px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     transition: all 0.3s;
     border: 1px solid transparent;
 }
@@ -2548,25 +2578,18 @@ body {
     box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
 }
 
-.btn-agendar:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
 .btn-ver-agendamento {
     background: #1e293b;
     color: white;
     border: none;
-    padding: 12px 30px;
+    padding: 8px 20px;
     border-radius: 30px;
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     transition: all 0.3s;
     border: 1px solid transparent;
 }
@@ -2577,65 +2600,292 @@ body {
     box-shadow: 0 5px 15px rgba(255,107,0,0.3);
 }
 
-/* Modal de Agendamento */
-.modal-agendamento {
-    max-width: 500px;
+.agendamento-carousel {
+    position: relative;
+    margin: 0 40px;
 }
 
-.servico-opcao {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 15px;
+.agendamento-swiper {
+    padding: 10px 5px 30px;
+}
+
+.agendamento-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     border: 1px solid #e9ecef;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    cursor: pointer;
-    transition: all 0.2s;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.servico-opcao:hover {
-    border-color: #ff6b00;
-    background: #fff9f0;
+.agendamento-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.12);
 }
 
-.servico-opcao.selecionado {
-    border-color: #ff6b00;
-    background: #fff9f0;
-    box-shadow: 0 2px 8px rgba(255,107,0,0.1);
-}
-
-.servico-icon {
-    width: 50px;
-    height: 50px;
-    background: #f8f9fa;
-    border-radius: 12px;
+.card-header {
+    padding: 15px 20px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    color: #ff6b00;
+    gap: 10px;
+    border-bottom: 1px solid #e9ecef;
+    position: relative;
 }
 
-.servico-info {
+.card-header i {
+    font-size: 1.3rem;
+}
+
+.card-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
     flex: 1;
 }
 
-.servico-info h4 {
-    margin: 0 0 5px 0;
-    font-size: 1.1rem;
+.card-badge {
+    background: #ff6b00;
+    color: white;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* Cores dos cards */
+.chamando-card .card-header {
+    background: linear-gradient(135deg, #ff6b00, #ff8c40);
+    color: white;
+}
+
+.fila-card .card-header {
+    background: linear-gradient(135deg, #2196f3, #42a5f5);
+    color: white;
+}
+
+.historico-card .card-header {
+    background: linear-gradient(135deg, #4a5568, #2d3748);
+    color: white;
+}
+
+.minha-senha-card .card-header {
+    background: linear-gradient(135deg, #9c27b0, #ba68c8);
+    color: white;
+}
+
+.card-content {
+    padding: 15px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 220px;
+}
+
+/* Itens do agendamento no card */
+.fila-item-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+}
+
+.fila-item-card.chamando {
+    border-left-color: #ff6b00;
+    background: #fff9f0;
+}
+
+.fila-item-card.aguardando {
+    border-left-color: #2196f3;
+}
+
+.fila-item-card.concluido {
+    border-left-color: #4a5568;
+    opacity: 0.8;
+}
+
+.fila-item-card:hover {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.fila-senha-card {
+    display: inline-block;
+    background: #ff6b00;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 3px 10px;
+    border-radius: 15px;
+    margin-right: 10px;
+}
+
+.fila-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 5px;
+}
+
+.fila-nome-card {
+    font-weight: 600;
+    font-size: 0.95rem;
     color: #1e293b;
 }
 
-.servico-info p {
-    margin: 0;
-    font-size: 0.9rem;
+.fila-servico-card {
+    font-size: 0.85rem;
     color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
-.servico-preco {
-    font-weight: bold;
-    color: #28a745;
-    font-size: 1.2rem;
+.fila-status-card {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-top: 5px;
 }
 
+.fila-status-card.chamando {
+    background: #d4edda;
+    color: #155724;
+    animation: blink 1s infinite;
+}
+
+.fila-status-card.aguardando {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.fila-status-card.concluido {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Minha senha especial */
+.minha-senha-destaque {
+    text-align: center;
+    padding: 15px;
+}
+
+.minha-senha-numero {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #ff6b00;
+    line-height: 1;
+    margin: 10px 0;
+}
+
+.minha-senha-info {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.minha-senha-posicao {
+    display: inline-block;
+    background: #2196f3;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+}
+
+/* Estados vazios */
+.empty-agendamento {
+    text-align: center;
+    padding: 30px 10px;
+    color: #94a3b8;
+}
+
+.empty-agendamento i {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.empty-agendamento p {
+    margin: 0 0 10px 0;
+    font-size: 0.95rem;
+}
+
+.btn-agendar-pequeno {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.btn-agendar-pequeno:hover {
+    background: #218838;
+}
+
+/* Paginação do Swiper */
+.agendamento-pagination {
+    position: relative;
+    margin-top: 15px;
+}
+
+.agendamento-pagination .swiper-pagination-bullet {
+    width: 10px;
+    height: 10px;
+    background: #cbd5e1;
+    opacity: 1;
+}
+
+.agendamento-pagination .swiper-pagination-bullet-active {
+    background: #ff6b00;
+    width: 25px;
+    border-radius: 5px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .agendamento-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .agendamento-header-buttons {
+        width: 100%;
+    }
+    
+    .btn-agendar, .btn-ver-agendamento {
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .agendamento-carousel {
+        margin: 0 30px;
+    }
+    
+    .agendamento-card {
+        height: 280px;
+    }
+}
+
+@media (max-width: 480px) {
+    .agendamento-section {
+        margin: 20px 10px;
+        padding: 15px;
+    }
+    
+    .agendamento-carousel {
+        margin: 0 20px;
+    }
+}
