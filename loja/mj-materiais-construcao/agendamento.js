@@ -1398,10 +1398,307 @@ function renderizarExcecoes(excecoes) {
     console.log('Renderizar exceções:', excecoes);
 }
 
+// ============================================---------------------------------------------------------------------------------------
+// ABRIR MODAL DE AGENDAMENTO (COMPLETA E AUTOSSUFICIENTE)
+// ============================================
 function abrirModalAgendamento() {
     console.log('Abrir modal de agendamento');
-}
+    
+    const modal = document.getElementById('agendamentoModal');
+    if (!modal) {
+        console.error('❌ Modal de agendamento não encontrado');
+        mostrarMensagem('Erro ao abrir modal de agendamento', 'error');
+        return;
+    }
+    
+    const form = document.getElementById('agendamentoForm');
+    if (form) form.reset();
+    
+    const buscaCliente = document.getElementById('buscaClienteModal');
+    if (buscaCliente) {
+        buscaCliente.value = '';
+        buscaCliente.classList.remove('cliente-selecionado');
+    }
+    
+    const resultadosBusca = document.getElementById('resultadosBuscaCliente');
+    if (resultadosBusca) {
+        resultadosBusca.innerHTML = '';
+        resultadosBusca.style.display = 'none';
+    }
+    
+    const titulo = document.getElementById('agendamentoModalTitulo');
+    if (titulo) titulo.innerHTML = '<i class="fas fa-calendar-plus"></i> Novo Agendamento';
+    
+    const agendamentoId = document.getElementById('agendamentoId');
+    if (agendamentoId) agendamentoId.value = '';
+    
+    function carregarServicos() {
+        const select = document.getElementById('servicoSelect');
+        if (!select) return;
+        
+        // Serviços fixos (você pode buscar do Firestore depois)
+        const servicos = [
+            { id: 'corte', nome: 'Corte de Cabelo' },
+            { id: 'barba', nome: 'Barba' },
+            { id: 'combo', nome: 'Corte + Barba' },
+            { id: 'sobrancelha', nome: 'Sobrancelha' },
+            { id: 'pigmentacao', nome: 'Pigmentação' }
+        ];
+        
+        select.innerHTML = '<option value="">Selecione um serviço...</option>';
+        servicos.forEach(serv => {
+            select.innerHTML += `<option value="${serv.id}">${serv.nome}</option>`;
+        });
+    }
+    
+    async function buscarAgendamentosPorData(data) {
+        if (!window.loginDb || !lojaIdAtual) return [];
+        
+        try {
+            const futurosRef = window.loginDb
+                .collection('agendamentos')
+                .doc(lojaIdAtual)
+                .collection('futuros')
+                .where('data', '==', data);
+            
+            const futurosSnapshot = await futurosRef.get();
+            
+            const agendamentos = [];
+            futurosSnapshot.forEach(doc => {
+                agendamentos.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            return agendamentos;
+            
+        } catch (error) {
+            console.error('❌ Erro ao buscar agendamentos:', error);
+            return [];
+        }
+    }
+    
+    function gerarHorarios(abertura, fechamento, intervaloInicio, intervaloFim) {
+        const horarios = [];
+        
+        const [horaAbertura, minAbertura] = abertura.split(':').map(Number);
+        const [horaFechamento, minFechamento] = fechamento.split(':').map(Number);
+        const [horaIntervaloInicio, minIntervaloInicio] = intervaloInicio.split(':').map(Number);
+        const [horaIntervaloFim, minIntervaloFim] = intervaloFim.split(':').map(Number);
+        
+        const inicio = new Date();
+        inicio.setHours(horaAbertura, minAbertura, 0);
+        
+        const fim = new Date();
+        fim.setHours(horaFechamento, minFechamento, 0);
+        
+        const intervaloComeco = new Date();
+        intervaloComeco.setHours(horaIntervaloInicio, minIntervaloInicio, 0);
+        
+        const intervaloTermino = new Date();
+        intervaloTermino.setHours(horaIntervaloFim, minIntervaloFim, 0);
+        
+        let atual = new Date(inicio);
+        
+        while (atual <= fim) {
+            if (atual >= intervaloComeco && atual < intervaloTermino) {
+                atual = new Date(intervaloTermino);
+                continue;
+            }
+            
+            const horaStr = atual.getHours().toString().padStart(2, '0');
+            const minStr = atual.getMinutes().toString().padStart(2, '0');
+            horarios.push(`${horaStr}:${minStr}`);
+            
+            atual.setMinutes(atual.getMinutes() + 30);
+        }
+        
+        return horarios;
+    }
+    
+    async function carregarHorarios() {
+        const dataInput = document.getElementById('agendamentoData');
+        const horarioSelect = document.getElementById('agendamentoHorario');
+        
+        if (!dataInput || !horarioSelect) return;
+        
+        const dataSelecionada = dataInput.value;
+        if (!dataSelecionada) return;
+        
+        horarioSelect.innerHTML = '<option value="">Carregando horários...</option>';
+        horarioSelect.disabled = true;
+        
+        try {
+            const dataObj = new Date(dataSelecionada + 'T12:00:00');
+            const diaSemana = dataObj.getDay();
+            
+            const diasMap = {
+                0: 'domingo', 1: 'segunda', 2: 'terca', 3: 'quarta',
+                4: 'quinta', 5: 'sexta', 6: 'sabado'
+            };
+            
+            const diaId = diasMap[diaSemana];
+            
+            // Configuração padrão
+            let configDia = {
+                aberto: diaId !== 'domingo',
+                abertura: '10:00',
+                fechamento: '18:00',
+                intervaloInicio: '13:00',
+                intervaloFim: '14:00',
+                maxClientes: 30
+            };
+            
+            // Tentar buscar configuração do Firestore
+            try {
+                const horariosRef = window.loginDb
+                    .collection('configuracoes')
+                    .doc(lojaIdAtual)
+                    .collection('agendamento')
+                    .doc('horarios');
+                
+                const horariosDoc = await horariosRef.get();
+                
+                if (horariosDoc.exists) {
+                    const dados = horariosDoc.data();
+                    if (dados[diaId]) {
+                        configDia = dados[diaId];
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ Usando configuração padrão');
+            }
+            
+            if (!configDia.aberto) {
+                horarioSelect.innerHTML = '<option value="">Fechado neste dia</option>';
+                horarioSelect.disabled = true;
+                return;
+            }
+            
+            const agendamentosExistentes = await buscarAgendamentosPorData(dataSelecionada);
+            
+            const horarios = gerarHorarios(
+                configDia.abertura,
+                configDia.fechamento,
+                configDia.intervaloInicio,
+                configDia.intervaloFim
+            );
+            
+            const horariosOcupados = agendamentosExistentes.map(ag => ag.horario);
+            const horariosDisponiveis = horarios.filter(h => !horariosOcupados.includes(h));
+            
+            if (agendamentosExistentes.length >= (configDia.maxClientes || 30)) {
+                horarioSelect.innerHTML = `<option value="">Limite de clientes atingido</option>`;
+                horarioSelect.disabled = true;
+                return;
+            }
+            
+            if (horariosDisponiveis.length === 0) {
+                horarioSelect.innerHTML = '<option value="">Nenhum horário disponível</option>';
+                horarioSelect.disabled = true;
+                return;
+            }
+            
+            horarioSelect.innerHTML = '<option value="">Selecione um horário</option>';
+            horariosDisponiveis.forEach(horario => {
+                horarioSelect.innerHTML += `<option value="${horario}">${horario}</option>`;
+            });
+            
+            horarioSelect.disabled = false;
+            
+        } catch (error) {
+            console.error('❌ Erro:', error);
+            horarioSelect.innerHTML = '<option value="">Erro ao carregar</option>';
+            horarioSelect.disabled = true;
+        }
+    }
+    
+    async function buscarClientes(e) {
+        const termo = e.target.value.trim();
+        const resultadosDiv = document.getElementById('resultadosBuscaCliente');
+        
+        if (!resultadosDiv) return;
+        
+        if (termo.length < 3) {
+            resultadosDiv.style.display = 'none';
+            resultadosDiv.innerHTML = '';
+            return;
+        }
+        
+        try {
+            const clientesRef = window.loginDb
+                .collection('usuarios')
+                .doc(lojaIdAtual)
+                .collection('clientes');
+            
+            const snapshot = await clientesRef.get();
+            
+            const clientes = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                const nome = data.nome || '';
+                if (nome.toLowerCase().includes(termo.toLowerCase())) {
+                    clientes.push({
+                        email: doc.id,
+                        nome: nome,
+                        telefone: data.telefone || ''
+                    });
+                }
+            });
+            
+            if (clientes.length === 0) {
+                resultadosDiv.innerHTML = `<div class="resultado-item" onclick="document.getElementById('buscaClienteModal').value='${termo}'; this.parentElement.style.display='none';">
+                    <i class="fas fa-plus"></i> Criar novo: "${termo}"
+                </div>`;
+                resultadosDiv.style.display = 'block';
+                return;
+            }
+            
+            let html = '';
+            clientes.forEach(cliente => {
+                html += `<div class="resultado-item" onclick="document.getElementById('buscaClienteModal').value='${cliente.nome}'; this.parentElement.style.display='none';">
+                    <strong>${cliente.nome}</strong>
+                    <small>${cliente.telefone || 'Sem telefone'}</small>
+                </div>`;
+            });
+            
+            resultadosDiv.innerHTML = html;
+            resultadosDiv.style.display = 'block';
+            
+        } catch (error) {
+            console.error('❌ Erro:', error);
+        }
+    }
 
+    const dataInput = document.getElementById('agendamentoData');
+    if (dataInput) {
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        dataInput.min = `${ano}-${mes}-${dia}`;
+        dataInput.value = `${ano}-${mes}-${dia}`;
+        
+        // Remover listener antigo e adicionar novo
+        dataInput.removeEventListener('change', carregarHorarios);
+        dataInput.addEventListener('change', carregarHorarios);
+        
+        // Carregar horários para data inicial
+        setTimeout(() => carregarHorarios(), 100);
+    }
+    
+   
+    if (buscaCliente) {
+        buscaCliente.removeEventListener('input', buscarClientes);
+        buscaCliente.addEventListener('input', buscarClientes);
+    }
+    
+    carregarServicos();
+    
+    modal.classList.add('active');
+}
+// ============================================---------------------------------------------------------------------------------------
 function salvarConfigFuncionamento() {
     console.log('Salvar configurações de funcionamento');
 }
