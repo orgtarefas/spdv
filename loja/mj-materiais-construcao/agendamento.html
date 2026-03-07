@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=yes">
+    <title>Agendamentos - Loja Online</title>
+    
+    <!-- Favicon -->
+    <link id="favicon" rel="icon" href="" type="image/x-icon">
+    
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="agendamento.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <!-- Linha Superior: Logo, Pesquisa, Usuário -->
+            <div class="header-top">
+                <!-- Esquerda: Logo -->
+                <div class="header-left">
+                    <div class="logo">
+                        <img src="" alt="Logo da Loja" class="logo-img" id="lojaLogo">
+                        <div class="logo-text">
+                            <h1 id="lojaNomeHeader">Carregando...</h1>
+                            <p class="subtitle">Sistema de Agendamentos</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Centro: Informações -->
+                <div class="header-center">
+                    <div class="agendamento-titulo">
+                        <i class="fas fa-clock"></i>
+                        <h2>Painel de Agendamentos</h2>
+                    </div>
+                </div>
+                
+                <!-- Direita: Botão Voltar -->
+                <div class="header-right">
+                    <button class="btn-voltar" id="btnVoltar">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Painel de Agendamento -->
+        <div class="agendamento-full-painel">
+            <!-- Chamando Agora (Destaque) -->
+            <div class="chamando-destaque" id="chamandoDestaque">
+                <div class="chamando-content">
+                    <span class="chamando-label">CHAMANDO AGORA</span>
+                    <span class="chamando-senha" id="chamandoSenha">---</span>
+                    <span class="chamando-cliente" id="chamandoCliente">---</span>
+                </div>
+            </div>
+
+            <!-- Fila de Agendamentos -->
+            <div class="fila-container">
+                <div class="fila-header">
+                    <h3><i class="fas fa-users"></i> Fila de Agendamentos</h3>
+                    <div class="fila-stats">
+                        <span class="stats-item" id="totalNaFila">0</span>
+                        <span class="stats-label">na fila</span>
+                    </div>
+                </div>
+
+                <div class="fila-lista" id="filaLista">
+                    <div class="empty-fila">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Fila vazia no momento</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Histórico de Chamados -->
+            <div class="historico-container">
+                <div class="historico-header">
+                    <h3><i class="fas fa-history"></i> Últimos Chamados</h3>
+                </div>
+
+                <div class="historico-lista" id="historicoLista">
+                    <div class="empty-historico">
+                        <i class="fas fa-history"></i>
+                        <p>Nenhum chamado no histórico</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <div class="footer-contacts">
+                    <h4>Atendimento</h4>
+                    <div class="contact-grid" id="contactGrid">
+                        <div class="loading-contacts">
+                            <div class="spinner-small"></div>
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="footer-address">
+                    <h4>Endereço</h4>
+                    <div id="addressGrid">
+                        <div class="loading-address">
+                            <div class="spinner-small"></div>
+                        </div>
+                    </div>
+                </div>
+        
+                <div class="footer-chat"></div>
+            </div>
+        
+            <div class="footer-copyright">
+                <p>© EVOTL - Sistema de Agendamentos</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3 id="loadingMessage">Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <span class="message-text"></span>
+        </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <!-- Firebase (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Scripts da loja -->
+    <script src="../../login_firebase.js"></script>
+    <script type="module" src="../../novo_lojas.js"></script>
+    <script type="module" src="agendamento.js"></script>
+</body>
+</html>
