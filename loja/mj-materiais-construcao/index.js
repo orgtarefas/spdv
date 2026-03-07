@@ -377,10 +377,11 @@ function inicializarScrollHorizontal() {
     
     const scrollAmount = 200; // Quantidade de pixels para scrollar
     
-    // Remover listeners antigos para evitar duplicação
+    // Clonar e substituir botões para remover listeners antigos
     if (prevBtn) {
         const newPrevBtn = prevBtn.cloneNode(true);
         prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+        
         newPrevBtn.addEventListener('click', () => {
             scrollContainer.scrollBy({
                 left: -scrollAmount,
@@ -392,6 +393,7 @@ function inicializarScrollHorizontal() {
     if (nextBtn) {
         const newNextBtn = nextBtn.cloneNode(true);
         nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+        
         newNextBtn.addEventListener('click', () => {
             scrollContainer.scrollBy({
                 left: scrollAmount,
@@ -400,21 +402,22 @@ function inicializarScrollHorizontal() {
         });
     }
     
-    // Remover listener antigo de scroll e adicionar novo
+    // Clonar e substituir o scrollContainer para remover listeners antigos
     const newScrollContainer = scrollContainer.cloneNode(true);
     scrollContainer.parentNode.replaceChild(newScrollContainer, scrollContainer);
     
+    // Adicionar event listener de scroll
     newScrollContainer.addEventListener('scroll', () => {
         const scrollLeft = newScrollContainer.scrollLeft;
         const maxScroll = newScrollContainer.scrollWidth - newScrollContainer.clientWidth;
         
         // Atualizar dots baseado na posição
-        const newDots = document.querySelectorAll('.scroll-indicator-dots .dot');
-        if (newDots.length > 0 && maxScroll > 0) {
+        const dots = document.querySelectorAll('.scroll-indicator-dots .dot');
+        if (dots.length > 0 && maxScroll > 0) {
             const scrollPercent = scrollLeft / maxScroll;
-            const activeDot = Math.floor(scrollPercent * newDots.length);
+            const activeDot = Math.floor(scrollPercent * dots.length);
             
-            newDots.forEach((dot, index) => {
+            dots.forEach((dot, index) => {
                 if (index === activeDot) {
                     dot.classList.add('active');
                 } else {
@@ -440,8 +443,7 @@ function inicializarScrollHorizontal() {
         newScrollContainer.dispatchEvent(new Event('scroll'));
     }, 100);
     
-    // Atualizar a referência global
-    document.getElementById('proximasSenhasScroll') = newScrollContainer;
+    console.log('✅ Scroll horizontal inicializado');
 }
 
 // ============================================
@@ -1964,4 +1966,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
