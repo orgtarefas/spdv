@@ -130,7 +130,7 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- ATENDIMENTO AGENDADO - CARROSSEL DO CLIENTE -->
+        <!-- ATENDIMENTO AGENDADO - 3 COLUNAS (CLIENTE) -->
         <!-- ============================================ -->
         <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
             <div class="agendamento-header">
@@ -140,113 +140,131 @@
                 </button>
             </div>
             
-            <div class="carousel-container agendamento-carousel">
-                <button class="carousel-arrow prev" id="agendamentoPrev">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                
-                <div class="swiper agendamento-swiper">
-                    <div class="swiper-wrapper">
-                        <!-- Slide 1: CHAMANDO AGORA (Destaque) -->
-                        <div class="swiper-slide">
-                            <div class="agendamento-card chamando-card">
-                                <div class="card-header">
-                                    <i class="fas fa-bell"></i>
-                                    <h3>CHAMANDO AGORA</h3>
-                                </div>
-                                <div class="card-content" id="chamandoAgoraCard">
-                                    <div class="empty-agendamento">
-                                        <i class="fas fa-check-circle"></i>
-                                        <p>Nenhum chamado no momento</p>
-                                    </div>
-                                </div>
-                                <div class="card-footer">
-                                    <i class="fas fa-volume-up"></i> Último chamado: <span id="ultimoChamadoHora">--:--</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Slide 2: FILA DE AGENDAMENTOS -->
-                        <div class="swiper-slide">
-                            <div class="agendamento-card fila-card">
-                                <div class="card-header">
-                                    <i class="fas fa-users"></i>
-                                    <h3>Fila de Agendamentos</h3>
-                                    <span class="card-badge" id="totalFilaBadge">0</span>
-                                </div>
-                                <div class="card-content" id="proximosFilaCard">
-                                    <div class="empty-agendamento">
-                                        <i class="fas fa-users"></i>
-                                        <p>Fila vazia</p>
-                                    </div>
-                                </div>
-                                <div class="card-footer">
-                                    <i class="fas fa-clock"></i> 
-                                    <span id="totalFilaTexto">0</span> pessoas na fila • 
-                                    <span id="tempoMedioEspera">0</span> min médio
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Slide 3: PRÓXIMOS DA FILA (Prévia) -->
-                        <div class="swiper-slide">
-                            <div class="agendamento-card proximos-card">
-                                <div class="card-header">
-                                    <i class="fas fa-arrow-right"></i>
-                                    <h3>Próximos Atendimentos</h3>
-                                </div>
-                                <div class="card-content" id="proximosPrevistosCard">
-                                    <div class="empty-agendamento">
-                                        <i class="fas fa-smile"></i>
-                                        <p>Veja quem vem a seguir</p>
-                                    </div>
-                                </div>
-                                <div class="card-footer">
-                                    <i class="fas fa-arrow-right"></i> Deslize para ver todos
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Slide 4: MEU AGENDAMENTO (só aparece se logado) -->
-                        <div class="swiper-slide" id="minhaSenhaSlide" style="display: none;">
-                            <div class="agendamento-card minha-senha-card">
-                                <div class="card-header">
-                                    <i class="fas fa-ticket-alt"></i>
-                                    <h3>Meu Agendamento</h3>
-                                </div>
-                                <div class="card-content" id="minhaSenhaCard">
-                                    <div class="empty-agendamento">
-                                        <i class="fas fa-smile"></i>
-                                        <p>Você não possui agendamento</p>
-                                        <button class="btn-agendar-pequeno" id="btnAgendarRapido">
-                                            <i class="fas fa-calendar-plus"></i> Agendar agora
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="card-footer" id="minhaSenhaFooter" style="display: none;">
-                                    <i class="fas fa-clock"></i> 
-                                    <span id="minhaPosicao"></span>
-                                </div>
-                            </div>
+            <!-- Container com 3 colunas de tamanhos diferentes -->
+            <div class="agendamento-colunas">
+                <!-- Coluna 1: CHAMANDO AGORA (Menor - destaque) -->
+                <div class="agendamento-coluna coluna-chamando">
+                    <div class="coluna-header chamando">
+                        <i class="fas fa-bell"></i>
+                        <h3>CHAMANDO AGORA</h3>
+                    </div>
+                    <div class="coluna-content" id="chamandoAgoraCard">
+                        <div class="empty-agendamento">
+                            <i class="fas fa-check-circle"></i>
+                            <p>Nenhum chamado no momento</p>
                         </div>
                     </div>
+                    <div class="coluna-footer">
+                        <i class="fas fa-volume-up"></i> 
+                        Último: <span id="ultimoChamadoHora">--:--</span>
+                    </div>
                 </div>
-                
-                <button class="carousel-arrow next" id="agendamentoNext">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
+
+                <!-- Coluna 2: FILA DE AGENDAMENTOS (Média - lista vertical) -->
+                <div class="agendamento-coluna coluna-fila">
+                    <div class="coluna-header">
+                        <i class="fas fa-users"></i>
+                        <h3>Fila de Agendamentos</h3>
+                        <span class="coluna-badge" id="totalFilaBadge">0</span>
+                    </div>
+                    <div class="coluna-content lista-vertical" id="filaListaCard">
+                        <div class="empty-agendamento">
+                            <i class="fas fa-users"></i>
+                            <p>Fila vazia</p>
+                        </div>
+                    </div>
+                    <div class="coluna-footer">
+                        <i class="fas fa-clock"></i> 
+                        <span id="totalFilaTexto">0</span> pessoas • 
+                        <span id="tempoMedioEspera">0</span> min
+                    </div>
+                </div>
+
+                <!-- Coluna 3: PRÓXIMOS AGENDAMENTOS (Maior - carrossel horizontal) -->
+                <div class="agendamento-coluna coluna-proximos">
+                    <div class="coluna-header">
+                        <i class="fas fa-arrow-right"></i>
+                        <h3>Próximos Agendamentos</h3>
+                    </div>
+                    
+                    <!-- Carrossel horizontal -->
+                    <div class="proximos-carousel-container">
+                        <button class="carousel-arrow-small prev" id="proximosPrev">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
+                        <div class="proximos-scroll" id="proximosScroll">
+                            <div class="proximos-track" id="proximosTrack">
+                                <!-- Cards horizontais serão inseridos aqui via JavaScript -->
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="carousel-arrow-small next" id="proximosNext">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="coluna-footer">
+                        <i class="fas fa-arrow-right"></i> Deslize para ver mais
+                        <span class="scroll-indicator-dots" id="scrollDots">
+                            <span class="dot active"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Paginação e Indicadores -->
+            <!-- Minha Senha (aparece apenas quando usuário está logado) -->
+            <div class="minha-senha-container" id="minhaSenhaContainer" style="display: none;">
+                <div class="minha-senha-card">
+                    <i class="fas fa-ticket-alt"></i>
+                    <div class="minha-senha-info">
+                        <span class="minha-senha-label">Minha Senha:</span>
+                        <span class="minha-senha-numero" id="minhaSenhaNumero">---</span>
+                        <span class="minha-senha-status" id="minhaSenhaStatus">---</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Indicador de status em tempo real -->
             <div class="agendamento-footer-info">
-                <div class="swiper-pagination agendamento-pagination"></div>
                 <div class="agendamento-status" id="agendamentoStatus">
                     <span class="status-indicator online"></span>
-                    <span>Atendimento em tempo real</span>
+                    <span>Atendimento em tempo real • Atualização automática</span>
                 </div>
             </div>
 
-            <!-- Modal de Agendamento Rápido (opcional) -->
+            <!-- Modal de Agendamento Rápido -->
             <div id="agendamentoRapidoModal" class="modal" style="display: none;">
                 <div class="modal-content modal-small">
                     <div class="modal-header">
@@ -258,29 +276,42 @@
                             <div class="form-group">
                                 <label><i class="fas fa-cut"></i> Serviço</label>
                                 <select id="servicoSelect" class="form-select">
-                                    <option value="">Selecione...</option>
+                                    <option value="">Selecione um serviço...</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar"></i> Data</label>
-                                <input type="date" id="agendamentoData" class="form-input" min="">
-                            </div>
-                            <div class="form-group">
-                                <label><i class="fas fa-clock"></i> Horário</label>
-                                <select id="agendamentoHorario" class="form-select">
-                                    <option value="">Selecione...</option>
-                                </select>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label><i class="fas fa-calendar"></i> Data</label>
+                                    <input type="date" id="agendamentoData" class="form-input">
+                                </div>
+                                <div class="form-group half">
+                                    <label><i class="fas fa-clock"></i> Horário</label>
+                                    <select id="agendamentoHorario" class="form-select">
+                                        <option value="">Selecione</option>
+                                        <option value="08:00">08:00</option>
+                                        <option value="09:00">09:00</option>
+                                        <option value="10:00">10:00</option>
+                                        <option value="11:00">11:00</option>
+                                        <option value="13:00">13:00</option>
+                                        <option value="14:00">14:00</option>
+                                        <option value="15:00">15:00</option>
+                                        <option value="16:00">16:00</option>
+                                        <option value="17:00">17:00</option>
+                                    </select>
+                                </div>
                             </div>
                             <button class="btn-confirmar-agendamento" id="btnConfirmarAgendamento">
-                                <i class="fas fa-check"></i> Confirmar
+                                <i class="fas fa-check"></i> Confirmar Agendamento
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
+        
+        <!-- ============================================ -->
         <!-- Modal de Consulta Rápida -->
+        <!-- ============================================ -->
         <div id="quickSearchModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -623,6 +654,7 @@
     </script>
 </body>
 </html>
+
 
 
 
