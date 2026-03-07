@@ -360,7 +360,7 @@ async function carregarConfiguracoesLoja() {
 }
 
 // ============================================
-// CARREGAR HORÁRIOS DE FUNCIONAMENTO (SEM ÍNDICES)
+// CARREGAR HORÁRIOS DE FUNCIONAMENTO
 // ============================================
 async function carregarHorariosFuncionamento() {
     if (!lojaIdAtual || !window.loginDb) return;
@@ -374,19 +374,19 @@ async function carregarHorariosFuncionamento() {
         
         const horariosDoc = await horariosRef.get();
         
+        // 🔥 DEFINIR DIAS DA SEMANA AQUI (ANTES DE USAR)
+        const diasSemana = [
+            { id: 'segunda', nome: 'Segunda-feira' },
+            { id: 'terca', nome: 'Terça-feira' },
+            { id: 'quarta', nome: 'Quarta-feira' },
+            { id: 'quinta', nome: 'Quinta-feira' },
+            { id: 'sexta', nome: 'Sexta-feira' },
+            { id: 'sabado', nome: 'Sábado' },
+            { id: 'domingo', nome: 'Domingo' }
+        ];
+        
         if (horariosDoc.exists) {
             const dados = horariosDoc.data();
-            
-            // Dias da semana
-            const diasSemana = [
-                { id: 'segunda', nome: 'Segunda-feira' },
-                { id: 'terca', nome: 'Terça-feira' },
-                { id: 'quarta', nome: 'Quarta-feira' },
-                { id: 'quinta', nome: 'Quinta-feira' },
-                { id: 'sexta', nome: 'Sexta-feira' },
-                { id: 'sabado', nome: 'Sábado' },
-                { id: 'domingo', nome: 'Domingo' }
-            ];
             
             let html = '';
             diasSemana.forEach(dia => {
@@ -437,7 +437,10 @@ async function carregarHorariosFuncionamento() {
                 `;
             });
             
-            document.getElementById('horariosSemana').innerHTML = html;
+            const horariosSemana = document.getElementById('horariosSemana');
+            if (horariosSemana) {
+                horariosSemana.innerHTML = html;
+            }
             
             // Carregar exceções
             const excecoesRef = window.loginDb
@@ -453,9 +456,11 @@ async function carregarHorariosFuncionamento() {
             } else {
                 // Criar lista vazia se não existir
                 await excecoesRef.set({ lista: [] });
+                renderizarExcecoes([]);
             }
         } else {
             // Criar horários padrão se não existir
+            console.log('📅 Criando horários padrão...');
             const horariosPadrao = {};
             diasSemana.forEach(dia => {
                 horariosPadrao[dia.id] = {
@@ -469,9 +474,53 @@ async function carregarHorariosFuncionamento() {
             });
             
             await horariosRef.set(horariosPadrao);
+            console.log('✅ Horários padrão criados');
             
-            // Recarregar a página para mostrar os horários
-            window.location.reload();
+            // Renderizar com os dados padrão
+            let html = '';
+            diasSemana.forEach(dia => {
+                html += `
+                    <div class="horario-card" data-dia="${dia.id}">
+                        <div class="dia-header">
+                            <span class="dia-nome">${dia.nome}</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" class="toggle-dia" ${dia.id !== 'domingo' ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="horario-inputs" ${dia.id === 'domingo' ? 'style="opacity:0.5; pointer-events:none;"' : ''}>
+                            <div class="input-group">
+                                <label>Abertura</label>
+                                <input type="time" class="abertura" value="10:00">
+                            </div>
+                            <div class="input-group">
+                                <label>Fechamento</label>
+                                <input type="time" class="fechamento" value="18:00">
+                            </div>
+                            
+                            <div class="input-group intervalo">
+                                <label>Intervalo</label>
+                                <div class="intervalo-inputs">
+                                    <input type="time" class="intervalo-inicio" value="13:00">
+                                    <span>às</span>
+                                    <input type="time" class="intervalo-fim" value="14:00">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Máx. Clientes</label>
+                                <input type="number" class="max-clientes" value="30" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            const horariosSemana = document.getElementById('horariosSemana');
+            if (horariosSemana) {
+                horariosSemana.innerHTML = html;
+            }
         }
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
