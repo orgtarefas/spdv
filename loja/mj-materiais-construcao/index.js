@@ -1,4 +1,4 @@
-// index.js - Tela de Exposição de Produtos para Clientes (NOVO SISTEMA)
+// index.js - Tela de Exposição de Produtos e Agendamentos* para Clientes
 console.log("🛒 Sistema PDV - Loja para Clientes (Nova Autenticação)");
 
 // VERIFICAR SE AS FUNÇÕES DE LOGIN ESTÃO DISPONÍVEIS
@@ -1889,5 +1889,6 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
