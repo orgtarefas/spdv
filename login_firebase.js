@@ -1,6 +1,6 @@
 // ============================================
-// CONFIGURAÇÃO DO FIREBASE DE LOGIN
-// Projeto: lojasite-ba36f
+// login_firebase.js
+// CONFIGURAÇÃO DO FIREBASE DE LOGIN - Projeto: lojasite-ba36f
 // ============================================
 
 const loginFirebaseConfig = {
@@ -779,4 +779,5 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarPermissao: typeof verificarPermissao
 });
+
 
