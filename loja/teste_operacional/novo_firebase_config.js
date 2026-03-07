@@ -1,7 +1,6 @@
 // ============================================
-// CONFIGURAÇÃO DO FIREBASE DE ESTOQUE E VENDAS
-// Projeto: spdv-3872a (APENAS DADOS DA LOJA)
-// Mantém a MESMA estrutura do firebase_config.js original
+// novo_firebase_config.js
+// CONFIGURAÇÃO DO FIREBASE DE ESTOQUE E VENDAS - Projeto: spdv-3872a (APENAS DADOS DA LOJA)
 // ============================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -1734,3 +1733,4 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
