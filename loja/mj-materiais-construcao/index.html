@@ -130,19 +130,14 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- NOVO: Atendimento Agendado (Carrossel de Senhas) -->
+        <!-- NOVO: Atendimento Agendado (CARROSSEL DO CLIENTE) -->
         <!-- ============================================ -->
         <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
             <div class="agendamento-header">
                 <h2><i class="fas fa-clock"></i> Atendimento Agendado</h2>
-                <div class="agendamento-header-buttons">
-                    <button class="btn-agendar" id="btnAbrirAgendamento">
-                        <i class="fas fa-calendar-plus"></i> Agendar
-                    </button>
-                    <button class="btn-ver-agendamento" id="btnVerAgendamento">
-                        <i class="fas fa-calendar-alt"></i> Ver Fila
-                    </button>
-                </div>
+                <button class="btn-agendar" id="btnAbrirAgendamento">
+                    <i class="fas fa-calendar-plus"></i> Agendar
+                </button>
             </div>
             
             <div class="carousel-container agendamento-carousel">
@@ -151,13 +146,13 @@
                 </button>
                 
                 <div class="swiper agendamento-swiper">
-                    <div class="swiper-wrapper" id="agendamentoSlides">
-                        <!-- Chamando Agora (Slide 1) -->
+                    <div class="swiper-wrapper">
+                        <!-- Slide 1: CHAMANDO AGORA (Destaque) -->
                         <div class="swiper-slide">
                             <div class="agendamento-card chamando-card">
                                 <div class="card-header">
                                     <i class="fas fa-bell"></i>
-                                    <h3>Chamando Agora</h3>
+                                    <h3>CHAMANDO AGORA</h3>
                                 </div>
                                 <div class="card-content" id="chamandoAgoraCard">
                                     <div class="empty-agendamento">
@@ -165,15 +160,18 @@
                                         <p>Nenhum chamado no momento</p>
                                     </div>
                                 </div>
+                                <div class="card-footer">
+                                    <i class="fas fa-volume-up"></i> Atenção: próximos chamados
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Próximos da Fila (Slide 2) -->
+                        <!-- Slide 2: FILA DE AGENDAMENTOS -->
                         <div class="swiper-slide">
                             <div class="agendamento-card fila-card">
                                 <div class="card-header">
                                     <i class="fas fa-users"></i>
-                                    <h3>Próximos da Fila</h3>
+                                    <h3>Fila de Agendamentos</h3>
                                     <span class="card-badge" id="totalFilaBadge">0</span>
                                 </div>
                                 <div class="card-content" id="proximosFilaCard">
@@ -182,36 +180,23 @@
                                         <p>Fila vazia</p>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Últimos Chamados (Slide 3) -->
-                        <div class="swiper-slide">
-                            <div class="agendamento-card historico-card">
-                                <div class="card-header">
-                                    <i class="fas fa-history"></i>
-                                    <h3>Últimos Chamados</h3>
-                                </div>
-                                <div class="card-content" id="ultimosChamadosCard">
-                                    <div class="empty-agendamento">
-                                        <i class="fas fa-history"></i>
-                                        <p>Nenhum histórico</p>
-                                    </div>
+                                <div class="card-footer">
+                                    <i class="fas fa-clock"></i> <span id="totalFilaTexto">0</span> pessoas na fila
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Minha Senha (Slide 4 - só aparece se logado) -->
+                        <!-- Slide 3: MEU AGENDAMENTO (só aparece se logado) -->
                         <div class="swiper-slide" id="minhaSenhaSlide" style="display: none;">
                             <div class="agendamento-card minha-senha-card">
                                 <div class="card-header">
                                     <i class="fas fa-ticket-alt"></i>
-                                    <h3>Minha Senha</h3>
+                                    <h3>Meu Agendamento</h3>
                                 </div>
                                 <div class="card-content" id="minhaSenhaCard">
                                     <div class="empty-agendamento">
                                         <i class="fas fa-smile"></i>
-                                        <p>Você não possui agendamento ativo</p>
+                                        <p>Você não possui agendamento</p>
                                         <button class="btn-agendar-pequeno" id="btnAgendarRapido">
                                             <i class="fas fa-calendar-plus"></i> Agendar agora
                                         </button>
@@ -227,7 +212,7 @@
                 </button>
             </div>
 
-            <!-- Paginação do Swiper -->
+            <!-- Paginação -->
             <div class="swiper-pagination agendamento-pagination"></div>
         </div>
 
@@ -574,4 +559,5 @@
     </script>
 </body>
 </html>
+
 
