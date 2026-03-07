@@ -1,5 +1,4 @@
-// agendamento.js - Sistema de Agendamentos (COMPLETO)
-
+// agendamento.js - Sistema Completo de Gestão de Agendamentos
 console.log("📅 Inicializando sistema de agendamentos...");
 
 // ============================================
@@ -11,12 +10,16 @@ import {
     doc, 
     getDocs, 
     getDoc, 
-    onSnapshot,
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    addDoc,
     query,
     where,
     orderBy,
     limit,
-    serverTimestamp
+    serverTimestamp,
+    onSnapshot
 } from './novo_firebase_config.js';
 
 // ============================================
@@ -25,11 +28,54 @@ import {
 const LOGO_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E📅%3C/text%3E%3C/svg%3E";
 
 let lojaIdAtual = null;
-let agendamentosAtivos = [];
-let agendamentosHistorico = [];
-let unsubscribeAgendamentos = null;
-let usuarioLogado = false;
 let dadosUsuario = null;
+let usuarioLogado = false;
+
+// Dados de agendamento
+let agendamentosAtivos = [];
+let agendamentosFuturos = [];
+let agendamentosHistorico = [];
+
+// Configurações da loja
+let configLoja = {
+    horarioFuncionamento: {},
+    maxClientesDia: 30,
+    maxSimultaneos: 3,
+    validacaoAutomatica: true,
+    notificacoesAtivas: true,
+    mensagemNotificacao: "Olá {cliente}, sua senha {senha} está como PRÓXIMO A ATENDER. Por favor, dirija-se ao estabelecimento."
+};
+
+// Listeners
+let unsubscribeAgendamentos = null;
+let unsubscribeFuturos = null;
+
+// ============================================
+// VERIFICAR PERMISSÃO DE ACESSO
+// ============================================
+function verificarPermissaoAcesso() {
+    // Se não estiver logado, redireciona
+    if (!usuarioLogado || !dadosUsuario) {
+        console.log('⛔ Usuário não logado, redirecionando...');
+        window.location.href = 'index.html';
+        return false;
+    }
+    
+    // Verificar se é admin ou funcionário (não cliente)
+    const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+    const tipo = dadosUsuario.tipo;
+    
+    if (tipo === 'cliente' || perfil === 'cliente') {
+        console.log('⛔ Cliente não tem permissão para acessar esta página');
+        mostrarMensagem('Acesso restrito a funcionários', 'error');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
+        return false;
+    }
+    
+    return true;
+}
 
 // ============================================
 // EXTRAIR LOJA ID DA URL
@@ -54,215 +100,217 @@ function extrairLojaIdDaURL() {
 }
 
 // ============================================
-// CONFIGURAR FAVICON
+// CARREGAR CONFIGURAÇÕES DA LOJA
 // ============================================
-function configurarFavicon() {
-    const lojaId = extrairLojaIdDaURL();
-    if (lojaId) {
-        const favicon = document.getElementById('favicon');
-        if (favicon) {
-            favicon.href = `../../imagens/${lojaId}/icone.ico`;
-            console.log(`✅ Favicon configurado para loja: ${lojaId}`);
+async function carregarConfiguracoesLoja() {
+    if (!lojaIdAtual || !window.loginDb) return;
+    
+    try {
+        const configRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('agendamento')
+            .doc('config');
+        
+        const configDoc = await configRef.get();
+        
+        if (configDoc.exists) {
+            configLoja = {
+                ...configLoja,
+                ...configDoc.data()
+            };
+            console.log('✅ Configurações carregadas:', configLoja);
+        } else {
+            // Criar configurações padrão
+            await configRef.set(configLoja);
+            console.log('✅ Configurações padrão criadas');
         }
+        
+        return configLoja;
+    } catch (error) {
+        console.error('❌ Erro ao carregar configurações:', error);
+        return configLoja;
     }
 }
 
 // ============================================
-// CARREGAR LOGO DA LOJA
+// SALVAR CONFIGURAÇÕES DA LOJA
 // ============================================
-function carregarLogoLoja() {
-    const logoImg = document.getElementById('lojaLogo');
-    if (!logoImg) return;
+async function salvarConfiguracoesLoja(novasConfig) {
+    if (!lojaIdAtual || !window.loginDb) return false;
     
-    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
-    
-    if (!lojaId) {
-        logoImg.src = LOGO_PLACEHOLDER;
-        return;
+    try {
+        const configRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('agendamento')
+            .doc('config');
+        
+        await configRef.update(novasConfig);
+        
+        configLoja = {
+            ...configLoja,
+            ...novasConfig
+        };
+        
+        console.log('✅ Configurações salvas');
+        return true;
+    } catch (error) {
+        console.error('❌ Erro ao salvar configurações:', error);
+        return false;
     }
-    
-    const logoPath = `../../imagens/${lojaId}/logo.png`;
-    console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
-    
-    const testImg = new Image();
-    testImg.onload = function() {
-        console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
-        logoImg.src = logoPath;
-    };
-    
-    testImg.onerror = function() {
-        console.log(`ℹ️ Logo não encontrada, usando placeholder`);
-        logoImg.src = LOGO_PLACEHOLDER;
-    };
-    
-    testImg.src = logoPath;
 }
 
 // ============================================
-// CARREGAR DADOS DA LOJA
+// CARREGAR HORÁRIOS DE FUNCIONAMENTO
 // ============================================
-async function carregarDadosLoja() {
-    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
+async function carregarHorariosFuncionamento() {
+    if (!lojaIdAtual || !window.loginDb) return;
     
-    if (!lojaId) return;
-    
-    if (typeof window.getLojaConfig === 'function') {
-        try {
-            const config = window.getLojaConfig(lojaId);
+    try {
+        const horariosRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('agendamento')
+            .doc('horarios');
+        
+        const horariosDoc = await horariosRef.get();
+        
+        if (horariosDoc.exists) {
+            const dados = horariosDoc.data();
             
-            if (config) {
-                const nomeLoja = config.nome || lojaId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            // Dias da semana
+            const diasSemana = [
+                { id: 'segunda', nome: 'Segunda-feira' },
+                { id: 'terca', nome: 'Terça-feira' },
+                { id: 'quarta', nome: 'Quarta-feira' },
+                { id: 'quinta', nome: 'Quinta-feira' },
+                { id: 'sexta', nome: 'Sexta-feira' },
+                { id: 'sabado', nome: 'Sábado' },
+                { id: 'domingo', nome: 'Domingo' }
+            ];
+            
+            let html = '';
+            diasSemana.forEach(dia => {
+                const configDia = dados[dia.id] || {
+                    aberto: dia.id !== 'domingo',
+                    abertura: '10:00',
+                    fechamento: '18:00',
+                    intervaloInicio: '13:00',
+                    intervaloFim: '14:00',
+                    maxClientes: 30
+                };
                 
-                const lojaNomeHeader = document.getElementById('lojaNomeHeader');
-                if (lojaNomeHeader) lojaNomeHeader.textContent = nomeLoja;
-                
-                document.title = `${nomeLoja} - Agendamentos`;
-                
-                if (config.contato) {
-                    renderizarContatos(config);
-                }
-                
-                if (config.contato?.endereco) {
-                    renderizarEndereco(config);
-                }
+                html += `
+                    <div class="horario-card" data-dia="${dia.id}">
+                        <div class="dia-header">
+                            <span class="dia-nome">${dia.nome}</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" class="toggle-dia" ${configDia.aberto ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="horario-inputs" ${!configDia.aberto ? 'style="opacity:0.5; pointer-events:none;"' : ''}>
+                            <div class="input-group">
+                                <label>Abertura</label>
+                                <input type="time" class="abertura" value="${configDia.abertura}">
+                            </div>
+                            <div class="input-group">
+                                <label>Fechamento</label>
+                                <input type="time" class="fechamento" value="${configDia.fechamento}">
+                            </div>
+                            
+                            <div class="input-group intervalo">
+                                <label>Intervalo</label>
+                                <div class="intervalo-inputs">
+                                    <input type="time" class="intervalo-inicio" value="${configDia.intervaloInicio}">
+                                    <span>às</span>
+                                    <input type="time" class="intervalo-fim" value="${configDia.intervaloFim}">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Máx. Clientes</label>
+                                <input type="number" class="max-clientes" value="${configDia.maxClientes}" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('horariosSemana').innerHTML = html;
+            
+            // Carregar exceções
+            const excecoesRef = window.loginDb
+                .collection('configuracoes')
+                .doc(lojaIdAtual)
+                .collection('agendamento')
+                .doc('excecoes');
+            
+            const excecoesDoc = await excecoesRef.get();
+            
+            if (excecoesDoc.exists) {
+                renderizarExcecoes(excecoesDoc.data().lista || []);
             }
-        } catch (error) {
-            console.error('❌ Erro ao carregar dados da loja:', error);
         }
+    } catch (error) {
+        console.error('❌ Erro ao carregar horários:', error);
     }
 }
 
 // ============================================
-// RENDERIZAR CONTATOS
+// RENDERIZAR EXCEÇÕES
 // ============================================
-function renderizarContatos(dadosLoja) {
-    const contactGrid = document.getElementById('contactGrid');
-    if (!contactGrid) return;
+function renderizarExcecoes(excecoes) {
+    const container = document.getElementById('excecoesLista');
     
-    if (!dadosLoja || !dadosLoja.contato) {
-        contactGrid.innerHTML = '<p class="no-contacts">Nenhum contato disponível</p>';
+    if (!excecoes || excecoes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <p>Nenhuma exceção cadastrada</p>
+            </div>
+        `;
         return;
     }
     
-    const contato = dadosLoja.contato;
-    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
-    const basePath = `../../imagens/${lojaId}/`;
-    const placeholder = LOGO_PLACEHOLDER;
+    // Ordenar por data
+    excecoes.sort((a, b) => new Date(a.data) - new Date(b.data));
     
     let html = '';
-    
-    if (contato.whatsapp && contato.whatsapp.trim() !== '') {
-        const numero = contato.whatsapp.replace(/\D/g, '');
+    excecoes.forEach(exc => {
+        const data = new Date(exc.data);
+        const dataFormatada = data.toLocaleDateString('pt-BR');
+        
+        let tipoTexto = '';
+        switch(exc.tipo) {
+            case 'feriado': tipoTexto = '🔴 Feriado'; break;
+            case 'horario_especial': tipoTexto = '🟡 Horário Especial'; break;
+            case 'capacidade_extra': tipoTexto = '🟢 Capacidade Extra'; break;
+            case 'capacidade_reduzida': tipoTexto = '🟠 Capacidade Reduzida'; break;
+        }
+        
         html += `
-            <a href="https://wa.me/${numero}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}whatsapp.png" alt="WhatsApp" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">WhatsApp</div>
-                        <div class="contact-value">${contato.whatsapp}</div>
-                    </div>
+            <div class="excecao-item" data-data="${exc.data}">
+                <div class="excecao-info">
+                    <span class="excecao-data">${dataFormatada}</span>
+                    <span class="excecao-tipo">${tipoTexto}</span>
+                    <span class="excecao-desc">${exc.observacao || ''}</span>
                 </div>
-            </a>
-        `;
-    }
-    
-    if (contato.email && contato.email.trim() !== '') {
-        html += `
-            <a href="mailto:${contato.email}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}email.png" alt="E-mail" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">E-mail</div>
-                        <div class="contact-value">${contato.email}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    if (contato.instagram && contato.instagram.trim() !== '') {
-        const usuario = contato.instagram.replace('@', '');
-        html += `
-            <a href="https://instagram.com/${usuario}" target="_blank" class="contact-link">
-                <div class="contact-item">
-                    <div class="contact-icon">
-                        <img src="${basePath}instagram.png" alt="Instagram" 
-                             onerror="this.src='${placeholder}'">
-                    </div>
-                    <div class="contact-content">
-                        <div class="contact-label">Instagram</div>
-                        <div class="contact-value">${contato.instagram}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    }
-    
-    if (html === '') {
-        html = '<p class="no-contacts">Nenhum contato disponível</p>';
-    }
-    
-    contactGrid.innerHTML = html;
-    console.log('📞 Contatos renderizados');
-}
-
-// ============================================
-// RENDERIZAR ENDEREÇO
-// ============================================
-function renderizarEndereco(dadosLoja) {
-    const addressGrid = document.getElementById('addressGrid');
-    if (!addressGrid) return;
-    
-    if (!dadosLoja || !dadosLoja.contato?.endereco) {
-        addressGrid.innerHTML = '<p class="no-address">Endereço não informado</p>';
-        return;
-    }
-    
-    const endereco = dadosLoja.contato.endereco;
-    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
-    const basePath = `../../imagens/${lojaId}/`;
-    const placeholder = LOGO_PLACEHOLDER;
-    
-    const ruaNumeroBairro = [];
-    if (endereco.rua) ruaNumeroBairro.push(endereco.rua);
-    if (endereco.numero) ruaNumeroBairro.push(`nº ${endereco.numero}`);
-    if (endereco.bairro) ruaNumeroBairro.push(endereco.bairro);
-    const ruaNumeroBairroStr = ruaNumeroBairro.join(' ');
-    
-    const cidadeUfCep = [];
-    if (endereco.cidade) cidadeUfCep.push(endereco.cidade);
-    if (endereco.uf) cidadeUfCep.push(endereco.uf);
-    if (endereco.cep) cidadeUfCep.push(`CEP: ${endereco.cep}`);
-    const cidadeUfCepStr = cidadeUfCep.join(' - ');
-    
-    const enderecoCompleto = `${ruaNumeroBairroStr} ${cidadeUfCepStr}`.trim();
-    const query = encodeURIComponent(enderecoCompleto);
-    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${query}`;
-    
-    let html = `
-        <a href="${mapsUrl}" target="_blank" class="address-item">
-            <div class="address-icon">
-                <img src="${basePath}endereco.png" alt="Endereço" 
-                     onerror="this.src='${placeholder}'">
-            </div>
-            <div class="address-content">
-                <div class="address-label">Endereço</div>
-                <div class="address-text">
-                    <span class="rua-numero">${ruaNumeroBairroStr}</span>
-                    <span class="cidade-uf-cep">${cidadeUfCepStr}</span>
+                <div class="excecao-acoes">
+                    <button class="btn-editar-excecao" onclick="editarExcecao('${exc.data}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-excluir-excecao" onclick="excluirExcecao('${exc.data}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
-        </a>
-    `;
+        `;
+    });
     
-    addressGrid.innerHTML = html;
-    console.log('📍 Endereço renderizado');
+    container.innerHTML = html;
 }
 
 // ============================================
@@ -270,22 +318,28 @@ function renderizarEndereco(dadosLoja) {
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!lojaIdAtual || !window.loginDb) {
-        console.error('❌ Não foi possível iniciar escuta: lojaId ou loginDb não disponível');
+        console.error('❌ Não foi possível iniciar escuta');
         return;
     }
     
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // Referência para a coleção de agendamentos no Firestore
-        const agendamentosRef = window.loginDb
+        // Agendamentos Ativos (hoje)
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        const amanha = new Date(hoje);
+        amanha.setDate(amanha.getDate() + 1);
+        
+        const ativosRef = window.loginDb
             .collection('agendamentos')
             .doc(lojaIdAtual)
             .collection('ativos')
+            .where('data', '>=', hoje.toISOString().split('T')[0])
+            .where('data', '<', amanha.toISOString().split('T')[0])
             .orderBy('senha', 'asc');
         
-        // Escutar mudanças em tempo real
-        unsubscribeAgendamentos = agendamentosRef.onSnapshot((snapshot) => {
+        unsubscribeAgendamentos = ativosRef.onSnapshot((snapshot) => {
             const agendamentos = [];
             snapshot.forEach(doc => {
                 agendamentos.push({
@@ -294,12 +348,35 @@ function iniciarEscutaAgendamentos() {
                 });
             });
             
-            console.log(`📅 ${agendamentos.length} agendamentos ativos`);
             agendamentosAtivos = agendamentos;
-            renderizarPainelCompleto();
+            renderizarPainelFila();
             
         }, (error) => {
-            console.error('❌ Erro na escuta de agendamentos:', error);
+            console.error('❌ Erro na escuta de ativos:', error);
+        });
+        
+        // Agendamentos Futuros
+        const futurosRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('futuros')
+            .orderBy('data', 'asc')
+            .orderBy('horario', 'asc');
+        
+        unsubscribeFuturos = futurosRef.onSnapshot((snapshot) => {
+            const futuros = [];
+            snapshot.forEach(doc => {
+                futuros.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            agendamentosFuturos = futuros;
+            renderizarAgendamentosFuturos();
+            
+        }, (error) => {
+            console.error('❌ Erro na escuta de futuros:', error);
         });
         
     } catch (error) {
@@ -308,125 +385,571 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL COMPLETO DE AGENDAMENTO
+// RENDERIZAR PAINEL DE FILA (3 COLUNAS)
 // ============================================
-function renderizarPainelCompleto() {
-    // Encontrar quem está sendo chamado agora
-    const chamandoAgora = agendamentosAtivos.find(a => a.status === 'chamando');
+function renderizarPainelFila() {
+    // Filtrar por status
+    const emAtendimento = agendamentosAtivos.filter(a => a.status === 'chamando');
+    const proximos = agendamentosAtivos.filter(a => a.status === 'aguardando' && a.validado === true);
+    const outros = agendamentosAtivos.filter(a => a.status === 'aguardando' && a.validado !== true);
     
-    // Filtrar os que estão aguardando (próximos)
-    const proximos = agendamentosAtivos
-        .filter(a => a.status === 'aguardando')
-        .sort((a, b) => (a.senha || '').localeCompare(b.senha || ''));
+    // Atualizar badges
+    document.getElementById('emAtendimentoBadge').textContent = emAtendimento.length;
+    document.getElementById('proximosBadge').textContent = proximos.length;
+    document.getElementById('outrosBadge').textContent = outros.length;
+    document.getElementById('filaTotalBadge').textContent = proximos.length + outros.length;
     
-    // Últimos 10 chamados (histórico)
-    const ultimos = agendamentosAtivos
-        .filter(a => a.status === 'concluido')
-        .slice(0, 10);
-    
-    // Atualizar total na fila
-    const totalNaFila = document.getElementById('totalNaFila');
-    if (totalNaFila) {
-        totalNaFila.textContent = proximos.length;
-    }
-    
-    // Renderizar "Chamando Agora" (destaque)
-    const chamandoSenha = document.getElementById('chamandoSenha');
-    const chamandoCliente = document.getElementById('chamandoCliente');
-    
-    if (chamandoSenha && chamandoCliente) {
-        if (chamandoAgora) {
-            chamandoSenha.textContent = chamandoAgora.senha || '---';
-            chamandoCliente.textContent = chamandoAgora.cliente_nome || 'Cliente';
-        } else {
-            chamandoSenha.textContent = '---';
-            chamandoCliente.textContent = 'Aguardando...';
-        }
-    }
-    
-    // Renderizar "Fila de Agendamentos"
-    const filaLista = document.getElementById('filaLista');
-    if (filaLista) {
-        if (proximos.length > 0) {
-            let html = '';
-            proximos.forEach((item, index) => {
-                html += `
-                    <div class="fila-item">
-                        <span class="fila-senha">${item.senha || '---'}</span>
-                        <div class="fila-info">
-                            <span class="fila-nome">${item.cliente_nome || 'Cliente'}</span>
-                            <span class="fila-servico">
-                                <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
-                            </span>
-                            <span class="fila-horario">
-                                <i class="far fa-clock"></i> ${item.horario || 'Aguardando'}
-                            </span>
-                            <span class="fila-status aguardando">${index === 0 ? 'PRÓXIMO' : `#${index + 1}`}</span>
+    // Renderizar EM ATENDIMENTO
+    const emAtendimentoLista = document.getElementById('emAtendimentoLista');
+    if (emAtendimento.length > 0) {
+        let html = '';
+        emAtendimento.forEach(item => {
+            html += `
+                <div class="card-atendimento" data-id="${item.id}">
+                    <div class="info">
+                        <h4>${item.cliente_nome}</h4>
+                        <div>
+                            <span class="senha">${item.senha}</span>
+                            <span class="servico">${item.servico}</span>
                         </div>
                     </div>
-                `;
-            });
-            filaLista.innerHTML = html;
-        } else {
-            filaLista.innerHTML = `
-                <div class="empty-fila">
-                    <i class="fas fa-check-circle"></i>
-                    <p>Fila vazia no momento</p>
+                    <div class="acoes">
+                        <button class="btn-acao-card" onclick="concluirAtendimento('${item.id}')" title="Concluir">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
                 </div>
             `;
-        }
+        });
+        emAtendimentoLista.innerHTML = html;
+    } else {
+        emAtendimentoLista.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-user-clock"></i>
+                <p>Nenhum atendimento no momento</p>
+            </div>
+        `;
     }
     
-    // Renderizar "Histórico de Chamados"
-    const historicoLista = document.getElementById('historicoLista');
-    if (historicoLista) {
-        if (ultimos.length > 0) {
-            let html = '';
-            ultimos.forEach(item => {
-                html += `
-                    <div class="fila-item ultimo">
-                        <span class="fila-senha">${item.senha || '---'}</span>
-                        <div class="fila-info">
-                            <span class="fila-nome">${item.cliente_nome || 'Cliente'}</span>
-                            <span class="fila-servico">
-                                <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
-                            </span>
-                            <span class="fila-horario">
-                                <i class="far fa-check-circle"></i> ${item.horario_conclusao || 'Concluído'}
-                            </span>
-                        </div>
+    // Renderizar PRÓXIMOS A ATENDER
+    const proximosLista = document.getElementById('proximosLista');
+    if (proximos.length > 0) {
+        let html = '';
+        proximos.forEach((item, index) => {
+            html += `
+                <div class="card-aguardando ${index === 0 ? 'proximo' : ''}" data-id="${item.id}">
+                    <span class="senha-numero">${item.senha}</span>
+                    <div class="info">
+                        <span class="cliente">${item.cliente_nome}</span>
+                        <span class="servico">
+                            <i class="fas fa-cut"></i> ${item.servico}
+                        </span>
                     </div>
-                `;
-            });
-            historicoLista.innerHTML = html;
-        } else {
-            historicoLista.innerHTML = `
-                <div class="empty-historico">
-                    <i class="fas fa-history"></i>
-                    <p>Nenhum chamado no histórico</p>
+                    <div class="acoes">
+                        <button class="btn-acao-card" onclick="chamarCliente('${item.id}')" title="Chamar">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                    </div>
                 </div>
             `;
-        }
+        });
+        proximosLista.innerHTML = html;
+        
+        // Habilitar botão chamar próximo
+        document.getElementById('btnChamarProximo').disabled = false;
+    } else {
+        proximosLista.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-smile"></i>
+                <p>Fila vazia</p>
+            </div>
+        `;
+        document.getElementById('btnChamarProximo').disabled = true;
+    }
+    
+    // Renderizar OUTROS NA FILA
+    const outrosLista = document.getElementById('outrosLista');
+    if (outros.length > 0) {
+        let html = '';
+        outros.forEach(item => {
+            html += `
+                <div class="card-aguardando pendente" data-id="${item.id}">
+                    <span class="senha-numero">${item.senha}</span>
+                    <div class="info">
+                        <span class="cliente">${item.cliente_nome}</span>
+                        <span class="servico">
+                            <i class="fas fa-cut"></i> ${item.servico}
+                        </span>
+                        ${!item.validado ? '<span class="badge-validar">Aguardando validação</span>' : ''}
+                    </div>
+                    <div class="acoes">
+                        <button class="btn-acao-card" onclick="editarAgendamento('${item.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        ${!item.validado ? `
+                            <button class="btn-acao-card success" onclick="validarAgendamento('${item.id}')" title="Validar">
+                                <i class="fas fa-check"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        outrosLista.innerHTML = html;
+    } else {
+        outrosLista.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-smile"></i>
+                <p>Fila vazia</p>
+            </div>
+        `;
     }
 }
 
 // ============================================
-// EVENTOS DE LOGIN/LOGOUT
+// RENDERIZAR AGENDAMENTOS FUTUROS
 // ============================================
-window.addEventListener('usuarioLogado', (event) => {
-    const { usuario } = event.detail;
+function renderizarAgendamentosFuturos() {
+    const grid = document.getElementById('futurosGrid');
+    document.getElementById('futurosBadge').textContent = agendamentosFuturos.length;
     
-    usuarioLogado = true;
-    dadosUsuario = usuario;
+    if (agendamentosFuturos.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-alt"></i>
+                <p>Nenhum agendamento futuro</p>
+            </div>
+        `;
+        return;
+    }
     
-    console.log('✅ Usuário logado no agendamento:', usuario.email);
-});
+    // Agrupar por data
+    const porData = {};
+    agendamentosFuturos.forEach(ag => {
+        if (!porData[ag.data]) {
+            porData[ag.data] = [];
+        }
+        porData[ag.data].push(ag);
+    });
+    
+    let html = '';
+    for (const [data, agendamentos] of Object.entries(porData)) {
+        const dataObj = new Date(data + 'T12:00:00');
+        const dataFormatada = dataObj.toLocaleDateString('pt-BR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        // Verificar limite do dia
+        const totalDia = agendamentos.length;
+        const limiteDia = configLoja.maxClientesDia;
+        const corLimite = totalDia >= limiteDia ? '#dc3545' : '#28a745';
+        
+        html += `
+            <div class="data-group">
+                <div class="data-header">
+                    <h4>${dataFormatada}</h4>
+                    <span class="limite-dia" style="color: ${corLimite}">
+                        ${totalDia}/${limiteDia} agendamentos
+                    </span>
+                </div>
+                <div class="agendamentos-data">
+        `;
+        
+        agendamentos.forEach(ag => {
+            const validado = ag.validado ? 'validado' : 'pendente';
+            const temWhatsApp = ag.cliente_whatsapp ? '✅' : '❌';
+            
+            html += `
+                <div class="futuro-card ${validado}" data-id="${ag.id}">
+                    <div class="futuro-horario">${ag.horario}</div>
+                    <div class="futuro-info">
+                        <strong>${ag.cliente_nome}</strong>
+                        <span>${ag.servico}</span>
+                        <small>Whats: ${temWhatsApp} | Email: ${ag.cliente_email || '---'}</small>
+                    </div>
+                    <div class="futuro-status">
+                        ${!ag.validado ? 
+                            '<span class="badge-pendente">Pendente</span>' : 
+                            '<span class="badge-validado">Validado</span>'
+                        }
+                    </div>
+                    <div class="futuro-acoes">
+                        ${!ag.validado ? `
+                            <button class="btn-validar" onclick="validarAgendamentoFuturo('${ag.id}')">
+                                <i class="fas fa-check"></i> Validar
+                            </button>
+                        ` : ''}
+                        <button class="btn-editar" onclick="editarAgendamentoFuturo('${ag.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-excluir" onclick="excluirAgendamentoFuturo('${ag.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    grid.innerHTML = html;
+}
 
-window.addEventListener('usuarioDeslogado', () => {
-    usuarioLogado = false;
-    dadosUsuario = null;
-    console.log('👤 Usuário deslogado do agendamento');
-});
+// ============================================
+// CHAMAR PRÓXIMO CLIENTE
+// ============================================
+async function chamarProximo() {
+    if (!window.loginDb || !lojaIdAtual) return;
+    
+    // Encontrar próximo aguardando validado
+    const proximo = agendamentosAtivos.find(a => 
+        a.status === 'aguardando' && a.validado === true
+    );
+    
+    if (!proximo) {
+        mostrarMensagem('Não há próximo na fila', 'warning');
+        return;
+    }
+    
+    try {
+        mostrarLoading('Chamando próximo...');
+        
+        // Atualizar status para 'chamando'
+        const agRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('ativos')
+            .doc(proximo.id);
+        
+        await updateDoc(agRef, {
+            status: 'chamando',
+            data_chamada: serverTimestamp()
+        });
+        
+        // Enviar notificação se configurado
+        if (configLoja.notificacoesAtivas && proximo.cliente_whatsapp) {
+            await enviarNotificacaoProximo(proximo);
+        }
+        
+        mostrarMensagem(`Chamando ${proximo.cliente_nome} - Senha ${proximo.senha}`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao chamar próximo:', error);
+        mostrarMensagem('Erro ao chamar cliente', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// CONCLUIR ATENDIMENTO
+// ============================================
+async function concluirAtendimento(id) {
+    if (!window.loginDb || !lojaIdAtual) return;
+    
+    try {
+        mostrarLoading('Concluindo atendimento...');
+        
+        const agRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('ativos')
+            .doc(id);
+        
+        // Mover para histórico
+        const agDoc = await agRef.get();
+        const dados = agDoc.data();
+        
+        const historicoRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('historico')
+            .doc(id);
+        
+        await setDoc(historicoRef, {
+            ...dados,
+            status: 'concluido',
+            data_conclusao: serverTimestamp()
+        });
+        
+        // Remover dos ativos
+        await deleteDoc(agRef);
+        
+        mostrarMensagem('Atendimento concluído com sucesso!', 'success');
+        
+        // Chamar próximo automaticamente
+        setTimeout(() => {
+            chamarProximo();
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Erro ao concluir:', error);
+        mostrarMensagem('Erro ao concluir atendimento', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// VALIDAR AGENDAMENTO
+// ============================================
+async function validarAgendamento(id) {
+    if (!window.loginDb || !lojaIdAtual) return;
+    
+    try {
+        const agRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('ativos')
+            .doc(id);
+        
+        await updateDoc(agRef, {
+            validado: true,
+            data_validacao: serverTimestamp(),
+            validado_por: dadosUsuario?.email || 'sistema'
+        });
+        
+        mostrarMensagem('Agendamento validado com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao validar:', error);
+        mostrarMensagem('Erro ao validar agendamento', 'error');
+    }
+}
+
+// ============================================
+// VALIDAR TODOS OS AGENDAMENTOS FUTUROS
+// ============================================
+async function validarTodosFuturos() {
+    if (!window.loginDb || !lojaIdAtual) return;
+    
+    const pendentes = agendamentosFuturos.filter(a => !a.validado);
+    
+    if (pendentes.length === 0) {
+        mostrarMensagem('Não há agendamentos pendentes', 'info');
+        return;
+    }
+    
+    if (!confirm(`Deseja validar ${pendentes.length} agendamento(s)?`)) return;
+    
+    try {
+        mostrarLoading('Validando todos...');
+        
+        const batch = [];
+        pendentes.forEach(ag => {
+            batch.push(
+                updateDoc(
+                    window.loginDb
+                        .collection('agendamentos')
+                        .doc(lojaIdAtual)
+                        .collection('futuros')
+                        .doc(ag.id),
+                    {
+                        validado: true,
+                        data_validacao: serverTimestamp(),
+                        validado_por: dadosUsuario?.email || 'sistema'
+                    }
+                )
+            );
+        });
+        
+        await Promise.all(batch);
+        
+        mostrarMensagem(`${pendentes.length} agendamentos validados!`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao validar todos:', error);
+        mostrarMensagem('Erro ao validar agendamentos', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// ENVIAR NOTIFICAÇÃO WHATSAPP
+// ============================================
+async function enviarNotificacaoProximo(agendamento) {
+    if (!agendamento.cliente_whatsapp) return;
+    
+    try {
+        const mensagem = configLoja.mensagemNotificacao
+            .replace('{cliente}', agendamento.cliente_nome)
+            .replace('{senha}', agendamento.senha)
+            .replace('{servico}', agendamento.servico)
+            .replace('{loja}', document.getElementById('lojaNomeHeader')?.textContent || 'Estabelecimento');
+        
+        // Aqui você integraria com API de WhatsApp
+        console.log('📱 Enviando WhatsApp para:', agendamento.cliente_whatsapp);
+        console.log('📝 Mensagem:', mensagem);
+        
+        // Registrar notificação enviada
+        const notificacaoRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('notificacoes')
+            .doc();
+        
+        await setDoc(notificacaoRef, {
+            agendamento_id: agendamento.id,
+            cliente: agendamento.cliente_nome,
+            telefone: agendamento.cliente_whatsapp,
+            mensagem: mensagem,
+            tipo: 'whatsapp',
+            data_envio: serverTimestamp(),
+            status: 'enviado'
+        });
+        
+        console.log('✅ Notificação registrada');
+        
+    } catch (error) {
+        console.error('❌ Erro ao enviar notificação:', error);
+    }
+}
+
+// ============================================
+// PAUSAR ATENDIMENTO
+// ============================================
+async function pausarAtendimento(modo, tempo) {
+    if (!window.loginDb || !lojaIdAtual) return;
+    
+    try {
+        mostrarLoading('Aplicando pausa...');
+        
+        const pausaRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('agendamento')
+            .doc('pausa');
+        
+        const fimPausa = tempo > 0 ? new Date(Date.now() + tempo * 60000) : null;
+        
+        await setDoc(pausaRef, {
+            ativo: true,
+            modo: modo,
+            tempo: tempo,
+            data_inicio: serverTimestamp(),
+            data_fim: fimPausa,
+            pausado_por: dadosUsuario?.email || 'sistema'
+        });
+        
+        // Aplicar regras baseadas no modo
+        if (modo === 'apenas_atendimento') {
+            // Finaliza apenas quem está em atendimento? Não, só pausa novos chamados
+            console.log('Modo: apenas atendimento - pode continuar chamando?', false);
+            
+        } else if (modo === 'todos') {
+            // Pausa todos, finaliza apenas quem está em atendimento
+            const emAtendimento = agendamentosAtivos.filter(a => a.status === 'chamando');
+            
+            for (const ag of emAtendimento) {
+                await concluirAtendimento(ag.id);
+            }
+            
+        } else if (modo === 'ate_proximos') {
+            // Marca OUTROS como pausados
+            const outros = agendamentosAtivos.filter(a => 
+                a.status === 'aguardando' && a.validado === true && a.senha > '002'
+            );
+            
+            for (const ag of outros) {
+                await updateDoc(
+                    window.loginDb
+                        .collection('agendamentos')
+                        .doc(lojaIdAtual)
+                        .collection('ativos')
+                        .doc(ag.id),
+                    {
+                        status: 'pausado',
+                        data_pausa: serverTimestamp()
+                    }
+                );
+            }
+        }
+        
+        // Atualizar interface
+        document.getElementById('statusFuncionamento').style.display = 'none';
+        document.getElementById('statusPausa').style.display = 'flex';
+        
+        if (tempo > 0) {
+            iniciarContadorPausa(tempo);
+        } else {
+            document.getElementById('tempoPausaRestante').textContent = 'Indeterminado';
+        }
+        
+        fecharModal('pausaModal');
+        mostrarMensagem('Atendimento pausado com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao pausar:', error);
+        mostrarMensagem('Erro ao pausar atendimento', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// CONTADOR DE PAUSA
+// ============================================
+let intervaloPausa = null;
+
+function iniciarContadorPausa(minutos) {
+    if (intervaloPausa) clearInterval(intervaloPausa);
+    
+    const fim = new Date(Date.now() + minutos * 60000);
+    
+    intervaloPausa = setInterval(() => {
+        const agora = new Date();
+        const diff = fim - agora;
+        
+        if (diff <= 0) {
+            clearInterval(intervaloPausa);
+            intervaloPausa = null;
+            retomarAtendimento();
+            return;
+        }
+        
+        const minutosRest = Math.floor(diff / 60000);
+        const segundosRest = Math.floor((diff % 60000) / 1000);
+        
+        document.getElementById('tempoPausaRestante').textContent = 
+            `${minutosRest}:${segundosRest.toString().padStart(2, '0')}`;
+    }, 1000);
+}
+
+// ============================================
+// RETOMAR ATENDIMENTO
+// ============================================
+async function retomarAtendimento() {
+    if (!window.loginDb || !lojaIdAtual) return;
+    
+    try {
+        const pausaRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('agendamento')
+            .doc('pausa');
+        
+        await updateDoc(pausaRef, {
+            ativo: false,
+            data_retomada: serverTimestamp()
+        });
+        
+        document.getElementById('statusFuncionamento').style.display = 'flex';
+        document.getElementById('statusPausa').style.display = 'none';
+        
+        mostrarMensagem('Atendimento retomado!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao retomar:', error);
+    }
+}
 
 // ============================================
 // CONFIGURAR EVENTOS
@@ -436,6 +959,103 @@ function configurarEventos() {
     document.getElementById('btnVoltar')?.addEventListener('click', () => {
         window.location.href = 'index.html';
     });
+    
+    // Botão chamar próximo
+    document.getElementById('btnChamarProximo')?.addEventListener('click', chamarProximo);
+    
+    // Botão novo agendamento
+    document.getElementById('btnNovoAgendamento')?.addEventListener('click', () => {
+        abrirModalAgendamento();
+    });
+    
+    // Botão pausar
+    document.getElementById('btnPausarAtendimento')?.addEventListener('click', () => {
+        abrirModal('pausaModal');
+    });
+    
+    // Confirmar pausa
+    document.getElementById('btnConfirmarPausa')?.addEventListener('click', () => {
+        const modo = document.querySelector('input[name="modoPausa"]:checked').value;
+        const tempo = parseInt(document.getElementById('tempoPausa').value);
+        pausarAtendimento(modo, tempo);
+    });
+    
+    // Botão validar todos
+    document.getElementById('btnValidarTodos')?.addEventListener('click', validarTodosFuturos);
+    
+    // Abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            btn.classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        });
+    });
+    
+    // Salvar configurações de funcionamento
+    document.getElementById('btnSalvarFuncionamento')?.addEventListener('click', salvarConfigFuncionamento);
+    
+    // Adicionar exceção
+    document.getElementById('btnAddExcecao')?.addEventListener('click', () => {
+        abrirModal('excecaoModal');
+    });
+    
+    // Salvar exceção
+    document.getElementById('btnSalvarExcecao')?.addEventListener('click', salvarExcecao);
+}
+
+// ============================================
+// SALVAR CONFIGURAÇÕES DE FUNCIONAMENTO
+// ============================================
+async function salvarConfigFuncionamento() {
+    const horarios = {};
+    
+    document.querySelectorAll('.horario-card').forEach(card => {
+        const dia = card.dataset.dia;
+        const aberto = card.querySelector('.toggle-dia').checked;
+        
+        horarios[dia] = {
+            aberto,
+            abertura: card.querySelector('.abertura')?.value || '10:00',
+            fechamento: card.querySelector('.fechamento')?.value || '18:00',
+            intervaloInicio: card.querySelector('.intervalo-inicio')?.value || '13:00',
+            intervaloFim: card.querySelector('.intervalo-fim')?.value || '14:00',
+            maxClientes: parseInt(card.querySelector('.max-clientes')?.value) || 30
+        };
+    });
+    
+    try {
+        mostrarLoading('Salvando configurações...');
+        
+        const horariosRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('agendamento')
+            .doc('horarios');
+        
+        await setDoc(horariosRef, horarios);
+        
+        // Salvar limite geral
+        configLoja.maxClientesDia = parseInt(document.getElementById('maxClientesDia').value);
+        configLoja.maxSimultaneos = parseInt(document.getElementById('maxSimultaneos').value);
+        
+        await salvarConfiguracoesLoja({
+            maxClientesDia: configLoja.maxClientesDia,
+            maxSimultaneos: configLoja.maxSimultaneos
+        });
+        
+        mostrarMensagem('Configurações salvas com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        mostrarMensagem('Erro ao salvar configurações', 'error');
+    } finally {
+        esconderLoading();
+    }
 }
 
 // ============================================
@@ -474,16 +1094,42 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }, tempo);
 }
 
-// ============================================
-// PARAR ESCUTA
-// ============================================
-function pararEscuta() {
-    if (unsubscribeAgendamentos) {
-        unsubscribeAgendamentos();
-        unsubscribeAgendamentos = null;
-        console.log('📅 Escuta de agendamentos parada');
+function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
     }
 }
+
+window.fecharModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+    }
+};
+
+// ============================================
+// EVENTOS DE LOGIN
+// ============================================
+window.addEventListener('usuarioLogado', (event) => {
+    const { usuario } = event.detail;
+    
+    usuarioLogado = true;
+    dadosUsuario = usuario;
+    
+    console.log('✅ Usuário logado:', usuario.email);
+    document.getElementById('userName').textContent = usuario.nome;
+    
+    // Verificar permissão
+    verificarPermissaoAcesso();
+});
+
+window.addEventListener('usuarioDeslogado', () => {
+    usuarioLogado = false;
+    dadosUsuario = null;
+    console.log('👤 Usuário deslogado');
+    window.location.href = 'index.html';
+});
 
 // ============================================
 // INICIALIZAÇÃO
@@ -491,7 +1137,7 @@ function pararEscuta() {
 (async function() {
     console.log("📄 Inicializando página de agendamentos...");
     
-    mostrarLoading('Carregando agendamentos...');
+    mostrarLoading('Carregando sistema...');
     
     try {
         // Extrair loja ID
@@ -500,7 +1146,7 @@ function pararEscuta() {
         if (!lojaIdAtual) {
             console.error('❌ Loja não identificada');
             mostrarMensagem('Erro ao identificar a loja', 'error');
-            esconderLoading();
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
             return;
         }
         
@@ -508,8 +1154,14 @@ function pararEscuta() {
         configurarFavicon();
         carregarLogoLoja();
         
-        // Carregar dados da loja
-        await carregarDadosLoja();
+        // Carregar configurações
+        await carregarConfiguracoesLoja();
+        await carregarHorariosFuncionamento();
+        
+        // Verificar permissão (se já estiver logado)
+        if (usuarioLogado) {
+            if (!verificarPermissaoAcesso()) return;
+        }
         
         // Configurar eventos
         configurarEventos();
@@ -518,16 +1170,33 @@ function pararEscuta() {
         iniciarEscutaAgendamentos();
         
         esconderLoading();
-        console.log("✅ Página de agendamentos pronta!");
+        console.log("✅ Sistema de agendamentos pronto!");
         
     } catch (error) {
         console.error("❌ Erro na inicialização:", error);
-        mostrarMensagem('Erro ao carregar agendamentos', 'error');
+        mostrarMensagem('Erro ao carregar sistema', 'error');
         esconderLoading();
     }
 })();
 
+// ============================================
+// FUNÇÕES AUXILIARES (a serem implementadas)
+// ============================================
+function configurarFavicon() { /* ... */ }
+function carregarLogoLoja() { /* ... */ }
+function abrirModalAgendamento() { /* ... */ }
+function salvarExcecao() { /* ... */ }
+function editarExcecao(data) { /* ... */ }
+function excluirExcecao(data) { /* ... */ }
+function validarAgendamentoFuturo(id) { /* ... */ }
+function editarAgendamentoFuturo(id) { /* ... */ }
+function excluirAgendamentoFuturo(id) { /* ... */ }
+function chamarCliente(id) { /* ... */ }
+function editarAgendamento(id) { /* ... */ }
+
 // Limpar ao sair
 window.addEventListener('beforeunload', () => {
-    pararEscuta();
+    if (unsubscribeAgendamentos) unsubscribeAgendamentos();
+    if (unsubscribeFuturos) unsubscribeFuturos();
+    if (intervaloPausa) clearInterval(intervaloPausa);
 });
