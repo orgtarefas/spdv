@@ -828,52 +828,6 @@ function renderizarAgendamentosFuturos() {
     grid.innerHTML = html;
 }
 
-// ============================================
-// CHAMAR PRÓXIMO CLIENTE
-// ============================================
-async function chamarProximo() {
-    if (!window.loginDb || !lojaIdAtual) return;
-    
-    // Encontrar próximo aguardando validado
-    const proximo = agendamentosAtivos.find(a => 
-        a.status === 'aguardando' && a.validado === true
-    );
-    
-    if (!proximo) {
-        mostrarMensagem('Não há próximo na fila', 'warning');
-        return;
-    }
-    
-    try {
-        mostrarLoading('Chamando próximo...');
-        
-        // Atualizar status para 'chamando'
-        const agRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('ativos')
-            .doc(proximo.id);
-        
-        await updateDoc(agRef, {
-            status: 'chamando',
-            data_chamada: serverTimestamp()
-        });
-        
-        // Enviar notificação se configurado
-        if (configLoja.notificacoesAtivas && proximo.cliente_whatsapp) {
-            await enviarNotificacaoProximo(proximo);
-        }
-        
-        mostrarMensagem(`Chamando ${proximo.cliente_nome} - Senha ${proximo.senha}`, 'success');
-        
-    } catch (error) {
-        console.error('❌ Erro ao chamar próximo:', error);
-        mostrarMensagem('Erro ao chamar cliente', 'error');
-    } finally {
-        esconderLoading();
-    }
-}
-
 
 // ============================================
 // VALIDAR AGENDAMENTO
