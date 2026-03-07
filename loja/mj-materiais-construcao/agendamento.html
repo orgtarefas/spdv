@@ -63,11 +63,11 @@
                 </button>
                 
                 <div class="btn-group">
-                    <button class="btn-principal btn-success" id="btnConcluirAtendimento" disabled>
-                        <i class="fas fa-check-circle"></i> Concluir Atendimento
-                    </button>
                     <button class="btn-principal btn-warning" id="btnPausarAtendimento">
                         <i class="fas fa-pause-circle"></i> Pausar
+                    </button>
+                    <button class="btn-principal btn-info" id="btnConfigServico">
+                        <i class="fas fa-cog"></i> Configurar Serviço
                     </button>
                 </div>
                 
@@ -127,6 +127,7 @@
                             </div>
                         </div>
                     </div>
+
                     <!-- Coluna 2: PRÓXIMOS A ATENDER -->
                     <div class="fila-coluna destaque">
                         <div class="coluna-header status-proximo">
@@ -139,11 +140,6 @@
                                 <i class="fas fa-smile"></i>
                                 <p>Fila vazia</p>
                             </div>
-                        </div>
-                        <div class="coluna-footer">
-                            <button class="btn-chamar" id="btnChamarProximo" disabled>
-                                <i class="fas fa-bell"></i> Chamar Próximo
-                            </button>
                         </div>
                     </div>
 
@@ -191,8 +187,8 @@
                 <div class="funcionamento-container">
                     <!-- Horário Padrão -->
                     <div class="funcionamento-section">
-                        <h3><i class="fas fa-calendar-week"></i> Horário Padrão</h3>
-                        <p class="section-desc">Configure os horários de funcionamento para cada dia da semana</p>
+                        <h3><i class="fas fa-calendar-week"></i> Horário de Agendamento</h3>
+                        <p class="section-desc">Configure os horários disponíveis para agendamentos</p>
                         
                         <div class="horarios-grid" id="horariosSemana">
                             <!-- Dias serão inseridos via JS -->
@@ -227,7 +223,6 @@
                         </div>
                         
                         <div class="excecoes-lista" id="excecoesLista">
-                            <!-- Exceções serão inseridas via JS -->
                             <div class="empty-state">
                                 <i class="fas fa-calendar-times"></i>
                                 <p>Nenhuma exceção cadastrada</p>
@@ -260,23 +255,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- TAB 5: SERVIÇOS -->
-            <div class="tab-content" id="tab-servicos">
-                <div class="servicos-header">
-                    <h3><i class="fas fa-cut"></i> Serviços Oferecidos</h3>
-                    <button class="btn-novo" id="btnNovoServico">
-                        <i class="fas fa-plus"></i> Novo Serviço
-                    </button>
-                </div>
-
-                <div class="servicos-grid" id="servicosGrid">
-                    <div class="loading-spinner">
-                        <div class="spinner"></div>
-                        <p>Carregando serviços...</p>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -292,7 +270,7 @@
                     <div class="form-group">
                         <label>Cliente *</label>
                         <div class="cliente-selector">
-                            <input type="text" id="buscaClienteModal" placeholder="Digite nome, email ou telefone...">
+                            <input type="text" id="buscaClienteModal" placeholder="Digite nome, email ou telefone..." autocomplete="off">
                             <div class="resultados-busca" id="resultadosBuscaCliente"></div>
                         </div>
                     </div>
@@ -322,18 +300,138 @@
                         <textarea id="agendamentoObs" rows="2" placeholder="Observações sobre o agendamento..."></textarea>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="agendamentoValidado" checked> 
-                            Validar automaticamente (já entra na fila)
-                        </label>
-                    </div>
+                    <input type="hidden" id="agendamentoId">
                 </form>
             </div>
             <div class="modal-footer">
                 <button class="btn-cancelar" onclick="fecharModal('agendamentoModal')">Cancelar</button>
                 <button class="btn-salvar" id="btnSalvarAgendamento">
                     <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Configuração do Serviço de Agendamento -->
+    <div id="configServicoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> Configurar Serviço de Agendamento</h3>
+                <button class="modal-close" onclick="fecharModal('configServicoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="configServicoForm">
+                    <!-- Nome do Serviço -->
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Nome do Serviço *</label>
+                        <input type="text" id="servicoNome" placeholder="Ex: Corte de Cabelo, Consulta, etc" required>
+                    </div>
+
+                    <!-- Descrição -->
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Descrição</label>
+                        <textarea id="servicoDescricao" rows="2" placeholder="Descreva o serviço oferecido..."></textarea>
+                    </div>
+
+                    <!-- Horário de Funcionamento do Serviço -->
+                    <div class="form-group">
+                        <label><i class="fas fa-clock"></i> Horário de Funcionamento do Serviço</label>
+                        <div class="horario-servico-inputs">
+                            <div class="input-group">
+                                <label>Início</label>
+                                <input type="time" id="servicoInicio" value="08:00">
+                            </div>
+                            <div class="input-group">
+                                <label>Fim</label>
+                                <input type="time" id="servicoFim" value="18:00">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dias da semana -->
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-week"></i> Dias de Funcionamento</label>
+                        <div class="dias-semana-grid">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="segunda" checked> Segunda
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="terca" checked> Terça
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="quarta" checked> Quarta
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="quinta" checked> Quinta
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="sexta" checked> Sexta
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="sabado"> Sábado
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="domingo"> Domingo
+                            </label>
+                        </div>
+                        <small>
+                            <button type="button" class="btn-link" id="selecionarTodosDias">Selecionar todos</button> | 
+                            <button type="button" class="btn-link" id="limparTodosDias">Limpar todos</button>
+                        </small>
+                    </div>
+
+                    <!-- Permitir Agendamentos fora do dia vigente -->
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="permitirForaDia" checked>
+                            <span>Permitir Agendamentos fora do dia vigente</span>
+                        </label>
+                        <small class="help-text">
+                            Se desativado, só será possível agendar para o dia atual
+                        </small>
+                    </div>
+
+                    <!-- Opções de Validação -->
+                    <div class="form-group" id="opcoesValidacaoGroup">
+                        <label><i class="fas fa-check-circle"></i> Opções de Validação</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="automatico_dia" checked>
+                                <div class="radio-content">
+                                    <strong>Validar Agendamento Automaticamente Dia</strong>
+                                    <small>Agendamentos do dia entram na fila automaticamente. Outros dias precisam validação manual.</small>
+                                </div>
+                            </label>
+
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="automatico_todos">
+                                <div class="radio-content">
+                                    <strong>Validar Senha Automaticamente Dia e Período</strong>
+                                    <small>Todos os agendamentos entram na fila sem precisar validar.</small>
+                                </div>
+                            </label>
+
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="manual">
+                                <div class="radio-content">
+                                    <strong>Validar Senha Manualmente</strong>
+                                    <small>Precisa validar manualmente todos os agendamentos para serem válidos.</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Observação sobre validação -->
+                    <div class="alert-info" id="alertaValidacao" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        Com "Permitir Agendamentos fora do dia vigente" desativado, a validação automática só se aplica ao dia atual.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="fecharModal('configServicoModal')">Cancelar</button>
+                <button class="btn-salvar" id="btnSalvarConfigServico">
+                    <i class="fas fa-save"></i> Salvar Configuração
                 </button>
             </div>
         </div>
@@ -484,11 +582,11 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <!-- Firebase (compat version) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-    <!-- App Check SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
     
     <script src="../../login_firebase.js"></script>
