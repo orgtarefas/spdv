@@ -40,6 +40,13 @@ let swiperInstance = null;
 let lojaIdAtual = null;
 
 // ============================================
+// VARIÁVEL GLOBAL PARA AGENDAMENTO
+// ============================================
+let agendamentoHabilitado = false;
+let agendamentosAtivos = [];
+let intervaloAtualizacaoAgendamento = null;
+
+// ============================================
 // VERIFICAR LOJA ID E CONFIG
 // ============================================
 if (!lojaIdAtual) {
@@ -80,6 +87,206 @@ function extrairLojaIdDaURL() {
     
     console.warn('⚠️ Não foi possível extrair loja ID da URL');
     return null;
+}
+
+// ============================================
+// VERIFICAR SE AGENDAMENTO ESTÁ HABILITADO (DO FIRESTORE)
+// ============================================
+async function verificarAgendamentoHabilitado() {
+    const lojaId = lojaIdAtual || (lojaServices ? lojaServices.lojaId : null);
+    
+    if (!lojaId) return false;
+    
+    try {
+        // Usar o novo método do lojaServices
+        if (typeof lojaServices?.verificarAgendamentoHabilitado === 'function') {
+            agendamentoHabilitado = await lojaServices.verificarAgendamentoHabilitado();
+            console.log(`📅 Agendamento habilitado para esta loja? ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
+            return agendamentoHabilitado;
+        } else {
+            console.log('📅 Método verificarAgendamentoHabilitado não disponível');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Erro ao verificar agendamento:', error);
+        return false;
+    }
+}
+
+// ============================================
+// MOSTRAR/ESCONDER CONTAINER DE AGENDAMENTO
+// ============================================
+function toggleAgendamentoContainer(mostrar) {
+    const container = document.getElementById('agendamentoContainer');
+    if (container) {
+        container.style.display = mostrar ? 'block' : 'none';
+        console.log(`📅 Container de agendamento ${mostrar ? 'exibido' : 'ocultado'}`);
+    }
+}
+
+// ============================================
+// CARREGAR AGENDAMENTOS ATIVOS (TEMPO REAL)
+// ============================================
+function iniciarEscutaAgendamentos() {
+    if (!agendamentoHabilitado || !lojaIdAtual) return;
+    
+    console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
+    
+    try {
+        // Referência para a coleção de agendamentos no Firestore
+        // A estrutura será: agendamentos/{lojaId}/ativos/{documentos}
+        const agendamentosRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('ativos')
+            .orderBy('senha', 'asc');
+        
+        // Escutar mudanças em tempo real
+        unsubscribeAgendamentos = agendamentosRef.onSnapshot((snapshot) => {
+            const agendamentos = [];
+            snapshot.forEach(doc => {
+                agendamentos.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
+            
+            agendamentosAtivos = agendamentos;
+            renderizarPainelAgendamento();
+            
+        }, (error) => {
+            console.error('❌ Erro na escuta de agendamentos:', error);
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao iniciar escuta:', error);
+    }
+}
+
+// ============================================
+// RENDERIZAR PAINEL DE AGENDAMENTO
+// ============================================
+function renderizarPainelAgendamento() {
+    if (!agendamentoHabilitado) return;
+    
+    // Encontrar quem está sendo chamado agora
+    const chamandoAgora = agendamentosAtivos.find(a => a.status === 'chamando');
+    
+    // Filtrar os que estão aguardando (próximos)
+    const proximos = agendamentosAtivos
+        .filter(a => a.status === 'aguardando')
+        .sort((a, b) => (a.senha || '').localeCompare(b.senha || ''));
+    
+    // Últimos 5 chamados (histórico)
+    const ultimos = agendamentosAtivos
+        .filter(a => a.status === 'concluido')
+        .slice(0, 5);
+    
+    // Renderizar "Chamando Agora"
+    const chamandoEl = document.getElementById('chamandoAgora');
+    if (chamandoEl) {
+        if (chamandoAgora) {
+            chamandoEl.innerHTML = `
+                <div class="fila-item chamando">
+                    <span class="fila-senha">${chamandoAgora.senha || '---'}</span>
+                    <div class="fila-info">
+                        <span class="fila-nome">${chamandoAgora.cliente_nome || 'Cliente'}</span>
+                        <span class="fila-servico">
+                            <i class="fas fa-cut"></i> ${chamandoAgora.servico || 'Serviço'}
+                        </span>
+                        <span class="fila-status chamando">CHAMANDO AGORA</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            chamandoEl.innerHTML = `
+                <div class="empty-agendamento">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Nenhum chamado no momento</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Renderizar "Próximos da Fila"
+    const proximosEl = document.getElementById('proximosFila');
+    if (proximosEl) {
+        if (proximos.length > 0) {
+            let html = '';
+            proximos.forEach(item => {
+                html += `
+                    <div class="fila-item">
+                        <span class="fila-senha">${item.senha || '---'}</span>
+                        <div class="fila-info">
+                            <span class="fila-nome">${item.cliente_nome || 'Cliente'}</span>
+                            <span class="fila-servico">
+                                <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
+                            </span>
+                            <span class="fila-horario">
+                                <i class="far fa-clock"></i> ${item.horario || 'Aguardando'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            proximosEl.innerHTML = html;
+        } else {
+            proximosEl.innerHTML = `
+                <div class="empty-agendamento">
+                    <i class="fas fa-users"></i>
+                    <p>Fila vazia</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Renderizar "Últimos Chamados"
+    const ultimosEl = document.getElementById('ultimosChamados');
+    if (ultimosEl) {
+        if (ultimos.length > 0) {
+            let html = '';
+            ultimos.forEach(item => {
+                html += `
+                    <div class="fila-item ultimo">
+                        <span class="fila-senha">${item.senha || '---'}</span>
+                        <div class="fila-info">
+                            <span class="fila-nome">${item.cliente_nome || 'Cliente'}</span>
+                            <span class="fila-servico">
+                                <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
+                            </span>
+                            <span class="fila-horario">
+                                <i class="far fa-check-circle"></i> ${item.horario_conclusao || 'Concluído'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            ultimosEl.innerHTML = html;
+        } else {
+            ultimosEl.innerHTML = `
+                <div class="empty-agendamento">
+                    <i class="fas fa-history"></i>
+                    <p>Nenhum histórico</p>
+                </div>
+            `;
+        }
+    }
+}
+
+// ============================================
+// PARAR ESCUTA DE AGENDAMENTOS
+// ============================================
+function pararEscutaAgendamentos() {
+    if (unsubscribeAgendamentos) {
+        unsubscribeAgendamentos();
+        unsubscribeAgendamentos = null;
+        console.log('📅 Escuta de agendamentos parada');
+    }
+    
+    if (intervaloAtualizacaoAgendamento) {
+        clearInterval(intervaloAtualizacaoAgendamento);
+        intervaloAtualizacaoAgendamento = null;
+    }
 }
 
 // ============================================
@@ -1372,6 +1579,13 @@ function configurarEventos() {
 
     configurarMenuPerfil();
     
+    // ============================================
+    // 🔥 NOVO: Evento do botão "Ver Agendamentos Completos"
+    // ============================================
+    document.getElementById('btnVerAgendamento')?.addEventListener('click', () => {
+        window.location.href = 'agendamento.html';
+    });
+    
     console.log("✅ Eventos configurados");
 }
 
@@ -1442,6 +1656,14 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
         // Carregar dados da loja (com retry)
         await carregarDadosLoja();
         
+        // 🔥 NOVO: Verificar se agendamento está habilitado
+        const agendamentoHabilitado = await verificarAgendamentoHabilitado();
+        toggleAgendamentoContainer(agendamentoHabilitado);
+        
+        if (agendamentoHabilitado) {
+            iniciarEscutaAgendamentos();
+        }
+        
         // Configurar eventos
         configurarEventos();
         
@@ -1469,14 +1691,3 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
-
-
-
-
-
-
-
-
-
-
-
