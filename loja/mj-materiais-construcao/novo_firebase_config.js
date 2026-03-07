@@ -263,6 +263,47 @@ class LojaManager {
     }
 
     // ============================================
+    // 🔥 NOVO MÉTODO: VERIFICAR SE AGENDAMENTO ESTÁ HABILITADO
+    // ============================================
+    async verificarAgendamentoHabilitado() {
+        if (!this.lojaId) {
+            console.error('❌ Loja ID não disponível para verificar agendamento');
+            return false;
+        }
+        
+        try {
+            console.log(`📅 Verificando se agendamento está habilitado para loja: ${this.lojaId}`);
+            
+            // Buscar no Firestore (coleção 'lojas' no projeto de login)
+            // Usando o loginDb que está disponível globalmente
+            if (window.loginDb) {
+                const lojaRef = window.loginDb.collection('lojas').doc(this.lojaId);
+                const lojaDoc = await lojaRef.get();
+                
+                if (lojaDoc.exists) {
+                    const dados = lojaDoc.data();
+                    const habilitado = dados.habilitar_agendamento === true;
+                    
+                    console.log(`📅 Agendamento habilitado? ${habilitado ? 'SIM' : 'NÃO'}`);
+                    console.log('📊 Dados da loja no Firebase:', dados);
+                    
+                    return habilitado;
+                } else {
+                    console.log(`⚠️ Documento lojas/${this.lojaId} não encontrado no Firebase`);
+                    return false;
+                }
+            } else {
+                console.error('❌ loginDb não disponível');
+                return false;
+            }
+            
+        } catch (error) {
+            console.error(`❌ Erro ao verificar agendamento:`, error);
+            return false;
+        }
+    }
+
+    // ============================================
     // BUSCAR PRODUTO POR CÓDIGO DE BARRAS
     // ============================================
     async buscarProdutoPorCodigoBarras(codigoBarras) {
@@ -1642,6 +1683,9 @@ const lojaServices = {
     // 🔥 NOVA FUNÇÃO: BUSCAR CHAVE IMGBB
     buscarChaveImgBB: () => lojaManager.buscarChaveImgBB(),
     
+    // 🔥 NOVA FUNÇÃO: VERIFICAR AGENDAMENTO HABILITADO
+    verificarAgendamentoHabilitado: () => lojaManager.verificarAgendamentoHabilitado(),
+    
     get lojaId() { return lojaManager.lojaId; },
     get usuario() { return lojaManager.usuario; },
     get nomeUsuario() { return lojaManager.nomeUsuario; },
@@ -1734,3 +1778,4 @@ if (lojaManager.imgbbKey) {
     console.log(`🔑 Chave: ${lojaManager.imgbbKey.substring(0, 8)}...`);
 }
 console.log(`🛒 Coleção de carrinhos: ${lojaManager.colecaoCarrinhos || 'Não disponível'}`);
+
