@@ -1699,40 +1699,163 @@ function abrirModalAgendamento() {
     modal.classList.add('active');
 }
 // ============================================---------------------------------------------------------------------------------------
-function salvarConfigFuncionamento() {
-    console.log('Salvar configurações de funcionamento');
+// ============================================
+// ABRIR MODAL DE CONFIGURAÇÃO DO SERVIÇO
+// ============================================
+function abrirModalConfigServico() {
+    console.log('Abrir modal de configuração do serviço');
+    
+    const modal = document.getElementById('configServicoModal');
+    if (!modal) {
+        console.error('❌ Modal de configuração não encontrado');
+        return;
+    }
+    
+    // Carregar configurações existentes (se houver)
+    carregarConfiguracoesServico();
+    
+    // Configurar eventos dos checkboxes de dias
+    configurarEventosDias();
+    
+    // Configurar evento do checkbox "Permitir fora do dia"
+    const permitirForaDia = document.getElementById('permitirForaDia');
+    const opcoesValidacao = document.getElementById('opcoesValidacaoGroup');
+    const alertaValidacao = document.getElementById('alertaValidacao');
+    
+    if (permitirForaDia) {
+        permitirForaDia.addEventListener('change', function() {
+            if (!this.checked) {
+                opcoesValidacao.style.opacity = '0.7';
+                alertaValidacao.style.display = 'flex';
+            } else {
+                opcoesValidacao.style.opacity = '1';
+                alertaValidacao.style.display = 'none';
+            }
+        });
+    }
+    
+    modal.classList.add('active');
 }
 
-function salvarExcecao() {
-    console.log('Salvar exceção');
+// ============================================
+// CARREGAR CONFIGURAÇÕES DO SERVIÇO
+// ============================================
+async function carregarConfiguracoesServico() {
+    if (!window.loginDb || !lojaIdAtual) return;
+    
+    try {
+        const configRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('servico_agendamento')
+            .doc('config');
+        
+        const configDoc = await configRef.get();
+        
+        if (configDoc.exists) {
+            const dados = configDoc.data();
+            
+            // Preencher campos
+            document.getElementById('servicoNome').value = dados.nome || '';
+            document.getElementById('servicoDescricao').value = dados.descricao || '';
+            document.getElementById('servicoInicio').value = dados.horarioInicio || '08:00';
+            document.getElementById('servicoFim').value = dados.horarioFim || '18:00';
+            
+            // Marcar dias da semana
+            if (dados.dias) {
+                document.querySelectorAll('.dia-semana').forEach(cb => {
+                    cb.checked = dados.dias.includes(cb.value);
+                });
+            }
+            
+            // Permitir fora do dia
+            document.getElementById('permitirForaDia').checked = dados.permitirForaDia !== false;
+            
+            // Opção de validação
+            const radioValidacao = document.querySelector(`input[name="validacao"][value="${dados.validacao || 'automatico_dia'}"]`);
+            if (radioValidacao) radioValidacao.checked = true;
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar configurações:', error);
+    }
 }
 
-function editarExcecao(data) {
-    console.log('Editar exceção:', data);
+// ============================================
+// CONFIGURAR EVENTOS DOS DIAS
+// ============================================
+function configurarEventosDias() {
+    const btnSelecionarTodos = document.getElementById('selecionarTodosDias');
+    const btnLimparTodos = document.getElementById('limparTodosDias');
+    
+    if (btnSelecionarTodos) {
+        btnSelecionarTodos.addEventListener('click', () => {
+            document.querySelectorAll('.dia-semana').forEach(cb => cb.checked = true);
+        });
+    }
+    
+    if (btnLimparTodos) {
+        btnLimparTodos.addEventListener('click', () => {
+            document.querySelectorAll('.dia-semana').forEach(cb => cb.checked = false);
+        });
+    }
 }
 
-function excluirExcecao(data) {
-    console.log('Excluir exceção:', data);
-}
-
-function validarAgendamentoFuturo(id) {
-    console.log('Validar agendamento futuro:', id);
-}
-
-function editarAgendamentoFuturo(id) {
-    console.log('Editar agendamento futuro:', id);
-}
-
-function excluirAgendamentoFuturo(id) {
-    console.log('Excluir agendamento futuro:', id);
-}
-
-function chamarCliente(id) {
-    console.log('Chamar cliente:', id);
-}
-
-function editarAgendamento(id) {
-    console.log('Editar agendamento:', id);
+// ============================================
+// SALVAR CONFIGURAÇÕES DO SERVIÇO
+// ============================================
+async function salvarConfigServico() {
+    try {
+        // Validar campos obrigatórios
+        const nome = document.getElementById('servicoNome').value.trim();
+        if (!nome) {
+            mostrarMensagem('Nome do serviço é obrigatório', 'warning');
+            return;
+        }
+        
+        // Coletar dias selecionados
+        const diasSelecionados = [];
+        document.querySelectorAll('.dia-semana:checked').forEach(cb => {
+            diasSelecionados.push(cb.value);
+        });
+        
+        if (diasSelecionados.length === 0) {
+            mostrarMensagem('Selecione pelo menos um dia de funcionamento', 'warning');
+            return;
+        }
+        
+        mostrarLoading('Salvando configurações...');
+        
+        const configData = {
+            nome: nome,
+            descricao: document.getElementById('servicoDescricao').value.trim(),
+            horarioInicio: document.getElementById('servicoInicio').value,
+            horarioFim: document.getElementById('servicoFim').value,
+            dias: diasSelecionados,
+            permitirForaDia: document.getElementById('permitirForaDia').checked,
+            validacao: document.querySelector('input[name="validacao"]:checked')?.value || 'automatico_dia',
+            atualizado_por: dadosUsuario?.email || 'sistema',
+            atualizado_em: serverTimestamp(),
+            data_atualizacao: new Date().toISOString()
+        };
+        
+        // Salvar no Firestore
+        const configRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('servico_agendamento')
+            .doc('config');
+        
+        await setDoc(configRef, configData, { merge: true });
+        
+        mostrarMensagem('Configurações salvas com sucesso!', 'success');
+        fecharModal('configServicoModal');
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar:', error);
+        mostrarMensagem('Erro ao salvar configurações', 'error');
+    } finally {
+        esconderLoading();
+    }
 }
 
 // Limpar ao sair
