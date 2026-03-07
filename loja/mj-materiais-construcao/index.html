@@ -159,15 +159,15 @@
                         Último: <span id="ultimoChamadoHora">--:--</span>
                     </div>
                 </div>
-
+                
                 <!-- Coluna 2: PRÓXIMOS A ATENDER (Média - lista vertical) -->
                 <div class="agendamento-coluna coluna-fila">
                     <div class="coluna-header">
                         <i class="fas fa-users"></i>
-                        <h3>Próximos a Atender</h3>
+                        <h3>PRÓXIMOS A ATENDER</h3>
                         <span class="coluna-badge" id="totalFilaBadge">0</span>
                     </div>
-                    <div class="coluna-content lista-vertical" id="filaListaCard">
+                    <div class="coluna-content lista-vertical" id="proximosFilaCard">
                         <div class="empty-agendamento">
                             <i class="fas fa-users"></i>
                             <p>Fila vazia</p>
@@ -179,6 +179,69 @@
                         <span id="tempoMedioEspera">0</span> min
                     </div>
                 </div>
+                
+                <!-- Coluna 3: OUTROS NA FILA (Maior - carrossel horizontal) -->
+                <div class="agendamento-coluna coluna-proximos">
+                    <div class="coluna-header">
+                        <i class="fas fa-arrow-right"></i>
+                        <h3>Outros na Fila</h3>
+                    </div>
+                    
+                    <!-- Carrossel horizontal -->
+                    <div class="proximos-carousel-container">
+                        <button class="carousel-arrow-small prev" id="proximasSenhasPrev">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
+                        <div class="proximos-scroll" id="proximasSenhasScroll">
+                            <div class="proximos-track" id="proximasSenhasTrack">
+                                <!-- Cards horizontais serão inseridos aqui via JavaScript -->
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                                <div class="proximo-card-placeholder">
+                                    <div class="senha-numero">--</div>
+                                    <div class="senha-info">
+                                        <span class="senha-cliente">Aguardando...</span>
+                                        <span class="senha-servico">---</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="carousel-arrow-small next" id="proximasSenhasNext">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="coluna-footer">
+                        <i class="fas fa-arrow-right"></i> Deslize para ver mais
+                        <span class="scroll-indicator-dots" id="scrollDots">
+                            <span class="dot active"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                            <span class="dot"></span>
+                        </span>
+                    </div>
+                </div> 
 
                 <!-- Coluna 3: OUTROS NA FILA (Maior - carrossel horizontal) -->
                 <div class="agendamento-coluna coluna-proximos">
@@ -654,6 +717,7 @@
     </script>
 </body>
 </html>
+
 
 
 
