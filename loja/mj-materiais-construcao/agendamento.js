@@ -2020,35 +2020,6 @@ async function chamarProximo(id) {
 }
 
 // ============================================
-// ABRIR MODAL DE AGENDAMENTO PARA FUNCIONÁRIOS/ADMIN
-// ============================================
-function abrirModalAgendamentoFuncionarios() {
-    console.log('Abrir modal de agendamento para funcionários');
-    
-    const modal = document.getElementById('salvarCriarAgendamentoModal');
-    if (!modal) {
-        console.error('❌ Modal salvarCriarAgendamentoModal não encontrado');
-        mostrarMensagem('Erro ao abrir modal', 'error');
-        return;
-    }
-    
-    // Limpar formulário
-    const form = document.getElementById('criarAgendamentoForm');
-    if (form) form.reset();
-    
-    // 🔥 CONFIGURAR EVENTOS
-    configurarEventosDias();
-    configurarPermitirForaDia();
-    configurarAbasDias();
-    configurarEspelhamentoAutomatico();
-    configurarValidacaoAntesSalvar();
-    carregarDiasExcepcionais();
-    configurarEventosExcecoes();
-    
-    modal.classList.add('active');
-}
-
-// ============================================
 // SALVAR CONFIGURAÇÃO DO AGENDAMENTO
 // ============================================
 async function salvarCriarAgendamento() {
