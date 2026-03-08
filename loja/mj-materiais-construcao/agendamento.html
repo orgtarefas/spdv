@@ -59,7 +59,7 @@
             <!-- Barra de Ações Principais -->
             <div class="acoes-principais">
                 <button class="btn-principal btn-primary" id="btnNovoAgendamento">
-                    <i class="fas fa-plus-circle"></i> Novo Agendamento
+                    <i class="fas fa-plus-circle"></i> Criar Agendamento
                 </button>
                 
                 <button class="btn-principal btn-info" id="btnGerenciarAgendamentos">
@@ -259,76 +259,132 @@
         </div>
     </div>
 
-    <!-- MODAL: Novo Agendamento (para funcionários/admin) -->
-    <div id="novoAgendamentoModal" class="modal">
+    <!-- MODAL: Criar Agendamento (Configuração do Serviço) -->
+    <div id="criarAgendamentoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
-                <button class="modal-close" onclick="fecharModal('novoAgendamentoModal')">&times;</button>
+                <h3><i class="fas fa-calendar-plus"></i> Criar Agendamento</h3>
+                <button class="modal-close" onclick="fecharModal('criarAgendamentoModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="novoAgendamentoForm">
-                    <!-- Busca de Cliente -->
+                <form id="criarAgendamentoForm">
+                    <!-- Nome do Serviço -->
                     <div class="form-group">
-                        <label><i class="fas fa-user"></i> Cliente *</label>
-                        <div class="cliente-selector">
-                            <input type="text" id="buscaClienteAdmin" placeholder="Digite nome, email ou telefone..." autocomplete="off">
-                            <div class="resultados-busca" id="resultadosBuscaAdmin"></div>
-                        </div>
+                        <label><i class="fas fa-tag"></i> Nome do Serviço *</label>
+                        <input type="text" id="servicoNome" placeholder="Ex: Corte de Cabelo, Consulta, etc" required>
                     </div>
-
-                    <!-- Dados do Agendamento -->
-                    <div class="form-row">
-                        <div class="form-group half">
-                            <label><i class="fas fa-cut"></i> Serviço *</label>
-                            <select id="servicoAdminSelect" required>
-                                <option value="">Selecione...</option>
-                                <option value="corte">Corte de Cabelo</option>
-                                <option value="barba">Barba</option>
-                                <option value="combo">Corte + Barba</option>
-                                <option value="sobrancelha">Sobrancelha</option>
-                                <option value="pigmentacao">Pigmentação</option>
-                            </select>
-                        </div>
-                        <div class="form-group half">
-                            <label><i class="fas fa-calendar"></i> Data *</label>
-                            <input type="date" id="agendamentoDataAdmin" required>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group half">
-                            <label><i class="fas fa-clock"></i> Horário *</label>
-                            <select id="agendamentoHorarioAdmin" required>
-                                <option value="">Selecione</option>
-                            </select>
-                        </div>
-                        <div class="form-group half">
-                            <label><i class="fas fa-check-circle"></i> Status</label>
-                            <select id="statusAdmin">
-                                <option value="agendado">Agendado</option>
-                                <option value="validado">Validado (entra na fila)</option>
-                            </select>
-                        </div>
-                    </div>
-
+    
+                    <!-- Descrição -->
                     <div class="form-group">
-                        <label><i class="fas fa-comment"></i> Observações</label>
-                        <textarea id="observacoesAdmin" rows="2" placeholder="Observações sobre o agendamento..."></textarea>
+                        <label><i class="fas fa-align-left"></i> Descrição</label>
+                        <textarea id="servicoDescricao" rows="2" placeholder="Descreva o serviço oferecido..."></textarea>
                     </div>
-
-                    <input type="hidden" id="agendamentoIdAdmin">
+    
+                    <!-- Horário de Funcionamento do Serviço -->
+                    <div class="form-group">
+                        <label><i class="fas fa-clock"></i> Horário de Funcionamento do Serviço</label>
+                        <div class="horario-servico-inputs">
+                            <div class="input-group">
+                                <label>Início</label>
+                                <input type="time" id="servicoInicio" value="08:00">
+                            </div>
+                            <div class="input-group">
+                                <label>Fim</label>
+                                <input type="time" id="servicoFim" value="18:00">
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Dias da semana -->
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-week"></i> Dias de Funcionamento</label>
+                        <div class="dias-semana-grid">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="segunda" checked> Segunda
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="terca" checked> Terça
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="quarta" checked> Quarta
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="quinta" checked> Quinta
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="sexta" checked> Sexta
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="sabado"> Sábado
+                            </label>
+                            <label class="dia-checkbox">
+                                <input type="checkbox" class="dia-semana" value="domingo"> Domingo
+                            </label>
+                        </div>
+                        <small>
+                            <button type="button" class="btn-link" id="selecionarTodosDias">Selecionar todos</button> | 
+                            <button type="button" class="btn-link" id="limparTodosDias">Limpar todos</button>
+                        </small>
+                    </div>
+    
+                    <!-- Permitir Agendamentos fora do dia vigente -->
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="permitirForaDia" checked>
+                            <span>Permitir Agendamentos fora do dia vigente</span>
+                        </label>
+                        <small class="help-text">
+                            Se desativado, só será possível agendar para o dia atual
+                        </small>
+                    </div>
+    
+                    <!-- Opções de Validação -->
+                    <div class="form-group" id="opcoesValidacaoGroup">
+                        <label><i class="fas fa-check-circle"></i> Opções de Validação</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="automatico_dia" checked>
+                                <div class="radio-content">
+                                    <strong>Validar Agendamento Automaticamente Dia</strong>
+                                    <small>Agendamentos do dia entram na fila automaticamente. Outros dias precisam validação manual.</small>
+                                </div>
+                            </label>
+    
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="automatico_todos">
+                                <div class="radio-content">
+                                    <strong>Validar Senha Automaticamente Dia e Período</strong>
+                                    <small>Todos os agendamentos entram na fila sem precisar validar.</small>
+                                </div>
+                            </label>
+    
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="manual">
+                                <div class="radio-content">
+                                    <strong>Validar Senha Manualmente</strong>
+                                    <small>Precisa validar manualmente todos os agendamentos para serem válidos.</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+    
+                    <!-- Observação sobre validação -->
+                    <div class="alert-info" id="alertaValidacao" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        Com "Permitir Agendamentos fora do dia vigente" desativado, a validação automática só se aplica ao dia atual.
+                    </div>
+    
+                    <input type="hidden" id="agendamentoId">
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn-cancelar" onclick="fecharModal('novoAgendamentoModal')">Cancelar</button>
-                <button class="btn-salvar" id="btnSalvarAgendamentoAdmin">
-                    <i class="fas fa-save"></i> Salvar Agendamento
+                <button class="btn-cancelar" onclick="fecharModal('criarAgendamentoModal')">Cancelar</button>
+                <button class="btn-salvar" id="btnSalvarAgendamento">
+                    <i class="fas fa-save"></i> Salvar Configuração
                 </button>
             </div>
         </div>
     </div>
-
     <!-- MODAL: Gerenciar Agendamentos (Lista para editar/excluir) -->
     <div id="gerenciarAgendamentosModal" class="modal modal-lg">
         <div class="modal-content">
