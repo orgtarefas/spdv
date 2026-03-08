@@ -265,16 +265,16 @@
         </div>
     </div>
 
-    <!-- MODAL: Criar Agendamento (Configuração do Serviço) -->
+    <!-- MODAL: Criar Agendamento (Configuração do Serviço com horários por dia) -->
     <div id="salvarCriarAgendamentoModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content modal-lg">
             <div class="modal-header">
-                <h3><i class="fas fa-calendar-plus"></i> Criar Agendamento</h3>
+                <h3><i class="fas fa-calendar-plus"></i> Configurar Serviço de Agendamento</h3>
                 <button class="modal-close" onclick="fecharModal('salvarCriarAgendamentoModal')">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="criarAgendamentoForm">
-                    <!-- Nome do Serviço -->
+                    <!-- Nome do Serviço (único) -->
                     <div class="form-group">
                         <label><i class="fas fa-tag"></i> Nome do Serviço *</label>
                         <input type="text" id="servicoNome" placeholder="Ex: Corte de Cabelo, Consulta, etc" required>
@@ -283,54 +283,309 @@
                     <!-- Descrição -->
                     <div class="form-group">
                         <label><i class="fas fa-align-left"></i> Descrição</label>
-                        <textarea id="servicoDescricao" rows="2" placeholder="Descreva o serviço oferecido..."></textarea>
+                        <textarea id="servicoDescricao" rows="2" placeholder="Descrição do serviço..."></textarea>
                     </div>
     
-                    <!-- Horário de Funcionamento do Serviço -->
-                    <div class="form-group">
-                        <label><i class="fas fa-clock"></i> Horário de Funcionamento do Serviço</label>
-                        <div class="horario-servico-inputs">
-                            <div class="input-group">
-                                <label>Início</label>
-                                <input type="time" id="servicoInicio" value="08:00">
+                    <!-- Abas para cada dia da semana -->
+                    <div class="dias-config-tabs">
+                        <button type="button" class="dia-tab active" data-dia="segunda">Segunda</button>
+                        <button type="button" class="dia-tab" data-dia="terca">Terça</button>
+                        <button type="button" class="dia-tab" data-dia="quarta">Quarta</button>
+                        <button type="button" class="dia-tab" data-dia="quinta">Quinta</button>
+                        <button type="button" class="dia-tab" data-dia="sexta">Sexta</button>
+                        <button type="button" class="dia-tab" data-dia="sabado">Sábado</button>
+                        <button type="button" class="dia-tab" data-dia="domingo">Domingo</button>
+                    </div>
+    
+                    <!-- Container para configuração de todos os dias -->
+                    <div class="dias-config-container">
+                        <!-- SEGUNDA-FEIRA -->
+                        <div class="dia-config active" id="config-segunda">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="segunda" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
                             </div>
-                            <div class="input-group">
-                                <label>Fim</label>
-                                <input type="time" id="servicoFim" value="18:00">
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="segunda" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="segunda" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label><i class="fas fa-hourglass-half"></i> Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="segunda" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label><i class="fas fa-clock"></i> Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="segunda" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-utensils"></i> Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="segunda" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="segunda" value="13:00">
+                                    </div>
+                                    <small class="help-text">Deixe em branco se não houver intervalo</small>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- TERÇA-FEIRA -->
+                        <div class="dia-config" id="config-terca">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="terca" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="terca" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="terca" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="terca" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="terca" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="terca" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="terca" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- QUARTA-FEIRA -->
+                        <div class="dia-config" id="config-quarta">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="quarta" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="quarta" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="quarta" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="quarta" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="quarta" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="quarta" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="quarta" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- QUINTA-FEIRA -->
+                        <div class="dia-config" id="config-quinta">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="quinta" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="quinta" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="quinta" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="quinta" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="quinta" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="quinta" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="quinta" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- SEXTA-FEIRA -->
+                        <div class="dia-config" id="config-sexta">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="sexta" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="sexta" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="sexta" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="sexta" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="sexta" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="sexta" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="sexta" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- SÁBADO -->
+                        <div class="dia-config" id="config-sabado">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="sabado">
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content" style="opacity:0.5; pointer-events:none;">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="sabado" value="09:00" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="sabado" value="13:00" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="sabado" value="30" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="sabado" value="0" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="sabado" value="12:00" disabled>
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="sabado" value="13:00" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- DOMINGO -->
+                        <div class="dia-config" id="config-domingo">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="domingo">
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content" style="opacity:0.5; pointer-events:none;">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="domingo" value="09:00" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="domingo" value="13:00" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="domingo" value="30" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="domingo" value="0" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="domingo" value="12:00" disabled>
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="domingo" value="13:00" disabled>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
     
-                    <!-- Dias da semana -->
-                    <div class="form-group">
-                        <label><i class="fas fa-calendar-week"></i> Dias de Funcionamento</label>
-                        <div class="dias-semana-grid">
-                            <label class="dia-checkbox">
-                                <input type="checkbox" class="dia-semana" value="segunda" checked> Segunda
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" class="dia-semana" value="terca" checked> Terça
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" class="dia-semana" value="quarta" checked> Quarta
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" class="dia-semana" value="quinta" checked> Quinta
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" class="dia-semana" value="sexta" checked> Sexta
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" class="dia-semana" value="sabado"> Sábado
-                            </label>
-                            <label class="dia-checkbox">
-                                <input type="checkbox" class="dia-semana" value="domingo"> Domingo
-                            </label>
-                        </div>
-                        <small>
-                            <button type="button" class="btn-link" id="selecionarTodosDias">Selecionar todos</button> | 
-                            <button type="button" class="btn-link" id="limparTodosDias">Limpar todos</button>
-                        </small>
+                    <!-- Botões para copiar configuração -->
+                    <div class="copy-config-actions">
+                        <button type="button" class="btn-link" id="copiarSegundaParaTodos">
+                            <i class="fas fa-copy"></i> Copiar configuração da Segunda para todos os dias
+                        </button>
                     </div>
     
                     <!-- Permitir Agendamentos fora do dia vigente -->
@@ -386,60 +641,8 @@
             <div class="modal-footer">
                 <button class="btn-cancelar" onclick="fecharModal('salvarCriarAgendamentoModal')">Cancelar</button>
                 <button class="btn-salvar" id="btnSalvarCriarAgendamento">
-                    <i class="fas fa-save"></i> Salvar Agendamento
+                    <i class="fas fa-save"></i> Salvar Configuração
                 </button>
-            </div>
-        </div>
-    </div>
-    <!-- MODAL: Gerenciar Agendamentos (Lista para editar/excluir) -->
-    <div id="gerenciarAgendamentosModal" class="modal modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-edit"></i> Gerenciar Agendamentos</h3>
-                <button class="modal-close" onclick="fecharModal('gerenciarAgendamentosModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="gerenciar-header">
-                    <div class="busca-gerenciar">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="buscaGerenciar" placeholder="Buscar por cliente, serviço ou data...">
-                    </div>
-                    <div class="filtros-gerenciar">
-                        <select id="filtroStatusGerenciar">
-                            <option value="todos">Todos os status</option>
-                            <option value="agendado">Agendado</option>
-                            <option value="validado">Validado</option>
-                            <option value="concluido">Concluído</option>
-                            <option value="cancelado">Cancelado</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="tabela-gerenciar-container">
-                    <table class="tabela-gerenciar">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Serviço</th>
-                                <th>Data</th>
-                                <th>Horário</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="gerenciarLista">
-                            <tr class="empty-row">
-                                <td colspan="6">Nenhum agendamento encontrado</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="gerenciar-paginacao">
-                    <button class="btn-pagina" id="paginaAnterior" disabled><i class="fas fa-chevron-left"></i></button>
-                    <span id="paginaInfo">Página 1 de 1</span>
-                    <button class="btn-pagina" id="proximaPagina" disabled><i class="fas fa-chevron-right"></i></button>
-                </div>
             </div>
         </div>
     </div>
