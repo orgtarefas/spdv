@@ -581,13 +581,18 @@
                         </div>
                     </div>
     
-                    <!-- Botões para copiar configuração -->
-                    <div class="copy-config-actions">
-                        <button type="button" class="btn-link" id="espelharConfiguracao">
-                            <i class="fas fa-copy"></i> Espelhar configuração para outros dias
-                        </button>
+                    <!-- Opção de Espelhar Configuração -->
+                    <div class="form-group espelhar-config-group">
+                        <label class="checkbox-label checkbox-espelhar">
+                            <input type="checkbox" id="espelharConfiguracao" checked>
+                            <span><i class="fas fa-copy"></i> Espelhar configuração para todos os dias</span>
+                        </label>
+                        <small class="help-text">
+                            Quando marcado, a configuração do dia atual será aplicada automaticamente a todos os dias da semana.
+                            Desmarque para configurar cada dia individualmente.
+                        </small>
                     </div>
-    
+
                     <!-- Permitir Agendamentos fora do dia vigente -->
                     <div class="form-group">
                         <label class="checkbox-label">
