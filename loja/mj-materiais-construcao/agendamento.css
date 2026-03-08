@@ -2572,3 +2572,50 @@ input:checked + .toggle-slider:before {
 .btn-salvar-pequeno:hover {
     background: #e65100;
 }
+
+/* Estilo para o checkbox de espelhamento */
+.espelhar-checkbox {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: #f0f7ff;
+    border: 1px solid #2196F3;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+    margin-left: 10px;
+}
+
+.espelhar-checkbox:hover {
+    background: #e3f2fd;
+    border-color: #1976D2;
+}
+
+.espelhar-checkbox:has(input:checked) {
+    background: #4CAF50;
+    border-color: #2E7D32;
+    color: white;
+}
+
+.espelhar-checkbox input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+    width: 14px;
+    height: 14px;
+}
+
+/* Quando estiver marcado, inverter cores do texto */
+.espelhar-checkbox:has(input:checked) span {
+    color: white;
+}
+
+/* Ajuste para a aba */
+.dia-tab {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
