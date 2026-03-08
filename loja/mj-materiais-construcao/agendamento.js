@@ -1469,12 +1469,75 @@ window.addEventListener('usuarioDeslogado', () => {
 });
 
 // ============================================
-// FUNÇÕES AUXILIARES (a serem implementadas)
+// RENDERIZAR EXCEÇÕES
 // ============================================
 function renderizarExcecoes(excecoes) {
     console.log('Renderizar exceções:', excecoes);
+    
+    const container = document.getElementById('excecoesLista');
+    if (!container) return;
+    
+    if (!excecoes || excecoes.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <p>Nenhuma exceção cadastrada</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Ordenar por data
+    excecoes.sort((a, b) => new Date(a.data) - new Date(b.data));
+    
+    let html = '';
+    excecoes.forEach(exc => {
+        const dataObj = new Date(exc.data + 'T12:00:00');
+        const dataFormatada = dataObj.toLocaleDateString('pt-BR');
+        
+        let tipoTexto = '';
+        let tipoClasse = '';
+        
+        switch(exc.tipo) {
+            case 'feriado':
+                tipoTexto = '🔴 Feriado';
+                tipoClasse = 'feriado';
+                break;
+            case 'horario_especial':
+                tipoTexto = '🟡 Horário Especial';
+                tipoClasse = 'horario_especial';
+                break;
+            case 'capacidade_extra':
+                tipoTexto = '🟢 Capacidade Extra';
+                tipoClasse = 'capacidade_extra';
+                break;
+            case 'capacidade_reduzida':
+                tipoTexto = '🟠 Capacidade Reduzida';
+                tipoClasse = 'capacidade_reduzida';
+                break;
+        }
+        
+        html += `
+            <div class="excecao-item" data-data="${exc.data}">
+                <div class="excecao-info">
+                    <span class="excecao-data">${dataFormatada}</span>
+                    <span class="excecao-tipo ${tipoClasse}">${tipoTexto}</span>
+                    <span class="excecao-desc">${exc.observacao || ''}</span>
+                </div>
+                <div class="excecao-acoes">
+                    <button class="btn-editar-excecao" onclick="editarExcecao('${exc.data}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-excluir-excecao" onclick="excluirExcecao('${exc.data}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
 }
-
 // ============================================---------------------------------------------------------------------------------------
 // ABRIR MODAL DE AGENDAMENTO (COMPLETA E AUTOSSUFICIENTE)
 // ============================================
