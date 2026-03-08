@@ -1344,7 +1344,7 @@ async function salvarExcecao() {
 function abrirModalAgendamentoFuncionarios() {
     console.log('Abrir modal de agendamento para funcionários');
     
-    const modal = document.getElementById('novoAgendamentoModal');
+    const modal = document.getElementById('criarAgendamentoModal');
     if (!modal) {
         console.error('❌ Modal novoAgendamentoModal não encontrado');
         mostrarMensagem('Erro ao abrir modal', 'error');
