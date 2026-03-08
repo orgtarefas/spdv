@@ -2020,76 +2020,86 @@ async function chamarProximo(id) {
 }
 
 // ============================================
-// SALVAR CONFIGURAÇÃO DO AGENDAMENTO
+// SALVAR CONFIGURAÇÃO DO AGENDAMENTO (VERSÃO CORRETA)
 // ============================================
 async function salvarCriarAgendamento() {
     try {
         const nomeServico = document.getElementById('servicoNome').value;
         const descricao = document.getElementById('servicoDescricao').value;
         const permitirForaDia = document.getElementById('permitirForaDia').checked;
-        
-        // Opção de validação selecionada
         const validacao = document.querySelector('input[name="validacao"]:checked')?.value || 'automatico_dia';
         
-        // Validações
         if (!nomeServico) {
             mostrarMensagem('Nome do serviço é obrigatório', 'warning');
             return;
         }
         
-        // Coletar DIAS ATIVOS (checkboxes .dia-ativo que estão marcados)
-        const diasSelecionados = [];
+        // Coletar DIAS ATIVOS e suas configurações
+        const diasAtivos = [];
+        const configuracoesPorDia = {};
+        
         document.querySelectorAll('.dia-ativo:checked').forEach(cb => {
-            // O dataset.dia contém o dia (segunda, terca, etc)
-            if (cb.dataset.dia) {
-                diasSelecionados.push(cb.dataset.dia);
+            const dia = cb.dataset.dia;
+            if (dia) {
+                diasAtivos.push(dia);
+                
+                const configEl = document.getElementById(`config-${dia}`);
+                if (configEl) {
+                    configuracoesPorDia[dia] = {
+                        ativo: true,
+                        inicio: configEl.querySelector('.horario-inicio')?.value || '08:00',
+                        fim: configEl.querySelector('.horario-fim')?.value || '18:00',
+                        duracao: parseInt(configEl.querySelector('.duracao')?.value) || 30,
+                        intervaloEntre: parseInt(configEl.querySelector('.intervalo-entre')?.value) || 0,
+                        intervaloInicio: configEl.querySelector('.intervalo-inicio')?.value || '12:00',
+                        intervaloFim: configEl.querySelector('.intervalo-fim')?.value || '13:00'
+                    };
+                }
             }
         });
         
-        if (diasSelecionados.length === 0) {
+        // Também salvar dias inativos (para referência)
+        document.querySelectorAll('.dia-ativo:not(:checked)').forEach(cb => {
+            const dia = cb.dataset.dia;
+            if (dia && !configuracoesPorDia[dia]) {
+                configuracoesPorDia[dia] = { ativo: false };
+            }
+        });
+        
+        if (diasAtivos.length === 0) {
             mostrarMensagem('Selecione pelo menos um dia de funcionamento', 'warning');
             return;
         }
         
-        // Coletar configurações de CADA dia ativo
-        const configPorDia = {};
-        diasSelecionados.forEach(dia => {
-            const configEl = document.getElementById(`config-${dia}`);
-            if (configEl) {
-                configPorDia[dia] = {
-                    inicio: configEl.querySelector('.horario-inicio')?.value || '08:00',
-                    fim: configEl.querySelector('.horario-fim')?.value || '18:00',
-                    duracao: parseInt(configEl.querySelector('.duracao')?.value) || 30,
-                    intervaloEntre: parseInt(configEl.querySelector('.intervalo-entre')?.value) || 0,
-                    intervaloInicio: configEl.querySelector('.intervalo-inicio')?.value || '12:00',
-                    intervaloFim: configEl.querySelector('.intervalo-fim')?.value || '13:00'
-                };
-            }
-        });
-        
         mostrarLoading('Salvando configuração...');
         
-        // Dados para salvar
+        // Gerar um ID único para o serviço (ou usar o nome como ID)
+        const servicoId = nomeServico.toLowerCase().replace(/\s+/g, '_');
+        
+        // Dados completos para salvar
         const configData = {
+            id: servicoId,
             nome: nomeServico,
             descricao: descricao,
             permitirForaDia: permitirForaDia,
             validacao: validacao,
-            diasAtivos: diasSelecionados,
-            configuracoesPorDia: configPorDia,
+            diasAtivos: diasAtivos,
+            configuracoesPorDia: configuracoesPorDia,
             atualizado_por: dadosUsuario?.email || 'sistema',
             atualizado_em: serverTimestamp(),
+            data_atualizacao: new Date().toISOString(),
             loja_id: lojaIdAtual
         };
         
-        console.log('📝 Salvando configuração:', configData);
+        console.log('📝 Salvando configuração completa:', configData);
         
+        // Salvar no Firestore com ID específico
         const configRef = doc(
             db, 
             'configuracoes', 
             lojaIdAtual, 
             'servico_agendamento', 
-            'config'
+            servicoId  // Usar ID baseado no nome
         );
         
         await setDoc(configRef, configData, { merge: true });
