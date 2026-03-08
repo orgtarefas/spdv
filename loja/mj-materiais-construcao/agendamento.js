@@ -938,7 +938,7 @@ function validarTodosDiasConfigurados() {
 }
 
 // ============================================
-// CONFIGURAR ABAS DE DIAS
+// CONFIGURAR ABAS DE DIAS (CORRIGIDO)
 // ============================================
 function configurarAbasDias() {
     console.log('🔧 Configurando abas de dias...');
@@ -951,7 +951,7 @@ function configurarAbasDias() {
         return;
     }
     
-    // Remover listeners antigos clonando e substituindo
+    // Remover listeners antigos
     tabs.forEach(tab => {
         const newTab = tab.cloneNode(true);
         tab.parentNode.replaceChild(newTab, tab);
@@ -986,12 +986,14 @@ function configurarAbasDias() {
             } else {
                 console.error(`❌ Configuração para ${dia} não encontrada`);
             }
+            
+            // ATUALIZAR VISIBILIDADE DO CHECKBOX DE ESPELHAMENTO
+            atualizarVisibilidadeCheckboxEspelhamento();
         });
     });
     
     // Configurar checkboxes de ativar/desativar dia
     document.querySelectorAll('.dia-ativo').forEach(checkbox => {
-        // Remover listeners antigos
         const newCheckbox = checkbox.cloneNode(true);
         checkbox.parentNode.replaceChild(newCheckbox, checkbox);
         
@@ -1022,85 +1024,83 @@ function configurarAbasDias() {
 }
 
 // ============================================
-// CONFIGURAR ESPELHAMENTO AUTOMÁTICO (APENAS NA SEGUNDA)
+// CONFIGURAR ESPELHAMENTO (FORA DO BOTÃO, VISÍVEL APENAS NA SEGUNDA)
 // ============================================
 function configurarEspelhamentoAutomatico() {
-    console.log('🔧 Configurando espelhamento apenas para segunda-feira...');
+    console.log('🔧 Configurando espelhamento para aparecer na segunda-feira...');
     
     // ============================================
-    // REMOVER CHECKBOX FIXO DO HTML SE ELE AINDA EXISTIR
+    // REMOVER CHECKBOX FIXO DO HTML
     // ============================================
     const checkboxFixo = document.getElementById('espelharConfiguracao');
-    if (checkboxFixo && !checkboxFixo.closest('.dia-tab')) {
-        // Se o checkbox existe e NÃO está dentro de uma aba, remove
-        checkboxFixo.closest('.form-group')?.remove();
-        console.log('✅ Checkbox fixo do HTML removido');
+    if (checkboxFixo) {
+        const containerFixo = checkboxFixo.closest('.form-group');
+        if (containerFixo) {
+            containerFixo.remove();
+            console.log('✅ Checkbox fixo do HTML removido');
+        }
     }
     
     // ============================================
-    // CRIAR CHECKBOX NA SEGUNDA (UMA ÚNICA VEZ)
+    // CRIAR CONTAINER PARA O CHECKBOX (FORA DAS ABAS)
     // ============================================
-    function criarCheckboxNaSegunda() {
-        // Verificar se já existe e está na segunda
-        const checkboxExistente = document.getElementById('espelharConfiguracao');
-        if (checkboxExistente) {
-            const parenteAba = checkboxExistente.closest('.dia-tab');
-            if (parenteAba && parenteAba.dataset.dia === 'segunda') {
-                console.log('✅ Checkbox já existe na segunda-feira');
-                return checkboxExistente;
-            } else {
-                // Se existe mas não está na segunda, remove
-                checkboxExistente.remove();
-            }
+    function criarContainerEspelhamento() {
+        // Verificar se já existe
+        if (document.getElementById('containerEspelhamento')) {
+            return document.getElementById('containerEspelhamento');
         }
         
-        const segundaTab = document.querySelector('.dia-tab[data-dia="segunda"]');
-        if (!segundaTab) {
-            console.warn('⚠️ Aba de segunda-feira não encontrada');
+        // Encontrar o local ideal para inserir (após as abas, antes das configurações)
+        const containerAbas = document.querySelector('.dias-config-tabs');
+        const containerConfigs = document.querySelector('.dias-config-container');
+        
+        if (!containerAbas || !containerConfigs) {
+            console.warn('⚠️ Containers não encontrados');
             return null;
         }
         
-        // Criar o checkbox
-        const label = document.createElement('label');
-        label.className = 'espelhar-checkbox';
-        label.style.marginLeft = '10px';
-        label.style.fontSize = '12px';
-        label.style.cursor = 'pointer';
-        label.style.userSelect = 'none';
-        label.style.display = 'inline-flex';
-        label.style.alignItems = 'center';
-        label.style.gap = '5px';
-        label.style.padding = '3px 8px';
-        label.style.background = '#f0f0f0';
-        label.style.borderRadius = '20px';
-        label.style.transition = 'all 0.2s';
-        label.innerHTML = `
-            <input type="checkbox" id="espelharConfiguracao">
-            <span>🔁 Espelhar para todos os dias</span>
+        // Criar container do checkbox
+        const container = document.createElement('div');
+        container.id = 'containerEspelhamento';
+        container.className = 'form-group espelhamento-container';
+        container.style.margin = '15px 0';
+        container.style.padding = '10px 15px';
+        container.style.background = '#f8f9fa';
+        container.style.borderRadius = '8px';
+        container.style.border = '1px solid #e9ecef';
+        container.style.display = 'none'; // Inicia oculto
+        
+        container.innerHTML = `
+            <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="espelharConfiguracao">
+                <span><i class="fas fa-copy" style="color: #ff6b00;"></i> Espelhar configuração para todos os dias</span>
+            </label>
+            <small style="display: block; color: #64748b; font-size: 0.8rem; margin-top: 5px; margin-left: 26px;">
+                Quando marcado, a configuração da segunda-feira será aplicada a todos os dias da semana
+            </small>
         `;
         
-        segundaTab.appendChild(label);
-        console.log('✅ Checkbox de espelhamento criado na segunda-feira');
-        return document.getElementById('espelharConfiguracao');
+        // Inserir entre as abas e as configurações
+        containerAbas.parentNode.insertBefore(container, containerConfigs);
+        
+        console.log('✅ Container de espelhamento criado');
+        return container;
     }
     
     // ============================================
     // CONTROLAR VISIBILIDADE POR ABA
     // ============================================
-    function atualizarVisibilidadeCheckbox() {
-        const checkbox = document.getElementById('espelharConfiguracao');
-        if (!checkbox) return;
-        
-        const label = checkbox.closest('.espelhar-checkbox');
-        if (!label) return;
+    function atualizarVisibilidadeCheckboxEspelhamento() {
+        const container = document.getElementById('containerEspelhamento');
+        if (!container) return;
         
         const abaAtiva = document.querySelector('.dia-tab.active');
         const isSegundaAtiva = abaAtiva && abaAtiva.dataset.dia === 'segunda';
         
-        // Mostrar apenas na segunda-feira
-        label.style.display = isSegundaAtiva ? 'inline-flex' : 'none';
+        // Mostrar container apenas na segunda-feira
+        container.style.display = isSegundaAtiva ? 'block' : 'none';
         
-        console.log(`👁️ Checkbox ${isSegundaAtiva ? 'visível' : 'oculto'} na aba ${abaAtiva?.dataset.dia}`);
+        console.log(`👁️ Container espelhamento ${isSegundaAtiva ? 'visível' : 'oculto'} (aba: ${abaAtiva?.dataset.dia})`);
     }
     
     // ============================================
@@ -1177,18 +1177,19 @@ function configurarEspelhamentoAutomatico() {
     // CONFIGURAR EVENTOS
     // ============================================
     
-    // Criar checkbox (uma única vez)
-    const chkEspelhar = criarCheckboxNaSegunda();
+    // Criar container (uma única vez)
+    const container = criarContainerEspelhamento();
+    if (!container) return;
+    
+    // Pegar referência do checkbox
+    const chkEspelhar = document.getElementById('espelharConfiguracao');
     if (!chkEspelhar) return;
     
     // Estado inicial
     chkEspelhar.checked = false;
     
-    // Evento do checkbox (remover listeners antigos clonando)
-    const novoChk = chkEspelhar.cloneNode(true);
-    chkEspelhar.parentNode.replaceChild(novoChk, chkEspelhar);
-    
-    novoChk.addEventListener('change', function(e) {
+    // Evento do checkbox
+    chkEspelhar.addEventListener('change', function(e) {
         e.stopPropagation();
         
         if (this.checked) {
@@ -1197,22 +1198,66 @@ function configurarEspelhamentoAutomatico() {
         }
     });
     
-    // Monitorar mudanças de aba
-    document.querySelectorAll('.dia-tab').forEach(tab => {
-        // Remover listeners antigos
-        const novaTab = tab.cloneNode(true);
-        tab.parentNode.replaceChild(novaTab, tab);
+    // Observar mudanças nas abas (além do evento de click)
+    function observarMudancasAbas() {
+        atualizarVisibilidadeCheckboxEspelhamento();
         
-        novaTab.addEventListener('click', () => {
-            // Pequeno delay para garantir que a classe 'active' foi aplicada
-            setTimeout(atualizarVisibilidadeCheckbox, 50);
+        // Criar um MutationObserver para detectar mudanças na classe 'active'
+        const abas = document.querySelectorAll('.dia-tab');
+        abas.forEach(aba => {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.attributeName === 'class') {
+                        setTimeout(atualizarVisibilidadeCheckboxEspelhamento, 10);
+                    }
+                });
+            });
+            
+            observer.observe(aba, { attributes: true });
         });
-    });
+    }
     
-    // Verificar visibilidade inicial
-    setTimeout(atualizarVisibilidadeCheckbox, 100);
+    // Inicializar
+    setTimeout(() => {
+        observarMudancasAbas();
+        atualizarVisibilidadeCheckboxEspelhamento();
+    }, 200);
     
-    console.log('✅ Espelhamento configurado - só aparece na segunda-feira');
+    console.log('✅ Espelhamento configurado - aparece fora do botão, apenas na segunda');
+}
+
+// ============================================
+// DENTRO DO ABRIR MODAL, GARANTIR A ORDEM CORRETA
+// ============================================
+function abrirModalAgendamentoFuncionarios() {
+    console.log('Abrir modal de agendamento para funcionários');
+    
+    const modal = document.getElementById('salvarCriarAgendamentoModal');
+    if (!modal) {
+        console.error('❌ Modal salvarCriarAgendamentoModal não encontrado');
+        mostrarMensagem('Erro ao abrir modal', 'error');
+        return;
+    }
+    
+    // Limpar formulário
+    const form = document.getElementById('criarAgendamentoForm');
+    if (form) form.reset();
+    
+    // 🔥 CONFIGURAR EVENTOS NA ORDEM CORRETA
+    configurarEventosDias();
+    configurarPermitirForaDia();
+    
+    // Primeiro configurar as abas
+    configurarAbasDias();
+    
+    // Depois configurar o espelhamento
+    configurarEspelhamentoAutomatico();
+    
+    // Por fim carregar dados
+    carregarDiasExcepcionais();
+    configurarEventosExcecoes();
+    
+    modal.classList.add('active');
 }
 
 // ============================================
