@@ -2024,18 +2024,9 @@ async function chamarProximo(id) {
 // ============================================
 async function salvarCriarAgendamento() {
     try {
-        // 🔥 USAR OS CAMPOS QUE REALMENTE EXISTEM NO MODAL
         const nomeServico = document.getElementById('servicoNome').value;
         const descricao = document.getElementById('servicoDescricao').value;
-        const horarioInicio = document.getElementById('servicoInicio').value;
-        const horarioFim = document.getElementById('servicoFim').value;
         const permitirForaDia = document.getElementById('permitirForaDia').checked;
-        
-        // Coletar dias selecionados
-        const diasSelecionados = [];
-        document.querySelectorAll('.dia-semana:checked').forEach(cb => {
-            diasSelecionados.push(cb.value);
-        });
         
         // Opção de validação selecionada
         const validacao = document.querySelector('input[name="validacao"]:checked')?.value || 'automatico_dia';
@@ -2046,36 +2037,53 @@ async function salvarCriarAgendamento() {
             return;
         }
         
-        if (!horarioInicio || !horarioFim) {
-            mostrarMensagem('Horário de funcionamento é obrigatório', 'warning');
-            return;
-        }
+        // Coletar DIAS ATIVOS (checkboxes .dia-ativo que estão marcados)
+        const diasSelecionados = [];
+        document.querySelectorAll('.dia-ativo:checked').forEach(cb => {
+            // O dataset.dia contém o dia (segunda, terca, etc)
+            if (cb.dataset.dia) {
+                diasSelecionados.push(cb.dataset.dia);
+            }
+        });
         
         if (diasSelecionados.length === 0) {
             mostrarMensagem('Selecione pelo menos um dia de funcionamento', 'warning');
             return;
         }
         
+        // Coletar configurações de CADA dia ativo
+        const configPorDia = {};
+        diasSelecionados.forEach(dia => {
+            const configEl = document.getElementById(`config-${dia}`);
+            if (configEl) {
+                configPorDia[dia] = {
+                    inicio: configEl.querySelector('.horario-inicio')?.value || '08:00',
+                    fim: configEl.querySelector('.horario-fim')?.value || '18:00',
+                    duracao: parseInt(configEl.querySelector('.duracao')?.value) || 30,
+                    intervaloEntre: parseInt(configEl.querySelector('.intervalo-entre')?.value) || 0,
+                    intervaloInicio: configEl.querySelector('.intervalo-inicio')?.value || '12:00',
+                    intervaloFim: configEl.querySelector('.intervalo-fim')?.value || '13:00'
+                };
+            }
+        });
+        
         mostrarLoading('Salvando configuração...');
         
-        // 🔥 DADOS PARA SALVAR NO FIRESTORE (projeto spdv-3872a)
+        // Dados para salvar
         const configData = {
             nome: nomeServico,
             descricao: descricao,
-            horarioInicio: horarioInicio,
-            horarioFim: horarioFim,
-            dias: diasSelecionados,
             permitirForaDia: permitirForaDia,
             validacao: validacao,
+            diasAtivos: diasSelecionados,
+            configuracoesPorDia: configPorDia,
             atualizado_por: dadosUsuario?.email || 'sistema',
             atualizado_em: serverTimestamp(),
-            data_atualizacao: new Date().toISOString(),
             loja_id: lojaIdAtual
         };
         
         console.log('📝 Salvando configuração:', configData);
         
-        // ✅ CORRETO: Usar db (projeto spdv-3872a) da importação
         const configRef = doc(
             db, 
             'configuracoes', 
@@ -2084,9 +2092,6 @@ async function salvarCriarAgendamento() {
             'config'
         );
         
-        console.log('📁 Referência criada:', configRef.path);
-        
-        // Salvar no Firestore do projeto spdv-3872a
         await setDoc(configRef, configData, { merge: true });
         
         mostrarMensagem('Configuração salva com sucesso!', 'success');
@@ -2094,7 +2099,6 @@ async function salvarCriarAgendamento() {
         
     } catch (error) {
         console.error('❌ Erro ao salvar configuração:', error);
-        console.error('Detalhes:', error.message);
         mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
     } finally {
         esconderLoading();
