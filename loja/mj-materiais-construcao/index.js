@@ -138,23 +138,17 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS NO FIREBASE (CORRIGIDO)
+// ATUALIZAR STATUS NO FIREBASE
 // ============================================
 async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
     try {
-        console.log(`📝 Atualizando ${agamentoId} para ${novoStatus}`);
+        // ✅ CORREÇÃO: usar o nome correto da variável
+        console.log(`📝 Atualizando ${agendamentoId} para ${novoStatus}`);
         
         // O agendamentoId vem no formato: "clienteEmail_agendamento_1"
-        // Precisamos separar corretamente
         const partes = agendamentoId.split('_');
-        
-        // A última parte é o número (1, 2, 3...)
         const numero = partes.pop();
-        
-        // O restante é o email do cliente (pode ter underscores)
         const clienteEmail = partes.join('_');
-        
-        // A chave no Firebase é "agendamento_" + numero
         const agendamentoKey = `agendamento_${numero}`;
         
         console.log(`📧 Cliente: ${clienteEmail}, Chave: ${agendamentoKey}`);
@@ -2906,6 +2900,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
