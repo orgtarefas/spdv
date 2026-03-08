@@ -1340,9 +1340,9 @@ async function salvarExcecao() {
 function abrirModalAgendamentoFuncionarios() {
     console.log('Abrir modal de agendamento para funcionários');
     
-    const modal = document.getElementById('criarAgendamentoModal');
+    const modal = document.getElementById('salvarCriarAgendamentoModal');
     if (!modal) {
-        console.error('❌ Modal criarAgendamentoModal não encontrado');
+        console.error('❌ Modal salvarCriarAgendamentoModal não encontrado');
         mostrarMensagem('Erro ao abrir modal', 'error');
         return;
     }
@@ -1670,7 +1670,7 @@ async function salvarCriarAgendamento() {
         await setDoc(agendamentoRef, agendamentoData);
         
         mostrarMensagem('Agendamento criado com sucesso!', 'success');
-        fecharModal('criarAgendamentoModal');
+        fecharModal('salvarCriarAgendamentoModal');
         
     } catch (error) {
         console.error('❌ Erro ao salvar agendamento:', error);
