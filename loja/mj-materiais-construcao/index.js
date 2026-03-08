@@ -299,7 +299,7 @@ function gerarSenha(numero, status) {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO (CORRIGIDO - 3 CATEGORIAS)
+// RENDERIZAR PAINEL DE AGENDAMENTO (FLUXO AUTOMÁTICO)
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -308,32 +308,44 @@ function renderizarPainelAgendamento() {
     console.log('Agendamentos ativos:', agendamentosAtivos);
     
     // ============================================
-    // ORGANIZAR POR STATUS (3 CATEGORIAS)
+    // ORGANIZAR POR STATUS (FLUXO AUTOMÁTICO)
     // ============================================
     
-    // 1. EM ATENDIMENTO (apenas 1)
-    const emAtendimento = agendamentosAtivos.find(a => a.status === 'Em atendimento');
+    // 1. EM ATENDIMENTO (prioridade máxima)
+    let emAtendimento = agendamentosAtivos.find(a => a.status === 'Em atendimento');
     
-    // 2. PRÓXIMO A ATENDER (apenas 1, após quem está em atendimento)
-    // Exclui quem já está em atendimento
-    const proximoAtender = agendamentosAtivos.find(a => 
-        a.status === 'Próximo a atender' && a.id !== emAtendimento?.id
-    );
+    // 2. PRÓXIMO A ATENDER (só aparece se NÃO tiver ninguém em atendimento)
+    let proximoAtender = null;
+    if (!emAtendimento) {
+        proximoAtender = agendamentosAtivos.find(a => a.status === 'Próximo a atender');
+    }
     
-    // 3. OUTROS NA FILA (todos os demais)
-    // Exclui quem já está em atendimento e quem é o próximo
+    // 3. PRIMEIRO DA FILA (se não tiver próximo, pega o primeiro de "Na fila" ou "Verificado")
+    let primeiroDaFila = null;
+    if (!emAtendimento && !proximoAtender) {
+        const fila = agendamentosAtivos.filter(a => 
+            a.status === 'Na fila' || a.status === 'Verificado'
+        ).sort((a, b) => a.data_hora - b.data_hora);
+        
+        if (fila.length > 0) {
+            primeiroDaFila = fila[0];
+        }
+    }
+    
+    // 4. OUTROS NA FILA (todos os que sobraram)
     const outrosNaFila = agendamentosAtivos.filter(a => {
-        if (a.status === 'Em atendimento') return false;
-        if (a.status === 'Próximo a atender' && a.id === proximoAtender?.id) return false;
+        // Excluir quem já está em alguma categoria
+        if (a.id === emAtendimento?.id) return false;
+        if (a.id === proximoAtender?.id) return false;
+        if (a.id === primeiroDaFila?.id) return false;
+        
+        // Incluir apenas quem está na fila
         return a.status === 'Na fila' || a.status === 'Verificado';
-    });
-    
-    // Ordenar outros na fila por horário
-    outrosNaFila.sort((a, b) => a.data_hora - b.data_hora);
+    }).sort((a, b) => a.data_hora - b.data_hora);
     
     console.log('📊 Organização:', {
         emAtendimento: emAtendimento?.cliente_nome || 'Nenhum',
-        proximoAtender: proximoAtender?.cliente_nome || 'Nenhum',
+        proximoAtender: proximoAtender?.cliente_nome || (primeiroDaFila?.cliente_nome || 'Nenhum'),
         outrosNaFila: outrosNaFila.length
     });
     
@@ -342,7 +354,7 @@ function renderizarPainelAgendamento() {
     // ============================================
     
     // Total na fila (próximo + outros)
-    const totalFila = (proximoAtender ? 1 : 0) + outrosNaFila.length;
+    const totalFila = (proximoAtender || primeiroDaFila ? 1 : 0) + outrosNaFila.length;
     
     const totalFilaBadge = document.getElementById('totalFilaBadge');
     if (totalFilaBadge) totalFilaBadge.textContent = totalFila;
@@ -399,14 +411,16 @@ function renderizarPainelAgendamento() {
     // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
-        if (proximoAtender) {
+        const quemMostrar = proximoAtender || primeiroDaFila;
+        
+        if (quemMostrar) {
             proximosEl.innerHTML = `
                 <div class="item-fila-vertical urgente">
-                    <span class="senha-numero">${proximoAtender.senha}</span>
+                    <span class="senha-numero">${quemMostrar.senha}</span>
                     <div class="senha-info">
-                        <span class="senha-cliente">${proximoAtender.cliente_nome}</span>
+                        <span class="senha-cliente">${quemMostrar.cliente_nome}</span>
                         <span class="senha-servico">
-                            <i class="fas fa-clock"></i> ${proximoAtender.servico}
+                            <i class="fas fa-clock"></i> ${quemMostrar.servico}
                         </span>
                     </div>
                 </div>
@@ -2732,6 +2746,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
