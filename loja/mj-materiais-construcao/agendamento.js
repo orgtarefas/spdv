@@ -1310,10 +1310,7 @@ function configurarEventos() {
             document.getElementById(`tab-${tab}`).classList.add('active');
         });
     });
-    
-    // Salvar configurações de funcionamento
-    document.getElementById('btnSalvarFuncionamento')?.addEventListener('click', salvarConfigFuncionamento);
-    
+      
     // Adicionar exceção
     document.getElementById('btnAddExcecao')?.addEventListener('click', () => {
         abrirModal('excecaoModal');
