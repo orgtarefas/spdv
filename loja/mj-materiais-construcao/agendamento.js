@@ -748,6 +748,112 @@ function abrirModalEspelharConfiguracao() {
     abrirModal('espelharConfigModal');
 }
 
+function configurarEspelhamentoAutomatico() {
+    const chkEspelhar = document.getElementById('espelharConfiguracao');
+    const tabs = document.querySelectorAll('.dia-tab');
+    const configs = document.querySelectorAll('.dia-config');
+    
+    if (!chkEspelhar) return;
+    
+    // Função para espelhar configuração do dia ativo para todos os dias
+    function espelharParaTodos() {
+        const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
+        if (!diaAtivo) return;
+        
+        const configOrigem = coletarConfiguracaoDia(diaAtivo);
+        if (!configOrigem) return;
+        
+        // Aplicar para todos os dias
+        const todosDias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+        
+        todosDias.forEach(dia => {
+            if (dia === diaAtivo) return; // Pular o dia de origem
+            aplicarConfiguracaoDia(dia, configOrigem);
+        });
+        
+        console.log(`🔄 Configuração espelhada de ${diaAtivo} para todos os dias`);
+    }
+    
+    // Quando o checkbox de espelhar for marcado/desmarcado
+    chkEspelhar.addEventListener('change', function() {
+        const isChecked = this.checked;
+        
+        if (isChecked) {
+            // Se marcou, espelhar a configuração atual para todos
+            espelharParaTodos();
+            
+            // Desabilitar abas (não pode mais navegar)
+            tabs.forEach(tab => {
+                tab.style.pointerEvents = 'none';
+                tab.style.opacity = '0.5';
+            });
+            
+            // Mostrar apenas o dia atual
+            configs.forEach(config => {
+                if (!config.classList.contains('active')) {
+                    config.style.display = 'none';
+                }
+            });
+            
+            mostrarMensagem('✅ Modo espelhamento ativado. Todos os dias terão a mesma configuração.', 'info');
+        } else {
+            // Se desmarcou, habilitar abas novamente
+            tabs.forEach(tab => {
+                tab.style.pointerEvents = 'auto';
+                tab.style.opacity = '1';
+            });
+            
+            // Mostrar todos os dias novamente
+            configs.forEach(config => {
+                config.style.display = 'block';
+            });
+            
+            // Manter apenas o dia ativo visível, os outros ocultos pela classe active
+            configs.forEach(config => config.classList.remove('active'));
+            const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
+            if (diaAtivo) {
+                document.getElementById(`config-${diaAtivo}`)?.classList.add('active');
+            }
+            
+            mostrarMensagem('🔓 Modo espelhamento desativado. Configure cada dia individualmente.', 'info');
+        }
+    });
+    
+    // Quando mudar a configuração do dia ativo, se espelhamento estiver ativo, atualizar todos
+    function adicionarListenersEspelhamento() {
+        const inputs = document.querySelectorAll('.dia-config.active input');
+        
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                if (chkEspelhar.checked) {
+                    espelharParaTodos();
+                }
+            });
+            
+            input.addEventListener('input', function() {
+                if (chkEspelhar.checked) {
+                    espelharParaTodos();
+                }
+            });
+        });
+    }
+    
+    // Chamar quando mudar de aba
+    document.querySelectorAll('.dia-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            setTimeout(adicionarListenersEspelhamento, 100);
+        });
+    });
+    
+    // Inicializar
+    adicionarListenersEspelhamento();
+    
+    // Se estiver marcado inicialmente, aplicar espelhamento
+    if (chkEspelhar.checked) {
+        setTimeout(espelharParaTodos, 200);
+    }
+}
+
 function obterNomeDia(diaId) {
     const dias = {
         'segunda': 'Segunda-feira',
