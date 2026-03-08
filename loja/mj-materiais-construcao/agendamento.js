@@ -1414,14 +1414,16 @@ async function salvarCriarAgendamento() {
         
         console.log('📝 Salvando configuração:', configData);
         
-        // ✅ CORRETO: Usar 'db' (projeto spdv-3872a) em vez de 'window.loginDb'
-        const configRef = db
-            .collection('configuracoes')
-            .doc(lojaIdAtual)
-            .collection('servico_agendamento')
-            .doc('config');
+        // ✅ CORRETO: Usar db (projeto spdv-3872a) da importação
+        const configRef = doc(
+            db, 
+            'configuracoes', 
+            lojaIdAtual, 
+            'servico_agendamento', 
+            'config'
+        );
         
-        console.log('📁 Caminho:', configRef.path);
+        console.log('📁 Referência criada:', configRef.path);
         
         // Salvar no Firestore do projeto spdv-3872a
         await setDoc(configRef, configData, { merge: true });
@@ -1431,6 +1433,7 @@ async function salvarCriarAgendamento() {
         
     } catch (error) {
         console.error('❌ Erro ao salvar configuração:', error);
+        console.error('Detalhes:', error.message);
         mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
     } finally {
         esconderLoading();
