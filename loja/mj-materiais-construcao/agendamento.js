@@ -1351,6 +1351,9 @@ function abrirModalAgendamentoFuncionarios() {
     const form = document.getElementById('criarAgendamentoForm');
     if (form) form.reset();
     
+    // 🔥 CONFIGURAR EVENTOS DOS BOTÕES DE DIAS
+    configurarEventosDias();
+    
     // Limpar busca de cliente
     const buscaCliente = document.getElementById('buscaClienteAdmin');
     if (buscaCliente) {
@@ -2107,6 +2110,32 @@ function configurarEventos() {
     document.getElementById('filtroStatusGerenciar')?.addEventListener('change', filtrarGerenciar);
     document.getElementById('paginaAnterior')?.addEventListener('click', paginaAnterior);
     document.getElementById('proximaPagina')?.addEventListener('click', proximaPagina);
+}
+
+// ============================================
+// CONFIGURAR EVENTOS DOS DIAS (SELECIONAR/LIMPAR TODOS)
+// ============================================
+function configurarEventosDias() {
+    const btnSelecionarTodos = document.getElementById('selecionarTodosDias');
+    const btnLimparTodos = document.getElementById('limparTodosDias');
+    
+    if (btnSelecionarTodos) {
+        btnSelecionarTodos.addEventListener('click', () => {
+            document.querySelectorAll('.dia-semana').forEach(cb => {
+                cb.checked = true;
+            });
+            console.log('✅ Todos os dias selecionados');
+        });
+    }
+    
+    if (btnLimparTodos) {
+        btnLimparTodos.addEventListener('click', () => {
+            document.querySelectorAll('.dia-semana').forEach(cb => {
+                cb.checked = false;
+            });
+            console.log('✅ Todos os dias desmarcados');
+        });
+    }
 }
 
 // ============================================
