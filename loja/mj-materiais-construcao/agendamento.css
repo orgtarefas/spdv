@@ -2619,3 +2619,24 @@ input:checked + .toggle-slider:before {
     flex-wrap: wrap;
     gap: 5px;
 }
+
+.espelhar-checkbox {
+    display: inline-flex;  /* Isso será controlado pelo JS */
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: #f0f0f0;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.espelhar-checkbox:hover {
+    background: #e0e0e0;
+}
+
+.espelhar-checkbox:has(input:checked) {
+    background: #4CAF50;
+    color: white;
+}
