@@ -687,6 +687,8 @@ async function carregarHorariosCliente() {
     const dataSelecionada = dataInput.value;
     if (!dataSelecionada) return;
     
+    console.log(`🔍 Buscando horários para data: ${dataSelecionada}`);
+    
     horarioSelect.innerHTML = '<option value="">Verificando horários...</option>';
     horarioSelect.disabled = true;
     
@@ -701,58 +703,53 @@ async function carregarHorariosCliente() {
         
         const diaId = diasMap[diaSemana];
         
-        // 🔥 BUSCAR CONFIGURAÇÃO DO FIREBASE
-        let configDia = null;
-        let configEncontrada = false;
+        // ✅ CORRETO: Usar db (spdv-3872a) para dados operacionais
+        const horariosRef = doc(
+            db,  // 👈 PROJETO DE DADOS
+            'configuracoes', 
+            lojaIdAtual, 
+            'agendamento', 
+            'horarios'
+        );
         
-        try {
-            const horariosRef = window.loginDb
-                .collection('configuracoes')
-                .doc(lojaIdAtual)
-                .collection('agendamento')
-                .doc('horarios');
-            
-            const horariosDoc = await horariosRef.get();
-            
-            if (horariosDoc.exists) {
-                const dados = horariosDoc.data();
-                if (dados && dados[diaId]) {
-                    configDia = dados[diaId];
-                    configEncontrada = true;
-                    console.log(`✅ Configuração encontrada para ${diaId}:`, configDia);
-                }
-            }
-        } catch (e) {
-            console.error('❌ Erro ao buscar configuração:', e);
-        }
+        const horariosDoc = await getDoc(horariosRef);
         
-        // 🔥 SE NÃO ENCONTROU CONFIGURAÇÃO, MOSTRA MENSAGEM
-        if (!configEncontrada) {
-            horarioSelect.innerHTML = '<option value="">⏳ Horários não configurados pela loja</option>';
+        if (!horariosDoc.exists()) {
+            console.log('❌ Documento de horários não encontrado em:', horariosRef.path);
+            horarioSelect.innerHTML = '<option value="">⏳ Horários não configurados</option>';
             horarioSelect.disabled = true;
             return;
         }
         
-        // 🔥 VERIFICAR SE O DIA ESTÁ CONFIGURADO COMO ABERTO
+        const dados = horariosDoc.data();
+        console.log('📋 Dados de horários:', dados);
+        
+        const configDia = dados[diaId];
+        
+        if (!configDia) {
+            console.log(`❌ Configuração para ${diaId} não encontrada`);
+            horarioSelect.innerHTML = '<option value="">⏳ Horários não configurados para este dia</option>';
+            horarioSelect.disabled = true;
+            return;
+        }
+        
         if (!configDia.aberto) {
             horarioSelect.innerHTML = '<option value="">🔒 Estabelecimento fechado neste dia</option>';
             horarioSelect.disabled = true;
             return;
         }
         
-        // 🔥 VERIFICAR SE HORÁRIOS SÃO VÁLIDOS
         if (!configDia.abertura || !configDia.fechamento) {
-            horarioSelect.innerHTML = '<option value="">⚠️ Horários incompletos - contate a loja</option>';
+            horarioSelect.innerHTML = '<option value="">⚠️ Horários incompletos</option>';
             horarioSelect.disabled = true;
             return;
         }
         
-        // Gerar horários baseado na configuração
+        // Gerar horários...
         const horarios = [];
         const [hA, mA] = configDia.abertura.split(':').map(Number);
         const [hF, mF] = configDia.fechamento.split(':').map(Number);
         
-        // Só processar intervalo se existir
         let inicioIntervalo = null;
         let fimIntervalo = null;
         
@@ -774,7 +771,6 @@ async function carregarHorariosCliente() {
         fim.setHours(hF, mF, 0);
         
         while (atual <= fim) {
-            // Pular intervalo se existir
             if (inicioIntervalo && fimIntervalo && 
                 atual >= inicioIntervalo && atual < fimIntervalo) {
                 atual = new Date(fimIntervalo);
@@ -801,7 +797,7 @@ async function carregarHorariosCliente() {
         horarioSelect.disabled = false;
         
     } catch (error) {
-        console.error('❌ Erro:', error);
+        console.error('❌ Erro ao carregar horários:', error);
         horarioSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
         horarioSelect.disabled = true;
     }
@@ -2417,6 +2413,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
