@@ -1022,58 +1022,212 @@ function configurarAbasDias() {
 }
 
 // ============================================
-// CONFIGURAR ESPELHAMENTO AUTOMÁTICO
+// CONFIGURAR ESPELHAMENTO AUTOMÁTICO (APENAS NA SEGUNDA-FEIRA)
 // ============================================
 function configurarEspelhamentoAutomatico() {
-    const chkEspelhar = document.getElementById('espelharConfiguracao');
-    const tabs = document.querySelectorAll('.dia-tab');
+    console.log('🔧 Configurando espelhamento apenas para segunda-feira...');
     
-    if (!chkEspelhar) return;
-    
-    // Função para espelhar configuração do dia ativo para todos os dias
-    function espelharParaTodos() {
-        const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
-        if (!diaAtivo) return;
+    // ============================================
+    // CRIAR CHECKBOX APENAS NA SEGUNDA-FEIRA
+    // ============================================
+    function criarCheckboxNaSegunda() {
+        // Verificar se já existe
+        if (document.getElementById('espelharConfiguracao')) {
+            return document.getElementById('espelharConfiguracao');
+        }
         
-        const configOrigem = coletarConfiguracaoDia(diaAtivo);
-        if (!configOrigem) return;
+        // Encontrar a aba de segunda-feira
+        const segundaTab = document.querySelector('.dia-tab[data-dia="segunda"]');
+        if (!segundaTab) {
+            console.warn('⚠️ Aba de segunda-feira não encontrada');
+            return null;
+        }
         
-        console.log(`🔄 Espelhando configuração de ${diaAtivo} para todos os dias`);
+        // Verificar se já tem algum checkbox na segunda
+        const checkboxExistente = segundaTab.querySelector('.espelhar-checkbox');
+        if (checkboxExistente) {
+            return checkboxExistente.querySelector('input');
+        }
         
-        // Aplicar para todos os dias
-        const todosDias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+        // Criar o checkbox apenas para segunda-feira
+        const label = document.createElement('label');
+        label.className = 'espelhar-checkbox';
+        label.style.marginLeft = '10px';
+        label.style.fontSize = '12px';
+        label.style.cursor = 'pointer';
+        label.style.userSelect = 'none';
+        label.style.display = 'inline-flex';
+        label.style.alignItems = 'center';
+        label.style.gap = '5px';
+        label.style.padding = '3px 8px';
+        label.style.background = '#f0f0f0';
+        label.style.borderRadius = '20px';
+        label.style.transition = 'all 0.2s';
+        label.innerHTML = `
+            <input type="checkbox" id="espelharConfiguracao">
+            <span>🔁 Espelhar para todos os dias</span>
+        `;
         
-        todosDias.forEach(dia => {
-            if (dia === diaAtivo) return; // Pular o dia de origem
-            aplicarConfiguracaoDia(dia, configOrigem);
+        // Adicionar hover effect via JS (opcional)
+        label.addEventListener('mouseenter', () => {
+            label.style.background = '#e0e0e0';
         });
+        label.addEventListener('mouseleave', () => {
+            label.style.background = '#f0f0f0';
+        });
+        
+        // Adicionar à aba de segunda-feira
+        segundaTab.appendChild(label);
+        
+        console.log('✅ Checkbox de espelhamento criado na segunda-feira');
+        return document.getElementById('espelharConfiguracao');
     }
     
-    // Função para limpar todos os outros dias
-    function limparOutrosDias() {
-        const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
-        const todosDias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+    // ============================================
+    // FUNÇÕES AUXILIARES (adaptadas para o contexto atual)
+    // ============================================
+    
+    /**
+     * Coleta configuração de um dia específico
+     */
+    function coletarConfiguracaoDia(dia) {
+        // Adaptado para a estrutura atual de horarios-card
+        const card = document.querySelector(`.horario-card[data-dia="${dia}"]`);
+        if (!card) return null;
         
-        todosDias.forEach(dia => {
-            if (dia !== diaAtivo) {
-                limparConfiguracaoDia(dia);
+        return {
+            aberto: card.querySelector('.toggle-dia')?.checked || false,
+            abertura: card.querySelector('.abertura')?.value || '08:00',
+            fechamento: card.querySelector('.fechamento')?.value || '18:00',
+            intervaloInicio: card.querySelector('.intervalo-inicio')?.value || '12:00',
+            intervaloFim: card.querySelector('.intervalo-fim')?.value || '13:00',
+            maxClientes: parseInt(card.querySelector('.max-clientes')?.value) || 30
+        };
+    }
+    
+    /**
+     * Aplica configuração a um dia específico
+     */
+    function aplicarConfiguracaoDia(dia, config) {
+        const card = document.querySelector(`.horario-card[data-dia="${dia}"]`);
+        if (!card) return;
+        
+        const toggle = card.querySelector('.toggle-dia');
+        const abertura = card.querySelector('.abertura');
+        const fechamento = card.querySelector('.fechamento');
+        const intervaloInicio = card.querySelector('.intervalo-inicio');
+        const intervaloFim = card.querySelector('.intervalo-fim');
+        const maxClientes = card.querySelector('.max-clientes');
+        const inputsDiv = card.querySelector('.horario-inputs');
+        
+        if (toggle) toggle.checked = config.aberto;
+        if (abertura) abertura.value = config.abertura;
+        if (fechamento) fechamento.value = config.fechamento;
+        if (intervaloInicio) intervaloInicio.value = config.intervaloInicio;
+        if (intervaloFim) intervaloFim.value = config.intervaloFim;
+        if (maxClientes) maxClientes.value = config.maxClientes;
+        
+        // Atualizar visual dos inputs (habilitar/desabilitar)
+        if (inputsDiv) {
+            if (config.aberto) {
+                inputsDiv.style.opacity = '1';
+                inputsDiv.style.pointerEvents = 'auto';
+                inputsDiv.querySelectorAll('input').forEach(input => input.disabled = false);
+            } else {
+                inputsDiv.style.opacity = '0.5';
+                inputsDiv.style.pointerEvents = 'none';
+                inputsDiv.querySelectorAll('input').forEach(input => input.disabled = true);
             }
-        });
+        }
     }
     
-    // Quando o checkbox de espelhar for alterado
-    chkEspelhar.addEventListener('change', function() {
-        const isChecked = this.checked;
+    /**
+     * Limpa configuração de um dia (volta ao padrão)
+     */
+    function limparConfiguracaoDia(dia) {
+        const card = document.querySelector(`.horario-card[data-dia="${dia}"]`);
+        if (!card) return;
         
-        if (isChecked) {
-            // Se marcou, espelhar a configuração atual para todos
-            espelharParaTodos();
-            mostrarMensagem('✅ Modo espelhamento ativado. Todos os dias terão a mesma configuração.', 'info');
+        // Valores padrão
+        const configPadrao = {
+            aberto: dia !== 'domingo', // Domingo fecha por padrão
+            abertura: '08:00',
+            fechamento: '18:00',
+            intervaloInicio: '12:00',
+            intervaloFim: '13:00',
+            maxClientes: 30
+        };
+        
+        aplicarConfiguracaoDia(dia, configPadrao);
+    }
+    
+    /**
+     * Espelhar configuração da segunda para todos os dias
+     */
+    function espelharSegundaParaTodos() {
+        // Coletar configuração da segunda-feira
+        const configSegunda = coletarConfiguracaoDia('segunda');
+        
+        if (!configSegunda) {
+            console.error('❌ Não foi possível coletar configuração da segunda');
+            mostrarMensagem('Erro ao coletar configuração da segunda-feira', 'error');
+            return;
+        }
+        
+        console.log('🔄 Espelhando configuração da segunda para todos os dias:', configSegunda);
+        
+        // Dias para espelhar (todos exceto segunda)
+        const dias = ['terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+        
+        // Aplicar configuração
+        dias.forEach(dia => {
+            aplicarConfiguracaoDia(dia, configSegunda);
+        });
+        
+        mostrarMensagem('✅ Configuração espelhada para todos os dias!', 'success', 2000);
+    }
+    
+    /**
+     * Limpar todos os outros dias (exceto segunda)
+     */
+    function limparOutrosDias() {
+        const dias = ['terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+        
+        dias.forEach(dia => {
+            limparConfiguracaoDia(dia);
+        });
+        
+        console.log('🧹 Dias limpos (exceto segunda)');
+    }
+    
+    // ============================================
+    // CONFIGURAR LISTENERS DO CHECKBOX
+    // ============================================
+    
+    // Criar checkbox na segunda-feira
+    const chkEspelhar = criarCheckboxNaSegunda();
+    
+    if (!chkEspelhar) {
+        console.error('❌ Não foi possível criar checkbox de espelhamento');
+        return;
+    }
+    
+    // Estado inicial
+    chkEspelhar.checked = false;
+    
+    // Evento de mudança do checkbox
+    chkEspelhar.addEventListener('change', function(e) {
+        e.stopPropagation(); // Evitar propagação
+        
+        if (this.checked) {
+            // Se marcou, espelhar imediatamente
+            espelharSegundaParaTodos();
+            mostrarMensagem('🔁 Espelhamento ativado! Mudanças na segunda serão replicadas para todos os dias.', 'info', 4000);
         } else {
             // Se desmarcou, perguntar se quer limpar os outros dias
-            if (confirm('Ao desmarcar o espelhamento, as configurações dos outros dias serão apagadas. Você precisará configurar cada dia manualmente. Deseja continuar?')) {
+            if (confirm('Ao desmarcar o espelhamento, as configurações dos outros dias serão apagadas e você precisará configurar cada dia manualmente. Deseja continuar?')) {
                 limparOutrosDias();
-                mostrarMensagem('🔓 Modo espelhamento desativado. Configure cada dia individualmente.', 'warning');
+                mostrarMensagem('🔓 Espelhamento desativado. Configure cada dia individualmente.', 'warning', 4000);
             } else {
                 // Se cancelou, manter marcado
                 this.checked = true;
@@ -1081,46 +1235,89 @@ function configurarEspelhamentoAutomatico() {
         }
     });
     
-    // Quando mudar a configuração do dia ativo, se espelhamento estiver ativo, atualizar todos
-    function adicionarListenersEspelhamento() {
-        const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
-        if (!diaAtivo) return;
+    // ============================================
+    // CONFIGURAR LISTENERS DOS INPUTS DA SEGUNDA
+    // ============================================
+    
+    /**
+     * Adicionar listeners aos inputs da segunda-feira
+     */
+    function adicionarListenersSegunda() {
+        const cardSegunda = document.querySelector('.horario-card[data-dia="segunda"]');
+        if (!cardSegunda) return;
         
-        const inputs = document.querySelectorAll(`#config-${diaAtivo} input`);
+        // Todos os inputs que podem mudar
+        const inputs = cardSegunda.querySelectorAll('input');
         
         inputs.forEach(input => {
             // Remover listener antigo para não duplicar
-            const newInput = input.cloneNode(true);
-            input.parentNode.replaceChild(newInput, input);
+            const novoInput = input.cloneNode(true);
+            input.parentNode.replaceChild(novoInput, input);
             
-            newInput.addEventListener('change', function() {
+            // Adicionar novo listener
+            novoInput.addEventListener('change', function() {
                 if (chkEspelhar.checked) {
-                    espelharParaTodos();
+                    // Pequeno delay para garantir que o valor já foi atualizado
+                    setTimeout(espelharSegundaParaTodos, 50);
                 }
             });
             
-            newInput.addEventListener('input', function() {
-                if (chkEspelhar.checked) {
-                    espelharParaTodos();
-                }
-            });
+            // Para inputs de texto, usar debounce
+            if (novoInput.type === 'text' || novoInput.type === 'time' || novoInput.type === 'number') {
+                novoInput.addEventListener('input', function() {
+                    if (chkEspelhar.checked) {
+                        // Debounce para não espelhar a cada tecla
+                        if (this.timeoutId) clearTimeout(this.timeoutId);
+                        this.timeoutId = setTimeout(() => {
+                            espelharSegundaParaTodos();
+                        }, 500);
+                    }
+                });
+            }
         });
     }
     
-    // Chamar quando mudar de aba
+    // ============================================
+    // CONFIGURAR MUDANÇA DE ABAS
+    // ============================================
+    
+    // Quando mudar de aba
     document.querySelectorAll('.dia-tab').forEach(tab => {
         tab.addEventListener('click', function() {
-            setTimeout(adicionarListenersEspelhamento, 100);
+            const dia = this.dataset.dia;
+            
+            // Se for segunda-feira, garantir que o checkbox está visível
+            if (dia === 'segunda') {
+                const label = document.querySelector('.espelhar-checkbox');
+                if (label) {
+                    label.style.display = 'inline-flex';
+                }
+            }
+            
+            // Reconfigurar listeners da segunda quando voltar a ela
+            setTimeout(() => {
+                if (document.querySelector('.dia-tab.active')?.dataset.dia === 'segunda') {
+                    adicionarListenersSegunda();
+                }
+            }, 200);
         });
     });
     
-    // Inicializar listeners
-    setTimeout(adicionarListenersEspelhamento, 200);
+    // ============================================
+    // INICIALIZAÇÃO
+    // ============================================
     
-    // Se estiver marcado inicialmente, aplicar espelhamento
-    if (chkEspelhar.checked) {
-        setTimeout(espelharParaTodos, 200);
+    // Inicializar listeners se a segunda já estiver ativa
+    if (document.querySelector('.dia-tab.active')?.dataset.dia === 'segunda') {
+        setTimeout(adicionarListenersSegunda, 500);
     }
+    
+    // Se estiver marcado inicialmente (caso alguém tenha salvo), aplicar
+    if (chkEspelhar.checked) {
+        setTimeout(espelharSegundaParaTodos, 500);
+    }
+    
+    console.log('✅ Espelhamento configurado - visível apenas na segunda-feira');
 }
 
 // ============================================
