@@ -807,7 +807,7 @@ async function carregarHorariosCliente() {
 }
 
 // ============================================
-// CONFIRMAR AGENDAMENTO (CLIENTE)
+// CONFIRMAR AGENDAMENTO (USANDO spdv-3872a)
 // ============================================
 document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', async function() {
     try {
@@ -885,14 +885,17 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         // Verificar configuração de validação da loja
         let precisaValidar = true;
         try {
-            const configRef = window.loginDb
-                .collection('configuracoes')
-                .doc(lojaIdAtual)
-                .collection('agendamento')
-                .doc('config');
+            // 🔥 Usando db (spdv-3872a) para config de validação
+            const configRef = doc(
+                db,
+                'configuracoes',
+                lojaIdAtual,
+                'servico_agendamento',
+                servico
+            );
             
-            const configDoc = await configRef.get();
-            if (configDoc.exists) {
+            const configDoc = await getDoc(configRef);
+            if (configDoc.exists()) {
                 const config = configDoc.data();
                 // Se validação automática para todos, já entra validado
                 if (config.validacao === 'automatico_todos') {
@@ -911,56 +914,75 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         }
 
         // Pegar dados completos do serviço
-        const servicoSelect = document.getElementById('servicoSelect');
         const selectedOption = servicoSelect.selectedOptions[0];
         const configServico = JSON.parse(selectedOption.dataset.config || '{}');
         
-        // Criar objeto do agendamento
+        // 🔥 NOVA ESTRUTURA DE DADOS (conforme solicitado)
         const agendamentoData = {
-            cliente_email: clienteEmail,
-            cliente_nome: clienteNome,
-            cliente_telefone: clienteTelefone,
-            servico: configServico.nome || servico,
-            servico_id: servico,
-            servico_config: {
+            data_hora_agendada: new Date(`${data}T${horario}:00-03:00`), // Timestamp
+            status_agendamento: precisaValidar ? "Pendente" : "Verificado",
+            servico: {
                 id: configServico.id,
                 nome: configServico.nome,
                 duracao: configServico.duracao || 30
             },
-            data: data,
-            horario: horario,
-            status: 'agendado',
-            validado: !precisaValidar,
-            criado_por: dadosUsuario.email,
-            criado_por_nome: dadosUsuario.nome,
+            cliente: {
+                email: clienteEmail,
+                nome: clienteNome,
+                telefone: clienteTelefone
+            },
+            criado_por: {
+                email: dadosUsuario.email,
+                nome: dadosUsuario.nome
+            },
             criado_em: serverTimestamp(),
-            data_criacao: new Date().toISOString(),
             loja_id: lojaIdAtual
         };
-                
-        // Salvar no Firestore (coleção 'futuros')
-        const agendamentoRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('futuros')
-            .doc();
         
-        await setDoc(agendamentoRef, agendamentoData);
+        console.log('📝 Salvando agendamento:', agendamentoData);
+        
+        // 🔥 SALVANDO NO PROJETO spdv-3872a (db)
+        // Estrutura: agendamentos / [lojaId] / agendamento_clientes / [clienteEmail]
+        const agendamentoRef = doc(
+            db,  // 👈 Projeto spdv-3872a
+            'agendamentos',
+            lojaIdAtual,
+            'agendamento_clientes',
+            clienteEmail
+        );
+        
+        // Buscar agendamentos existentes do cliente
+        const agendamentoDoc = await getDoc(agendamentoRef);
+        
+        let agendamentosCliente = {};
+        if (agendamentoDoc.exists()) {
+            agendamentosCliente = agendamentoDoc.data();
+        }
+        
+        // Criar um ID único para este agendamento (agendamento_1, agendamento_2, etc)
+        const nextNumber = Object.keys(agendamentosCliente).length + 1;
+        const agendamentoKey = `agendamento_${nextNumber}`;
+        
+        // Adicionar o novo agendamento ao mapa
+        agendamentosCliente[agendamentoKey] = agendamentoData;
+        
+        // Salvar todos os agendamentos do cliente
+        await setDoc(agendamentoRef, agendamentosCliente);
         
         // Mensagem de sucesso conforme validação
         if (precisaValidar) {
             mostrarMensagem('✅ Agendamento solicitado! Aguarde confirmação da loja.', 'success', 5000);
         } else {
-            mostrarMensagem('✅ Agendamento confirmado! Você já está na fila.', 'success');
+            mostrarMensagem('✅ Agendamento confirmado!', 'success');
         }
         
         // Fechar modal
         fecharModal('agendamentoRapidoModal');
         
-        // Se for cliente, mostrar mensagem sobre "Minha Senha"
-        if (!isFuncionario && !precisaValidar) {
+        // Se for cliente, mostrar mensagem sobre acompanhamento
+        if (!isFuncionario) {
             setTimeout(() => {
-                mostrarMensagem('🔔 Acompanhe sua posição na fila acima', 'info', 4000);
+                mostrarMensagem('🔔 Acompanhe seu agendamento na seção "Meus Agendamentos"', 'info', 4000);
             }, 1000);
         }
         
@@ -2434,6 +2456,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
