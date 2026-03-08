@@ -1872,3 +1872,19 @@ input:checked + .toggle-slider:before {
     opacity: 0;
     transform: translateY(-10px);
 }
+
+
+/* Botões em grupo vertical */
+.btn-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 280px;
+}
+
+.btn-group-vertical .btn-principal {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 10px 16px;
+}
