@@ -38,6 +38,7 @@ let unsubscribeFuturos = null;
 let intervaloPausa = null;
 
 // Variáveis para gerenciar agendamentos
+let diasExcepcionais = [];
 let todosAgendamentos = [];
 let paginaAtual = 1;
 const itensPorPagina = 10;
@@ -288,6 +289,264 @@ function redirecionarParaClientes() {
         }, 2000);
     }
 })();
+
+// ============================================
+// CARREGAR DIAS EXCEPCIONAIS DO FIREBASE
+// ============================================
+async function carregarDiasExcepcionais() {
+    try {
+        const excecoesRef = doc(
+            db,
+            'configuracoes',
+            lojaIdAtual,
+            'servico_agendamento',
+            'excecoes'
+        );
+        
+        const excecoesDoc = await getDoc(excecoesRef);
+        
+        if (excecoesDoc.exists()) {
+            diasExcepcionais = excecoesDoc.data().dias || [];
+        } else {
+            diasExcepcionais = [];
+        }
+        
+        renderizarListaExcecoes();
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar dias excepcionais:', error);
+        diasExcepcionais = [];
+    }
+}
+
+// ============================================
+// RENDERIZAR LISTA DE EXCEÇÕES
+// ============================================
+function renderizarListaExcecoes() {
+    const lista = document.getElementById('excepcionaisLista');
+    if (!lista) return;
+    
+    if (diasExcepcionais.length === 0) {
+        lista.innerHTML = `
+            <div class="empty-state-pequeno">
+                <i class="fas fa-calendar-times"></i>
+                <p>Nenhum dia excepcional configurado</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Ordenar por data
+    diasExcepcionais.sort((a, b) => new Date(a.data) - new Date(b.data));
+    
+    let html = '';
+    diasExcepcionais.forEach((exc, index) => {
+        const dataObj = new Date(exc.data + 'T12:00:00');
+        const dataFormatada = dataObj.toLocaleDateString('pt-BR');
+        
+        let motivoTexto = '';
+        switch(exc.motivo) {
+            case 'feriado': motivoTexto = 'Feriado'; break;
+            case 'abertura_especial': motivoTexto = 'Abertura Especial'; break;
+            case 'evento': motivoTexto = 'Evento'; break;
+            default: motivoTexto = 'Outro';
+        }
+        
+        html += `
+            <div class="excecao-item-pequeno" data-index="${index}">
+                <div class="excecao-info-pequeno">
+                    <span class="excecao-data-pequena">${dataFormatada}</span>
+                    <span class="excecao-motivo-pequeno">${motivoTexto}</span>
+                </div>
+                <div class="excecao-acoes-pequeno">
+                    <button class="btn-editar-excecao-pequeno" onclick="editarExcecao(${index})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-excluir-excecao-pequeno" onclick="excluirExcecao(${index})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    lista.innerHTML = html;
+}
+
+// ============================================
+// ABRIR FORMULÁRIO DE EXCEÇÃO
+// ============================================
+function abrirFormExcecao(editando = false) {
+    const form = document.getElementById('excepcionalForm');
+    const lista = document.getElementById('excepcionaisLista');
+    
+    if (form) {
+        form.style.display = 'block';
+    }
+    
+    if (lista) {
+        lista.style.maxHeight = '100px';
+    }
+    
+    if (!editando) {
+        // Limpar formulário para nova exceção
+        document.getElementById('excepcionalData').value = '';
+        document.getElementById('excepcionalMotivo').value = 'feriado';
+        document.getElementById('excepcionalDescricao').value = '';
+        document.getElementById('excepcionalAtivo').checked = true;
+        document.getElementById('excepcionalInicio').value = '08:00';
+        document.getElementById('excepcionalFim').value = '18:00';
+        document.getElementById('excepcionalDuracao').value = '30';
+        document.getElementById('excepcionalIntervalo').value = '0';
+        document.getElementById('excepcionalIntervaloInicio').value = '12:00';
+        document.getElementById('excepcionalIntervaloFim').value = '13:00';
+        document.getElementById('excepcionalId').value = '';
+    }
+}
+
+// ============================================
+// FECHAR FORMULÁRIO DE EXCEÇÃO
+// ============================================
+function fecharFormExcecao() {
+    const form = document.getElementById('excepcionalForm');
+    const lista = document.getElementById('excepcionaisLista');
+    
+    if (form) {
+        form.style.display = 'none';
+    }
+    
+    if (lista) {
+        lista.style.maxHeight = '150px';
+    }
+}
+
+// ============================================
+// SALVAR EXCEÇÃO
+// ============================================
+async function salvarExcecao() {
+    try {
+        const data = document.getElementById('excepcionalData').value;
+        const motivo = document.getElementById('excepcionalMotivo').value;
+        const descricao = document.getElementById('excepcionalDescricao').value;
+        const ativo = document.getElementById('excepcionalAtivo').checked;
+        const inicio = document.getElementById('excepcionalInicio').value;
+        const fim = document.getElementById('excepcionalFim').value;
+        const duracao = parseInt(document.getElementById('excepcionalDuracao').value);
+        const intervalo = parseInt(document.getElementById('excepcionalIntervalo').value);
+        const intervaloInicio = document.getElementById('excepcionalIntervaloInicio').value;
+        const intervaloFim = document.getElementById('excepcionalIntervaloFim').value;
+        const excecaoId = document.getElementById('excepcionalId').value;
+        
+        if (!data) {
+            mostrarMensagem('Selecione uma data', 'warning');
+            return;
+        }
+        
+        const novaExcecao = {
+            data,
+            motivo,
+            descricao,
+            ativo,
+            inicio,
+            fim,
+            duracao,
+            intervalo,
+            intervaloInicio,
+            intervaloFim
+        };
+        
+        if (excecaoId) {
+            // Editar existente
+            diasExcepcionais[parseInt(excecaoId)] = novaExcecao;
+        } else {
+            // Adicionar novo
+            diasExcepcionais.push(novaExcecao);
+        }
+        
+        // Salvar no Firebase
+        const excecoesRef = doc(
+            db,
+            'configuracoes',
+            lojaIdAtual,
+            'servico_agendamento',
+            'excecoes'
+        );
+        
+        await setDoc(excecoesRef, { dias: diasExcepcionais }, { merge: true });
+        
+        renderizarListaExcecoes();
+        fecharFormExcecao();
+        mostrarMensagem('Dia excepcional salvo com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar exceção:', error);
+        mostrarMensagem('Erro ao salvar', 'error');
+    }
+}
+
+// ============================================
+// EDITAR EXCEÇÃO
+// ============================================
+window.editarExcecao = function(index) {
+    const excecao = diasExcepcionais[index];
+    if (!excecao) return;
+    
+    document.getElementById('excepcionalData').value = excecao.data;
+    document.getElementById('excepcionalMotivo').value = excecao.motivo || 'feriado';
+    document.getElementById('excepcionalDescricao').value = excecao.descricao || '';
+    document.getElementById('excepcionalAtivo').checked = excecao.ativo !== false;
+    document.getElementById('excepcionalInicio').value = excecao.inicio || '08:00';
+    document.getElementById('excepcionalFim').value = excecao.fim || '18:00';
+    document.getElementById('excepcionalDuracao').value = excecao.duracao || 30;
+    document.getElementById('excepcionalIntervalo').value = excecao.intervalo || 0;
+    document.getElementById('excepcionalIntervaloInicio').value = excecao.intervaloInicio || '12:00';
+    document.getElementById('excepcionalIntervaloFim').value = excecao.intervaloFim || '13:00';
+    document.getElementById('excepcionalId').value = index;
+    
+    abrirFormExcecao(true);
+};
+
+// ============================================
+// EXCLUIR EXCEÇÃO
+// ============================================
+window.excluirExcecao = async function(index) {
+    if (!confirm('Remover este dia excepcional?')) return;
+    
+    diasExcepcionais.splice(index, 1);
+    
+    // Salvar no Firebase
+    try {
+        const excecoesRef = doc(
+            db,
+            'configuracoes',
+            lojaIdAtual,
+            'servico_agendamento',
+            'excecoes'
+        );
+        
+        await setDoc(excecoesRef, { dias: diasExcepcionais }, { merge: true });
+        
+        renderizarListaExcecoes();
+        mostrarMensagem('Dia excepcional removido', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao excluir:', error);
+        mostrarMensagem('Erro ao excluir', 'error');
+    }
+};
+
+// ============================================
+// CONFIGURAR EVENTOS DOS DIAS EXCEPCIONAIS
+// ============================================
+function configurarEventosExcecoes() {
+    document.getElementById('btnAdicionarExcecao')?.addEventListener('click', () => {
+        abrirFormExcecao(false);
+    });
+    
+    document.getElementById('btnCancelarExcecao')?.addEventListener('click', fecharFormExcecao);
+    
+    document.getElementById('btnSalvarExcecao')?.addEventListener('click', salvarExcecao);
+}
 
 // ============================================
 // CONFIGURAR FAVICON
@@ -1722,6 +1981,7 @@ function abrirModalAgendamentoFuncionarios() {
     configurarEspelhamentoAutomatico();
     configurarValidacaoAntesSalvar();
     carregarDiasExcepcionais();
+    configurarEventosExcecoes();
     
     modal.classList.add('active');
 }
