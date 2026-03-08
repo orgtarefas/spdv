@@ -898,33 +898,6 @@ function configurarValidacaoAntesSalvar() {
 }
 
 // ============================================
-// FUNÇÃO PRINCIPAL PARA ABRIR O MODAL
-// ============================================
-function abrirModalAgendamentoFuncionarios() {
-    console.log('Abrir modal de agendamento para funcionários');
-    
-    const modal = document.getElementById('salvarCriarAgendamentoModal');
-    if (!modal) {
-        console.error('❌ Modal salvarCriarAgendamentoModal não encontrado');
-        mostrarMensagem('Erro ao abrir modal', 'error');
-        return;
-    }
-    
-    // Limpar formulário
-    const form = document.getElementById('criarAgendamentoForm');
-    if (form) form.reset();
-    
-    // 🔥 CONFIGURAR EVENTOS
-    configurarEventosDias();
-    configurarPermitirForaDia();
-    configurarAbasDias();
-    configurarEspelhamentoAutomatico();
-    configurarValidacaoAntesSalvar();
-    
-    modal.classList.add('active');
-}
-
-// ============================================
 // INICIAR ESCUTA DE AGENDAMENTOS (SEM ÍNDICES)
 // ============================================
 function iniciarEscutaAgendamentos() {
@@ -1747,6 +1720,8 @@ function abrirModalAgendamentoFuncionarios() {
     configurarPermitirForaDia();
     configurarAbasDias();
     configurarEspelhamentoAutomatico();
+    configurarValidacaoAntesSalvar();
+    carregarDiasExcepcionais();
     
     modal.classList.add('active');
 }
