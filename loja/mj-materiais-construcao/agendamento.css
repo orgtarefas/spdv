@@ -1888,3 +1888,216 @@ input:checked + .toggle-slider:before {
     justify-content: flex-start;
     padding: 10px 16px;
 }
+
+/* ============================================
+   MODAL DE CONFIGURAÇÃO POR DIA
+   ============================================ */
+
+.modal-lg {
+    max-width: 800px;
+}
+
+/* Abas de dias */
+.dias-config-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 20px 0 15px;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.dia-tab {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid #e9ecef;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dia-tab:hover {
+    border-color: #ff6b00;
+    color: #ff6b00;
+}
+
+.dia-tab.active {
+    background: #ff6b00;
+    color: white;
+    border-color: #ff6b00;
+}
+
+/* Container das configurações */
+.dias-config-container {
+    margin-bottom: 20px;
+    min-height: 300px;
+}
+
+.dia-config {
+    display: none;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    animation: fadeIn 0.3s ease;
+}
+
+.dia-config.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.config-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed #cbd5e1;
+}
+
+.config-header .checkbox-label {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 1rem;
+}
+
+.config-content {
+    transition: all 0.3s ease;
+}
+
+/* Campos dentro da configuração */
+.config-content .form-group {
+    margin-bottom: 15px;
+}
+
+.config-content .form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.config-content .form-group.half {
+    flex: 1;
+}
+
+.config-content label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 500;
+    color: #1e293b;
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.config-content label i {
+    color: #ff6b00;
+    font-size: 0.9rem;
+}
+
+.config-content input[type="time"],
+.config-content input[type="number"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.config-content input:focus {
+    outline: none;
+    border-color: #ff6b00;
+    box-shadow: 0 0 0 3px rgba(255,107,0,0.1);
+}
+
+.config-content input:disabled {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* Intervalo de almoço */
+.intervalo-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.intervalo-inputs input[type="time"] {
+    flex: 1;
+}
+
+.intervalo-inputs span {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.help-text {
+    display: block;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Botões de ação */
+.copy-config-actions {
+    margin: 15px 0;
+    text-align: right;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #ff6b00;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn-link:hover {
+    color: #e65100;
+    text-decoration: none;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .config-content .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .dia-tab {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .dias-config-tabs {
+        justify-content: center;
+    }
+    
+    .dia-tab {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .intervalo-inputs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .intervalo-inputs span {
+        text-align: center;
+    }
+}
