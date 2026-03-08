@@ -299,44 +299,50 @@ function gerarSenha(numero, status) {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO (AUTOMÁTICO)
+// RENDERIZAR PAINEL DE AGENDAMENTO (CORRIGIDO - 3 CATEGORIAS)
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
     
-    console.log('📅 Renderizando painel de agendamento automático...');
+    console.log('📅 Renderizando painel de agendamento...');
     console.log('Agendamentos ativos:', agendamentosAtivos);
     
     // ============================================
-    // ORGANIZAR POR STATUS
+    // ORGANIZAR POR STATUS (3 CATEGORIAS)
     // ============================================
     
-    // Em atendimento (apenas 1, o primeiro encontrado)
+    // 1. EM ATENDIMENTO (apenas 1)
     const emAtendimento = agendamentosAtivos.find(a => a.status === 'Em atendimento');
     
-    // Próximo a atender (apenas 1, após quem está em atendimento)
-    const proximoAtender = agendamentosAtivos.find(a => a.status === 'Próximo a atender');
-    
-    // Na fila (todos os outros com status "Na fila" ou "Verificado")
-    const naFila = agendamentosAtivos.filter(a => 
-        a.status === 'Na fila' || a.status === 'Verificado'
+    // 2. PRÓXIMO A ATENDER (apenas 1, após quem está em atendimento)
+    // Exclui quem já está em atendimento
+    const proximoAtender = agendamentosAtivos.find(a => 
+        a.status === 'Próximo a atender' && a.id !== emAtendimento?.id
     );
     
-    // Ordenar na fila por horário
-    naFila.sort((a, b) => a.data_hora - b.data_hora);
+    // 3. OUTROS NA FILA (todos os demais)
+    // Exclui quem já está em atendimento e quem é o próximo
+    const outrosNaFila = agendamentosAtivos.filter(a => {
+        if (a.status === 'Em atendimento') return false;
+        if (a.status === 'Próximo a atender' && a.id === proximoAtender?.id) return false;
+        return a.status === 'Na fila' || a.status === 'Verificado';
+    });
+    
+    // Ordenar outros na fila por horário
+    outrosNaFila.sort((a, b) => a.data_hora - b.data_hora);
     
     console.log('📊 Organização:', {
         emAtendimento: emAtendimento?.cliente_nome || 'Nenhum',
         proximoAtender: proximoAtender?.cliente_nome || 'Nenhum',
-        naFila: naFila.length
+        outrosNaFila: outrosNaFila.length
     });
     
     // ============================================
     // ATUALIZAR BADGES E CONTADORES
     // ============================================
     
-    // Total na fila (inclui próximo a atender + na fila)
-    const totalFila = (proximoAtender ? 1 : 0) + naFila.length;
+    // Total na fila (próximo + outros)
+    const totalFila = (proximoAtender ? 1 : 0) + outrosNaFila.length;
     
     const totalFilaBadge = document.getElementById('totalFilaBadge');
     if (totalFilaBadge) totalFilaBadge.textContent = totalFila;
@@ -344,7 +350,7 @@ function renderizarPainelAgendamento() {
     const totalFilaTexto = document.getElementById('totalFilaTexto');
     if (totalFilaTexto) totalFilaTexto.textContent = totalFila;
     
-    // Calcular tempo médio de espera (estimativa)
+    // Calcular tempo médio de espera
     const tempoMedioEspera = calcularTempoMedioEspera();
     const tempoMedioElement = document.getElementById('tempoMedioEspera');
     if (tempoMedioElement) tempoMedioElement.textContent = tempoMedioEspera;
@@ -389,7 +395,7 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // COLUNA 2: PRÓXIMOS A ATENDER (LISTA VERTICAL)
+    // COLUNA 2: PRÓXIMOS A ATENDER
     // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
@@ -405,58 +411,28 @@ function renderizarPainelAgendamento() {
                     </div>
                 </div>
             `;
-        } else if (naFila.length > 0) {
-            // Se não tem próximo específico, mostrar o primeiro da fila
-            proximosEl.innerHTML = `
-                <div class="item-fila-vertical">
-                    <span class="senha-numero">${naFila[0].senha}</span>
-                    <div class="senha-info">
-                        <span class="senha-cliente">${naFila[0].cliente_nome}</span>
-                        <span class="senha-servico">
-                            <i class="fas fa-clock"></i> ${naFila[0].servico}
-                        </span>
-                    </div>
-                </div>
-            `;
         } else {
             proximosEl.innerHTML = `
                 <div class="empty-agendamento">
                     <i class="fas fa-users"></i>
-                    <p>Fila vazia</p>
+                    <p>Nenhum próximo</p>
                 </div>
             `;
         }
     }
     
     // ============================================
-    // COLUNA 3: OUTROS NA FILA (CARROSSEL HORIZONTAL)
+    // COLUNA 3: OUTROS NA FILA (CARROSSEL)
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
-        // Decidir quais itens mostrar no carrossel
-        let itensCarrossel = [];
-        
-        if (proximoAtender) {
-            // Se tem próximo, mostrar ele + os da fila
-            itensCarrossel = [proximoAtender, ...naFila];
-        } else {
-            // Se não tem próximo, mostrar todos da fila
-            itensCarrossel = naFila;
-        }
-        
-        // Remover duplicatas (caso próximo esteja também na fila)
-        itensCarrossel = itensCarrossel.filter((item, index, self) => 
-            index === self.findIndex(i => i.id === item.id)
-        );
-        
-        if (itensCarrossel.length > 0) {
+        if (outrosNaFila.length > 0) {
             let html = '';
-            itensCarrossel.forEach((item, index) => {
+            outrosNaFila.forEach((item, index) => {
                 const posicao = index + 1;
-                const classeUrgente = index === 0 ? 'urgente' : '';
                 
                 html += `
-                    <div class="proximo-card ${classeUrgente}">
+                    <div class="proximo-card">
                         <div class="senha-numero">${item.senha}</div>
                         <div class="senha-cliente">${item.cliente_nome}</div>
                         <div class="senha-servico">
@@ -469,7 +445,7 @@ function renderizarPainelAgendamento() {
             proximosTrack.innerHTML = html;
             
             // Atualizar dots do carrossel
-            atualizarDotsScroll(itensCarrossel.length);
+            atualizarDotsScroll(outrosNaFila.length);
         } else {
             // Placeholders quando não há dados
             let placeholders = '';
@@ -494,7 +470,7 @@ function renderizarPainelAgendamento() {
     // ============================================
     const minhaSenhaContainer = document.getElementById('minhaSenhaContainer');
     if (minhaSenhaContainer && usuarioLogado && dadosUsuario) {
-        // Procurar agendamento do usuário logado em qualquer status da fila
+        // Procurar agendamento do usuário logado
         const meuAgendamento = agendamentosAtivos.find(a => 
             a.cliente_email === dadosUsuario.email && 
             ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado'].includes(a.status)
@@ -2756,6 +2732,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
