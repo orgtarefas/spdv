@@ -146,9 +146,9 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // 🔥 CORREÇÃO: Usar a sintaxe correta com collection() importada
+        // Usar a sintaxe correta com collection() importada
         const agendamentosClientesRef = collection(
-            db,  // 👈 Instância do Firebase
+            db,  // Instância do Firebase
             'agendamentos',
             lojaIdAtual,
             'agendamento_clientes'
@@ -205,6 +205,11 @@ function iniciarEscutaAgendamentos() {
             agendamentosAtivos = agendamentosAtivosTemp;
             
             console.log('📋 Agendamentos ativos de hoje:', agendamentosAtivos);
+            
+            // 🔥 NOVO: Gerenciar fila automaticamente (com delay para garantir processamento)
+            setTimeout(() => {
+                gerenciarFilaAtendimento();
+            }, 500);
             
             // Renderizar o painel
             renderizarPainelAgendamento();
@@ -296,6 +301,82 @@ function gerarSenha(numero, status) {
     
     const prefixo = prefixos[status] || 'S';
     return `${prefixo}${numero.toString().padStart(2, '0')}`;
+}
+
+// ============================================
+// GERENCIAR FILA DE ATENDIMENTO (AUTOMÁTICO)
+// ============================================
+async function gerenciarFilaAtendimento() {
+    try {
+        console.log('🔄 Gerenciando fila de atendimento...');
+        
+        if (!agendamentosAtivos || agendamentosAtivos.length === 0) {
+            console.log('📭 Fila vazia');
+            return;
+        }
+        
+        // Ordenar todos por data/hora
+        const todosOrdenados = [...agendamentosAtivos].sort((a, b) => a.data_hora - b.data_hora);
+        
+        // Identificar status atuais
+        const emAtendimento = todosOrdenados.find(a => a.status === 'Em atendimento');
+        const proximoAtender = todosOrdenados.find(a => a.status === 'Próximo a atender');
+        
+        // Filtrar quem está na fila (exclui quem já está em atendimento)
+        const fila = todosOrdenados.filter(a => 
+            a.status !== 'Em atendimento' && 
+            (a.status === 'Na fila' || a.status === 'Verificado' || a.status === 'Próximo a atender')
+        );
+        
+        console.log('📊 Status atual:', {
+            emAtendimento: emAtendimento?.cliente_nome || 'ninguém',
+            proximoAtender: proximoAtender?.cliente_nome || 'ninguém',
+            naFila: fila.length
+        });
+        
+        // REGRA 1: SE NÃO TEM NINGUÉM EM ATENDIMENTO
+        if (!emAtendimento) {
+            console.log('📞 Ninguém em atendimento - preciso chamar alguém');
+            
+            // Se tem alguém como "Próximo a atender", chama ele
+            if (proximoAtender) {
+                console.log(`➡️ Chamando ${proximoAtender.cliente_nome} para atendimento`);
+                await atualizarStatusAgendamento(proximoAtender.id, 'Em atendimento');
+                return;
+            }
+            
+            // Se não tem próximo, pega o primeiro da fila
+            if (fila.length > 0) {
+                const primeiroDaFila = fila[0];
+                console.log(`➡️ Primeiro da fila ${primeiroDaFila.cliente_nome} vai para atendimento`);
+                await atualizarStatusAgendamento(primeiroDaFila.id, 'Em atendimento');
+                return;
+            }
+        }
+        
+        // REGRA 2: SE TEM ALGUÉM EM ATENDIMENTO
+        if (emAtendimento) {
+            console.log(`👤 Em atendimento: ${emAtendimento.cliente_nome}`);
+            
+            // Se não tem próximo definido, o primeiro da fila vira próximo
+            if (!proximoAtender && fila.length > 0) {
+                // Excluir quem já está em atendimento da fila
+                const filaSemAtendimento = fila.filter(a => a.id !== emAtendimento.id);
+                
+                if (filaSemAtendimento.length > 0) {
+                    const primeiroDaFila = filaSemAtendimento[0];
+                    console.log(`⬆️ ${primeiroDaFila.cliente_nome} agora é o próximo a atender`);
+                    await atualizarStatusAgendamento(primeiroDaFila.id, 'Próximo a atender');
+                    return;
+                }
+            }
+        }
+        
+        console.log('✅ Fila está organizada corretamente');
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerenciar fila:', error);
+    }
 }
 
 // ============================================
@@ -2746,6 +2827,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
