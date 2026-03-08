@@ -138,13 +138,26 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS NO FIREBASE
+// ATUALIZAR STATUS NO FIREBASE (CORRIGIDO)
 // ============================================
 async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
     try {
-        console.log(`📝 Atualizando ${agendamentoId} para ${novoStatus}`);
+        console.log(`📝 Atualizando ${agamentoId} para ${novoStatus}`);
         
-        const [clienteEmail, agendamentoKey] = agendamentoId.split('_');
+        // O agendamentoId vem no formato: "clienteEmail_agendamento_1"
+        // Precisamos separar corretamente
+        const partes = agendamentoId.split('_');
+        
+        // A última parte é o número (1, 2, 3...)
+        const numero = partes.pop();
+        
+        // O restante é o email do cliente (pode ter underscores)
+        const clienteEmail = partes.join('_');
+        
+        // A chave no Firebase é "agendamento_" + numero
+        const agendamentoKey = `agendamento_${numero}`;
+        
+        console.log(`📧 Cliente: ${clienteEmail}, Chave: ${agendamentoKey}`);
         
         const agendamentoRef = doc(
             db,
@@ -157,14 +170,14 @@ async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
         const agendamentoDoc = await getDoc(agendamentoRef);
         
         if (!agendamentoDoc.exists()) {
-            console.error('❌ Agendamento não encontrado');
+            console.error('❌ Agendamento não encontrado para o cliente:', clienteEmail);
             return false;
         }
         
         const dadosCliente = agendamentoDoc.data();
         
         if (!dadosCliente[agendamentoKey]) {
-            console.error('❌ Agendamento específico não encontrado');
+            console.error('❌ Agendamento específico não encontrado. Chaves disponíveis:', Object.keys(dadosCliente));
             return false;
         }
         
@@ -2893,6 +2906,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
