@@ -641,6 +641,100 @@
                     </div>
     
                     <input type="hidden" id="agendamentoIdAdmin">
+
+                    <!-- ============================================ -->
+                    <!-- DIAS EXCEPCIONAIS (DENTRO DO MODAL) -->
+                    <!-- ============================================ -->
+                    <div class="excepcionais-section">
+                        <div class="excepcionais-header">
+                            <h4><i class="fas fa-calendar-exclamation"></i> Dias de Atendimento Excepcional</h4>
+                            <button type="button" class="btn-add-pequeno" id="btnAdicionarExcecao">
+                                <i class="fas fa-plus"></i> Adicionar
+                            </button>
+                        </div>
+                        
+                        <div class="excepcionais-lista" id="excepcionaisLista">
+                            <div class="empty-state-pequeno">
+                                <i class="fas fa-calendar-times"></i>
+                                <p>Nenhum dia excepcional configurado</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulário para adicionar/editar dia excepcional (inicialmente oculto) -->
+                    <div class="excepcional-form" id="excepcionalForm" style="display: none;">
+                        <h5><i class="fas fa-pen"></i> Configurar Dia Excepcional</h5>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-day"></i> Data *</label>
+                            <input type="date" id="excepcionalData" class="form-input" required>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label><i class="fas fa-info-circle"></i> Motivo</label>
+                            <select id="excepcionalMotivo">
+                                <option value="feriado">Feriado</option>
+                                <option value="abertura_especial">Abertura Especial</option>
+                                <option value="evento">Evento Especial</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label><i class="fas fa-align-left"></i> Descrição</label>
+                            <textarea id="excepcionalDescricao" rows="2" placeholder="Descreva o motivo..."></textarea>
+                        </div>
+                    
+                        <div class="config-header">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="excepcionalAtivo" checked>
+                                <span>Atender neste dia</span>
+                            </label>
+                        </div>
+                    
+                        <div class="config-content" id="excepcionalConfigContent">
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Início</label>
+                                    <input type="time" id="excepcionalInicio" value="08:00">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Fim</label>
+                                    <input type="time" id="excepcionalFim" value="18:00">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Duração (min)</label>
+                                    <input type="number" id="excepcionalDuracao" value="30" min="5" step="5">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Intervalo (min)</label>
+                                    <input type="number" id="excepcionalIntervalo" value="0" min="0" step="5">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Intervalo de almoço</label>
+                                <div class="intervalo-inputs">
+                                    <input type="time" id="excepcionalIntervaloInicio" value="12:00">
+                                    <span>às</span>
+                                    <input type="time" id="excepcionalIntervaloFim" value="13:00">
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <input type="hidden" id="excepcionalId">
+                    
+                        <div class="form-actions">
+                            <button type="button" class="btn-cancelar-pequeno" id="btnCancelarExcecao">Cancelar</button>
+                            <button type="button" class="btn-salvar-pequeno" id="btnSalvarExcecao">
+                                <i class="fas fa-save"></i> Salvar
+                            </button>
+                        </div>
+                    </div>        
+                    
                 </form>
             </div>
             <div class="modal-footer">
