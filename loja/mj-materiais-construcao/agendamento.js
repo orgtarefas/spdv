@@ -534,7 +534,152 @@ async function carregarHorariosFuncionamento() {
 }
 
 // ============================================
-// CONFIGURAR MODAL DE CRIAR AGENDAMENTO - ABAS DE DIAS 
+// FUNÇÕES DE CONFIGURAÇÃO DOS DIAS E ESPELHAMENTO
+// ============================================
+
+/**
+ * Obtém o nome do dia por extenso
+ */
+function obterNomeDia(diaId) {
+    const dias = {
+        'segunda': 'Segunda-feira',
+        'terca': 'Terça-feira',
+        'quarta': 'Quarta-feira',
+        'quinta': 'Quinta-feira',
+        'sexta': 'Sexta-feira',
+        'sabado': 'Sábado',
+        'domingo': 'Domingo'
+    };
+    return dias[diaId] || diaId;
+}
+
+/**
+ * Coleta a configuração atual de um dia específico
+ */
+function coletarConfiguracaoDia(dia) {
+    const configEl = document.getElementById(`config-${dia}`);
+    if (!configEl) return null;
+    
+    const ativo = configEl.querySelector('.dia-ativo')?.checked || false;
+    const inicio = configEl.querySelector('.horario-inicio')?.value || '';
+    const fim = configEl.querySelector('.horario-fim')?.value || '';
+    const duracao = configEl.querySelector('.duracao')?.value || '';
+    const intervaloEntre = configEl.querySelector('.intervalo-entre')?.value || '0';
+    const intervaloInicio = configEl.querySelector('.intervalo-inicio')?.value || '';
+    const intervaloFim = configEl.querySelector('.intervalo-fim')?.value || '';
+    
+    return {
+        ativo,
+        inicio,
+        fim,
+        duracao: duracao ? parseInt(duracao) : 0,
+        intervaloEntre: parseInt(intervaloEntre),
+        intervaloInicio,
+        intervaloFim
+    };
+}
+
+/**
+ * Aplica uma configuração a um dia específico
+ */
+function aplicarConfiguracaoDia(dia, config) {
+    const configEl = document.getElementById(`config-${dia}`);
+    if (!configEl) return;
+    
+    const ativoCheckbox = configEl.querySelector('.dia-ativo');
+    const inicioInput = configEl.querySelector('.horario-inicio');
+    const fimInput = configEl.querySelector('.horario-fim');
+    const duracaoInput = configEl.querySelector('.duracao');
+    const intervaloEntreInput = configEl.querySelector('.intervalo-entre');
+    const intervaloInicioInput = configEl.querySelector('.intervalo-inicio');
+    const intervaloFimInput = configEl.querySelector('.intervalo-fim');
+    const configContent = configEl.querySelector('.config-content');
+    
+    if (ativoCheckbox) ativoCheckbox.checked = config.ativo;
+    if (inicioInput) inicioInput.value = config.inicio || '';
+    if (fimInput) fimInput.value = config.fim || '';
+    if (duracaoInput) duracaoInput.value = config.duracao || '';
+    if (intervaloEntreInput) intervaloEntreInput.value = config.intervaloEntre || 0;
+    if (intervaloInicioInput) intervaloInicioInput.value = config.intervaloInicio || '';
+    if (intervaloFimInput) intervaloFimInput.value = config.intervaloFim || '';
+    
+    // Atualizar estado visual (ativo/inativo)
+    if (configContent) {
+        const inputs = configContent.querySelectorAll('input');
+        if (config.ativo) {
+            configContent.style.opacity = '1';
+            configContent.style.pointerEvents = 'auto';
+            inputs.forEach(input => input.disabled = false);
+        } else {
+            configContent.style.opacity = '0.5';
+            configContent.style.pointerEvents = 'none';
+            inputs.forEach(input => input.disabled = true);
+        }
+    }
+}
+
+/**
+ * Limpa a configuração de um dia específico
+ */
+function limparConfiguracaoDia(dia) {
+    const configEl = document.getElementById(`config-${dia}`);
+    if (!configEl) return;
+    
+    const inicioInput = configEl.querySelector('.horario-inicio');
+    const fimInput = configEl.querySelector('.horario-fim');
+    const duracaoInput = configEl.querySelector('.duracao');
+    const intervaloEntreInput = configEl.querySelector('.intervalo-entre');
+    const intervaloInicioInput = configEl.querySelector('.intervalo-inicio');
+    const intervaloFimInput = configEl.querySelector('.intervalo-fim');
+    
+    if (inicioInput) inicioInput.value = '';
+    if (fimInput) fimInput.value = '';
+    if (duracaoInput) duracaoInput.value = '';
+    if (intervaloEntreInput) intervaloEntreInput.value = '0';
+    if (intervaloInicioInput) intervaloInicioInput.value = '';
+    if (intervaloFimInput) intervaloFimInput.value = '';
+    
+    // Não altera o checkbox de ativo
+}
+
+/**
+ * Verifica se um dia está configurado (campos obrigatórios preenchidos)
+ */
+function diaEstaConfigurado(dia) {
+    const configEl = document.getElementById(`config-${dia}`);
+    if (!configEl) return false;
+    
+    const ativo = configEl.querySelector('.dia-ativo')?.checked || false;
+    if (!ativo) return true; // Dias inativos são considerados configurados
+    
+    const inicio = configEl.querySelector('.horario-inicio')?.value;
+    const fim = configEl.querySelector('.horario-fim')?.value;
+    const duracao = configEl.querySelector('.duracao')?.value;
+    
+    return inicio && fim && duracao && parseInt(duracao) > 0;
+}
+
+/**
+ * Valida se todos os dias ativos estão configurados
+ */
+function validarTodosDiasConfigurados() {
+    const diasFaltando = [];
+    
+    document.querySelectorAll('.dia-ativo:checked').forEach(checkbox => {
+        const dia = checkbox.dataset.dia;
+        if (!diaEstaConfigurado(dia)) {
+            diasFaltando.push(obterNomeDia(dia));
+        }
+    });
+    
+    return {
+        todosConfigurados: diasFaltando.length === 0,
+        diasFaltando
+    };
+}
+
+// ============================================
+// CONFIGURAR ABAS DE DIAS
 // ============================================
 function configurarAbasDias() {
     console.log('🔧 Configurando abas de dias...');
@@ -614,144 +759,15 @@ function configurarAbasDias() {
         });
     });
     
-    // Configurar botão de espelhar configuração
-    const btnEspelhar = document.getElementById('espelharConfiguracao');
-    if (btnEspelhar) {
-        const newBtn = btnEspelhar.cloneNode(true);
-        btnEspelhar.parentNode.replaceChild(newBtn, btnEspelhar);
-        
-        newBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            abrirModalEspelharConfiguracao();
-        });
-    }
-    
     console.log('✅ Abas de dias configuradas');
 }
 
-function abrirModalEspelharConfiguracao() {
-    // Encontrar o dia ativo no momento
-    const tabAtiva = document.querySelector('.dia-tab.active');
-    if (!tabAtiva) {
-        mostrarMensagem('Selecione um dia para espelhar', 'warning');
-        return;
-    }
-    
-    const diaOrigem = tabAtiva.dataset.dia;
-    const nomeDiaOrigem = obterNomeDia(diaOrigem);
-    
-    // Coletar dados do dia de origem
-    const configOrigem = coletarConfiguracaoDia(diaOrigem);
-    
-    if (!configOrigem) {
-        mostrarMensagem('Erro ao coletar configuração do dia', 'error');
-        return;
-    }
-    
-    // Criar modal dinamicamente
-    const modalHtml = `
-        <div id="espelharConfigModal" class="modal">
-            <div class="modal-content modal-small">
-                <div class="modal-header">
-                    <h3><i class="fas fa-copy"></i> Espelhar Configuração</h3>
-                    <button class="modal-close" onclick="fecharModal('espelharConfigModal')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>Copiar configuração de <strong>${nomeDiaOrigem}</strong> para:</p>
-                    
-                    <div class="dias-checkbox-grid">
-                        <label class="dia-checkbox-item">
-                            <input type="checkbox" class="dia-alvo" value="segunda"> Segunda-feira
-                        </label>
-                        <label class="dia-checkbox-item">
-                            <input type="checkbox" class="dia-alvo" value="terca"> Terça-feira
-                        </label>
-                        <label class="dia-checkbox-item">
-                            <input type="checkbox" class="dia-alvo" value="quarta"> Quarta-feira
-                        </label>
-                        <label class="dia-checkbox-item">
-                            <input type="checkbox" class="dia-alvo" value="quinta"> Quinta-feira
-                        </label>
-                        <label class="dia-checkbox-item">
-                            <input type="checkbox" class="dia-alvo" value="sexta"> Sexta-feira
-                        </label>
-                        <label class="dia-checkbox-item">
-                            <input type="checkbox" class="dia-alvo" value="sabado"> Sábado
-                        </label>
-                        <label class="dia-checkbox-item">
-                            <input type="checkbox" class="dia-alvo" value="domingo"> Domingo
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="substituirExistentes" checked>
-                            <span>Substituir configurações existentes nos dias destino</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn-cancelar" onclick="fecharModal('espelharConfigModal')">Cancelar</button>
-                    <button class="btn-primary" id="btnConfirmarEspelhar">
-                        <i class="fas fa-copy"></i> Espelhar
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remover modal antigo se existir
-    const modalAntigo = document.getElementById('espelharConfigModal');
-    if (modalAntigo) modalAntigo.remove();
-    
-    // Adicionar modal ao DOM
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // Configurar botão confirmar
-    document.getElementById('btnConfirmarEspelhar').addEventListener('click', function() {
-        const diasAlvo = [];
-        document.querySelectorAll('.dia-alvo:checked').forEach(cb => {
-            diasAlvo.push(cb.value);
-        });
-        
-        if (diasAlvo.length === 0) {
-            mostrarMensagem('Selecione pelo menos um dia destino', 'warning');
-            return;
-        }
-        
-        const substituir = document.getElementById('substituirExistentes').checked;
-        
-        // Aplicar configuração aos dias selecionados
-        diasAlvo.forEach(dia => {
-            // Verificar se o dia destino já tem configuração
-            const configDestinoEl = document.getElementById(`config-${dia}`);
-            if (!configDestinoEl) return;
-            
-            const ativoCheckbox = configDestinoEl.querySelector('.dia-ativo');
-            const ativoOrigem = configOrigem.ativo;
-            
-            // Se não for substituir e o dia já estiver ativo, pular
-            if (!substituir && ativoCheckbox && ativoCheckbox.checked) {
-                console.log(`⚠️ Dia ${dia} já configurado, ignorado`);
-                return;
-            }
-            
-            // Aplicar configuração
-            aplicarConfiguracaoDia(dia, configOrigem);
-        });
-        
-        mostrarMensagem(`Configuração espelhada para ${diasAlvo.length} dia(s)`, 'success');
-        fecharModal('espelharConfigModal');
-    });
-    
-    // Abrir modal
-    abrirModal('espelharConfigModal');
-}
-
+// ============================================
+// CONFIGURAR ESPELHAMENTO AUTOMÁTICO
+// ============================================
 function configurarEspelhamentoAutomatico() {
     const chkEspelhar = document.getElementById('espelharConfiguracao');
     const tabs = document.querySelectorAll('.dia-tab');
-    const configs = document.querySelectorAll('.dia-config');
     
     if (!chkEspelhar) return;
     
@@ -763,6 +779,8 @@ function configurarEspelhamentoAutomatico() {
         const configOrigem = coletarConfiguracaoDia(diaAtivo);
         if (!configOrigem) return;
         
+        console.log(`🔄 Espelhando configuração de ${diaAtivo} para todos os dias`);
+        
         // Aplicar para todos os dias
         const todosDias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
         
@@ -770,67 +788,59 @@ function configurarEspelhamentoAutomatico() {
             if (dia === diaAtivo) return; // Pular o dia de origem
             aplicarConfiguracaoDia(dia, configOrigem);
         });
-        
-        console.log(`🔄 Configuração espelhada de ${diaAtivo} para todos os dias`);
     }
     
-    // Quando o checkbox de espelhar for marcado/desmarcado
+    // Função para limpar todos os outros dias
+    function limparOutrosDias() {
+        const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
+        const todosDias = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+        
+        todosDias.forEach(dia => {
+            if (dia !== diaAtivo) {
+                limparConfiguracaoDia(dia);
+            }
+        });
+    }
+    
+    // Quando o checkbox de espelhar for alterado
     chkEspelhar.addEventListener('change', function() {
         const isChecked = this.checked;
         
         if (isChecked) {
             // Se marcou, espelhar a configuração atual para todos
             espelharParaTodos();
-            
-            // Desabilitar abas (não pode mais navegar)
-            tabs.forEach(tab => {
-                tab.style.pointerEvents = 'none';
-                tab.style.opacity = '0.5';
-            });
-            
-            // Mostrar apenas o dia atual
-            configs.forEach(config => {
-                if (!config.classList.contains('active')) {
-                    config.style.display = 'none';
-                }
-            });
-            
             mostrarMensagem('✅ Modo espelhamento ativado. Todos os dias terão a mesma configuração.', 'info');
         } else {
-            // Se desmarcou, habilitar abas novamente
-            tabs.forEach(tab => {
-                tab.style.pointerEvents = 'auto';
-                tab.style.opacity = '1';
-            });
-            
-            // Mostrar todos os dias novamente
-            configs.forEach(config => {
-                config.style.display = 'block';
-            });
-            
-            // Manter apenas o dia ativo visível, os outros ocultos pela classe active
-            configs.forEach(config => config.classList.remove('active'));
-            const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
-            if (diaAtivo) {
-                document.getElementById(`config-${diaAtivo}`)?.classList.add('active');
+            // Se desmarcou, perguntar se quer limpar os outros dias
+            if (confirm('Ao desmarcar o espelhamento, as configurações dos outros dias serão apagadas. Você precisará configurar cada dia manualmente. Deseja continuar?')) {
+                limparOutrosDias();
+                mostrarMensagem('🔓 Modo espelhamento desativado. Configure cada dia individualmente.', 'warning');
+            } else {
+                // Se cancelou, manter marcado
+                this.checked = true;
             }
-            
-            mostrarMensagem('🔓 Modo espelhamento desativado. Configure cada dia individualmente.', 'info');
         }
     });
     
     // Quando mudar a configuração do dia ativo, se espelhamento estiver ativo, atualizar todos
     function adicionarListenersEspelhamento() {
-        const inputs = document.querySelectorAll('.dia-config.active input');
+        const diaAtivo = document.querySelector('.dia-tab.active')?.dataset.dia;
+        if (!diaAtivo) return;
+        
+        const inputs = document.querySelectorAll(`#config-${diaAtivo} input`);
         
         inputs.forEach(input => {
-            input.addEventListener('change', function() {
+            // Remover listener antigo para não duplicar
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            
+            newInput.addEventListener('change', function() {
                 if (chkEspelhar.checked) {
                     espelharParaTodos();
                 }
             });
             
-            input.addEventListener('input', function() {
+            newInput.addEventListener('input', function() {
                 if (chkEspelhar.checked) {
                     espelharParaTodos();
                 }
@@ -845,8 +855,8 @@ function configurarEspelhamentoAutomatico() {
         });
     });
     
-    // Inicializar
-    adicionarListenersEspelhamento();
+    // Inicializar listeners
+    setTimeout(adicionarListenersEspelhamento, 200);
     
     // Se estiver marcado inicialmente, aplicar espelhamento
     if (chkEspelhar.checked) {
@@ -854,104 +864,64 @@ function configurarEspelhamentoAutomatico() {
     }
 }
 
-function obterNomeDia(diaId) {
-    const dias = {
-        'segunda': 'Segunda-feira',
-        'terca': 'Terça-feira',
-        'quarta': 'Quarta-feira',
-        'quinta': 'Quinta-feira',
-        'sexta': 'Sexta-feira',
-        'sabado': 'Sábado',
-        'domingo': 'Domingo'
-    };
-    return dias[diaId] || diaId;
-}
-
-function coletarConfiguracaoDia(dia) {
-    const configEl = document.getElementById(`config-${dia}`);
-    if (!configEl) return null;
+// ============================================
+// VALIDAÇÃO ANTES DE SALVAR
+// ============================================
+function configurarValidacaoAntesSalvar() {
+    const chkEspelhar = document.getElementById('espelharConfiguracao');
+    const btnSalvar = document.getElementById('btnSalvarCriarAgendamento');
     
-    return {
-        ativo: configEl.querySelector('.dia-ativo')?.checked || false,
-        inicio: configEl.querySelector('.horario-inicio')?.value || '08:00',
-        fim: configEl.querySelector('.horario-fim')?.value || '18:00',
-        duracao: parseInt(configEl.querySelector('.duracao')?.value) || 30,
-        intervaloEntre: parseInt(configEl.querySelector('.intervalo-entre')?.value) || 0,
-        intervaloInicio: configEl.querySelector('.intervalo-inicio')?.value || '12:00',
-        intervaloFim: configEl.querySelector('.intervalo-fim')?.value || '13:00'
-    };
-}
-
-function aplicarConfiguracaoDia(dia, config) {
-    const configEl = document.getElementById(`config-${dia}`);
-    if (!configEl) return;
+    if (!btnSalvar || !chkEspelhar) return;
     
-    const ativoCheckbox = configEl.querySelector('.dia-ativo');
-    const inicioInput = configEl.querySelector('.horario-inicio');
-    const fimInput = configEl.querySelector('.horario-fim');
-    const duracaoInput = configEl.querySelector('.duracao');
-    const intervaloEntreInput = configEl.querySelector('.intervalo-entre');
-    const intervaloInicioInput = configEl.querySelector('.intervalo-inicio');
-    const intervaloFimInput = configEl.querySelector('.intervalo-fim');
-    const configContent = configEl.querySelector('.config-content');
+    // Remover listeners antigos
+    const newBtn = btnSalvar.cloneNode(true);
+    btnSalvar.parentNode.replaceChild(newBtn, btnSalvar);
     
-    if (ativoCheckbox) ativoCheckbox.checked = config.ativo;
-    if (inicioInput) inicioInput.value = config.inicio;
-    if (fimInput) fimInput.value = config.fim;
-    if (duracaoInput) duracaoInput.value = config.duracao;
-    if (intervaloEntreInput) intervaloEntreInput.value = config.intervaloEntre;
-    if (intervaloInicioInput) intervaloInicioInput.value = config.intervaloInicio;
-    if (intervaloFimInput) intervaloFimInput.value = config.intervaloFim;
-    
-    // Atualizar estado visual (ativo/inativo)
-    if (configContent) {
-        if (config.ativo) {
-            configContent.style.opacity = '1';
-            configContent.style.pointerEvents = 'auto';
-            configContent.querySelectorAll('input').forEach(input => input.disabled = false);
-        } else {
-            configContent.style.opacity = '0.5';
-            configContent.style.pointerEvents = 'none';
-            configContent.querySelectorAll('input').forEach(input => input.disabled = true);
+    // Adicionar novo listener
+    document.getElementById('btnSalvarCriarAgendamento').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Se o espelhamento NÃO estiver marcado, validar todos os dias
+        if (!chkEspelhar.checked) {
+            const validacao = validarTodosDiasConfigurados();
+            
+            if (!validacao.todosConfigurados) {
+                const diasFaltandoStr = validacao.diasFaltando.join(', ');
+                mostrarMensagem(`⚠️ Configure os seguintes dias manualmente: ${diasFaltandoStr}`, 'warning', 5000);
+                return;
+            }
         }
-    }
-    
-    console.log(`✅ Configuração aplicada para ${dia}`);
+        
+        // Se passou na validação, chamar a função de salvar
+        salvarCriarAgendamento();
+    });
 }
 
-function espelharConfiguracao(diaOrigem, diasAlvo, substituir = true) {
-    const configOrigem = coletarConfiguracaoDia(diaOrigem);
+// ============================================
+// FUNÇÃO PRINCIPAL PARA ABRIR O MODAL
+// ============================================
+function abrirModalAgendamentoFuncionarios() {
+    console.log('Abrir modal de agendamento para funcionários');
     
-    if (!configOrigem) {
-        mostrarMensagem('Erro ao coletar configuração de origem', 'error');
+    const modal = document.getElementById('salvarCriarAgendamentoModal');
+    if (!modal) {
+        console.error('❌ Modal salvarCriarAgendamentoModal não encontrado');
+        mostrarMensagem('Erro ao abrir modal', 'error');
         return;
     }
     
-    let contador = 0;
+    // Limpar formulário
+    const form = document.getElementById('criarAgendamentoForm');
+    if (form) form.reset();
     
-    diasAlvo.forEach(dia => {
-        if (dia === diaOrigem) return; // Não espelhar para si mesmo
-        
-        const configDestinoEl = document.getElementById(`config-${dia}`);
-        if (!configDestinoEl) return;
-        
-        const ativoDestino = configDestinoEl.querySelector('.dia-ativo')?.checked || false;
-        
-        // Se não for substituir e o destino já estiver ativo, pular
-        if (!substituir && ativoDestino) {
-            console.log(`⚠️ Dia ${dia} já ativo, ignorado`);
-            return;
-        }
-        
-        aplicarConfiguracaoDia(dia, configOrigem);
-        contador++;
-    });
+    // 🔥 CONFIGURAR EVENTOS
+    configurarEventosDias();
+    configurarPermitirForaDia();
+    configurarAbasDias();
+    configurarEspelhamentoAutomatico();
+    configurarValidacaoAntesSalvar();
     
-    if (contador > 0) {
-        mostrarMensagem(`Configuração espelhada para ${contador} dia(s)`, 'success');
-    } else {
-        mostrarMensagem('Nenhum dia foi modificado', 'info');
-    }
+    modal.classList.add('active');
 }
 
 // ============================================
