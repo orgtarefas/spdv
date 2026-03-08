@@ -501,7 +501,7 @@ function inicializarCarrosselAgendamento() {
 }
 
 // ============================================
-// ABRIR MODAL DE AGENDAMENTO
+// ABRIR MODAL DE AGENDAMENTO PARA CLIENTES
 // ============================================
 function abrirModalAgendamento() {
     if (!usuarioLogado || !dadosUsuario) {
@@ -510,9 +510,462 @@ function abrirModalAgendamento() {
         return;
     }
     
-    // Redirecionar para a página de agendamento (ou abrir modal)
-    window.location.href = 'agendamento.html?novo=true';
+    console.log('Abrir modal de agendamento para cliente');
+    
+    const modal = document.getElementById('agendamentoRapidoModal');
+    if (!modal) {
+        console.error('❌ Modal de agendamento não encontrado');
+        mostrarMensagem('Erro ao abrir agendamento', 'error');
+        return;
+    }
+    
+    // Limpar formulário
+    const form = document.querySelector('.agendamento-rapido-form');
+    if (form) {
+        const selects = form.querySelectorAll('select');
+        selects.forEach(s => s.value = '');
+        const inputs = form.querySelectorAll('input');
+        inputs.forEach(i => i.value = '');
+    }
+    
+    // Se for funcionário/admin, mostrar campo de seleção de cliente
+    const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+    const tipo = dadosUsuario.tipo;
+    
+    const isFuncionario = (tipo === 'admin' || tipo === 'funcionario' || 
+                          perfil === 'admin' || perfil === 'gerente' || 
+                          perfil === 'supervisor' || perfil === 'vendedor');
+    
+    // Verificar se já existe campo de cliente no modal
+    let clienteField = document.getElementById('clienteSelectField');
+    
+    if (isFuncionario) {
+        // Se não existir, criar campo de seleção de cliente
+        if (!clienteField) {
+            const formGroup = document.createElement('div');
+            formGroup.className = 'form-group';
+            formGroup.id = 'clienteSelectField';
+            formGroup.innerHTML = `
+                <label><i class="fas fa-user"></i> Cliente</label>
+                <select id="clienteSelect" class="form-select">
+                    <option value="">Selecionar cliente...</option>
+                </select>
+                <small>Funcionário pode agendar para clientes</small>
+            `;
+            
+            // Inserir antes do serviço
+            const servicoGroup = document.querySelector('#servicoSelect')?.closest('.form-group');
+            if (servicoGroup) {
+                servicoGroup.parentNode.insertBefore(formGroup, servicoGroup);
+            }
+        }
+        
+        // Carregar lista de clientes
+        carregarClientesParaSelect();
+    } else {
+        // Se for cliente, remover campo se existir
+        if (clienteField) {
+            clienteField.remove();
+        }
+    }
+    
+    // Carregar serviços
+    carregarServicosCliente();
+    
+    // Configurar data mínima (hoje)
+    const dataInput = document.getElementById('agendamentoData');
+    if (dataInput) {
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        dataInput.min = `${ano}-${mes}-${dia}`;
+        dataInput.value = `${ano}-${mes}-${dia}`;
+        
+        // Carregar horários para a data selecionada
+        setTimeout(() => carregarHorariosCliente(), 100);
+    }
+    
+    modal.classList.add('active');
 }
+
+// ============================================
+// CARREGAR CLIENTES PARA SELECT (funcionários)
+// ============================================
+async function carregarClientesParaSelect() {
+    const select = document.getElementById('clienteSelect');
+    if (!select) return;
+    
+    try {
+        select.innerHTML = '<option value="">Carregando clientes...</option>';
+        
+        const clientesRef = window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('clientes');
+        
+        const snapshot = await clientesRef.get();
+        
+        select.innerHTML = '<option value="">Selecione um cliente...</option>';
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            select.innerHTML += `<option value="${doc.id}">${data.nome} (${data.email})</option>`;
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar clientes:', error);
+        select.innerHTML = '<option value="">Erro ao carregar clientes</option>';
+    }
+}
+
+// ============================================
+// CARREGAR SERVIÇOS PARA CLIENTE
+// ============================================
+async function carregarServicosCliente() {
+    const select = document.getElementById('servicoSelect');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Carregando serviços...</option>';
+    select.disabled = true;
+    
+    try {
+        // 🔥 BUSCAR SERVIÇOS DO FIREBASE (configurados pelo lojista)
+        const servicosRef = window.loginDb
+            .collection('configuracoes')
+            .doc(lojaIdAtual)
+            .collection('servicos_agendamento')
+            .doc('lista');
+        
+        const servicosDoc = await servicosRef.get();
+        
+        // Verificar se existem serviços configurados
+        if (!servicosDoc.exists) {
+            select.innerHTML = '<option value="">📋 Nenhum serviço cadastrado</option>';
+            select.disabled = true;
+            return;
+        }
+        
+        const dados = servicosDoc.data();
+        const servicos = dados.servicos || [];
+        
+        if (servicos.length === 0) {
+            select.innerHTML = '<option value="">📋 Nenhum serviço disponível</option>';
+            select.disabled = true;
+            return;
+        }
+        
+        // Preencher select com os serviços do banco
+        select.innerHTML = '<option value="">Selecione um serviço...</option>';
+        
+        servicos.forEach(serv => {
+            // serv pode ser um objeto { id, nome, descricao, duracao, preco } ou apenas string
+            if (typeof serv === 'object') {
+                select.innerHTML += `<option value="${serv.id || serv.nome}">${serv.nome}${serv.duracao ? ` (${serv.duracao}min)` : ''}${serv.preco ? ` - R$ ${serv.preco}` : ''}</option>`;
+            } else {
+                select.innerHTML += `<option value="${serv}">${serv}</option>`;
+            }
+        });
+        
+        select.disabled = false;
+        console.log(`✅ ${servicos.length} serviços carregados do Firebase`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar serviços:', error);
+        select.innerHTML = '<option value="">❌ Erro ao carregar serviços</option>';
+        select.disabled = true;
+    }
+}
+
+// ============================================
+// CARREGAR HORÁRIOS PARA CLIENTE
+// ============================================
+async function carregarHorariosCliente() {
+    const dataInput = document.getElementById('agendamentoData');
+    const horarioSelect = document.getElementById('agendamentoHorario');
+    
+    if (!dataInput || !horarioSelect) return;
+    
+    const dataSelecionada = dataInput.value;
+    if (!dataSelecionada) return;
+    
+    horarioSelect.innerHTML = '<option value="">Verificando horários...</option>';
+    horarioSelect.disabled = true;
+    
+    try {
+        const dataObj = new Date(dataSelecionada + 'T12:00:00');
+        const diaSemana = dataObj.getDay();
+        
+        const diasMap = {
+            0: 'domingo', 1: 'segunda', 2: 'terca', 3: 'quarta',
+            4: 'quinta', 5: 'sexta', 6: 'sabado'
+        };
+        
+        const diaId = diasMap[diaSemana];
+        
+        // 🔥 BUSCAR CONFIGURAÇÃO DO FIREBASE
+        let configDia = null;
+        let configEncontrada = false;
+        
+        try {
+            const horariosRef = window.loginDb
+                .collection('configuracoes')
+                .doc(lojaIdAtual)
+                .collection('agendamento')
+                .doc('horarios');
+            
+            const horariosDoc = await horariosRef.get();
+            
+            if (horariosDoc.exists) {
+                const dados = horariosDoc.data();
+                if (dados && dados[diaId]) {
+                    configDia = dados[diaId];
+                    configEncontrada = true;
+                    console.log(`✅ Configuração encontrada para ${diaId}:`, configDia);
+                }
+            }
+        } catch (e) {
+            console.error('❌ Erro ao buscar configuração:', e);
+        }
+        
+        // 🔥 SE NÃO ENCONTROU CONFIGURAÇÃO, MOSTRA MENSAGEM
+        if (!configEncontrada) {
+            horarioSelect.innerHTML = '<option value="">⏳ Horários não configurados pela loja</option>';
+            horarioSelect.disabled = true;
+            return;
+        }
+        
+        // 🔥 VERIFICAR SE O DIA ESTÁ CONFIGURADO COMO ABERTO
+        if (!configDia.aberto) {
+            horarioSelect.innerHTML = '<option value="">🔒 Estabelecimento fechado neste dia</option>';
+            horarioSelect.disabled = true;
+            return;
+        }
+        
+        // 🔥 VERIFICAR SE HORÁRIOS SÃO VÁLIDOS
+        if (!configDia.abertura || !configDia.fechamento) {
+            horarioSelect.innerHTML = '<option value="">⚠️ Horários incompletos - contate a loja</option>';
+            horarioSelect.disabled = true;
+            return;
+        }
+        
+        // Gerar horários baseado na configuração
+        const horarios = [];
+        const [hA, mA] = configDia.abertura.split(':').map(Number);
+        const [hF, mF] = configDia.fechamento.split(':').map(Number);
+        
+        // Só processar intervalo se existir
+        let inicioIntervalo = null;
+        let fimIntervalo = null;
+        
+        if (configDia.intervaloInicio && configDia.intervaloFim) {
+            const [hII, mII] = configDia.intervaloInicio.split(':').map(Number);
+            const [hIF, mIF] = configDia.intervaloFim.split(':').map(Number);
+            
+            inicioIntervalo = new Date();
+            inicioIntervalo.setHours(hII, mII, 0);
+            
+            fimIntervalo = new Date();
+            fimIntervalo.setHours(hIF, mIF, 0);
+        }
+        
+        let atual = new Date();
+        atual.setHours(hA, mA, 0);
+        
+        let fim = new Date();
+        fim.setHours(hF, mF, 0);
+        
+        while (atual <= fim) {
+            // Pular intervalo se existir
+            if (inicioIntervalo && fimIntervalo && 
+                atual >= inicioIntervalo && atual < fimIntervalo) {
+                atual = new Date(fimIntervalo);
+                continue;
+            }
+            
+            const hora = String(atual.getHours()).padStart(2, '0');
+            const min = String(atual.getMinutes()).padStart(2, '0');
+            horarios.push(`${hora}:${min}`);
+            
+            atual.setMinutes(atual.getMinutes() + 30);
+        }
+        
+        if (horarios.length === 0) {
+            horarioSelect.innerHTML = '<option value="">⏰ Nenhum horário disponível</option>';
+            horarioSelect.disabled = true;
+            return;
+        }
+        
+        horarioSelect.innerHTML = '<option value="">Selecione um horário</option>';
+        horarios.forEach(h => {
+            horarioSelect.innerHTML += `<option value="${h}">${h}</option>`;
+        });
+        horarioSelect.disabled = false;
+        
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        horarioSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
+        horarioSelect.disabled = true;
+    }
+}
+
+// ============================================
+// CONFIRMAR AGENDAMENTO (CLIENTE)
+// ============================================
+document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', async function() {
+    try {
+        // Validar campos
+        const servicoSelect = document.getElementById('servicoSelect');
+        const dataInput = document.getElementById('agendamentoData');
+        const horarioSelect = document.getElementById('agendamentoHorario');
+        
+        const servico = servicoSelect?.value;
+        const servicoText = servicoSelect?.selectedOptions[0]?.text.split(' - ')[0] || servico;
+        const data = dataInput?.value;
+        const horario = horarioSelect?.value;
+        
+        // Validações
+        if (!servico) {
+            mostrarMensagem('Selecione um serviço', 'warning');
+            return;
+        }
+        
+        if (!data) {
+            mostrarMensagem('Selecione uma data', 'warning');
+            return;
+        }
+        
+        if (!horario) {
+            mostrarMensagem('Selecione um horário', 'warning');
+            return;
+        }
+        
+        // Verificar login
+        if (!usuarioLogado || !dadosUsuario) {
+            mostrarMensagem('Faça login para agendar', 'warning');
+            fecharModal('agendamentoRapidoModal');
+            abrirModal('loginModal');
+            return;
+        }
+        
+        mostrarLoading('Confirmando agendamento...');
+        
+        // Determinar cliente (se for funcionário, pode agendar para outro)
+        let clienteEmail = dadosUsuario.email;
+        let clienteNome = dadosUsuario.nome;
+        let clienteTelefone = dadosUsuario.telefone || '';
+        
+        const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+        const tipo = dadosUsuario.tipo;
+        const isFuncionario = (tipo === 'admin' || tipo === 'funcionario' || 
+                              perfil === 'admin' || perfil === 'gerente' || 
+                              perfil === 'supervisor' || perfil === 'vendedor');
+        
+        // Se for funcionário, verificar se selecionou um cliente
+        if (isFuncionario) {
+            const clienteSelect = document.getElementById('clienteSelect');
+            if (clienteSelect && clienteSelect.value) {
+                clienteEmail = clienteSelect.value;
+                
+                // Buscar dados completos do cliente
+                try {
+                    const clienteDoc = await window.loginDb
+                        .collection('usuarios')
+                        .doc(lojaIdAtual)
+                        .collection('clientes')
+                        .doc(clienteEmail)
+                        .get();
+                    
+                    if (clienteDoc.exists) {
+                        const clienteData = clienteDoc.data();
+                        clienteNome = clienteData.nome || clienteEmail;
+                        clienteTelefone = clienteData.telefone || '';
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Erro ao buscar dados do cliente:', e);
+                }
+            }
+        }
+        
+        // Verificar configuração de validação da loja
+        let precisaValidar = true;
+        try {
+            const configRef = window.loginDb
+                .collection('configuracoes')
+                .doc(lojaIdAtual)
+                .collection('agendamento')
+                .doc('config');
+            
+            const configDoc = await configRef.get();
+            if (configDoc.exists) {
+                const config = configDoc.data();
+                // Se validação automática para todos, já entra validado
+                if (config.validacao === 'automatico_todos') {
+                    precisaValidar = false;
+                }
+                // Se for agendamento para hoje e config for 'automatico_dia'
+                else if (config.validacao === 'automatico_dia') {
+                    const hoje = new Date().toISOString().split('T')[0];
+                    if (data === hoje) {
+                        precisaValidar = false;
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ Erro ao verificar configuração:', e);
+        }
+        
+        // Criar objeto do agendamento
+        const agendamentoData = {
+            cliente_email: clienteEmail,
+            cliente_nome: clienteNome,
+            cliente_telefone: clienteTelefone,
+            servico: servicoText,
+            servico_id: servico,
+            data: data,
+            horario: horario,
+            status: 'agendado',
+            validado: !precisaValidar, // false = precisa validar, true = já validado
+            criado_por: dadosUsuario.email,
+            criado_por_nome: dadosUsuario.nome,
+            criado_em: serverTimestamp(),
+            data_criacao: new Date().toISOString(),
+            loja_id: lojaIdAtual
+        };
+        
+        // Salvar no Firestore (coleção 'futuros')
+        const agendamentoRef = window.loginDb
+            .collection('agendamentos')
+            .doc(lojaIdAtual)
+            .collection('futuros')
+            .doc();
+        
+        await setDoc(agendamentoRef, agendamentoData);
+        
+        // Mensagem de sucesso conforme validação
+        if (precisaValidar) {
+            mostrarMensagem('✅ Agendamento solicitado! Aguarde confirmação da loja.', 'success', 5000);
+        } else {
+            mostrarMensagem('✅ Agendamento confirmado! Você já está na fila.', 'success');
+        }
+        
+        // Fechar modal
+        fecharModal('agendamentoRapidoModal');
+        
+        // Se for cliente, mostrar mensagem sobre "Minha Senha"
+        if (!isFuncionario && !precisaValidar) {
+            setTimeout(() => {
+                mostrarMensagem('🔔 Acompanhe sua posição na fila acima', 'info', 4000);
+            }, 1000);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao confirmar agendamento:', error);
+        mostrarMensagem('Erro ao fazer agendamento: ' + error.message, 'error');
+    } finally {
+        esconderLoading();
+    }
+});
 
 // ============================================
 // CONFIGURAR FAVICON DA LOJA
@@ -1966,6 +2419,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
