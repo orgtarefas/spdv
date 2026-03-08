@@ -2101,3 +2101,70 @@ input:checked + .toggle-slider:before {
         text-align: center;
     }
 }
+
+/* ============================================
+   MODAL DE ESPELHAR CONFIGURAÇÃO
+   ============================================ */
+
+.dias-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+.dia-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dia-checkbox-item:hover {
+    border-color: #ff6b00;
+    background: #fff9f0;
+}
+
+.dia-checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #ff6b00;
+}
+
+#espelharConfigModal .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+#espelharConfigModal .btn-primary {
+    background: #ff6b00;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+#espelharConfigModal .btn-primary:hover {
+    background: #e65100;
+    transform: translateY(-2px);
+}
