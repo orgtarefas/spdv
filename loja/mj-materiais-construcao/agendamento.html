@@ -70,6 +70,11 @@
                     <button class="btn-principal btn-secondary" id="btnGerenciarServicos">
                         <i class="fas fa-cut"></i> Gerenciar Serviços de Agendamento
                     </button>
+                    
+                    <!-- 🔥 NOVO BOTÃO: Dias Excepcionais -->
+                    <button class="btn-principal btn-warning" id="btnDiasExcepcionais">
+                        <i class="fas fa-calendar-exclamation"></i> Dias Excepcionais
+                    </button>
                 </div>
                 
                 <div class="btn-group">
@@ -648,6 +653,108 @@
                 <button class="btn-salvar" id="btnSalvarCriarAgendamento">
                     <i class="fas fa-save"></i> Salvar Configuração
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Dias de Atendimento Excepcional -->
+    <div id="diasExcepcionaisModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-exclamation"></i> Dias de Atendimento Excepcional</h3>
+                <button class="modal-close" onclick="fecharModal('diasExcepcionaisModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Lista de dias excepcionais cadastrados -->
+                <div class="excepcionais-header">
+                    <h4>Dias excepcionais configurados</h4>
+                    <button class="btn-add" id="btnAdicionarDiaExcepcional">
+                        <i class="fas fa-plus"></i> Adicionar Data
+                    </button>
+                </div>
+                
+                <div class="excepcionais-lista" id="excepcionaisLista">
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Nenhum dia excepcional configurado</p>
+                        <small>Clique em "Adicionar Data" para criar uma exceção</small>
+                    </div>
+                </div>
+    
+                <!-- Formulário para adicionar/editar dia excepcional (inicialmente oculto) -->
+                <div class="excepcional-form" id="excepcionalForm" style="display: none;">
+                    <h4><i class="fas fa-pen"></i> Configurar Dia Excepcional</h4>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-day"></i> Data *</label>
+                        <input type="date" id="excepcionalData" class="form-input" required>
+                        <small class="help-text">Selecione a data que terá atendimento especial</small>
+                    </div>
+    
+                    <div class="form-group">
+                        <label><i class="fas fa-info-circle"></i> Motivo da exceção</label>
+                        <select id="excepcionalMotivo">
+                            <option value="feriado">Feriado</option>
+                            <option value="abertura_especial">Abertura Especial</option>
+                            <option value="evento">Evento Especial</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+    
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Descrição (opcional)</label>
+                        <textarea id="excepcionalDescricao" rows="2" placeholder="Descreva o motivo da exceção..."></textarea>
+                    </div>
+    
+                    <div class="config-header">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="excepcionalAtivo" checked>
+                            <span>Atender neste dia</span>
+                        </label>
+                    </div>
+    
+                    <div class="config-content" id="excepcionalConfigContent">
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label>Início do expediente</label>
+                                <input type="time" id="excepcionalInicio" value="08:00">
+                            </div>
+                            <div class="form-group half">
+                                <label>Fim do expediente</label>
+                                <input type="time" id="excepcionalFim" value="18:00">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label><i class="fas fa-hourglass-half"></i> Duração do atendimento (min)</label>
+                                <input type="number" id="excepcionalDuracao" value="30" min="5" step="5">
+                            </div>
+                            <div class="form-group half">
+                                <label><i class="fas fa-clock"></i> Intervalo entre atendimentos (min)</label>
+                                <input type="number" id="excepcionalIntervalo" value="0" min="0" step="5">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-utensils"></i> Intervalo de almoço/pausa</label>
+                            <div class="intervalo-inputs">
+                                <input type="time" id="excepcionalIntervaloInicio" value="12:00">
+                                <span>às</span>
+                                <input type="time" id="excepcionalIntervaloFim" value="13:00">
+                            </div>
+                        </div>
+                    </div>
+    
+                    <input type="hidden" id="excepcionalId">
+    
+                    <div class="form-actions">
+                        <button class="btn-cancelar" id="btnCancelarExcepcional">Cancelar</button>
+                        <button class="btn-salvar" id="btnSalvarExcepcional">
+                            <i class="fas fa-save"></i> Salvar Exceção
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
