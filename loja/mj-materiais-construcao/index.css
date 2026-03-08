@@ -3336,7 +3336,7 @@ body {
 
 /* Cabeçalho do modal */
 #agendamentoRapidoModal .modal-header {
-    background: linear-gradient(135deg, #ff6b00, #ff8c40);
+    background: linear-gradient(135deg, #0056b3, #00a86b);
     padding: 20px 25px;
     border-bottom: none;
 }
@@ -3404,7 +3404,7 @@ body {
 }
 
 .agendamento-rapido-form .form-group label i {
-    color: #ff6b00;
+    color: #0056b3;
     font-size: 1rem;
     width: 18px;
 }
@@ -3433,9 +3433,9 @@ body {
 .agendamento-rapido-form .form-select:focus,
 .agendamento-rapido-form .form-input:focus {
     outline: none;
-    border-color: #ff6b00;
+    border-color: #0056b3;
     background-color: #fff;
-    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1);
 }
 
 .agendamento-rapido-form .form-select:disabled,
@@ -3460,16 +3460,16 @@ body {
 
 /* Campo de seleção de cliente (para funcionários) */
 #clienteSelectField {
-    background: #fff9f0;
+    background: #f0f7ff;
     border-radius: 16px;
     padding: 15px;
-    border: 1px solid #ffe4d0;
+    border: 1px solid #cce4ff;
     margin-bottom: 10px;
     animation: fadeIn 0.3s ease;
 }
 
 #clienteSelectField label {
-    color: #ff6b00 !important;
+    color: #0056b3 !important;
 }
 
 #clienteSelectField small {
@@ -3484,7 +3484,7 @@ body {
 .btn-confirmar-agendamento {
     width: 100%;
     padding: 14px 20px;
-    background: linear-gradient(135deg, #28a745, #20c997);
+    background: linear-gradient(135deg, #0056b3, #00a86b);
     color: white;
     border: none;
     border-radius: 50px;
@@ -3498,12 +3498,12 @@ body {
     transition: all 0.3s;
     margin-top: 15px;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 86, 179, 0.3);
 }
 
 .btn-confirmar-agendamento:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    box-shadow: 0 8px 25px rgba(0, 86, 179, 0.4);
 }
 
 .btn-confirmar-agendamento:active {
@@ -3570,7 +3570,7 @@ body {
 /* Estilo para quando o campo está inválido */
 .agendamento-rapido-form .form-select:invalid,
 .agendamento-rapido-form .form-input:invalid {
-    border-color: #ff6b00;
+    border-color: #0056b3;
 }
 
 /* Placeholder para selects vazios */
@@ -3584,7 +3584,7 @@ body {
 }
 
 .agendamento-rapido-form .form-group:focus-within label {
-    color: #ff6b00;
+    color: #0056b3;
 }
 
 .agendamento-rapido-form .form-group:focus-within label i {
@@ -3602,13 +3602,13 @@ body {
 }
 
 .agendamento-rapido-form .form-group .info-tooltip:hover {
-    color: #ff6b00;
+    color: #0056b3;
 }
 
 /* Badge de funcionário */
 .funcionario-badge {
     display: inline-block;
-    background: #ff6b00;
+    background: #0056b3;
     color: white;
     font-size: 0.7rem;
     padding: 2px 8px;
