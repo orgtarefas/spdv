@@ -2044,7 +2044,7 @@ function configurarEventos() {
     });
     
     // ✅ FUNCIONÁRIOS/ADMIN: Abre modal para funcionários
-    document.getElementById('btncriarAgendamento')?.addEventListener('click', () => {
+    document.getElementById('btnCriarAgendamento')?.addEventListener('click', () => {
         abrirModalAgendamentoFuncionarios();
     });
     
