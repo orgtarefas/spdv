@@ -1397,7 +1397,7 @@ async function salvarCriarAgendamento() {
         
         mostrarLoading('Salvando configuração...');
         
-        // 🔥 DADOS PARA SALVAR NO FIRESTORE
+        // 🔥 DADOS PARA SALVAR NO FIRESTORE (projeto spdv-3872a)
         const configData = {
             nome: nomeServico,
             descricao: descricao,
@@ -1414,13 +1414,16 @@ async function salvarCriarAgendamento() {
         
         console.log('📝 Salvando configuração:', configData);
         
-        // 🔥 SALVAR NO FIRESTORE (coleção de configurações)
-        const configRef = window.loginDb
+        // ✅ CORRETO: Usar 'db' (projeto spdv-3872a) em vez de 'window.loginDb'
+        const configRef = db
             .collection('configuracoes')
             .doc(lojaIdAtual)
             .collection('servico_agendamento')
             .doc('config');
         
+        console.log('📁 Caminho:', configRef.path);
+        
+        // Salvar no Firestore do projeto spdv-3872a
         await setDoc(configRef, configData, { merge: true });
         
         mostrarMensagem('Configuração salva com sucesso!', 'success');
@@ -1433,7 +1436,6 @@ async function salvarCriarAgendamento() {
         esconderLoading();
     }
 }
-
 
 // ============================================
 // ABRIR MODAL GERENCIAR AGENDAMENTOS
