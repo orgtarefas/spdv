@@ -3322,3 +3322,297 @@ body {
     }
 }
 
+/* ============================================
+   MODAL DE AGENDAMENTO PARA CLIENTES
+   ============================================ */
+
+/* Container do modal */
+#agendamentoRapidoModal .modal-content {
+    max-width: 500px;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Cabeçalho do modal */
+#agendamentoRapidoModal .modal-header {
+    background: linear-gradient(135deg, #ff6b00, #ff8c40);
+    padding: 20px 25px;
+    border-bottom: none;
+}
+
+#agendamentoRapidoModal .modal-header h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#agendamentoRapidoModal .modal-header h3 i {
+    font-size: 1.5rem;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+#agendamentoRapidoModal .modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#agendamentoRapidoModal .modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+/* Corpo do modal */
+#agendamentoRapidoModal .modal-body {
+    padding: 25px;
+    background: #ffffff;
+}
+
+/* Formulário */
+.agendamento-rapido-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Grupos de formulário */
+.agendamento-rapido-form .form-group {
+    margin-bottom: 0;
+}
+
+.agendamento-rapido-form .form-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.agendamento-rapido-form .form-group label i {
+    color: #ff6b00;
+    font-size: 1rem;
+    width: 18px;
+}
+
+/* Inputs e selects */
+.agendamento-rapido-form .form-select,
+.agendamento-rapido-form .form-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    background: #f8fafc;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+}
+
+.agendamento-rapido-form .form-input {
+    background-image: none;
+}
+
+.agendamento-rapido-form .form-select:focus,
+.agendamento-rapido-form .form-input:focus {
+    outline: none;
+    border-color: #ff6b00;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.1);
+}
+
+.agendamento-rapido-form .form-select:disabled,
+.agendamento-rapido-form .form-input:disabled {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Linha com duas colunas */
+.agendamento-rapido-form .form-row {
+    display: flex;
+    gap: 15px;
+    margin: 0;
+}
+
+.agendamento-rapido-form .form-group.half {
+    flex: 1;
+}
+
+/* Campo de seleção de cliente (para funcionários) */
+#clienteSelectField {
+    background: #fff9f0;
+    border-radius: 16px;
+    padding: 15px;
+    border: 1px solid #ffe4d0;
+    margin-bottom: 10px;
+    animation: fadeIn 0.3s ease;
+}
+
+#clienteSelectField label {
+    color: #ff6b00 !important;
+}
+
+#clienteSelectField small {
+    display: block;
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-top: 8px;
+    font-style: italic;
+}
+
+/* Botão confirmar */
+.btn-confirmar-agendamento {
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s;
+    margin-top: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.btn-confirmar-agendamento:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+}
+
+.btn-confirmar-agendamento:active {
+    transform: translateY(0);
+}
+
+.btn-confirmar-agendamento i {
+    font-size: 1.2rem;
+}
+
+/* Estados de carregamento */
+.agendamento-rapido-form .form-select option:first-child {
+    color: #94a3b8;
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+    #agendamentoRapidoModal .modal-content {
+        width: 95%;
+        margin: 0 auto;
+    }
+    
+    .agendamento-rapido-form .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .btn-confirmar-agendamento {
+        padding: 12px 16px;
+        font-size: 1rem;
+    }
+    
+    #agendamentoRapidoModal .modal-header {
+        padding: 15px 20px;
+    }
+    
+    #agendamentoRapidoModal .modal-body {
+        padding: 20px;
+    }
+}
+
+/* Estilo para mensagens de validação */
+.agendamento-rapido-form .form-group .error-message {
+    color: #dc3545;
+    font-size: 0.8rem;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Estilo para quando o campo está inválido */
+.agendamento-rapido-form .form-select:invalid,
+.agendamento-rapido-form .form-input:invalid {
+    border-color: #ff6b00;
+}
+
+/* Placeholder para selects vazios */
+.agendamento-rapido-form .form-select option[value=""] {
+    color: #94a3b8;
+}
+
+/* Efeito de foco nos campos */
+.agendamento-rapido-form .form-group {
+    position: relative;
+}
+
+.agendamento-rapido-form .form-group:focus-within label {
+    color: #ff6b00;
+}
+
+.agendamento-rapido-form .form-group:focus-within label i {
+    transform: scale(1.1);
+}
+
+/* Tooltip para informações */
+.agendamento-rapido-form .form-group .info-tooltip {
+    position: absolute;
+    right: 10px;
+    top: 38px;
+    color: #94a3b8;
+    cursor: help;
+    font-size: 0.9rem;
+}
+
+.agendamento-rapido-form .form-group .info-tooltip:hover {
+    color: #ff6b00;
+}
+
+/* Badge de funcionário */
+.funcionario-badge {
+    display: inline-block;
+    background: #ff6b00;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 30px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
