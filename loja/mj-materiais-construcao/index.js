@@ -676,7 +676,7 @@ async function carregarServicosCliente() {
 }
 
 // ============================================
-// CARREGAR HORÁRIOS PARA CLIENTE
+// CARREGAR HORÁRIOS PARA CLIENTE (VERSÃO FINAL)
 // ============================================
 async function carregarHorariosCliente() {
     const dataInput = document.getElementById('agendamentoData');
@@ -703,15 +703,18 @@ async function carregarHorariosCliente() {
         };
         
         const diaId = diasMap[diaSemana];
+        console.log(`📅 Dia da semana: ${diaId}`);
         
         // ✅ BUSCAR A CONFIGURAÇÃO DO SERVIÇO (mesmo lugar onde foi salvo)
         const configRef = doc(
-            db,  // ✅ Projeto spdv-3872a
+            db,  // ✅ Projeto spdv-3872a (CORRETO!)
             'configuracoes', 
             lojaIdAtual, 
             'servico_agendamento', 
             'config'
         );
+        
+        console.log('📁 Buscando em:', configRef.path);
         
         const configDoc = await getDoc(configRef);
         
@@ -739,6 +742,8 @@ async function carregarHorariosCliente() {
             horarioSelect.disabled = true;
             return;
         }
+        
+        console.log(`✅ Horários: ${dados.horarioInicio} às ${dados.horarioFim}`);
         
         // Gerar horários
         const horarios = [];
@@ -771,7 +776,7 @@ async function carregarHorariosCliente() {
         });
         horarioSelect.disabled = false;
         
-        console.log(`✅ ${horarios.length} horários gerados`);
+        console.log(`✅ ${horarios.length} horários gerados com sucesso`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
@@ -2390,6 +2395,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
