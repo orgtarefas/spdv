@@ -1622,7 +1622,7 @@ async function carregarHorariosAdmin() {
 // ============================================
 // SALVAR NOVO AGENDAMENTO (FUNCIONÁRIOS)
 // ============================================
-async function salvarcriarAgendamento() {
+async function salvarCriarAgendamento() {
     try {
         const cliente = document.getElementById('buscaClienteAdmin').value;
         const servicoSelect = document.getElementById('servicoAdminSelect');
@@ -2100,7 +2100,7 @@ function configurarEventos() {
     document.getElementById('btnSalvarExcecao')?.addEventListener('click', salvarExcecao);
     
     // Botões do modal novo agendamento
-    document.getElementById('btnSalvarAgendamentoAdmin')?.addEventListener('click', salvarcriarAgendamento);
+    document.getElementById('btnSalvarAgendamentoAdmin')?.addEventListener('click', salvarCriarAgendamento);
     
     // Botões do modal gerenciar
     document.getElementById('buscaGerenciar')?.addEventListener('input', filtrarGerenciar);
