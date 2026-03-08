@@ -145,18 +145,20 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // 🔥 CORREÇÃO: Usar db (spdv-3872a) em vez de window.loginDb
-        const agendamentosClientesRef = db  // 👈 MUDAR AQUI
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('agendamento_clientes');
+        // 🔥 CORREÇÃO: Usar a sintaxe correta com collection() importada
+        const agendamentosClientesRef = collection(
+            db,  // 👈 Instância do Firebase
+            'agendamentos',
+            lojaIdAtual,
+            'agendamento_clientes'
+        );
         
         // Escutar mudanças em tempo real
-        unsubscribeAgendamentos = agendamentosClientesRef.onSnapshot(async (snapshot) => {
+        unsubscribeAgendamentos = onSnapshot(agendamentosClientesRef, async (snapshot) => {
             const agendamentosAtivosTemp = [];
             
             // Para cada cliente com agendamentos
-            for (const docCliente of snapshot.docs) {
+            snapshot.forEach((docCliente) => {
                 const clienteEmail = docCliente.id;
                 const agendamentosCliente = docCliente.data();
                 
@@ -165,7 +167,7 @@ function iniciarEscutaAgendamentos() {
                     // Verificar se é um agendamento válido
                     if (agendamento && agendamento.data_hora_agendada) {
                         
-                        // 🔥 Converter data_hora_agendada para comparar
+                        // Converter data_hora_agendada para comparar
                         const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
                                             new Date(agendamento.data_hora_agendada);
                         
@@ -175,7 +177,7 @@ function iniciarEscutaAgendamentos() {
                         const amanha = new Date(hoje);
                         amanha.setDate(amanha.getDate() + 1);
                         
-                        // Considerar apenas agendamentos de hoje (ativos) com status Verificado
+                        // Verificar se é de hoje e status permite estar na fila
                         if (dataAgendada >= hoje && 
                             dataAgendada < amanha && 
                             ['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
@@ -185,15 +187,15 @@ function iniciarEscutaAgendamentos() {
                                 cliente_email: clienteEmail,
                                 cliente_nome: agendamento.cliente?.nome || 'Cliente',
                                 servico: agendamento.servico?.nome || 'Serviço',
-                                senha: `A${agendamentosAtivosTemp.length + 1}`,
-                                status: agendamento.status_agendamento, // Usando o status real do Firebase
+                                senha: gerarSenha(agendamentosAtivosTemp.length + 1, agendamento.status_agendamento),
+                                status: agendamento.status_agendamento,
                                 data_hora: dataAgendada,
                                 horario: dataAgendada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                             });
                         }
                     }
                 }
-            }
+            });
             
             // Ordenar por horário
             agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
@@ -2735,6 +2737,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
