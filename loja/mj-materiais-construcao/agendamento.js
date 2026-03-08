@@ -1669,7 +1669,8 @@ function abrirModalAgendamentoFuncionarios() {
     // 🔥 CONFIGURAR EVENTOS
     configurarEventosDias();
     configurarPermitirForaDia();
-        
+    configurarAbasDias(); // ✅ NOVO
+    
     modal.classList.add('active');
 }
 
