@@ -811,8 +811,6 @@ async function carregarHorariosCliente() {
 // ============================================
 document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', async function() {
     try {
-        // Validar campos
-        const servicoSelect = document.getElementById('servicoSelect');
         const dataInput = document.getElementById('agendamentoData');
         const horarioSelect = document.getElementById('agendamentoHorario');
         
@@ -2443,6 +2441,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
