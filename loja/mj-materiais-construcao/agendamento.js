@@ -2020,7 +2020,7 @@ async function chamarProximo(id) {
 }
 
 // ============================================
-// SALVAR CONFIGURAÇÃO DO AGENDAMENTO
+// SALVAR CONFIGURAÇÃO DO AGENDAMENTO (USANDO spdv-3872a)
 // ============================================
 async function salvarCriarAgendamento() {
     try {
@@ -2058,14 +2058,6 @@ async function salvarCriarAgendamento() {
             }
         });
         
-        // Também salvar dias inativos (para referência)
-        document.querySelectorAll('.dia-ativo:not(:checked)').forEach(cb => {
-            const dia = cb.dataset.dia;
-            if (dia && !configuracoesPorDia[dia]) {
-                configuracoesPorDia[dia] = { ativo: false };
-            }
-        });
-        
         if (diasAtivos.length === 0) {
             mostrarMensagem('Selecione pelo menos um dia de funcionamento', 'warning');
             return;
@@ -2073,17 +2065,23 @@ async function salvarCriarAgendamento() {
         
         mostrarLoading('Salvando configuração...');
         
-        // 🔥 CORREÇÃO AQUI: Gerar ID ÚNICO baseado no nome
+        // Gerar ID único baseado no nome
         const servicoId = nomeServico
             .toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
-            .replace(/[^a-z0-9]/g, '_') // Substitui caracteres especiais por _
-            .replace(/_+/g, '_') // Remove underscores duplicados
-            .replace(/^_|_$/g, ''); // Remove underscores do início/fim
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
         
-        console.log('📝 ID gerado:', servicoId);
+        // ✅ USANDO db (spdv-3872a) - CONFIGURAÇÕES DO SERVIÇO
+        const configRef = doc(
+            db, 
+            'configuracoes', 
+            lojaIdAtual, 
+            'servico_agendamento', 
+            servicoId
+        );
         
-        // Dados completos para salvar
         const configData = {
             id: servicoId,
             nome: nomeServico,
@@ -2097,17 +2095,6 @@ async function salvarCriarAgendamento() {
             data_atualizacao: new Date().toISOString(),
             loja_id: lojaIdAtual
         };
-        
-        console.log('📝 Salvando configuração completa:', configData);
-        
-        // Salvar no Firestore com ID único
-        const configRef = doc(
-            db, 
-            'configuracoes', 
-            lojaIdAtual, 
-            'servico_agendamento', 
-            servicoId  // 🔥 AGORA USA ID ÚNICO, não mais 'config'
-        );
         
         await setDoc(configRef, configData, { merge: true });
         
