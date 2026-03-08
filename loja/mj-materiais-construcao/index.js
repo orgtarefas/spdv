@@ -145,32 +145,75 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // Verificar se loginDb está disponível
+        // Verificar se loginDb está disponível (banco lojasite-ba36f)
         if (!window.loginDb) {
             console.error('❌ loginDb não disponível para escuta de agendamentos');
             return;
         }
         
-        // Referência para a coleção de agendamentos no Firestore
-        const agendamentosRef = window.loginDb
+        // 🔥 AGORA: Buscar TODOS os clientes que têm agendamentos
+        // Estrutura: agendamentos / [lojaId] / agendamento_clientes
+        const agendamentosClientesRef = window.loginDb
             .collection('agendamentos')
             .doc(lojaIdAtual)
-            .collection('ativos')
-            .orderBy('senha', 'asc');
+            .collection('agendamento_clientes');
         
         // Escutar mudanças em tempo real
-        unsubscribeAgendamentos = agendamentosRef.onSnapshot((snapshot) => {
-            const agendamentos = [];
-            snapshot.forEach(doc => {
-                agendamentos.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
+        unsubscribeAgendamentos = agendamentosClientesRef.onSnapshot(async (snapshot) => {
+            const agendamentosAtivosTemp = [];
             
-            agendamentosAtivos = agendamentos;
+            // Para cada cliente com agendamentos
+            for (const docCliente of snapshot.docs) {
+                const clienteEmail = docCliente.id;
+                const agendamentosCliente = docCliente.data();
+                
+                // Para cada agendamento deste cliente (agendamento_1, agendamento_2, etc)
+                for (const [agendamentoId, agendamento] of Object.entries(agendamentosCliente)) {
+                    // Verificar se é um agendamento válido
+                    if (agendamento && agendamento.data_hora_agendada) {
+                        
+                        // 🔥 Converter data_hora_agendada para comparar
+                        const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
+                                            new Date(agendamento.data_hora_agendada);
+                        
+                        const hoje = new Date();
+                        hoje.setHours(0, 0, 0, 0);
+                        
+                        const amanha = new Date(hoje);
+                        amanha.setDate(amanha.getDate() + 1);
+                        
+                        // Considerar apenas agendamentos de hoje (ativos) com status Verificado
+                        if (dataAgendada >= hoje && 
+                            dataAgendada < amanha && 
+                            agendamento.status_agendamento === "Verificado") {
+                            
+                            agendamentosAtivosTemp.push({
+                                id: `${clienteEmail}_${agendamentoId}`,
+                                cliente_email: clienteEmail,
+                                cliente_nome: agendamento.cliente?.nome || 'Cliente',
+                                servico: agendamento.servico?.nome || 'Serviço',
+                                senha: `A${agendamentosAtivosTemp.length + 1}`, // Gerar senha sequencial
+                                status: 'aguardando', // Todos começam como aguardando
+                                data_hora: dataAgendada,
+                                horario: dataAgendada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Ordenar por horário
+            agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
+            
+            // Atualizar a lista global
+            agendamentosAtivos = agendamentosAtivosTemp;
+            
+            console.log('📋 Agendamentos ativos de hoje:', agendamentosAtivos);
+            
+            // Renderizar o painel
             renderizarPainelAgendamento();
-            // Inicializar carrossel após renderizar
+            
+            // Inicializar carrossel
             setTimeout(() => {
                 inicializarCarrosselAgendamento();
             }, 100);
@@ -181,6 +224,32 @@ function iniciarEscutaAgendamentos() {
         
     } catch (error) {
         console.error('❌ Erro ao iniciar escuta:', error);
+    }
+}
+
+// ============================================
+// CHAMAR PRÓXIMO (ATUALIZAR STATUS)
+// ============================================
+async function chamarProximo(agendamentoId) {
+    try {
+        // Encontrar o agendamento na lista
+        const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
+        if (!agendamento) return;
+        
+        // Atualizar localmente
+        agendamentosAtivos = agendamentosAtivos.map(a => 
+            a.id === agendamentoId ? { ...a, status: 'chamando' } : a
+        );
+        
+        renderizarPainelAgendamento();
+        
+        // 🔥 Aqui você pode implementar a atualização no Firebase
+        // (se quiser persistir o status "Em Atendimento")
+        
+        mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome}`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao chamar próximo:', error);
     }
 }
 
@@ -519,13 +588,41 @@ function abrirModalAgendamento() {
         return;
     }
     
-    // Limpar formulário
+    // Limpar formulário COMPLETAMENTE
     const form = document.querySelector('.agendamento-rapido-form');
     if (form) {
         const selects = form.querySelectorAll('select');
-        selects.forEach(s => s.value = '');
+        selects.forEach(s => {
+            s.value = '';
+            s.disabled = false;
+        });
+        
         const inputs = form.querySelectorAll('input');
-        inputs.forEach(i => i.value = '');
+        inputs.forEach(i => {
+            i.value = '';
+            i.disabled = false;
+        });
+    }
+    
+    // 🔥 NOVO: Desabilitar data e horário até selecionar serviço
+    const dataInput = document.getElementById('agendamentoData');
+    const horarioSelect = document.getElementById('agendamentoHorario');
+    
+    if (dataInput) {
+        dataInput.value = '';
+        dataInput.disabled = true;
+        
+        // Configurar data mínima (hoje) mas não selecionar
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        dataInput.min = `${ano}-${mes}-${dia}`;
+    }
+    
+    if (horarioSelect) {
+        horarioSelect.innerHTML = '<option value="">Primeiro selecione um serviço</option>';
+        horarioSelect.disabled = true;
     }
     
     // Se for funcionário/admin, mostrar campo de seleção de cliente
@@ -569,19 +666,8 @@ function abrirModalAgendamento() {
         }
     }
     
-    // Carregar serviços
+    // Carregar serviços (mas não selecionar nenhum)
     carregarServicosCliente();
-    
-    // Configurar data mínima (hoje)
-    const dataInput = document.getElementById('agendamentoData');
-    if (dataInput) {
-        const hoje = new Date();
-        const ano = hoje.getFullYear();
-        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-        const dia = String(hoje.getDate()).padStart(2, '0');
-        dataInput.min = `${ano}-${mes}-${dia}`;
-        dataInput.value = `${ano}-${mes}-${dia}`;
-    }
     
     modal.classList.add('active');
 }
@@ -617,7 +703,7 @@ async function carregarClientesParaSelect() {
 }
 
 // ============================================
-// CARREGAR SERVIÇOS PARA CLIENTE (CORRIGIDO)
+// CARREGAR SERVIÇOS PARA CLIENTE
 // ============================================
 async function carregarServicosCliente() {
     const select = document.getElementById('servicoSelect');
@@ -657,7 +743,8 @@ async function carregarServicosCliente() {
         
         servicosEncontrados.forEach(servico => {
             if (servico.nome) {
-                select.innerHTML += `<option value="${servico.id}" data-config='${JSON.stringify(servico)}'>${servico.nome}</option>`;
+                // 🔥 ÍCONE GENÉRICO (relógio) em vez de tesoura
+                select.innerHTML += `<option value="${servico.id}" data-config='${JSON.stringify(servico)}'>⏱️ ${servico.nome}</option>`;
             }
         });
         
@@ -2320,36 +2407,99 @@ function configurarEventos() {
     });
  
     configurarMenuPerfil();
+        
+    // Verificar se os elementos existem antes de adicionar eventos
+    const servicoSelect = document.getElementById('servicoSelect');
+    const dataInput = document.getElementById('agendamentoData');
+    const horarioSelect = document.getElementById('agendamentoHorario');
+    const btnAbrirAgendamento = document.getElementById('btnAbrirAgendamento');
+    const btnVerAgendamento = document.getElementById('btnVerAgendamento');
+    const btnConfirmarAgendamento = document.getElementById('btnConfirmarAgendamento');
     
-    // ============================================
-    // EVENTOS DE AGENDAMENTO
-    // ============================================
+    // Evento: Quando mudar o serviço
+    if (servicoSelect) {
+        servicoSelect.addEventListener('change', function() {
+            console.log('📅 Serviço selecionado:', this.value);
+            
+            if (this.value) {
+                // Serviço selecionado - ativar data
+                if (dataInput) {
+                    dataInput.disabled = false;
+                    
+                    // Se não tiver data selecionada, colocar data atual como sugestão
+                    if (!dataInput.value) {
+                        const hoje = new Date();
+                        const ano = hoje.getFullYear();
+                        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+                        const dia = String(hoje.getDate()).padStart(2, '0');
+                        dataInput.value = `${ano}-${mes}-${dia}`;
+                        
+                        // Disparar evento change para carregar horários
+                        setTimeout(() => {
+                            if (dataInput) {
+                                const event = new Event('change', { bubbles: true });
+                                dataInput.dispatchEvent(event);
+                            }
+                        }, 100);
+                    }
+                }
+                
+                // Limpar e desabilitar horário até escolher data
+                if (horarioSelect) {
+                    horarioSelect.innerHTML = '<option value="">Selecione uma data</option>';
+                    horarioSelect.disabled = true;
+                }
+            } else {
+                // Nenhum serviço selecionado - desabilitar tudo
+                if (dataInput) {
+                    dataInput.value = '';
+                    dataInput.disabled = true;
+                }
+                if (horarioSelect) {
+                    horarioSelect.innerHTML = '<option value="">Primeiro selecione um serviço</option>';
+                    horarioSelect.disabled = true;
+                }
+            }
+        });
+    }
     
-    // Quando mudar o serviço, recarregar horários
-    document.getElementById('servicoSelect')?.addEventListener('change', function() {
-        carregarHorariosCliente();
-    });
+    // Evento: Quando mudar a data
+    if (dataInput) {
+        dataInput.addEventListener('change', function() {
+            console.log('📅 Data selecionada:', this.value);
+            
+            if (this.value && servicoSelect?.value) {
+                // Tem serviço e data selecionados - carregar horários
+                carregarHorariosCliente();
+            } else if (!servicoSelect?.value) {
+                // Não tem serviço selecionado
+                if (horarioSelect) {
+                    horarioSelect.innerHTML = '<option value="">Primeiro selecione um serviço</option>';
+                    horarioSelect.disabled = true;
+                }
+            }
+        });
+    }
     
-    // Quando mudar a data, recarregar horários
-    document.getElementById('agendamentoData')?.addEventListener('change', function() {
-        carregarHorariosCliente();
-    });
+    // Evento: Botão "Fazer Agendamento"
+    if (btnAbrirAgendamento) {
+        btnAbrirAgendamento.addEventListener('click', () => {
+            if (!usuarioLogado) {
+                mostrarMensagem('Faça login para fazer um agendamento', 'warning');
+                abrirModal('loginModal');
+                return;
+            }
+            abrirModalAgendamento();
+        });
+    }
     
-    // Botão "Fazer Agendamento"
-    document.getElementById('btnAbrirAgendamento')?.addEventListener('click', () => {
-        if (!usuarioLogado) {
-            mostrarMensagem('Faça login para fazer um agendamento', 'warning');
-            abrirModal('loginModal');
-            return;
-        }
-        abrirModalAgendamento();
-    });
-    
-    // Botão "Ver Fila Completa"
-    document.getElementById('btnVerAgendamento')?.addEventListener('click', () => {
-        window.location.href = 'agendamento.html';
-    });
-    
+    // Evento: Botão "Ver Fila Completa"
+    if (btnVerAgendamento) {
+        btnVerAgendamento.addEventListener('click', () => {
+            window.location.href = 'agendamento.html';
+        });
+    }
+        
     console.log("✅ Eventos configurados");
 }
 
@@ -2456,6 +2606,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
