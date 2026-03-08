@@ -620,7 +620,7 @@ async function carregarClientesParaSelect() {
 }
 
 // ============================================
-// CARREGAR SERVIÇOS PARA CLIENTE
+// CARREGAR SERVIÇOS PARA CLIENTE (CORRIGIDO)
 // ============================================
 async function carregarServicosCliente() {
     const select = document.getElementById('servicoSelect');
@@ -630,45 +630,43 @@ async function carregarServicosCliente() {
     select.disabled = true;
     
     try {
-        // 🔥 BUSCAR SERVIÇOS DO FIREBASE (configurados pelo lojista)
-        const servicosRef = window.loginDb
-            .collection('configuracoes')
-            .doc(lojaIdAtual)
-            .collection('servicos_agendamento')
-            .doc('lista');
+        // 🔥 BUSCAR DO PROJETO CORRETO (spdv-3872a) - MESMO ONDE FOI SALVO
+        const configRef = doc(
+            db,  // 👈 Projeto spdv-3872a (dados operacionais)
+            'configuracoes', 
+            lojaIdAtual, 
+            'servico_agendamento', 
+            'config'  // 👈 Documento 'config' (como foi salvo)
+        );
         
-        const servicosDoc = await servicosRef.get();
+        const configDoc = await getDoc(configRef);
         
-        // Verificar se existem serviços configurados
-        if (!servicosDoc.exists) {
+        // Verificar se existe configuração
+        if (!configDoc.exists()) {
+            console.log('📋 Nenhum serviço encontrado em:', configRef.path);
             select.innerHTML = '<option value="">📋 Nenhum serviço cadastrado</option>';
             select.disabled = true;
             return;
         }
         
-        const dados = servicosDoc.data();
-        const servicos = dados.servicos || [];
+        const dados = configDoc.data();
+        console.log('📋 Dados do serviço carregados:', dados);
         
-        if (servicos.length === 0) {
-            select.innerHTML = '<option value="">📋 Nenhum serviço disponível</option>';
+        // Verificar se tem nome (campo obrigatório)
+        if (!dados.nome) {
+            select.innerHTML = '<option value="">📋 Configuração incompleta</option>';
             select.disabled = true;
             return;
         }
         
-        // Preencher select com os serviços do banco
+        // Preencher select com os dados da configuração
         select.innerHTML = '<option value="">Selecione um serviço...</option>';
         
-        servicos.forEach(serv => {
-            // serv pode ser um objeto { id, nome, descricao, duracao, preco } ou apenas string
-            if (typeof serv === 'object') {
-                select.innerHTML += `<option value="${serv.id || serv.nome}">${serv.nome}${serv.duracao ? ` (${serv.duracao}min)` : ''}${serv.preco ? ` - R$ ${serv.preco}` : ''}</option>`;
-            } else {
-                select.innerHTML += `<option value="${serv}">${serv}</option>`;
-            }
-        });
+        // Adicionar o serviço (único por enquanto)
+        select.innerHTML += `<option value="${dados.nome}">${dados.nome}${dados.duracao ? ` (${dados.duracao}min)` : ''}</option>`;
         
         select.disabled = false;
-        console.log(`✅ ${servicos.length} serviços carregados do Firebase`);
+        console.log(`✅ Serviço carregado: ${dados.nome}`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar serviços:', error);
@@ -2419,6 +2417,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
