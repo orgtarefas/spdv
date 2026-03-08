@@ -1453,6 +1453,15 @@ function abrirModalGerenciarAgendamentos() {
         return;
     }
     
+    // Restaurar título original
+    const titulo = modal.querySelector('.modal-header h3');
+    if (titulo) {
+        titulo.innerHTML = '<i class="fas fa-users"></i> Gerenciar Agendamentos Clientes';
+    }
+    
+    // Restaurar tabela para agendamentos
+    restaurarTabelaParaAgendamentos();
+    
     // Carregar lista
     carregarListaGerenciar();
     
@@ -1840,6 +1849,185 @@ function configurarPermitirForaDia() {
 }
 
 // ============================================
+// ABRIR MODAL GERENCIAR SERVIÇOS
+// ============================================
+function abrirModalGerenciarServicos() {
+    console.log('Abrir modal gerenciar serviços');
+    
+    // Você pode reutilizar o mesmo modal ou criar um novo
+    // Por enquanto, vamos usar o mesmo modal de gerenciar agendamentos
+    // mas carregando serviços em vez de agendamentos
+    
+    const modal = document.getElementById('gerenciarAgendamentosModal');
+    if (!modal) {
+        console.error('❌ Modal não encontrado');
+        mostrarMensagem('Erro ao abrir gerenciador', 'error');
+        return;
+    }
+    
+    // Mudar o título do modal
+    const titulo = modal.querySelector('.modal-header h3');
+    if (titulo) {
+        titulo.innerHTML = '<i class="fas fa-cut"></i> Gerenciar Serviços de Agendamento';
+    }
+    
+    // Modificar a tabela para mostrar serviços
+    modificarTabelaParaServicos();
+    
+    // Carregar lista de serviços
+    carregarListaServicos();
+    
+    modal.classList.add('active');
+}
+
+// ============================================
+// MODIFICAR TABELA PARA SERVIÇOS
+// ============================================
+function modificarTabelaParaServicos() {
+    const thead = document.querySelector('.tabela-gerenciar thead tr');
+    const tbody = document.getElementById('gerenciarLista');
+    
+    if (thead) {
+        thead.innerHTML = `
+            <th>Nome do Serviço</th>
+            <th>Descrição</th>
+            <th>Horário</th>
+            <th>Dias</th>
+            <th>Validação</th>
+            <th>Ações</th>
+        `;
+    }
+    
+    // Esconder busca e filtros que não são relevantes
+    const buscaDiv = document.querySelector('.busca-gerenciar');
+    const filtrosDiv = document.querySelector('.filtros-gerenciar');
+    
+    if (buscaDiv) {
+        buscaDiv.style.display = 'none';
+    }
+    
+    if (filtrosDiv) {
+        filtrosDiv.style.display = 'none';
+    }
+}
+
+// ============================================
+// RESTAURAR TABELA PARA AGENDAMENTOS
+// ============================================
+function restaurarTabelaParaAgendamentos() {
+    const thead = document.querySelector('.tabela-gerenciar thead tr');
+    
+    if (thead) {
+        thead.innerHTML = `
+            <th>Cliente</th>
+            <th>Serviço</th>
+            <th>Data</th>
+            <th>Horário</th>
+            <th>Status</th>
+            <th>Ações</th>
+        `;
+    }
+    
+    // Restaurar busca e filtros
+    const buscaDiv = document.querySelector('.busca-gerenciar');
+    const filtrosDiv = document.querySelector('.filtros-gerenciar');
+    
+    if (buscaDiv) {
+        buscaDiv.style.display = 'block';
+    }
+    
+    if (filtrosDiv) {
+        filtrosDiv.style.display = 'block';
+    }
+}
+
+// ============================================
+// CARREGAR LISTA DE SERVIÇOS
+// ============================================
+async function carregarListaServicos() {
+    const lista = document.getElementById('gerenciarLista');
+    if (!lista) return;
+    
+    lista.innerHTML = '<tr><td colspan="6" class="empty-row">Carregando serviços...</td></tr>';
+    
+    try {
+        // Buscar configurações de serviços do Firebase
+        const configRef = doc(
+            db, 
+            'configuracoes', 
+            lojaIdAtual, 
+            'servico_agendamento', 
+            'config'
+        );
+        
+        const configDoc = await getDoc(configRef);
+        
+        if (!configDoc.exists()) {
+            lista.innerHTML = '<tr><td colspan="6" class="empty-row">Nenhum serviço cadastrado</td></tr>';
+            return;
+        }
+        
+        const dados = configDoc.data();
+        
+        // Formatar dias para exibição
+        const diasMap = {
+            'segunda': 'Seg', 'terca': 'Ter', 'quarta': 'Qua',
+            'quinta': 'Qui', 'sexta': 'Sex', 'sabado': 'Sáb', 'domingo': 'Dom'
+        };
+        
+        const diasFormatados = (dados.dias || []).map(d => diasMap[d] || d).join(', ');
+        
+        // Mapear opção de validação
+        const validacaoMap = {
+            'automatico_dia': 'Auto (dia)',
+            'automatico_todos': 'Auto (todos)',
+            'manual': 'Manual'
+        };
+        
+        lista.innerHTML = `
+            <tr>
+                <td><strong>${dados.nome || '---'}</strong></td>
+                <td>${dados.descricao || '---'}</td>
+                <td>${dados.horarioInicio || '--:--'} às ${dados.horarioFim || '--:--'}</td>
+                <td>${diasFormatados || '---'}</td>
+                <td>${validacaoMap[dados.validacao] || dados.validacao || '---'}</td>
+                <td>
+                    <div class="acoes-gerenciar">
+                        <button class="btn-gerenciar btn-editar-gerenciar" onclick="editarServico()">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-gerenciar btn-excluir-gerenciar" onclick="excluirServico()">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar serviços:', error);
+        lista.innerHTML = '<tr><td colspan="6" class="empty-row">Erro ao carregar serviços</td></tr>';
+    }
+}
+
+// ============================================
+// FUNÇÕES PARA EDITAR/EXCLUIR SERVIÇO
+// ============================================
+window.editarServico = function() {
+    console.log('Editar serviço');
+    // Implementar edição depois
+    mostrarMensagem('Edição de serviço em desenvolvimento', 'info');
+};
+
+window.excluirServico = function() {
+    console.log('Excluir serviço');
+    if (confirm('Excluir este serviço?')) {
+        // Implementar exclusão depois
+        mostrarMensagem('Exclusão de serviço em desenvolvimento', 'info');
+    }
+};
+
+// ============================================
 // CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
@@ -1848,14 +2036,19 @@ function configurarEventos() {
         window.location.href = 'index.html';
     });
     
-    // ✅ FUNCIONÁRIOS/ADMIN: Abre modal para funcionários
+    // ✅ Criar Agendamento (configuração)
     document.getElementById('btnCriarAgendamento')?.addEventListener('click', () => {
         abrirModalAgendamentoFuncionarios();
     });
     
-    // Botão gerenciar agendamentos
-    document.getElementById('btnGerenciarAgendamentos')?.addEventListener('click', () => {
+    // ✅ Gerenciar Agendamentos de Clientes (antigo)
+    document.getElementById('btnGerenciarAgendamentosClientes')?.addEventListener('click', () => {
         abrirModalGerenciarAgendamentos();
+    });
+    
+    // ✅ Gerenciar Serviços de Agendamento (NOVO)
+    document.getElementById('btnGerenciarServicos')?.addEventListener('click', () => {
+        abrirModalGerenciarServicos();
     });
     
     // Botão pausar
