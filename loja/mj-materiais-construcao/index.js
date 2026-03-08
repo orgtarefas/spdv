@@ -145,15 +145,8 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // Verificar se loginDb está disponível (banco lojasite-ba36f)
-        if (!window.loginDb) {
-            console.error('❌ loginDb não disponível para escuta de agendamentos');
-            return;
-        }
-        
-        // 🔥 AGORA: Buscar TODOS os clientes que têm agendamentos
-        // Estrutura: agendamentos / [lojaId] / agendamento_clientes
-        const agendamentosClientesRef = window.loginDb
+        // 🔥 CORREÇÃO: Usar db (spdv-3872a) em vez de window.loginDb
+        const agendamentosClientesRef = db  // 👈 MUDAR AQUI
             .collection('agendamentos')
             .doc(lojaIdAtual)
             .collection('agendamento_clientes');
@@ -185,15 +178,15 @@ function iniciarEscutaAgendamentos() {
                         // Considerar apenas agendamentos de hoje (ativos) com status Verificado
                         if (dataAgendada >= hoje && 
                             dataAgendada < amanha && 
-                            agendamento.status_agendamento === "Verificado") {
+                            ['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
                             
                             agendamentosAtivosTemp.push({
                                 id: `${clienteEmail}_${agendamentoId}`,
                                 cliente_email: clienteEmail,
                                 cliente_nome: agendamento.cliente?.nome || 'Cliente',
                                 servico: agendamento.servico?.nome || 'Serviço',
-                                senha: `A${agendamentosAtivosTemp.length + 1}`, // Gerar senha sequencial
-                                status: 'aguardando', // Todos começam como aguardando
+                                senha: `A${agendamentosAtivosTemp.length + 1}`,
+                                status: agendamento.status_agendamento, // Usando o status real do Firebase
                                 data_hora: dataAgendada,
                                 horario: dataAgendada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                             });
@@ -236,17 +229,48 @@ async function chamarProximo(agendamentoId) {
         const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
         if (!agendamento) return;
         
-        // Atualizar localmente
-        agendamentosAtivos = agendamentosAtivos.map(a => 
-            a.id === agendamentoId ? { ...a, status: 'chamando' } : a
+        // 🔥 CORREÇÃO: Atualizar no Firebase
+        const [clienteEmail, agendamentoKey] = agendamento.id.split('_');
+        
+        const agendamentoRef = doc(
+            db,  // 👈 Usar db (spdv-3872a)
+            'agendamentos',
+            lojaIdAtual,
+            'agendamento_clientes',
+            clienteEmail
         );
         
-        renderizarPainelAgendamento();
+        // Buscar dados atuais
+        const agendamentoDoc = await getDoc(agendamentoRef);
         
-        // 🔥 Aqui você pode implementar a atualização no Firebase
-        // (se quiser persistir o status "Em Atendimento")
-        
-        mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome}`, 'success');
+        if (agendamentoDoc.exists()) {
+            const dadosCliente = agendamentoDoc.data();
+            
+            // Atualizar status
+            dadosCliente[agendamentoKey].status_agendamento = 'Em atendimento';
+            
+            // Adicionar ao histórico
+            if (!dadosCliente[agendamentoKey].historico_status) {
+                dadosCliente[agendamentoKey].historico_status = [];
+            }
+            
+            dadosCliente[agendamentoKey].historico_status.push({
+                status: 'Em atendimento',
+                data: new Date().toISOString(),
+                alterado_por: dadosUsuario?.email || 'sistema'
+            });
+            
+            // Salvar no Firebase
+            await setDoc(agendamentoRef, dadosCliente);
+            
+            // Atualizar localmente
+            agendamentosAtivos = agendamentosAtivos.map(a => 
+                a.id === agendamentoId ? { ...a, status: 'Em atendimento' } : a
+            );
+            
+            renderizarPainelAgendamento();
+            mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome}`, 'success');
+        }
         
     } catch (error) {
         console.error('❌ Erro ao chamar próximo:', error);
@@ -254,56 +278,81 @@ async function chamarProximo(agendamentoId) {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO
+// RENDERIZAR PAINEL DE AGENDAMENTO (AUTOMÁTICO)
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
     
-    console.log('📅 Renderizando painel de agendamento...');
+    console.log('📅 Renderizando painel de agendamento automático...');
     console.log('Agendamentos ativos:', agendamentosAtivos);
     
-    // Encontrar quem está sendo chamado agora
-    const chamandoAgora = agendamentosAtivos.find(a => a.status === 'chamando');
+    // ============================================
+    // ORGANIZAR POR STATUS
+    // ============================================
     
-    // Filtrar os que estão aguardando (próximos a atender)
-    const proximos = agendamentosAtivos
-        .filter(a => a.status === 'aguardando')
-        .sort((a, b) => (a.senha || '').localeCompare(b.senha || ''));
+    // Em atendimento (apenas 1, o primeiro encontrado)
+    const emAtendimento = agendamentosAtivos.find(a => a.status === 'Em atendimento');
     
-    console.log('Chamando agora:', chamandoAgora);
-    console.log('Próximos a atender:', proximos);
+    // Próximo a atender (apenas 1, após quem está em atendimento)
+    const proximoAtender = agendamentosAtivos.find(a => a.status === 'Próximo a atender');
     
-    // Atualizar badge do total na fila
+    // Na fila (todos os outros com status "Na fila" ou "Verificado")
+    const naFila = agendamentosAtivos.filter(a => 
+        a.status === 'Na fila' || a.status === 'Verificado'
+    );
+    
+    // Ordenar na fila por horário
+    naFila.sort((a, b) => a.data_hora - b.data_hora);
+    
+    console.log('📊 Organização:', {
+        emAtendimento: emAtendimento?.cliente_nome || 'Nenhum',
+        proximoAtender: proximoAtender?.cliente_nome || 'Nenhum',
+        naFila: naFila.length
+    });
+    
+    // ============================================
+    // ATUALIZAR BADGES E CONTADORES
+    // ============================================
+    
+    // Total na fila (inclui próximo a atender + na fila)
+    const totalFila = (proximoAtender ? 1 : 0) + naFila.length;
+    
     const totalFilaBadge = document.getElementById('totalFilaBadge');
-    if (totalFilaBadge) {
-        totalFilaBadge.textContent = proximos.length;
-    }
+    if (totalFilaBadge) totalFilaBadge.textContent = totalFila;
     
     const totalFilaTexto = document.getElementById('totalFilaTexto');
-    if (totalFilaTexto) {
-        totalFilaTexto.textContent = proximos.length;
-    }
+    if (totalFilaTexto) totalFilaTexto.textContent = totalFila;
     
-    // Atualizar última hora chamada
-    const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
-    if (ultimoChamadoHora && chamandoAgora) {
-        const agora = new Date();
-        ultimoChamadoHora.textContent = agora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
+    // Calcular tempo médio de espera (estimativa)
+    const tempoMedioEspera = calcularTempoMedioEspera();
+    const tempoMedioElement = document.getElementById('tempoMedioEspera');
+    if (tempoMedioElement) tempoMedioElement.textContent = tempoMedioEspera;
     
-    // Renderizar "EM ATENDIMENTO"
+    // ============================================
+    // COLUNA 1: EM ATENDIMENTO
+    // ============================================
     const chamandoEl = document.getElementById('chamandoAgoraCard');
     if (chamandoEl) {
-        if (chamandoAgora) {
+        if (emAtendimento) {
             chamandoEl.innerHTML = `
                 <div class="card-chamando-destaque">
-                    <div class="senha-grande">${chamandoAgora.senha || '---'}</div>
-                    <div class="cliente-nome">${chamandoAgora.cliente_nome || 'Cliente'}</div>
+                    <div class="senha-grande">${emAtendimento.senha || '---'}</div>
+                    <div class="cliente-nome">${emAtendimento.cliente_nome}</div>
                     <div class="servico-nome">
-                        <i class="fas fa-cut"></i> ${chamandoAgora.servico || 'Serviço'}
+                        <i class="fas fa-clock"></i> ${emAtendimento.servico}
                     </div>
                 </div>
             `;
+            
+            // Atualizar última hora chamada
+            const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
+            if (ultimoChamadoHora) {
+                const agora = new Date();
+                ultimoChamadoHora.textContent = agora.toLocaleTimeString([], { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
         } else {
             chamandoEl.innerHTML = `
                 <div class="empty-agendamento">
@@ -311,29 +360,43 @@ function renderizarPainelAgendamento() {
                     <p>Nenhum chamado no momento</p>
                 </div>
             `;
+            
+            // Limpar última hora
+            const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
+            if (ultimoChamadoHora) ultimoChamadoHora.textContent = '--:--';
         }
     }
     
-    // Renderizar "PRÓXIMOS A ATENDER" (lista vertical)
+    // ============================================
+    // COLUNA 2: PRÓXIMOS A ATENDER (LISTA VERTICAL)
+    // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
-        if (proximos.length > 0) {
-            let html = '';
-            proximos.forEach((item, index) => {
-                const isUrgente = index === 0 ? 'urgente' : '';
-                html += `
-                    <div class="item-fila-vertical ${isUrgente}">
-                        <span class="senha-numero">${item.senha || '---'}</span>
-                        <div class="senha-info">
-                            <span class="senha-cliente">${item.cliente_nome || 'Cliente'}</span>
-                            <span class="senha-servico">
-                                <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
-                            </span>
-                        </div>
+        if (proximoAtender) {
+            proximosEl.innerHTML = `
+                <div class="item-fila-vertical urgente">
+                    <span class="senha-numero">${proximoAtender.senha}</span>
+                    <div class="senha-info">
+                        <span class="senha-cliente">${proximoAtender.cliente_nome}</span>
+                        <span class="senha-servico">
+                            <i class="fas fa-clock"></i> ${proximoAtender.servico}
+                        </span>
                     </div>
-                `;
-            });
-            proximosEl.innerHTML = html;
+                </div>
+            `;
+        } else if (naFila.length > 0) {
+            // Se não tem próximo específico, mostrar o primeiro da fila
+            proximosEl.innerHTML = `
+                <div class="item-fila-vertical">
+                    <span class="senha-numero">${naFila[0].senha}</span>
+                    <div class="senha-info">
+                        <span class="senha-cliente">${naFila[0].cliente_nome}</span>
+                        <span class="senha-servico">
+                            <i class="fas fa-clock"></i> ${naFila[0].servico}
+                        </span>
+                    </div>
+                </div>
+            `;
         } else {
             proximosEl.innerHTML = `
                 <div class="empty-agendamento">
@@ -344,21 +407,39 @@ function renderizarPainelAgendamento() {
         }
     }
     
-    // Renderizar "Outros na Fila" (carrossel horizontal)
+    // ============================================
+    // COLUNA 3: OUTROS NA FILA (CARROSSEL HORIZONTAL)
+    // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
-        if (proximos.length > 0) {
+        // Decidir quais itens mostrar no carrossel
+        let itensCarrossel = [];
+        
+        if (proximoAtender) {
+            // Se tem próximo, mostrar ele + os da fila
+            itensCarrossel = [proximoAtender, ...naFila];
+        } else {
+            // Se não tem próximo, mostrar todos da fila
+            itensCarrossel = naFila;
+        }
+        
+        // Remover duplicatas (caso próximo esteja também na fila)
+        itensCarrossel = itensCarrossel.filter((item, index, self) => 
+            index === self.findIndex(i => i.id === item.id)
+        );
+        
+        if (itensCarrossel.length > 0) {
             let html = '';
-            proximos.forEach((item, index) => {
+            itensCarrossel.forEach((item, index) => {
                 const posicao = index + 1;
                 const classeUrgente = index === 0 ? 'urgente' : '';
                 
                 html += `
                     <div class="proximo-card ${classeUrgente}">
-                        <div class="senha-numero">${item.senha || '---'}</div>
-                        <div class="senha-cliente">${item.cliente_nome || 'Cliente'}</div>
+                        <div class="senha-numero">${item.senha}</div>
+                        <div class="senha-cliente">${item.cliente_nome}</div>
                         <div class="senha-servico">
-                            <i class="fas fa-cut"></i> ${item.servico || 'Serviço'}
+                            <i class="fas fa-clock"></i> ${item.servico}
                         </div>
                         <span class="senha-posicao">${posicao}° na fila</span>
                     </div>
@@ -367,9 +448,9 @@ function renderizarPainelAgendamento() {
             proximosTrack.innerHTML = html;
             
             // Atualizar dots do carrossel
-            atualizarDotsScroll(proximos.length);
+            atualizarDotsScroll(itensCarrossel.length);
         } else {
-            // Manter placeholders quando não há dados
+            // Placeholders quando não há dados
             let placeholders = '';
             for (let i = 0; i < 4; i++) {
                 placeholders += `
@@ -383,22 +464,42 @@ function renderizarPainelAgendamento() {
                 `;
             }
             proximosTrack.innerHTML = placeholders;
+            atualizarDotsScroll(0);
         }
     }
     
-    // Renderizar "Minha Senha" (se usuário logado)
+    // ============================================
+    // MINHA SENHA (se usuário logado)
+    // ============================================
     const minhaSenhaContainer = document.getElementById('minhaSenhaContainer');
     if (minhaSenhaContainer && usuarioLogado && dadosUsuario) {
-        const minhaSenha = agendamentosAtivos.find(a => 
+        // Procurar agendamento do usuário logado em qualquer status da fila
+        const meuAgendamento = agendamentosAtivos.find(a => 
             a.cliente_email === dadosUsuario.email && 
-            (a.status === 'aguardando' || a.status === 'chamando')
+            ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado'].includes(a.status)
         );
         
-        if (minhaSenha) {
-            const statusTexto = minhaSenha.status === 'chamando' ? 'SUA VEZ!' : 'Aguardando';
-            const statusClass = minhaSenha.status === 'chamando' ? 'chamando' : '';
+        if (meuAgendamento) {
+            let statusTexto = '';
+            let statusClass = '';
             
-            document.getElementById('minhaSenhaNumero').textContent = minhaSenha.senha || '---';
+            switch(meuAgendamento.status) {
+                case 'Em atendimento':
+                    statusTexto = 'SUA VEZ!';
+                    statusClass = 'chamando';
+                    break;
+                case 'Próximo a atender':
+                    statusTexto = 'Você é o próximo!';
+                    statusClass = 'proximo';
+                    break;
+                case 'Na fila':
+                case 'Verificado':
+                    statusTexto = 'Aguardando';
+                    statusClass = '';
+                    break;
+            }
+            
+            document.getElementById('minhaSenhaNumero').textContent = meuAgendamento.senha || '---';
             document.getElementById('minhaSenhaStatus').textContent = statusTexto;
             document.getElementById('minhaSenhaStatus').className = `minha-senha-status ${statusClass}`;
             minhaSenhaContainer.style.display = 'block';
@@ -409,10 +510,38 @@ function renderizarPainelAgendamento() {
         minhaSenhaContainer.style.display = 'none';
     }
     
-    // Inicializar scroll horizontal após renderizar
+    // Inicializar scroll horizontal
     setTimeout(() => {
         inicializarScrollHorizontal();
     }, 100);
+}
+
+// ============================================
+// CALCULAR TEMPO MÉDIO DE ESPERA (ESTIMATIVA)
+// ============================================
+function calcularTempoMedioEspera() {
+    // Em uma implementação real, você usaria a duração dos serviços
+    // Por enquanto, vamos usar um valor fixo ou baseado na quantidade
+    
+    const emAtendimento = agendamentosAtivos.some(a => a.status === 'Em atendimento');
+    const proximoAtender = agendamentosAtivos.some(a => a.status === 'Próximo a atender');
+    const naFila = agendamentosAtivos.filter(a => a.status === 'Na fila' || a.status === 'Verificado');
+    
+    if (!emAtendimento && !proximoAtender && naFila.length === 0) {
+        return 0;
+    }
+    
+    // Estimativa: 15 minutos por atendimento
+    const tempoPorAtendimento = 15;
+    
+    // Quem está na frente
+    let pessoasNaFrente = 0;
+    
+    if (emAtendimento) pessoasNaFrente += 1;
+    if (proximoAtender) pessoasNaFrente += 1;
+    pessoasNaFrente += naFila.length;
+    
+    return pessoasNaFrente * tempoPorAtendimento;
 }
 
 // ============================================
@@ -2606,6 +2735,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
