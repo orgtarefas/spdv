@@ -1335,23 +1335,19 @@ async function salvarExcecao() {
 }
 
 // ============================================
-// FUNÇÕES DO MODAL DE AGENDAMENTO PARA FUNCIONÁRIOS
-// ============================================
-
-// ============================================
 // ABRIR MODAL DE AGENDAMENTO PARA FUNCIONÁRIOS/ADMIN
 // ============================================
 function abrirModalAgendamentoFuncionarios() {
     console.log('Abrir modal de agendamento para funcionários');
     
-    const modal = document.getElementById('criarAgendamentoModal');
+    const modal = document.getElementById('novoAgendamentoModal');
     if (!modal) {
         console.error('❌ Modal novoAgendamentoModal não encontrado');
         mostrarMensagem('Erro ao abrir modal', 'error');
         return;
     }
     
-    // Limpar formulário
+    // Limpar formulário - com verificações
     const form = document.getElementById('novoAgendamentoForm');
     if (form) form.reset();
     
@@ -1369,8 +1365,13 @@ function abrirModalAgendamentoFuncionarios() {
         resultados.style.display = 'none';
     }
     
-    // Limpar ID
-    document.getElementById('agendamentoIdAdmin').value = '';
+    // ✅ VERIFICAR SE O ELEMENTO EXISTE ANTES DE USAR
+    const agendamentoIdInput = document.getElementById('agendamentoIdAdmin');
+    if (agendamentoIdInput) {
+        agendamentoIdInput.value = '';
+    } else {
+        console.warn('⚠️ Elemento agendamentoIdAdmin não encontrado');
+    }
     
     // Carregar serviços
     carregarServicosAdmin();
