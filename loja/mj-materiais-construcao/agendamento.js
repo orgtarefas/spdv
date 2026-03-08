@@ -1351,8 +1351,9 @@ function abrirModalAgendamentoFuncionarios() {
     const form = document.getElementById('criarAgendamentoForm');
     if (form) form.reset();
     
-    // 🔥 CONFIGURAR EVENTOS DOS BOTÕES DE DIAS
+    // 🔥 CONFIGURAR EVENTOS
     configurarEventosDias();
+    configurarPermitirForaDia();
     
     // Limpar busca de cliente
     const buscaCliente = document.getElementById('buscaClienteAdmin');
@@ -2035,6 +2036,51 @@ function renderizarExcecoes(excecoes) {
     });
     
     container.innerHTML = html;
+}
+
+// ============================================
+// CONFIGURAR COMPORTAMENTO DO CHECKBOX "PERMITIR FORA DO DIA"
+// ============================================
+function configurarPermitirForaDia() {
+    const permitirForaDia = document.getElementById('permitirForaDia');
+    const opcaoAutomaticoTodos = document.querySelector('input[name="validacao"][value="automatico_todos"]')?.closest('.radio-label');
+    const alertaValidacao = document.getElementById('alertaValidacao');
+    
+    if (!permitirForaDia) return;
+    
+    function atualizarVisibilidade() {
+        if (permitirForaDia.checked) {
+            // Se permitir fora do dia, mostra a opção
+            if (opcaoAutomaticoTodos) {
+                opcaoAutomaticoTodos.style.display = 'flex';
+            }
+            if (alertaValidacao) {
+                alertaValidacao.style.display = 'none';
+            }
+        } else {
+            // Se NÃO permitir fora do dia, esconde a opção
+            if (opcaoAutomaticoTodos) {
+                opcaoAutomaticoTodos.style.display = 'none';
+                
+                // Se a opção escondida estava selecionada, muda para "automatico_dia"
+                const radioSelecionado = document.querySelector('input[name="validacao"]:checked');
+                if (radioSelecionado && radioSelecionado.value === 'automatico_todos') {
+                    document.querySelector('input[name="validacao"][value="automatico_dia"]').checked = true;
+                }
+            }
+            
+            // Mostrar alerta informativo
+            if (alertaValidacao) {
+                alertaValidacao.style.display = 'flex';
+            }
+        }
+    }
+    
+    // Executar ao carregar
+    atualizarVisibilidade();
+    
+    // Executar quando mudar o checkbox
+    permitirForaDia.addEventListener('change', atualizarVisibilidade);
 }
 
 // ============================================
