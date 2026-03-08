@@ -2296,18 +2296,11 @@ function configurarEventos() {
             esconderLoading();
         }
     });
-
+ 
     configurarMenuPerfil();
     
     // ============================================
-    // 🔥 EVENTOS DE AGENDAMENTO
-    // ============================================
-    
-    // Botão "Fazer Agendamento"
-    document.getElementById('btnAbrirAgendamento')?.addEventListener('click', () => {
-
-    // ============================================
-    // EVENTOS DE AGENDAMENTO 
+    // EVENTOS DE AGENDAMENTO
     // ============================================
     
     // Quando mudar o serviço, recarregar horários
@@ -2333,7 +2326,7 @@ function configurarEventos() {
     // Botão "Ver Fila Completa"
     document.getElementById('btnVerAgendamento')?.addEventListener('click', () => {
         window.location.href = 'agendamento.html';
-    });    
+    });
     
     console.log("✅ Eventos configurados");
 }
@@ -2441,6 +2434,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
