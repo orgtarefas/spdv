@@ -1538,6 +1538,7 @@ function renderizarExcecoes(excecoes) {
     
     container.innerHTML = html;
 }
+
 // ============================================---------------------------------------------------------------------------------------
 // ABRIR MODAL DE AGENDAMENTO (COMPLETA E AUTOSSUFICIENTE)
 // ============================================
