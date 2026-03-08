@@ -693,6 +693,7 @@ async function carregarHorariosCliente() {
     horarioSelect.disabled = true;
     
     try {
+        // Identificar o dia da semana
         const dataObj = new Date(dataSelecionada + 'T12:00:00');
         const diaSemana = dataObj.getDay();
         
@@ -703,66 +704,46 @@ async function carregarHorariosCliente() {
         
         const diaId = diasMap[diaSemana];
         
-        // ✅ CORRETO: Usar db (spdv-3872a) para dados operacionais
-        const horariosRef = doc(
-            db,  // 👈 PROJETO DE DADOS
+        // ✅ BUSCAR A CONFIGURAÇÃO DO SERVIÇO (mesmo lugar onde foi salvo)
+        const configRef = doc(
+            db,  // ✅ Projeto spdv-3872a
             'configuracoes', 
             lojaIdAtual, 
-            'agendamento', 
-            'horarios'
+            'servico_agendamento', 
+            'config'
         );
         
-        const horariosDoc = await getDoc(horariosRef);
+        const configDoc = await getDoc(configRef);
         
-        if (!horariosDoc.exists()) {
-            console.log('❌ Documento de horários não encontrado em:', horariosRef.path);
-            horarioSelect.innerHTML = '<option value="">⏳ Horários não configurados</option>';
+        if (!configDoc.exists()) {
+            console.log('❌ Configuração de serviço não encontrada');
+            horarioSelect.innerHTML = '<option value="">📋 Nenhum serviço configurado</option>';
             horarioSelect.disabled = true;
             return;
         }
         
-        const dados = horariosDoc.data();
-        console.log('📋 Dados de horários:', dados);
+        const dados = configDoc.data();
+        console.log('📋 Dados do serviço:', dados);
         
-        const configDia = dados[diaId];
-        
-        if (!configDia) {
-            console.log(`❌ Configuração para ${diaId} não encontrada`);
-            horarioSelect.innerHTML = '<option value="">⏳ Horários não configurados para este dia</option>';
+        // Verificar se o dia está nos dias selecionados
+        const diasSelecionados = dados.dias || [];
+        if (!diasSelecionados.includes(diaId)) {
+            horarioSelect.innerHTML = `<option value="">🔒 Estabelecimento fechado neste dia</option>`;
             horarioSelect.disabled = true;
             return;
         }
         
-        if (!configDia.aberto) {
-            horarioSelect.innerHTML = '<option value="">🔒 Estabelecimento fechado neste dia</option>';
+        // Verificar se tem horários configurados
+        if (!dados.horarioInicio || !dados.horarioFim) {
+            horarioSelect.innerHTML = '<option value="">⚠️ Horários não configurados</option>';
             horarioSelect.disabled = true;
             return;
         }
         
-        if (!configDia.abertura || !configDia.fechamento) {
-            horarioSelect.innerHTML = '<option value="">⚠️ Horários incompletos</option>';
-            horarioSelect.disabled = true;
-            return;
-        }
-        
-        // Gerar horários...
+        // Gerar horários
         const horarios = [];
-        const [hA, mA] = configDia.abertura.split(':').map(Number);
-        const [hF, mF] = configDia.fechamento.split(':').map(Number);
-        
-        let inicioIntervalo = null;
-        let fimIntervalo = null;
-        
-        if (configDia.intervaloInicio && configDia.intervaloFim) {
-            const [hII, mII] = configDia.intervaloInicio.split(':').map(Number);
-            const [hIF, mIF] = configDia.intervaloFim.split(':').map(Number);
-            
-            inicioIntervalo = new Date();
-            inicioIntervalo.setHours(hII, mII, 0);
-            
-            fimIntervalo = new Date();
-            fimIntervalo.setHours(hIF, mIF, 0);
-        }
+        const [hA, mA] = dados.horarioInicio.split(':').map(Number);
+        const [hF, mF] = dados.horarioFim.split(':').map(Number);
         
         let atual = new Date();
         atual.setHours(hA, mA, 0);
@@ -771,12 +752,6 @@ async function carregarHorariosCliente() {
         fim.setHours(hF, mF, 0);
         
         while (atual <= fim) {
-            if (inicioIntervalo && fimIntervalo && 
-                atual >= inicioIntervalo && atual < fimIntervalo) {
-                atual = new Date(fimIntervalo);
-                continue;
-            }
-            
             const hora = String(atual.getHours()).padStart(2, '0');
             const min = String(atual.getMinutes()).padStart(2, '0');
             horarios.push(`${hora}:${min}`);
@@ -795,6 +770,8 @@ async function carregarHorariosCliente() {
             horarioSelect.innerHTML += `<option value="${h}">${h}</option>`;
         });
         horarioSelect.disabled = false;
+        
+        console.log(`✅ ${horarios.length} horários gerados`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
@@ -2413,6 +2390,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
