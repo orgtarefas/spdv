@@ -281,6 +281,24 @@ async function chamarProximo(agendamentoId) {
 }
 
 // ============================================
+// GERAR SENHA BASEADA NO STATUS
+// ============================================
+function gerarSenha(numero, status) {
+    const prefixos = {
+        'Em atendimento': 'A',
+        'Próximo a atender': 'P',
+        'Na fila': 'F',
+        'Verificado': 'V',
+        'Pendente': 'S',
+        'Cancelado': 'C',
+        'Concluido': 'X'
+    };
+    
+    const prefixo = prefixos[status] || 'S';
+    return `${prefixo}${numero.toString().padStart(2, '0')}`;
+}
+
+// ============================================
 // RENDERIZAR PAINEL DE AGENDAMENTO (AUTOMÁTICO)
 // ============================================
 function renderizarPainelAgendamento() {
@@ -2738,6 +2756,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
