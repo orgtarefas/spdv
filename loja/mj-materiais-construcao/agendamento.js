@@ -2020,7 +2020,7 @@ async function chamarProximo(id) {
 }
 
 // ============================================
-// SALVAR CONFIGURAÇÃO DO AGENDAMENTO (VERSÃO CORRETA)
+// SALVAR CONFIGURAÇÃO DO AGENDAMENTO
 // ============================================
 async function salvarCriarAgendamento() {
     try {
@@ -2073,8 +2073,15 @@ async function salvarCriarAgendamento() {
         
         mostrarLoading('Salvando configuração...');
         
-        // Gerar um ID único para o serviço (ou usar o nome como ID)
-        const servicoId = nomeServico.toLowerCase().replace(/\s+/g, '_');
+        // 🔥 CORREÇÃO AQUI: Gerar ID ÚNICO baseado no nome
+        const servicoId = nomeServico
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
+            .replace(/[^a-z0-9]/g, '_') // Substitui caracteres especiais por _
+            .replace(/_+/g, '_') // Remove underscores duplicados
+            .replace(/^_|_$/g, ''); // Remove underscores do início/fim
+        
+        console.log('📝 ID gerado:', servicoId);
         
         // Dados completos para salvar
         const configData = {
@@ -2093,13 +2100,13 @@ async function salvarCriarAgendamento() {
         
         console.log('📝 Salvando configuração completa:', configData);
         
-        // Salvar no Firestore com ID específico
+        // Salvar no Firestore com ID único
         const configRef = doc(
             db, 
             'configuracoes', 
             lojaIdAtual, 
             'servico_agendamento', 
-            servicoId  // Usar ID baseado no nome
+            servicoId  // 🔥 AGORA USA ID ÚNICO, não mais 'config'
         );
         
         await setDoc(configRef, configData, { merge: true });
