@@ -1340,15 +1340,15 @@ async function salvarExcecao() {
 function abrirModalAgendamentoFuncionarios() {
     console.log('Abrir modal de agendamento para funcionários');
     
-    const modal = document.getElementById('novoAgendamentoModal');
+    const modal = document.getElementById('criarAgendamentoModal');
     if (!modal) {
-        console.error('❌ Modal novoAgendamentoModal não encontrado');
+        console.error('❌ Modal criarAgendamentoModal não encontrado');
         mostrarMensagem('Erro ao abrir modal', 'error');
         return;
     }
     
     // Limpar formulário - com verificações
-    const form = document.getElementById('novoAgendamentoForm');
+    const form = document.getElementById('criarAgendamentoForm');
     if (form) form.reset();
     
     // Limpar busca de cliente
@@ -1622,7 +1622,7 @@ async function carregarHorariosAdmin() {
 // ============================================
 // SALVAR NOVO AGENDAMENTO (FUNCIONÁRIOS)
 // ============================================
-async function salvarNovoAgendamento() {
+async function salvarcriarAgendamento() {
     try {
         const cliente = document.getElementById('buscaClienteAdmin').value;
         const servicoSelect = document.getElementById('servicoAdminSelect');
@@ -1666,7 +1666,7 @@ async function salvarNovoAgendamento() {
         await setDoc(agendamentoRef, agendamentoData);
         
         mostrarMensagem('Agendamento criado com sucesso!', 'success');
-        fecharModal('novoAgendamentoModal');
+        fecharModal('criarAgendamentoModal');
         
     } catch (error) {
         console.error('❌ Erro ao salvar agendamento:', error);
@@ -2044,7 +2044,7 @@ function configurarEventos() {
     });
     
     // ✅ FUNCIONÁRIOS/ADMIN: Abre modal para funcionários
-    document.getElementById('btnNovoAgendamento')?.addEventListener('click', () => {
+    document.getElementById('btncriarAgendamento')?.addEventListener('click', () => {
         abrirModalAgendamentoFuncionarios();
     });
     
@@ -2100,7 +2100,7 @@ function configurarEventos() {
     document.getElementById('btnSalvarExcecao')?.addEventListener('click', salvarExcecao);
     
     // Botões do modal novo agendamento
-    document.getElementById('btnSalvarAgendamentoAdmin')?.addEventListener('click', salvarNovoAgendamento);
+    document.getElementById('btnSalvarAgendamentoAdmin')?.addEventListener('click', salvarcriarAgendamento);
     
     // Botões do modal gerenciar
     document.getElementById('buscaGerenciar')?.addEventListener('input', filtrarGerenciar);
