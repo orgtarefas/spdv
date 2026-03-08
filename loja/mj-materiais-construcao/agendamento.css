@@ -1862,3 +1862,13 @@ input:checked + .toggle-slider:before {
     font-size: 0.8rem;
     margin-top: 4px;
 }
+
+/* Transição suave para esconder/mostrar */
+.radio-label {
+    transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+.radio-label[style*="display: none"] {
+    opacity: 0;
+    transform: translateY(-10px);
+}
