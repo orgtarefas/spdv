@@ -2149,7 +2149,7 @@ function configurarEventos() {
     document.getElementById('btnSalvarExcecao')?.addEventListener('click', salvarExcecao);
     
     // Botões do modal novo agendamento
-    document.getElementById('btnSalvarAgendamento')?.addEventListener('click', salvarCriarAgendamento);
+    document.getElementById('btnSalvarCriarAgendamento')?.addEventListener('click', salvarCriarAgendamento);
     
     // Botões do modal gerenciar
     document.getElementById('buscaGerenciar')?.addEventListener('input', filtrarGerenciar);
