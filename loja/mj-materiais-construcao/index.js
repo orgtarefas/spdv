@@ -676,7 +676,7 @@ async function carregarServicosCliente() {
 }
 
 // ============================================
-// CARREGAR HORÁRIOS PARA CLIENTE (VERSÃO FINAL)
+// CARREGAR HORÁRIOS PARA CLIENTE (COM FILTRO DE HORÁRIOS PASSADOS)
 // ============================================
 async function carregarHorariosCliente() {
     const dataInput = document.getElementById('agendamentoData');
@@ -703,30 +703,25 @@ async function carregarHorariosCliente() {
         };
         
         const diaId = diasMap[diaSemana];
-        console.log(`📅 Dia da semana: ${diaId}`);
         
-        // ✅ BUSCAR A CONFIGURAÇÃO DO SERVIÇO (mesmo lugar onde foi salvo)
+        // Buscar configuração do serviço
         const configRef = doc(
-            db,  // ✅ Projeto spdv-3872a (CORRETO!)
+            db,
             'configuracoes', 
             lojaIdAtual, 
             'servico_agendamento', 
             'config'
         );
         
-        console.log('📁 Buscando em:', configRef.path);
-        
         const configDoc = await getDoc(configRef);
         
         if (!configDoc.exists()) {
-            console.log('❌ Configuração de serviço não encontrada');
             horarioSelect.innerHTML = '<option value="">📋 Nenhum serviço configurado</option>';
             horarioSelect.disabled = true;
             return;
         }
         
         const dados = configDoc.data();
-        console.log('📋 Dados do serviço:', dados);
         
         // Verificar se o dia está nos dias selecionados
         const diasSelecionados = dados.dias || [];
@@ -742,8 +737,6 @@ async function carregarHorariosCliente() {
             horarioSelect.disabled = true;
             return;
         }
-        
-        console.log(`✅ Horários: ${dados.horarioInicio} às ${dados.horarioFim}`);
         
         // Gerar horários
         const horarios = [];
@@ -764,19 +757,34 @@ async function carregarHorariosCliente() {
             atual.setMinutes(atual.getMinutes() + 30);
         }
         
-        if (horarios.length === 0) {
+        // 🔥 FILTRO: Remover horários que já passaram (apenas para o dia atual)
+        const hoje = new Date().toISOString().split('T')[0];
+        const agora = new Date();
+        const horaAtual = agora.getHours();
+        const minAtual = agora.getMinutes();
+        
+        let horariosFiltrados = horarios;
+        
+        if (dataSelecionada === hoje) {
+            horariosFiltrados = horarios.filter(horario => {
+                const [h, m] = horario.split(':').map(Number);
+                return (h > horaAtual) || (h === horaAtual && m > minAtual);
+            });
+            
+            console.log(`⏰ Hoje - removendo horários passados. Restam: ${horariosFiltrados.length}`);
+        }
+        
+        if (horariosFiltrados.length === 0) {
             horarioSelect.innerHTML = '<option value="">⏰ Nenhum horário disponível</option>';
             horarioSelect.disabled = true;
             return;
         }
         
         horarioSelect.innerHTML = '<option value="">Selecione um horário</option>';
-        horarios.forEach(h => {
+        horariosFiltrados.forEach(h => {
             horarioSelect.innerHTML += `<option value="${h}">${h}</option>`;
         });
         horarioSelect.disabled = false;
-        
-        console.log(`✅ ${horarios.length} horários gerados com sucesso`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
@@ -2395,6 +2403,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
