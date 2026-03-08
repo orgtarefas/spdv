@@ -138,6 +138,72 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
+// ATUALIZAR STATUS NO FIREBASE
+// ============================================
+async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
+    try {
+        console.log(`📝 Atualizando ${agendamentoId} para ${novoStatus}`);
+        
+        const [clienteEmail, agendamentoKey] = agendamentoId.split('_');
+        
+        const agendamentoRef = doc(
+            db,
+            'agendamentos',
+            lojaIdAtual,
+            'agendamento_clientes',
+            clienteEmail
+        );
+        
+        const agendamentoDoc = await getDoc(agendamentoRef);
+        
+        if (!agendamentoDoc.exists()) {
+            console.error('❌ Agendamento não encontrado');
+            return false;
+        }
+        
+        const dadosCliente = agendamentoDoc.data();
+        
+        if (!dadosCliente[agendamentoKey]) {
+            console.error('❌ Agendamento específico não encontrado');
+            return false;
+        }
+        
+        // Atualizar status
+        dadosCliente[agendamentoKey].status_agendamento = novoStatus;
+        
+        // Adicionar ao histórico
+        if (!dadosCliente[agendamentoKey].historico_status) {
+            dadosCliente[agendamentoKey].historico_status = [];
+        }
+        
+        dadosCliente[agendamentoKey].historico_status.push({
+            status: novoStatus,
+            data: new Date().toISOString(),
+            alterado_por: 'sistema_auto'
+        });
+        
+        // Salvar no Firebase
+        await setDoc(agendamentoRef, dadosCliente);
+        
+        console.log(`✅ Status atualizado para ${novoStatus}`);
+        
+        // Mostrar mensagem se for chamada
+        if (novoStatus === 'Em atendimento') {
+            const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
+            if (agendamento) {
+                mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome}`, 'success');
+            }
+        }
+        
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Erro ao atualizar status:', error);
+        return false;
+    }
+}
+
+// ============================================
 // CARREGAR AGENDAMENTOS ATIVOS (TEMPO REAL)
 // ============================================
 function iniciarEscutaAgendamentos() {
@@ -2827,6 +2893,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
