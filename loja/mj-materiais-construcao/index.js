@@ -501,7 +501,7 @@ function inicializarCarrosselAgendamento() {
 }
 
 // ============================================
-// ABRIR MODAL DE AGENDAMENTO PARA CLIENTES
+// ABRIR MODAL DE AGENDAMENTO PARA CLIENTES (CORRIGIDO)
 // ============================================
 function abrirModalAgendamento() {
     if (!usuarioLogado || !dadosUsuario) {
@@ -581,9 +581,6 @@ function abrirModalAgendamento() {
         const dia = String(hoje.getDate()).padStart(2, '0');
         dataInput.min = `${ano}-${mes}-${dia}`;
         dataInput.value = `${ano}-${mes}-${dia}`;
-        
-        // Carregar horários para a data selecionada
-        setTimeout(() => carregarHorariosCliente(), 100);
     }
     
     modal.classList.add('active');
@@ -630,43 +627,42 @@ async function carregarServicosCliente() {
     select.disabled = true;
     
     try {
-        // 🔥 BUSCAR DO PROJETO CORRETO (spdv-3872a) - MESMO ONDE FOI SALVO
-        const configRef = doc(
-            db,  // 👈 Projeto spdv-3872a (dados operacionais)
-            'configuracoes', 
-            lojaIdAtual, 
-            'servico_agendamento', 
-            'config'  // 👈 Documento 'config' (como foi salvo)
-        );
+        console.log('🔍 Buscando serviços em:', `configuracoes/${lojaIdAtual}/servico_agendamento`);
         
-        const configDoc = await getDoc(configRef);
+        // Buscar TODOS os serviços da subcoleção 'servico_agendamento'
+        const servicosRef = collection(db, 'configuracoes', lojaIdAtual, 'servico_agendamento');
+        const snapshot = await getDocs(servicosRef);
         
-        // Verificar se existe configuração
-        if (!configDoc.exists()) {
-            console.log('📋 Nenhum serviço encontrado em:', configRef.path);
+        let servicosEncontrados = [];
+        snapshot.forEach(doc => {
+            // Ignorar documentos de sistema
+            if (doc.id !== 'excecoes') {
+                servicosEncontrados.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            }
+        });
+        
+        console.log('📋 Serviços encontrados:', servicosEncontrados);
+        
+        if (servicosEncontrados.length === 0) {
             select.innerHTML = '<option value="">📋 Nenhum serviço cadastrado</option>';
             select.disabled = true;
             return;
         }
         
-        const dados = configDoc.data();
-        console.log('📋 Dados do serviço carregados:', dados);
-        
-        // Verificar se tem nome (campo obrigatório)
-        if (!dados.nome) {
-            select.innerHTML = '<option value="">📋 Configuração incompleta</option>';
-            select.disabled = true;
-            return;
-        }
-        
-        // Preencher select com os dados da configuração
+        // Preencher select com os serviços
         select.innerHTML = '<option value="">Selecione um serviço...</option>';
         
-        // Adicionar o serviço (único por enquanto)
-        select.innerHTML += `<option value="${dados.nome}">${dados.nome}${dados.duracao ? ` (${dados.duracao}min)` : ''}</option>`;
+        servicosEncontrados.forEach(servico => {
+            if (servico.nome) {
+                select.innerHTML += `<option value="${servico.id}" data-config='${JSON.stringify(servico)}'>${servico.nome}</option>`;
+            }
+        });
         
         select.disabled = false;
-        console.log(`✅ Serviço carregado: ${dados.nome}`);
+        console.log(`✅ ${servicosEncontrados.length} serviços carregados`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar serviços:', error);
@@ -676,85 +672,102 @@ async function carregarServicosCliente() {
 }
 
 // ============================================
-// CARREGAR HORÁRIOS PARA CLIENTE (COM FILTRO DE HORÁRIOS PASSADOS)
+// CARREGAR HORÁRIOS PARA CLIENTE (CORRIGIDO - USA CONFIGURAÇÃO POR DIA)
 // ============================================
 async function carregarHorariosCliente() {
     const dataInput = document.getElementById('agendamentoData');
     const horarioSelect = document.getElementById('agendamentoHorario');
+    const servicoSelect = document.getElementById('servicoSelect');
     
-    if (!dataInput || !horarioSelect) return;
+    if (!dataInput || !horarioSelect || !servicoSelect) return;
     
     const dataSelecionada = dataInput.value;
-    if (!dataSelecionada) return;
+    const servicoId = servicoSelect.value;
     
-    console.log(`🔍 Buscando horários para data: ${dataSelecionada}`);
+    if (!dataSelecionada || !servicoId) {
+        horarioSelect.innerHTML = '<option value="">Selecione data e serviço</option>';
+        horarioSelect.disabled = true;
+        return;
+    }
+    
+    console.log(`🔍 Buscando horários para serviço: ${servicoId}, data: ${dataSelecionada}`);
     
     horarioSelect.innerHTML = '<option value="">Verificando horários...</option>';
     horarioSelect.disabled = true;
     
     try {
+        // Pegar configuração do serviço selecionado
+        const selectedOption = servicoSelect.selectedOptions[0];
+        const configServico = JSON.parse(selectedOption.dataset.config || '{}');
+        
+        console.log('📋 Configuração do serviço:', configServico);
+        
         // Identificar o dia da semana
         const dataObj = new Date(dataSelecionada + 'T12:00:00');
-        const diaSemana = dataObj.getDay();
+        const diaSemana = dataObj.getDay(); // 0 = domingo, 1 = segunda, etc.
         
         const diasMap = {
-            0: 'domingo', 1: 'segunda', 2: 'terca', 3: 'quarta',
-            4: 'quinta', 5: 'sexta', 6: 'sabado'
+            0: 'domingo',
+            1: 'segunda',
+            2: 'terca',
+            3: 'quarta',
+            4: 'quinta',
+            5: 'sexta',
+            6: 'sabado'
         };
         
         const diaId = diasMap[diaSemana];
         
-        // Buscar configuração do serviço
-        const configRef = doc(
-            db,
-            'configuracoes', 
-            lojaIdAtual, 
-            'servico_agendamento', 
-            'config'
-        );
-        
-        const configDoc = await getDoc(configRef);
-        
-        if (!configDoc.exists()) {
-            horarioSelect.innerHTML = '<option value="">📋 Nenhum serviço configurado</option>';
+        // Verificar se o dia está nos dias ativos
+        const diasAtivos = configServico.diasAtivos || [];
+        if (!diasAtivos.includes(diaId)) {
+            horarioSelect.innerHTML = `<option value="">🔒 Fechado neste dia</option>`;
             horarioSelect.disabled = true;
             return;
         }
         
-        const dados = configDoc.data();
-        
-        // Verificar se o dia está nos dias selecionados
-        const diasSelecionados = dados.dias || [];
-        if (!diasSelecionados.includes(diaId)) {
-            horarioSelect.innerHTML = `<option value="">🔒 Estabelecimento fechado neste dia</option>`;
+        // Pegar configuração específica do dia
+        const configDia = configServico.configuracoesPorDia?.[diaId];
+        if (!configDia || !configDia.ativo) {
+            horarioSelect.innerHTML = `<option value="">🔒 Sem atendimento neste dia</option>`;
             horarioSelect.disabled = true;
             return;
         }
         
-        // Verificar se tem horários configurados
-        if (!dados.horarioInicio || !dados.horarioFim) {
-            horarioSelect.innerHTML = '<option value="">⚠️ Horários não configurados</option>';
-            horarioSelect.disabled = true;
-            return;
-        }
-        
-        // Gerar horários
+        // Gerar horários baseado na configuração do dia
         const horarios = [];
-        const [hA, mA] = dados.horarioInicio.split(':').map(Number);
-        const [hF, mF] = dados.horarioFim.split(':').map(Number);
+        const [hInicio, mInicio] = configDia.inicio.split(':').map(Number);
+        const [hFim, mFim] = configDia.fim.split(':').map(Number);
+        const duracao = configDia.duracao || 30;
+        const intervaloEntre = configDia.intervaloEntre || 0;
         
-        let atual = new Date();
-        atual.setHours(hA, mA, 0);
+        let minutosInicio = hInicio * 60 + mInicio;
+        const minutosFim = hFim * 60 + mFim;
         
-        let fim = new Date();
-        fim.setHours(hF, mF, 0);
-        
-        while (atual <= fim) {
-            const hora = String(atual.getHours()).padStart(2, '0');
-            const min = String(atual.getMinutes()).padStart(2, '0');
-            horarios.push(`${hora}:${min}`);
+        // Gerar horários a cada (duracao) minutos
+        while (minutosInicio + duracao <= minutosFim) {
+            const hora = Math.floor(minutosInicio / 60);
+            const minuto = minutosInicio % 60;
+            const horarioStr = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
             
-            atual.setMinutes(atual.getMinutes() + 30);
+            horarios.push(horarioStr);
+            minutosInicio += duracao + intervaloEntre;
+        }
+        
+        // Filtrar intervalo de almoço se existir
+        let horariosFiltrados = horarios;
+        if (configDia.intervaloInicio && configDia.intervaloFim) {
+            const [hIntInicio, mIntInicio] = configDia.intervaloInicio.split(':').map(Number);
+            const [hIntFim, mIntFim] = configDia.intervaloFim.split(':').map(Number);
+            
+            const minutosIntInicio = hIntInicio * 60 + mIntInicio;
+            const minutosIntFim = hIntFim * 60 + mIntFim;
+            
+            horariosFiltrados = horarios.filter(horario => {
+                const [h, m] = horario.split(':').map(Number);
+                const minutos = h * 60 + m;
+                return minutos < minutosIntInicio || minutos >= minutosIntFim;
+            });
         }
         
         // 🔥 FILTRO: Remover horários que já passaram (apenas para o dia atual)
@@ -763,10 +776,8 @@ async function carregarHorariosCliente() {
         const horaAtual = agora.getHours();
         const minAtual = agora.getMinutes();
         
-        let horariosFiltrados = horarios;
-        
         if (dataSelecionada === hoje) {
-            horariosFiltrados = horarios.filter(horario => {
+            horariosFiltrados = horariosFiltrados.filter(horario => {
                 const [h, m] = horario.split(':').map(Number);
                 return (h > horaAtual) || (h === horaAtual && m > minAtual);
             });
@@ -785,6 +796,8 @@ async function carregarHorariosCliente() {
             horarioSelect.innerHTML += `<option value="${h}">${h}</option>`;
         });
         horarioSelect.disabled = false;
+        
+        console.log(`✅ ${horariosFiltrados.length} horários gerados`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
@@ -898,25 +911,35 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         } catch (e) {
             console.warn('⚠️ Erro ao verificar configuração:', e);
         }
+
+        // Pegar dados completos do serviço
+        const servicoSelect = document.getElementById('servicoSelect');
+        const selectedOption = servicoSelect.selectedOptions[0];
+        const configServico = JSON.parse(selectedOption.dataset.config || '{}');
         
         // Criar objeto do agendamento
         const agendamentoData = {
             cliente_email: clienteEmail,
             cliente_nome: clienteNome,
             cliente_telefone: clienteTelefone,
-            servico: servicoText,
+            servico: configServico.nome || servico,
             servico_id: servico,
+            servico_config: {
+                id: configServico.id,
+                nome: configServico.nome,
+                duracao: configServico.duracao || 30
+            },
             data: data,
             horario: horario,
             status: 'agendado',
-            validado: !precisaValidar, // false = precisa validar, true = já validado
+            validado: !precisaValidar,
             criado_por: dadosUsuario.email,
             criado_por_nome: dadosUsuario.nome,
             criado_em: serverTimestamp(),
             data_criacao: new Date().toISOString(),
             loja_id: lojaIdAtual
         };
-        
+                
         // Salvar no Firestore (coleção 'futuros')
         const agendamentoRef = window.loginDb
             .collection('agendamentos')
@@ -2284,6 +2307,23 @@ function configurarEventos() {
     
     // Botão "Fazer Agendamento"
     document.getElementById('btnAbrirAgendamento')?.addEventListener('click', () => {
+
+    // ============================================
+    // EVENTOS DE AGENDAMENTO 
+    // ============================================
+    
+    // Quando mudar o serviço, recarregar horários
+    document.getElementById('servicoSelect')?.addEventListener('change', function() {
+        carregarHorariosCliente();
+    });
+    
+    // Quando mudar a data, recarregar horários
+    document.getElementById('agendamentoData')?.addEventListener('change', function() {
+        carregarHorariosCliente();
+    });
+    
+    // Botão "Fazer Agendamento"
+    document.getElementById('btnAbrirAgendamento')?.addEventListener('click', () => {
         if (!usuarioLogado) {
             mostrarMensagem('Faça login para fazer um agendamento', 'warning');
             abrirModal('loginModal');
@@ -2295,7 +2335,7 @@ function configurarEventos() {
     // Botão "Ver Fila Completa"
     document.getElementById('btnVerAgendamento')?.addEventListener('click', () => {
         window.location.href = 'agendamento.html';
-    });
+    });    
     
     console.log("✅ Eventos configurados");
 }
@@ -2403,6 +2443,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
