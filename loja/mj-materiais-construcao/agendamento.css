@@ -2168,3 +2168,178 @@ input:checked + .toggle-slider:before {
     background: #e65100;
     transform: translateY(-2px);
 }
+
+/* ============================================
+   MODAL DE DIAS EXCEPCIONAIS
+   ============================================ */
+
+.excepcionais-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.excepcionais-header h4 {
+    margin: 0;
+    color: #1e293b;
+    font-size: 1.1rem;
+}
+
+.btn-add {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-add:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.excepcionais-lista {
+    margin-bottom: 25px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.excecao-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid #ff6b00;
+}
+
+.excecao-item:last-child {
+    margin-bottom: 0;
+}
+
+.excecao-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.excecao-data {
+    font-weight: 600;
+    color: #1e293b;
+    min-width: 100px;
+}
+
+.excecao-motivo {
+    padding: 2px 10px;
+    background: #e3f2fd;
+    color: #1976d2;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.excecao-acoes {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-editar-excecao,
+.btn-excluir-excecao {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-editar-excecao {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-editar-excecao:hover {
+    background: #138496;
+}
+
+.btn-excluir-excecao {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-excluir-excecao:hover {
+    background: #c82333;
+}
+
+.excepcional-form {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.excepcional-form h4 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.excepcional-form .config-header {
+    margin: 15px 0;
+    padding: 10px 0;
+    border-top: 1px dashed #cbd5e1;
+    border-bottom: 1px dashed #cbd5e1;
+}
+
+.excepcional-form .form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.excepcional-form .btn-cancelar {
+    padding: 10px 20px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.excepcional-form .btn-salvar {
+    padding: 10px 20px;
+    background: #ff6b00;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.excepcional-form .btn-salvar:hover {
+    background: #e65100;
+}
