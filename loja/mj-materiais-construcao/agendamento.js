@@ -1347,342 +1347,93 @@ function abrirModalAgendamentoFuncionarios() {
         return;
     }
     
-    // Limpar formulário - com verificações
+    // Limpar formulário
     const form = document.getElementById('criarAgendamentoForm');
     if (form) form.reset();
     
     // 🔥 CONFIGURAR EVENTOS
     configurarEventosDias();
     configurarPermitirForaDia();
-    
-    // Limpar busca de cliente
-    const buscaCliente = document.getElementById('buscaClienteAdmin');
-    if (buscaCliente) {
-        buscaCliente.value = '';
-        buscaCliente.classList.remove('cliente-selecionado');
-    }
-    
-    // Limpar resultados
-    const resultados = document.getElementById('resultadosBuscaAdmin');
-    if (resultados) {
-        resultados.innerHTML = '';
-        resultados.style.display = 'none';
-    }
-    
-    // ✅ VERIFICAR SE O ELEMENTO EXISTE ANTES DE USAR
-    const agendamentoIdInput = document.getElementById('agendamentoIdAdmin');
-    if (agendamentoIdInput) {
-        agendamentoIdInput.value = '';
-    } else {
-        console.warn('⚠️ Elemento agendamentoIdAdmin não encontrado');
-    }
-    
-    // Carregar serviços
-    carregarServicosAdmin();
-    
-    // Configurar data mínima
-    const dataInput = document.getElementById('agendamentoDataAdmin');
-    if (dataInput) {
-        const hoje = new Date();
-        const ano = hoje.getFullYear();
-        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-        const dia = String(hoje.getDate()).padStart(2, '0');
-        dataInput.min = `${ano}-${mes}-${dia}`;
-        dataInput.value = `${ano}-${mes}-${dia}`;
         
-        // Carregar horários
-        setTimeout(() => carregarHorariosAdmin(), 100);
-    }
-    
-    // Configurar busca de cliente
-    if (buscaCliente) {
-        buscaCliente.removeEventListener('input', buscarClientesAdmin);
-        buscaCliente.addEventListener('input', buscarClientesAdmin);
-    }
-    
     modal.classList.add('active');
 }
 
 // ============================================
-// CARREGAR SERVIÇOS (ADMIN)
-// ============================================
-function carregarServicosAdmin() {
-    const select = document.getElementById('servicoAdminSelect');
-    if (!select) return;
-    
-    const servicos = [
-        { id: 'corte', nome: 'Corte de Cabelo' },
-        { id: 'barba', nome: 'Barba' },
-        { id: 'combo', nome: 'Corte + Barba' },
-        { id: 'sobrancelha', nome: 'Sobrancelha' },
-        { id: 'pigmentacao', nome: 'Pigmentação' }
-    ];
-    
-    select.innerHTML = '<option value="">Selecione...</option>';
-    servicos.forEach(serv => {
-        select.innerHTML += `<option value="${serv.id}">${serv.nome}</option>`;
-    });
-}
-
-// ============================================
-// BUSCAR CLIENTES (ADMIN)
-// ============================================
-async function buscarClientesAdmin(e) {
-    const termo = e.target.value.trim();
-    const resultadosDiv = document.getElementById('resultadosBuscaAdmin');
-    
-    if (!resultadosDiv) return;
-    
-    if (termo.length < 3) {
-        resultadosDiv.style.display = 'none';
-        resultadosDiv.innerHTML = '';
-        return;
-    }
-    
-    try {
-        const clientesRef = window.loginDb
-            .collection('usuarios')
-            .doc(lojaIdAtual)
-            .collection('clientes');
-        
-        const snapshot = await clientesRef.get();
-        
-        const clientes = [];
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const nome = data.nome || '';
-            if (nome.toLowerCase().includes(termo.toLowerCase())) {
-                clientes.push({
-                    email: doc.id,
-                    nome: nome,
-                    telefone: data.telefone || ''
-                });
-            }
-        });
-        
-        if (clientes.length === 0) {
-            resultadosDiv.innerHTML = `<div class="resultado-item" onclick="selecionarNovoClienteAdmin('${termo}')">
-                <i class="fas fa-plus"></i> Criar novo: "${termo}"
-            </div>`;
-            resultadosDiv.style.display = 'block';
-            return;
-        }
-        
-        let html = '';
-        clientes.forEach(cliente => {
-            html += `<div class="resultado-item" onclick="selecionarClienteAdmin('${cliente.nome}', '${cliente.telefone}')">
-                <strong>${cliente.nome}</strong>
-                <small>${cliente.telefone || 'Sem telefone'}</small>
-            </div>`;
-        });
-        
-        resultadosDiv.innerHTML = html;
-        resultadosDiv.style.display = 'block';
-        
-    } catch (error) {
-        console.error('❌ Erro:', error);
-    }
-}
-
-// ============================================
-// SELECIONAR CLIENTE (ADMIN)
-// ============================================
-window.selecionarClienteAdmin = function(nome, telefone) {
-    const input = document.getElementById('buscaClienteAdmin');
-    const resultados = document.getElementById('resultadosBuscaAdmin');
-    
-    if (input) {
-        input.value = nome;
-        input.setAttribute('data-telefone', telefone);
-        input.classList.add('cliente-selecionado');
-    }
-    
-    if (resultados) {
-        resultados.style.display = 'none';
-        resultados.innerHTML = '';
-    }
-};
-
-// ============================================
-// SELECIONAR NOVO CLIENTE (ADMIN)
-// ============================================
-window.selecionarNovoClienteAdmin = function(nome) {
-    const input = document.getElementById('buscaClienteAdmin');
-    const resultados = document.getElementById('resultadosBuscaAdmin');
-    
-    if (input) {
-        input.value = nome;
-        input.removeAttribute('data-telefone');
-        input.classList.add('cliente-selecionado');
-    }
-    
-    if (resultados) {
-        resultados.style.display = 'none';
-        resultados.innerHTML = '';
-    }
-};
-
-// ============================================
-// CARREGAR HORÁRIOS (ADMIN)
-// ============================================
-async function carregarHorariosAdmin() {
-    const dataInput = document.getElementById('agendamentoDataAdmin');
-    const horarioSelect = document.getElementById('agendamentoHorarioAdmin');
-    
-    if (!dataInput || !horarioSelect) return;
-    
-    const dataSelecionada = dataInput.value;
-    if (!dataSelecionada) return;
-    
-    horarioSelect.innerHTML = '<option value="">Carregando...</option>';
-    horarioSelect.disabled = true;
-    
-    try {
-        const dataObj = new Date(dataSelecionada + 'T12:00:00');
-        const diaSemana = dataObj.getDay();
-        
-        const diasMap = {
-            0: 'domingo', 1: 'segunda', 2: 'terca', 3: 'quarta',
-            4: 'quinta', 5: 'sexta', 6: 'sabado'
-        };
-        
-        const diaId = diasMap[diaSemana];
-        
-        // Buscar configuração
-        let configDia = {
-            aberto: true,
-            abertura: '08:00',
-            fechamento: '18:00',
-            intervaloInicio: '12:00',
-            intervaloFim: '13:00'
-        };
-        
-        try {
-            const horariosRef = window.loginDb
-                .collection('configuracoes')
-                .doc(lojaIdAtual)
-                .collection('agendamento')
-                .doc('horarios');
-            
-            const horariosDoc = await horariosRef.get();
-            if (horariosDoc.exists && horariosDoc.data()[diaId]) {
-                configDia = horariosDoc.data()[diaId];
-            }
-        } catch (e) {
-            console.warn('⚠️ Usando configuração padrão');
-        }
-        
-        if (!configDia.aberto) {
-            horarioSelect.innerHTML = '<option value="">Fechado neste dia</option>';
-            horarioSelect.disabled = true;
-            return;
-        }
-        
-        // Gerar horários
-        const horarios = [];
-        const [hA, mA] = configDia.abertura.split(':').map(Number);
-        const [hF, mF] = configDia.fechamento.split(':').map(Number);
-        const [hII, mII] = configDia.intervaloInicio.split(':').map(Number);
-        const [hIF, mIF] = configDia.intervaloFim.split(':').map(Number);
-        
-        let atual = new Date();
-        atual.setHours(hA, mA, 0);
-        
-        let fim = new Date();
-        fim.setHours(hF, mF, 0);
-        
-        let inicioIntervalo = new Date();
-        inicioIntervalo.setHours(hII, mII, 0);
-        
-        let fimIntervalo = new Date();
-        fimIntervalo.setHours(hIF, mIF, 0);
-        
-        while (atual <= fim) {
-            if (atual >= inicioIntervalo && atual < fimIntervalo) {
-                atual = new Date(fimIntervalo);
-                continue;
-            }
-            
-            const hora = String(atual.getHours()).padStart(2, '0');
-            const min = String(atual.getMinutes()).padStart(2, '0');
-            horarios.push(`${hora}:${min}`);
-            
-            atual.setMinutes(atual.getMinutes() + 30);
-        }
-        
-        horarioSelect.innerHTML = '<option value="">Selecione um horário</option>';
-        horarios.forEach(h => {
-            horarioSelect.innerHTML += `<option value="${h}">${h}</option>`;
-        });
-        horarioSelect.disabled = false;
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar horários:', error);
-        horarioSelect.innerHTML = '<option value="">Erro ao carregar</option>';
-        horarioSelect.disabled = true;
-    }
-}
-
-// ============================================
-// SALVAR NOVO AGENDAMENTO (FUNCIONÁRIOS)
+// SALVAR CONFIGURAÇÃO DO AGENDAMENTO
 // ============================================
 async function salvarCriarAgendamento() {
     try {
-        const cliente = document.getElementById('buscaClienteAdmin').value;
-        const servicoSelect = document.getElementById('servicoAdminSelect');
-        const servico = servicoSelect.value;
-        const servicoText = servicoSelect.selectedOptions[0]?.text.split(' - ')[0] || servico;
-        const data = document.getElementById('agendamentoDataAdmin').value;
-        const horario = document.getElementById('agendamentoHorarioAdmin').value;
-        const status = document.getElementById('statusAdmin').value;
-        const obs = document.getElementById('observacoesAdmin').value;
+        // 🔥 USAR OS CAMPOS QUE REALMENTE EXISTEM NO MODAL
+        const nomeServico = document.getElementById('servicoNome').value;
+        const descricao = document.getElementById('servicoDescricao').value;
+        const horarioInicio = document.getElementById('servicoInicio').value;
+        const horarioFim = document.getElementById('servicoFim').value;
+        const permitirForaDia = document.getElementById('permitirForaDia').checked;
         
-        if (!cliente || !servico || !data || !horario) {
-            mostrarMensagem('Preencha todos os campos obrigatórios', 'warning');
+        // Coletar dias selecionados
+        const diasSelecionados = [];
+        document.querySelectorAll('.dia-semana:checked').forEach(cb => {
+            diasSelecionados.push(cb.value);
+        });
+        
+        // Opção de validação selecionada
+        const validacao = document.querySelector('input[name="validacao"]:checked')?.value || 'automatico_dia';
+        
+        // Validações
+        if (!nomeServico) {
+            mostrarMensagem('Nome do serviço é obrigatório', 'warning');
             return;
         }
         
-        mostrarLoading('Salvando agendamento...');
+        if (!horarioInicio || !horarioFim) {
+            mostrarMensagem('Horário de funcionamento é obrigatório', 'warning');
+            return;
+        }
         
-        const agendamentoData = {
-            cliente_nome: cliente,
-            servico: servicoText,
-            servico_id: servico,
-            data: data,
-            horario: horario,
-            status: status,
-            validado: status === 'validado',
-            observacoes: obs,
-            criado_por: dadosUsuario?.email || 'sistema',
-            criado_por_nome: dadosUsuario?.nome || 'Sistema',
-            criado_em: serverTimestamp(),
-            data_criacao: new Date().toISOString(),
+        if (diasSelecionados.length === 0) {
+            mostrarMensagem('Selecione pelo menos um dia de funcionamento', 'warning');
+            return;
+        }
+        
+        mostrarLoading('Salvando configuração...');
+        
+        // 🔥 DADOS PARA SALVAR NO FIRESTORE
+        const configData = {
+            nome: nomeServico,
+            descricao: descricao,
+            horarioInicio: horarioInicio,
+            horarioFim: horarioFim,
+            dias: diasSelecionados,
+            permitirForaDia: permitirForaDia,
+            validacao: validacao,
+            atualizado_por: dadosUsuario?.email || 'sistema',
+            atualizado_em: serverTimestamp(),
+            data_atualizacao: new Date().toISOString(),
             loja_id: lojaIdAtual
         };
         
-        // Salvar no Firestore
-        const agendamentoRef = window.loginDb
-            .collection('agendamentos')
+        console.log('📝 Salvando configuração:', configData);
+        
+        // 🔥 SALVAR NO FIRESTORE (coleção de configurações)
+        const configRef = window.loginDb
+            .collection('configuracoes')
             .doc(lojaIdAtual)
-            .collection('futuros')
-            .doc();
+            .collection('servico_agendamento')
+            .doc('config');
         
-        await setDoc(agendamentoRef, agendamentoData);
+        await setDoc(configRef, configData, { merge: true });
         
-        mostrarMensagem('Agendamento criado com sucesso!', 'success');
+        mostrarMensagem('Configuração salva com sucesso!', 'success');
         fecharModal('salvarCriarAgendamentoModal');
         
     } catch (error) {
-        console.error('❌ Erro ao salvar agendamento:', error);
-        mostrarMensagem('Erro ao salvar agendamento: ' + error.message, 'error');
+        console.error('❌ Erro ao salvar configuração:', error);
+        mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
     } finally {
         esconderLoading();
     }
 }
 
-// ============================================
-// FUNÇÕES DO MODAL GERENCIAR AGENDAMENTOS
-// ============================================
 
 // ============================================
 // ABRIR MODAL GERENCIAR AGENDAMENTOS
