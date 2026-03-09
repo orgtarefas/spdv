@@ -48,7 +48,7 @@ let agendamentoHabilitado = false;
 let agendamentosAtivos = [];
 let agendamentosFuturos = [];
 let unsubscribeAgendamentos = null;
-let intervaloAtualizacaoAgendamento = null;
+let dadosAgendamentoHoje = null;
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
@@ -140,84 +140,84 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS NO FIREBASE - NOVA ESTRUTURA COM MÊS/ANO
+// ATUALIZAR STATUS AGENDAMENTO
 // ============================================
 async function atualizarStatusAgendamento(agendamento, novoStatus) {
     try {
         console.log(`📝 Atualizando agendamento ${agendamento.agendamento_id} para ${novoStatus}`);
         
-        // Extrair os componentes do objeto agendamento
-        const dataId = agendamento.data_id;           // Ex: "09_03_2026"
-        const mesAno = agendamento.mes_ano;           // Ex: "03_2026"
-        const servicoId = agendamento.servico_id;     // Ex: "corte_cabelo"
-        const agendamentoId = agendamento.agendamento_id; // Ex: "agendamento_5"
+        // Extrair componentes
+        const servicoId = agendamento.servico_id;
+        const agendamentoId = agendamento.agendamento_id;
         
-        // Validar se todos os componentes existem
-        if (!dataId || !mesAno || !servicoId || !agendamentoId) {
-            console.error('❌ Componentes do agendamento incompletos:', { dataId, mesAno, servicoId, agendamentoId });
-            return false;
-        }
+        // Mês e ano atual
+        const hoje = new Date();
+        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+        const anoAtual = hoje.getFullYear();
+        const mesAnoAtual = `${mesAtual}_${anoAtual}`;
+        const diaAtual = String(hoje.getDate()).padStart(2, '0');
+        const dataFormatada = `${diaAtual}_${mesAtual}_${anoAtual}`;
         
-        // agendamentos / [lojaId] / [mes_ano] / [data_id] / [servicoId] / [agendamentoId]
-        const agendamentoRef = doc(
+        // Referência para o documento do dia
+        const diaDocRef = doc(
             db,
             'agendamentos',
             lojaIdAtual,
-            mesAno,
-            dataId,
-            servicoId,
-            agendamentoId
+            mesAnoAtual,
+            dataFormatada
         );
         
-        console.log(`🔍 Verificando documento em: agendamentos/${lojaIdAtual}/${mesAno}/${dataId}/${servicoId}/${agendamentoId}`);
-        
-        // Verificar se o documento existe
-        const docSnap = await getDoc(agendamentoRef);
+        // Buscar documento atual
+        const docSnap = await getDoc(diaDocRef);
         
         if (!docSnap.exists()) {
-            console.log(`⚠️ Agendamento ${agendamentoId} não encontrado no Firestore - ignorando atualização`);
+            console.error('❌ Documento do dia não encontrado');
             return false;
         }
         
-        // Dados atuais do agendamento (para log)
         const dadosAtuais = docSnap.data();
-        console.log(`📋 Status atual: ${dadosAtuais.status_agendamento} -> Novo: ${novoStatus}`);
         
-        // Criar objeto de atualização
-        const updateData = {
-            status_agendamento: novoStatus,
-            ultima_atualizacao: serverTimestamp()
-        };
+        // Verificar se o serviço e agendamento existem
+        if (!dadosAtuais[servicoId] || !dadosAtuais[servicoId][agendamentoId]) {
+            console.error('❌ Agendamento não encontrado no mapa');
+            return false;
+        }
         
-        // Se for conclusão, adicionar data de conclusão
+        // Criar cópia para atualização
+        const novosDados = JSON.parse(JSON.stringify(dadosAtuais));
+        
+        // Atualizar status
+        novosDados[servicoId][agendamentoId].status_agendamento = novoStatus;
+        
+        // Se for conclusão, adicionar data
         if (novoStatus === 'Concluido') {
-            updateData.data_conclusao = serverTimestamp();
+            novosDados[servicoId][agendamentoId].data_conclusao = serverTimestamp();
         }
         
-        // Se for cancelamento, adicionar motivo (opcional)
+        // Se for cancelamento
         if (novoStatus === 'Cancelado') {
-            updateData.data_cancelamento = serverTimestamp();
+            novosDados[servicoId][agendamentoId].data_cancelamento = serverTimestamp();
         }
         
-        // Atualizar apenas os campos necessários
-        await updateDoc(agendamentoRef, updateData);
+        // Adicionar histórico
+        if (!novosDados[servicoId][agendamentoId].historico_status) {
+            novosDados[servicoId][agendamentoId].historico_status = [];
+        }
+        
+        novosDados[servicoId][agendamentoId].historico_status.push({
+            status: novoStatus,
+            data: new Date().toISOString(),
+            alterado_por: dadosUsuario?.email || 'sistema',
+            timestamp: serverTimestamp()
+        });
+        
+        // Atualizar no Firestore
+        await updateDoc(diaDocRef, novosDados);
         
         console.log(`✅ Status atualizado para ${novoStatus}`);
         
-        // Opcional: Registrar no histórico do agendamento
-        try {
-            const historicoRef = collection(agendamentoRef, 'historico');
-            await addDoc(historicoRef, {
-                status: novoStatus,
-                data: serverTimestamp(),
-                alterado_por: dadosUsuario?.email || 'sistema',
-                observacao: `Status alterado de ${dadosAtuais.status_agendamento} para ${novoStatus}`
-            });
-            console.log(`📝 Histórico registrado`);
-        } catch (historicoError) {
-            console.warn('⚠️ Erro ao registrar histórico:', historicoError);
-            // Não falha a operação principal se o histórico falhar
-        }
+        // Atualizar cache local
+        dadosAgendamentoHoje = novosDados;
         
         return true;
         
@@ -228,12 +228,12 @@ async function atualizarStatusAgendamento(agendamento, novoStatus) {
 }
 
 // ============================================
-// CARREGAR AGENDAMENTOS ATIVOS - NOVA ESTRUTURA COM MÊS/ANO
+// CARREGAR AGENDAMENTOS ATIVOS
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!agendamentoHabilitado || !lojaIdAtual) return;
     
-    console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
+    console.log('📅 Iniciando escuta em tempo real dos agendamentos (estrutura MAPS)...');
     
     try {
         // Mês e ano atual
@@ -242,32 +242,40 @@ function iniciarEscutaAgendamentos() {
         const anoAtual = hoje.getFullYear();
         const mesAnoAtual = `${mesAtual}_${anoAtual}`;
         
-        console.log(`📅 Escutando mês: ${mesAnoAtual}`);
+        // Referência para o DOCUMENTO do dia atual
+        const diaAtual = String(hoje.getDate()).padStart(2, '0');
+        const dataFormatada = `${diaAtual}_${mesAtual}_${anoAtual}`;
         
-        // Referência para a coleção do mês atual
-        const mesRef = collection(
+        console.log(`📅 Escutando documento: ${dataFormatada}`);
+        
+        // Referência para o documento do dia (isso é um DOCUMENTO, não coleção!)
+        const diaDocRef = doc(
             db,
             'agendamentos',
             lojaIdAtual,
-            mesAnoAtual
+            mesAnoAtual,
+            dataFormatada
         );
         
-        // Escutar todas as datas do mês atual
-        const unsubscribe = onSnapshot(mesRef, (snapshot) => {
-            console.log(`📨 Atualização em ${mesAnoAtual}: ${snapshot.size} datas com agendamentos`);
+        // Escutar mudanças no documento do dia
+        unsubscribeAgendamentos = onSnapshot(diaDocRef, (docSnap) => {
+            console.log(`📨 Atualização no documento ${dataFormatada}`);
             
-            // Reconstruir a lista completa
-            reconstruirListaAgendamentos();
+            if (docSnap.exists()) {
+                dadosAgendamentoHoje = docSnap.data();
+                reconstruirListaAgendamentos(docSnap.data());
+            } else {
+                console.log('📭 Nenhum agendamento para hoje');
+                dadosAgendamentoHoje = null;
+                agendamentosAtivos = [];
+                renderizarPainelAgendamento();
+            }
             
         }, (error) => {
             console.error('❌ Erro na escuta:', error);
         });
         
-        // Guardar unsubscribe para limpar depois
-        window.unsubscribeAgendamentos = unsubscribe;
-        
-        // Carregar a lista inicial
-        reconstruirListaAgendamentos();
+        // Também escutar dias futuros? Opcional - podemos buscar sob demanda
         
     } catch (error) {
         console.error('❌ Erro ao iniciar escuta:', error);
@@ -275,118 +283,105 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// FUNÇÃO PARA RECONSTRUIR A LISTA DE AGENDAMENTOS - CORRIGIDA
+// RECONSTRUIR LISTA DE AGENDAMENTOS
 // ============================================
-async function reconstruirListaAgendamentos() {
+function reconstruirListaAgendamentos(dadosDoDia) {
     try {
-        const agendamentosAtivosTemp = [];
-        const agendamentosFuturosTemp = [];
+        console.log('📊 Processando dados do dia:', dadosDoDia);
         
+        const agendamentosAtivosTemp = [];
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
-        const amanha = new Date(hoje);
-        amanha.setDate(amanha.getDate() + 1);
         
-        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
-        const anoAtual = hoje.getFullYear();
-        const mesAnoAtual = `${mesAtual}_${anoAtual}`;
+        // Se não há dados, lista vazia
+        if (!dadosDoDia) {
+            agendamentosAtivos = [];
+            renderizarPainelAgendamento();
+            return;
+        }
         
-        console.log(`🔍 Buscando agendamentos em: agendamentos/${lojaIdAtual}/${mesAnoAtual}`);
-        
-        // 1. Pegar todas as DATAS dentro do mês
-        const datasRef = collection(db, 'agendamentos', lojaIdAtual, mesAnoAtual);
-        const datasSnapshot = await getDocs(datasRef);
-        
-        console.log(`📊 Encontradas ${datasSnapshot.size} datas em ${mesAnoAtual}`);
-        
-        const statusFila = [
-            'Em atendimento',
-            'Próximo a atender',
-            'Na fila',
-            'Verificado',
-            'Pendente'
-        ];
-        
-        // 2. Para cada DATA, buscar SERVIÇOS
-        for (const dataDoc of datasSnapshot.docs) {
-            const dataId = dataDoc.id; // "09_03_2026"
-            console.log(`📅 Processando data: ${dataId}`);
+        // Iterar sobre cada SERVIÇO (é um MAP)
+        Object.entries(dadosDoDia).forEach(([servicoId, agendamentosMap]) => {
+            console.log(`  🔧 Serviço: ${servicoId}`);
             
-            const servicosRef = collection(db, 'agendamentos', lojaIdAtual, mesAnoAtual, dataId);
-            const servicosSnapshot = await getDocs(servicosRef);
-            
-            // 3. Para cada SERVIÇO, buscar AGENDAMENTOS
-            for (const servicoDoc of servicosSnapshot.docs) {
-                const servicoId = servicoDoc.id; // "mecanica_avancada"
-                console.log(`  🔧 Serviço: ${servicoId}`);
+            // agendamentosMap é um objeto onde as chaves são 'agendamento_1', 'agendamento_2', etc.
+            Object.entries(agendamentosMap || {}).forEach(([agendamentoId, dados]) => {
+                console.log(`    📝 ${agendamentoId}:`, dados);
                 
-                const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, mesAnoAtual, dataId, servicoId);
-                const agendamentosSnapshot = await getDocs(agendamentosRef);
-                
-                // 4. Processar cada AGENDAMENTO
-                agendamentosSnapshot.forEach(agendamentoDoc => {
-                    const agendamento = agendamentoDoc.data();
-                    const agendamentoId = agendamentoDoc.id;
+                if (dados && dados.data_hora_agendada) {
+                    const dataHoraAgendada = dados.data_hora_agendada?.toDate?.() || 
+                                            new Date(dados.data_hora_agendada);
                     
-                    console.log(`    📝 ${agendamentoId}: ${agendamento.cliente_nome} - ${agendamento.status_agendamento}`);
+                    // Verificar se é hoje
+                    const dataAgendadaDate = new Date(dataHoraAgendada);
+                    dataAgendadaDate.setHours(0, 0, 0, 0);
                     
-                    if (agendamento && agendamento.data_hora_agendada) {
-                        const dataHoraAgendada = agendamento.data_hora_agendada?.toDate?.() || 
-                                                new Date(agendamento.data_hora_agendada);
+                    if (dataAgendadaDate.getTime() === hoje.getTime()) {
+                        // Extrair número do agendamento para gerar senha
+                        const numeroMatch = agendamentoId.match(/\d+/);
+                        const numero = numeroMatch ? numeroMatch[0] : '1';
                         
-                        if (dataHoraAgendada >= hoje && dataHoraAgendada < amanha) {
-                            if (statusFila.includes(agendamento.status_agendamento)) {
-                                const numero = agendamentoId.split('_')[1] || '1';
-                                
-                                agendamentosAtivosTemp.push({
-                                    id: `${dataId}_${servicoId}_${agendamentoId}`,
-                                    data_id: dataId,
-                                    mes_ano: mesAnoAtual,
-                                    servico_id: servicoId,
-                                    servico_nome: servicoId.replace(/_/g, ' '),
-                                    agendamento_id: agendamentoId,
-                                    cliente_email: agendamento.cliente_email,
-                                    cliente_nome: agendamento.cliente_nome,
-                                    status: agendamento.status_agendamento,
-                                    data_hora: dataHoraAgendada,
-                                    horario: dataHoraAgendada.toLocaleTimeString([], { 
-                                        hour: '2-digit', 
-                                        minute: '2-digit' 
-                                    }),
-                                    senha: gerarSenha(parseInt(numero), agendamento.status_agendamento),
-                                    timestamp: dataHoraAgendada.getTime()
-                                });
-                            }
-                        } else {
-                            agendamentosFuturosTemp.push({
-                                id: `${dataId}_${servicoId}_${agendamentoId}`,
-                                data_id: dataId,
-                                mes_ano: mesAnoAtual,
+                        const statusFila = [
+                            'Em atendimento',
+                            'Próximo a atender',
+                            'Na fila',
+                            'Verificado',
+                            'Pendente'
+                        ];
+                        
+                        if (statusFila.includes(dados.status_agendamento)) {
+                            agendamentosAtivosTemp.push({
+                                id: `${servicoId}_${agendamentoId}`,
                                 servico_id: servicoId,
                                 servico_nome: servicoId.replace(/_/g, ' '),
                                 agendamento_id: agendamentoId,
-                                cliente_email: agendamento.cliente_email,
-                                cliente_nome: agendamento.cliente_nome,
-                                status: agendamento.status_agendamento,
-                                data: dataHoraAgendada.toISOString().split('T')[0],
+                                cliente_email: dados.cliente_email,
+                                cliente_nome: dados.cliente_nome,
+                                status: dados.status_agendamento,
+                                data_hora: dataHoraAgendada,
                                 horario: dataHoraAgendada.toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                validado: agendamento.status_agendamento === 'Verificado'
+                                senha: gerarSenha(parseInt(numero), dados.status_agendamento),
+                                timestamp: dataHoraAgendada.getTime()
                             });
                         }
+                    } else {
+                        // Agendamento futuro (outro dia)
+                        agendamentosFuturos.push({
+                            id: `${servicoId}_${agendamentoId}`,
+                            servico_id: servicoId,
+                            servico_nome: servicoId.replace(/_/g, ' '),
+                            agendamento_id: agendamentoId,
+                            cliente_email: dados.cliente_email,
+                            cliente_nome: dados.cliente_nome,
+                            status: dados.status_agendamento,
+                            data: dataHoraAgendada.toISOString().split('T')[0],
+                            horario: dataHoraAgendada.toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            }),
+                            validado: dados.status_agendamento === 'Verificado'
+                        });
                     }
-                });
-            }
-        }
+                }
+            });
+        });
+        
+        // Ordenar por horário
+        agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
         
         agendamentosAtivos = agendamentosAtivosTemp;
         console.log(`✅ Total agendamentos hoje: ${agendamentosAtivos.length}`);
+        
         renderizarPainelAgendamento();
         
+        // Disparar evento para gerenciar fila
+        gerenciarFilaAtendimento();
+        
     } catch (error) {
-        console.error('❌ Erro:', error);
+        console.error('❌ Erro ao reconstruir lista:', error);
     }
 }
 
@@ -1094,7 +1089,7 @@ async function carregarClientesParaSelect() {
 }
 
 // ============================================
-// CARREGAR SERVIÇOS PARA CLIENTE (ESTRUTURA INVERTIDA)
+// CARREGAR SERVIÇOS PARA CLIENTE
 // ============================================
 async function carregarServicosCliente() {
     const select = document.getElementById('servicoSelect');
@@ -1106,12 +1101,12 @@ async function carregarServicosCliente() {
     try {
         console.log('🔍 Buscando serviços em:', `configuracoes/servico_agendamento/${lojaIdAtual}`);
         
-        // 🔥 NOVA ESTRUTURA: configuracoes / servico_agendamento / [lojaId]
+        // 🔥 ESTRUTURA: configuracoes / servico_agendamento / [lojaId]
         const servicosRef = collection(
             db, 
             'configuracoes', 
-            'servico_agendamento',  // ← Documento fixo
-            lojaIdAtual               // ← Subcoleção da loja
+            'servico_agendamento',
+            lojaIdAtual
         );
         
         const snapshot = await getDocs(servicosRef);
@@ -1395,7 +1390,7 @@ async function carregarHorariosCliente() {
 }
 
 // ============================================
-// CONFIRMAR AGENDAMENTO - NOVA ESTRUTURA COM MÊS/ANO
+// CONFIRMAR AGENDAMENTO
 // ============================================
 document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', async function() {
     try {
@@ -1509,70 +1504,73 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         const configServico = JSON.parse(selectedOption.dataset.config || '{}');
         const nomeServico = configServico.nome || servicoText;
         
-        // Sanitizar nome do serviço para usar como ID da coleção
-        const servicoId = nomeServico
-            .toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]/g, '_')
-            .replace(/_+/g, '_')
-            .replace(/^_|_$/g, '');
+        // Sanitizar nome do serviço para usar como chave do MAP
+        const servicoId = servico; // Já é o ID do serviço
         
         // Extrair data para criar os segmentos
         const [ano, mes, dia] = data.split('-');
         const mesAno = `${mes}_${ano}`; // Ex: "03_2026"
         const dataFormatada = `${dia}_${mes}_${ano}`; // Ex: "09_03_2026"
         
-        // Dados do agendamento
-        const agendamentoData = {
-            criado_em: serverTimestamp(),
-            data_hora_agendada: new Date(`${data}T${horario}:00-03:00`),
-            status_agendamento: precisaValidar ? "Pendente" : "Verificado",
-            cliente_email: clienteEmail,
-            cliente_nome: clienteNome,
-            cliente_telefone: clienteTelefone
-        };
-        
-        console.log('📝 Salvando agendamento:', agendamentoData);
-        console.log('🔧 Serviço ID:', servicoId);
-        console.log('📅 Mês/Ano:', mesAno, 'Data:', dataFormatada);
+        // Criar data/hora agendada
+        const dataHoraAgendada = new Date(`${data}T${horario}:00-03:00`);
         
         // ============================================
-        // 5. SALVAR NO FIREBASE - NOVA ESTRUTURA
+        // 5. SALVAR NO FIREBASE - ESTRUTURA MAPS
         // ============================================
-        // agendamentos / [lojaId] / [mes_ano] / [data] / [servicoId] / [agendamento_X]
+        // agendamentos / [lojaId] / [mes_ano] / [dataFormatada]
         
-        // Referência para a coleção do serviço dentro da data específica
-        const servicoRef = collection(
-            db,
-            'agendamentos',
-            lojaIdAtual,
-            mesAno,           // ← Mês/Ano como coleção
-            dataFormatada,    // ← Data como documento
-            servicoId         // ← Serviço como coleção
-        );
-        
-        // Contar quantos agendamentos já existem para ESTE serviço nesta data
-        const snapshot = await getDocs(servicoRef);
-        const nextNumber = snapshot.size + 1;
-        const agendamentoId = `agendamento_${nextNumber}`;
-        
-        console.log(`📊 Já existem ${snapshot.size} agendamentos em ${servicoId} para ${dataFormatada}`);
-        console.log(`🆓 Próximo ID: ${agendamentoId}`);
-        
-        // Salvar o agendamento
-        const agendamentoRef = doc(
+        // Referência para o documento da data
+        const diaDocRef = doc(
             db,
             'agendamentos',
             lojaIdAtual,
             mesAno,
-            dataFormatada,
-            servicoId,
-            agendamentoId
+            dataFormatada
         );
         
-        await setDoc(agendamentoRef, agendamentoData);
+        // Buscar documento existente ou criar novo
+        const docSnap = await getDoc(diaDocRef);
         
-        console.log(`✅ Agendamento ${agendamentoId} salvo em ${mesAno}/${dataFormatada}/${servicoId}`);
+        let dadosAtuais = {};
+        let proximoNumero = 1;
+        
+        if (docSnap.exists()) {
+            dadosAtuais = docSnap.data();
+            
+            // Verificar quantos agendamentos já existem para este serviço
+            if (dadosAtuais[servicoId]) {
+                proximoNumero = Object.keys(dadosAtuais[servicoId]).length + 1;
+            }
+        }
+        
+        const agendamentoId = `agendamento_${proximoNumero}`;
+        
+        // Dados do agendamento
+        const novoAgendamento = {
+            cliente_email: clienteEmail,
+            cliente_nome: clienteNome,
+            cliente_telefone: clienteTelefone,
+            criado_em: serverTimestamp(),
+            data_hora_agendada: dataHoraAgendada,
+            status_agendamento: precisaValidar ? "Pendente" : "Verificado"
+        };
+        
+        // Criar estrutura aninhada para atualização
+        const dadosParaSalvar = {
+            ...dadosAtuais
+        };
+        
+        if (!dadosParaSalvar[servicoId]) {
+            dadosParaSalvar[servicoId] = {};
+        }
+        
+        dadosParaSalvar[servicoId][agendamentoId] = novoAgendamento;
+        
+        // Salvar no Firestore
+        await setDoc(diaDocRef, dadosParaSalvar, { merge: true });
+        
+        console.log(`✅ Agendamento ${agendamentoId} salvo em ${dataFormatada} para serviço ${servicoId}`);
         
         // ============================================
         // 6. MENSAGEM DE SUCESSO
@@ -3282,6 +3280,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
