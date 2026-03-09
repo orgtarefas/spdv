@@ -1354,7 +1354,7 @@ function configurarValidacaoAntesSalvar() {
 }
 
 // ============================================
-// INICIAR ESCUTA DE AGENDAMENTOS (NOVA ESTRUTURA)
+// INICIAR ESCUTA DE AGENDAMENTOS (ADMIN)
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!lojaIdAtual) {
@@ -1362,7 +1362,7 @@ function iniciarEscutaAgendamentos() {
         return;
     }
     
-    console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
+    console.log('📅 Iniciando escuta em tempo real dos agendamentos (admin)...');
     
     try {
         // Mês e ano atual para filtrar agendamentos
@@ -1379,12 +1379,12 @@ function iniciarEscutaAgendamentos() {
             mesAnoAtual
         );
         
-        // Escutar todas as datas do mês atual
+        // Escutar todas as DATAS do mês atual (cada data é um documento)
         unsubscribeAgendamentos = onSnapshot(mesRef, (snapshot) => {
             console.log(`📨 Atualização em ${mesAnoAtual}: ${snapshot.size} datas com agendamentos`);
             
             // Reconstruir lista de agendamentos
-            reconstruirListaAgendamentos();
+            reconstruirListaAgendamentosAdmin();
             
         }, (error) => {
             console.error('❌ Erro na escuta de agendamentos:', error);
@@ -1396,9 +1396,9 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// RECONSTRUIR LISTA DE AGENDAMENTOS (NOVA ESTRUTURA)
+// RECONSTRUIR LISTA DE AGENDAMENTOS (ADMIN) - ESTRUTURA MAPS
 // ============================================
-async function reconstruirListaAgendamentos() {
+async function reconstruirListaAgendamentosAdmin() {
     try {
         const agendamentosHojeTemp = [];
         const agendamentosFuturosTemp = [];
@@ -1415,7 +1415,7 @@ async function reconstruirListaAgendamentos() {
         
         console.log(`🔍 Buscando agendamentos do mês: ${mesAnoAtual}`);
         
-        // Referência para a coleção do mês atual
+        // Referência para a coleção do mês atual (lista de documentos de datas)
         const mesRef = collection(
             db,
             'agendamentos',
@@ -1428,68 +1428,54 @@ async function reconstruirListaAgendamentos() {
         
         console.log(`📊 Encontradas ${datasSnapshot.size} datas com agendamentos`);
         
-        // Para cada data, buscar os serviços e agendamentos
+        // Para cada data, processar os MAPS de serviços
         for (const dataDoc of datasSnapshot.docs) {
             const dataId = dataDoc.id; // Formato: "09_03_2026"
+            const dadosData = dataDoc.data();
+            
+            // [dia, mes, ano] já estão no dataId
             const [dia, mes, ano] = dataId.split('_').map(Number);
             
             // Criar objeto Date para a data do agendamento
             const dataAgendadaObj = new Date(ano, mes - 1, dia);
             dataAgendadaObj.setHours(0, 0, 0, 0);
             
-            // Referência para a coleção de serviços dentro desta data
-            const servicosRef = collection(
-                db,
-                'agendamentos',
-                lojaIdAtual,
-                mesAnoAtual,
-                dataId
-            );
+            console.log(`📅 Processando data: ${dataId}`);
             
-            const servicosSnapshot = await getDocs(servicosRef);
-            
-            // Para cada serviço, buscar seus agendamentos
-            for (const servicoDoc of servicosSnapshot.docs) {
-                const servicoId = servicoDoc.id;
+            // Iterar sobre cada serviço (cada chave do objeto)
+            for (const [servicoId, agendamentosMap] of Object.entries(dadosData)) {
+                console.log(`  🔧 Serviço: ${servicoId}`);
                 
-                // Buscar agendamentos deste serviço
-                const agendamentosRef = collection(
-                    db,
-                    'agendamentos',
-                    lojaIdAtual,
-                    mesAnoAtual,
-                    dataId,
-                    servicoId
-                );
-                
-                const agendamentosSnapshot = await getDocs(agendamentosRef);
-                
-                agendamentosSnapshot.forEach(agendamentoDoc => {
-                    const agendamento = agendamentoDoc.data();
-                    const agendamentoId = agendamentoDoc.id;
+                // agendamentosMap é um objeto onde as chaves são 'agendamento_1', etc.
+                for (const [agendamentoId, dados] of Object.entries(agendamentosMap || {})) {
                     
-                    if (agendamento && agendamento.data_hora_agendada) {
-                        const dataHoraAgendada = agendamento.data_hora_agendada?.toDate?.() || 
-                                                new Date(agendamento.data_hora_agendada);
+                    if (dados && dados.data_hora_agendada) {
+                        const dataHoraAgendada = dados.data_hora_agendada?.toDate?.() || 
+                                                new Date(dados.data_hora_agendada);
+                        
+                        // Extrair número para gerar senha
+                        const numeroMatch = agendamentoId.match(/\d+/);
+                        const numero = numeroMatch ? numeroMatch[0] : '1';
                         
                         // Separar agendamentos de hoje e futuros
                         if (dataHoraAgendada >= hoje && dataHoraAgendada < amanha) {
                             // Agendamento de hoje
                             agendamentosHojeTemp.push({
-                                id: `${dataId}_${servicoId}_${agendamentoId}`, // ID único para referência
+                                id: `${dataId}_${servicoId}_${agendamentoId}`,
                                 data_id: dataId,
-                                mes_ano: mesAno,
+                                mes_ano: mesAnoAtual,
                                 servico_id: servicoId,
+                                servico_nome: servicoId.replace(/_/g, ' '),
                                 agendamento_id: agendamentoId,
-                                cliente_email: agendamento.cliente_email,
-                                cliente_nome: agendamento.cliente_nome || 'Cliente',
-                                servico: servicoId,
-                                status: agendamento.status_agendamento || 'Pendente',
+                                cliente_email: dados.cliente_email,
+                                cliente_nome: dados.cliente_nome || 'Cliente',
+                                status: dados.status_agendamento || 'Pendente',
                                 data_hora: dataHoraAgendada,
                                 horario: dataHoraAgendada.toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
-                                })
+                                }),
+                                senha: gerarSenha(parseInt(numero), dados.status_agendamento)
                             });
                             
                         } else if (dataHoraAgendada >= amanha) {
@@ -1499,22 +1485,22 @@ async function reconstruirListaAgendamentos() {
                                 data_id: dataId,
                                 mes_ano: mesAnoAtual,
                                 servico_id: servicoId,
+                                servico_nome: servicoId.replace(/_/g, ' '),
                                 agendamento_id: agendamentoId,
-                                cliente_email: agendamento.cliente_email,
-                                cliente_nome: agendamento.cliente_nome || 'Cliente',
-                                servico: servicoId,
-                                status: agendamento.status_agendamento || 'Pendente',
+                                cliente_email: dados.cliente_email,
+                                cliente_nome: dados.cliente_nome || 'Cliente',
+                                status: dados.status_agendamento || 'Pendente',
                                 data: dataHoraAgendada.toISOString().split('T')[0],
                                 data_obj: dataHoraAgendada,
                                 horario: dataHoraAgendada.toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                validado: agendamento.status_agendamento === 'Verificado'
+                                validado: dados.status_agendamento === 'Verificado'
                             });
                         }
                     }
-                });
+                }
             }
         }
         
@@ -1562,7 +1548,7 @@ async function promoverParaProximo(agendamentoId) {
 }
 
 // ============================================
-// ATUALIZAR STATUS NO FIREBASE (ADMIN) - NOVA ESTRUTURA
+// ATUALIZAR STATUS NO FIREBASE (ADMIN)
 // ============================================
 async function atualizarStatusAgendamentoAdmin(agendamento, novoStatus) {
     try {
@@ -1574,47 +1560,64 @@ async function atualizarStatusAgendamentoAdmin(agendamento, novoStatus) {
         const servicoId = agendamento.servico_id;     // Ex: "corte_cabelo"
         const agendamentoId = agendamento.agendamento_id; // Ex: "agendamento_5"
         
-        // Referência para o documento do agendamento na nova estrutura
-        // agendamentos / [lojaId] / [mes_ano] / [data_id] / [servicoId] / [agendamentoId]
-        const agendamentoRef = doc(
-            db,  // Projeto spdv-3872a
+        // Validar se todos os componentes existem
+        if (!dataId || !mesAno || !servicoId || !agendamentoId) {
+            console.error('❌ Componentes do agendamento incompletos:', { dataId, mesAno, servicoId, agendamentoId });
+            return false;
+        }
+        
+        // Referência para o documento da data
+        const diaDocRef = doc(
+            db,
             'agendamentos',
             lojaIdAtual,
             mesAno,
-            dataId,
-            servicoId,
-            agendamentoId
+            dataId
         );
         
+        console.log(`🔍 Verificando documento em: agendamentos/${lojaIdAtual}/${mesAno}/${dataId}`);
+        
         // Verificar se o documento existe
-        const docSnap = await getDoc(agendamentoRef);
+        const docSnap = await getDoc(diaDocRef);
         
         if (!docSnap.exists()) {
-            console.error('❌ Agendamento não encontrado no caminho:', 
-                `agendamentos/${lojaIdAtual}/${mesAno}/${dataId}/${servicoId}/${agendamentoId}`);
+            console.error('❌ Documento da data não encontrado');
             mostrarMensagem('Agendamento não encontrado', 'error');
             return false;
         }
         
-        // Dados atuais do agendamento
         const dadosAtuais = docSnap.data();
         
+        // Verificar se o serviço e agendamento existem
+        if (!dadosAtuais[servicoId] || !dadosAtuais[servicoId][agendamentoId]) {
+            console.error('❌ Agendamento não encontrado no mapa:', {
+                temServico: !!dadosAtuais[servicoId],
+                temAgendamento: dadosAtuais[servicoId] ? !!dadosAtuais[servicoId][agendamentoId] : false
+            });
+            mostrarMensagem('Agendamento não encontrado', 'error');
+            return false;
+        }
+        
+        // Criar cópia para atualização
+        const novosDados = JSON.parse(JSON.stringify(dadosAtuais));
+        
+        // Atualizar status
+        novosDados[servicoId][agendamentoId].status_agendamento = novoStatus;
+        
         // Criar histórico de status se não existir
-        const historicoStatus = dadosAtuais.historico_status || [];
-        historicoStatus.push({
+        if (!novosDados[servicoId][agendamentoId].historico_status) {
+            novosDados[servicoId][agendamentoId].historico_status = [];
+        }
+        
+        novosDados[servicoId][agendamentoId].historico_status.push({
             status: novoStatus,
             data: new Date().toISOString(),
             alterado_por: dadosUsuario?.email || 'admin',
             timestamp: serverTimestamp()
         });
         
-        // Atualizar apenas os campos necessários
-        await updateDoc(agendamentoRef, {
-            status_agendamento: novoStatus,
-            historico_status: historicoStatus,
-            ultima_atualizacao: serverTimestamp(),
-            ultimo_status_por: dadosUsuario?.email || 'admin'
-        });
+        // Atualizar no Firestore
+        await updateDoc(diaDocRef, novosDados);
         
         console.log(`✅ Status atualizado para ${novoStatus}`);
         mostrarMensagem(`Status atualizado para ${novoStatus}`, 'success');
@@ -2660,7 +2663,64 @@ function configurarEventosDias() {
     }
 }
 
-
+// ============================================
+// FUNÇÃO DE TESTE de console PARA VERIFICAR ESTRUTURA MAPS
+// ============================================
+window.teste_estrutura_maps = async function() {
+    try {
+        console.log('🔍 TESTANDO ESTRUTURA MAPS');
+        console.log('==========================================');
+        
+        const hoje = new Date();
+        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+        const anoAtual = hoje.getFullYear();
+        const mesAnoAtual = `${mesAtual}_${anoAtual}`;
+        const diaAtual = String(hoje.getDate()).padStart(2, '0');
+        const dataFormatada = `${diaAtual}_${mesAtual}_${anoAtual}`;
+        
+        console.log(`📅 Data atual: ${dataFormatada}`);
+        
+        // Buscar documento do dia
+        const diaDocRef = doc(
+            db,
+            'agendamentos',
+            lojaIdAtual,
+            mesAnoAtual,
+            dataFormatada
+        );
+        
+        const docSnap = await getDoc(diaDocRef);
+        
+        if (!docSnap.exists()) {
+            console.log('❌ Nenhum agendamento para hoje');
+            return;
+        }
+        
+        const dados = docSnap.data();
+        console.log('📄 Dados do documento (estrutura MAPS):', dados);
+        
+        let total = 0;
+        
+        // Iterar sobre serviços
+        for (const [servico, agendamentos] of Object.entries(dados)) {
+            console.log(`\n🔧 SERVIÇO: ${servico}`);
+            
+            for (const [id, ag] of Object.entries(agendamentos)) {
+                total++;
+                const data = ag.data_hora_agendada?.toDate?.();
+                console.log(`   📌 ${id}:`);
+                console.log(`      👤 Cliente: ${ag.cliente_nome}`);
+                console.log(`      ⏰ Horário: ${data?.toLocaleTimeString('pt-BR')}`);
+                console.log(`      📝 Status: ${ag.status_agendamento}`);
+            }
+        }
+        
+        console.log(`\n✅ TOTAL: ${total} agendamentos`);
+        
+    } catch (error) {
+        console.error('❌ Erro:', error);
+    }
+};
 
 // ============================================
 // EVENTOS DE LOGIN (do Firebase Auth)
