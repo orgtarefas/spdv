@@ -3079,48 +3079,62 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }, tempo);
 }
 
+// ============================================
+// TESTE DE CONSOLE
+// ============================================
+
 window.diagnosticarAgendamentos = async function() {
     try {
         console.log('🔍 DIAGNÓSTICO DE AGENDAMENTOS');
         
-        // 1. Listar meses
+        // 1. Listar meses (coleções DENTRO do documento da loja)
         const mesesRef = collection(db, 'agendamentos', lojaIdAtual);
         const meses = await getDocs(mesesRef);
-        console.log('📅 Meses:', meses.docs.map(d => d.id));
+        console.log('📅 Meses encontrados:', meses.docs.map(d => d.id));
         
         // 2. Para cada mês, listar datas
         for (const mes of meses.docs) {
+            console.log(`\n📆 Mês: ${mes.id}`);
             const datasRef = collection(db, 'agendamentos', lojaIdAtual, mes.id);
             const datas = await getDocs(datasRef);
-            console.log(`📆 ${mes.id}:`, datas.docs.map(d => d.id));
             
-            // 3. Para cada data, listar serviços (coleções)
+            if (datas.size === 0) {
+                console.log(`   ⚠️ Nenhuma data encontrada em ${mes.id}`);
+                continue;
+            }
+            
             for (const data of datas.docs) {
-                // Não podemos listar coleções diretamente, então tentamos acessar serviços conhecidos
-                // Ou usamos a lista de serviços cadastrados
-                console.log(`🔧 Serviços em ${data.id}:`);
+                console.log(`   📅 Data: ${data.id}`);
                 
-                // Buscar serviços das configurações
+                // 3. Listar serviços (coleções dentro da data)
+                // Não podemos listar coleções diretamente, então tentamos acessar serviços conhecidos
+                // Primeiro, buscar serviços das configurações
                 const servicosConfigRef = collection(db, 'configuracoes', 'servico_agendamento', lojaIdAtual);
                 const servicosConfig = await getDocs(servicosConfigRef);
                 
                 for (const servico of servicosConfig.docs) {
                     const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, mes.id, data.id, servico.id);
                     const agendamentos = await getDocs(agendamentosRef);
+                    
                     if (agendamentos.size > 0) {
-                        console.log(`  - ${servico.id}: ${agendamentos.size} agendamentos`);
+                        console.log(`      🔧 Serviço: ${servico.id} (${agendamentos.size} agendamentos)`);
                         agendamentos.forEach(doc => {
-                            console.log(`    * ${doc.id}:`, doc.data());
+                            const dados = doc.data();
+                            console.log(`        📝 ${doc.id}: ${dados.cliente_nome} - ${dados.status_agendamento} - ${dados.data_hora_agendada?.toDate?.().toLocaleString() || dados.data_hora_agendada}`);
                         });
                     }
                 }
             }
         }
         
+        if (meses.size === 0) {
+            console.log('❌ Nenhum mês encontrado!');
+        }
+        
     } catch (error) {
-        console.error('❌ Erro:', error);
+        console.error('❌ Erro no diagnóstico:', error);
     }
-};
+};;
 
 // ============================================
 // INICIALIZAÇÃO (CORRIGIDA - EXECUTA IMEDIATAMENTE)
@@ -3189,6 +3203,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
