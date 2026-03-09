@@ -2036,75 +2036,7 @@ function abrirModalGerenciarAgendamentos() {
     // Restaurar tabela para agendamentos
     restaurarTabelaParaAgendamentos();
     
-    // Carregar lista
-    carregarListaGerenciar();
-    
     modal.classList.add('active');
-}
-
-// ============================================
-// CARREGAR LISTA GERENCIAR
-// ============================================
-async function carregarListaGerenciar() {
-    try {
-        const lista = document.getElementById('gerenciarLista');
-        if (!lista) return;
-        
-        lista.innerHTML = '<tr><td colspan="6" class="empty-row">Carregando...</td></tr>';
-        
-        // Buscar futuros e ativos
-        const futurosRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('futuros');
-        
-        const ativosRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('ativos');
-        
-        const [futurosSnap, ativosSnap] = await Promise.all([
-            futurosRef.get(),
-            ativosRef.get()
-        ]);
-        
-        todosAgendamentos = [];
-        
-        futurosSnap.forEach(doc => {
-            todosAgendamentos.push({ 
-                id: doc.id, 
-                ...doc.data(), 
-                origem: 'futuros' 
-            });
-        });
-        
-        ativosSnap.forEach(doc => {
-            todosAgendamentos.push({ 
-                id: doc.id, 
-                ...doc.data(), 
-                origem: 'ativos' 
-            });
-        });
-        
-        // Ordenar por data
-        todosAgendamentos.sort((a, b) => {
-            if (a.data < b.data) return -1;
-            if (a.data > b.data) return 1;
-            if (a.horario < b.horario) return -1;
-            if (a.horario > b.horario) return 1;
-            return 0;
-        });
-        
-        paginaAtual = 1;
-        renderizarListaGerenciar();
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar lista:', error);
-        const lista = document.getElementById('gerenciarLista');
-        if (lista) {
-            lista.innerHTML = '<tr><td colspan="6" class="empty-row">Erro ao carregar</td></tr>';
-        }
-    }
 }
 
 // ============================================
@@ -2176,9 +2108,6 @@ function renderizarListaGerenciar() {
                         <button class="btn-gerenciar btn-editar-gerenciar" onclick="editarAgendamentoGerenciar('${item.id}', '${item.origem}')">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-gerenciar btn-excluir-gerenciar" onclick="excluirAgendamentoGerenciar('${item.id}', '${item.origem}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
                     </div>
                 </td>
             </tr>
@@ -2226,35 +2155,6 @@ window.editarAgendamentoGerenciar = function(id, origem) {
     mostrarMensagem('Função de edição em desenvolvimento', 'info');
 };
 
-// ============================================
-// EXCLUIR AGENDAMENTO (GERENCIAR)
-// ============================================
-window.excluirAgendamentoGerenciar = async function(id, origem) {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
-    
-    try {
-        mostrarLoading('Excluindo agendamento...');
-        
-        await deleteDoc(
-            window.loginDb
-                .collection('agendamentos')
-                .doc(lojaIdAtual)
-                .collection(origem)
-                .doc(id)
-        );
-        
-        mostrarMensagem('Agendamento excluído com sucesso!', 'success');
-        
-        // Recarregar lista
-        carregarListaGerenciar();
-        
-    } catch (error) {
-        console.error('❌ Erro ao excluir:', error);
-        mostrarMensagem('Erro ao excluir agendamento', 'error');
-    } finally {
-        esconderLoading();
-    }
-};
 
 // ============================================
 // FUNÇÕES UTILITÁRIAS
