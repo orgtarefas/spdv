@@ -42,6 +42,7 @@ let diasExcepcionais = [];
 let todosAgendamentos = [];
 let paginaAtual = 1;
 const itensPorPagina = 10;
+let servicosConfig = {};
 
 // Configurações da loja
 let configLoja = {
@@ -628,6 +629,34 @@ async function carregarConfiguracoesLoja() {
 }
 
 // ============================================
+// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS
+// ============================================
+async function carregarConfiguracoesServicos() {
+    try {
+        const servicosRef = collection(
+            db, 
+            'configuracoes', 
+            'servico_agendamento',
+            lojaIdAtual
+        );
+        
+        const snapshot = await getDocs(servicosRef);
+        
+        servicosConfig = {};
+        snapshot.forEach(doc => {
+            servicosConfig[doc.id] = doc.data();
+        });
+        
+        console.log('📋 Configurações dos serviços carregadas:', servicosConfig);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar configurações:', error);
+        servicosConfig = {};
+    }
+}
+
+
+// ============================================
 // CARREGAR HORÁRIOS DE FUNCIONAMENTO (CORRIGIDO)
 // ============================================
 async function carregarHorariosFuncionamento() {
@@ -822,6 +851,25 @@ async function salvarConfigFuncionamento() {
     } finally {
         esconderLoading();
     }
+}
+
+// ============================================
+// GERAR SENHA BASEADA NO SERVIÇO (cópia da função do index.js)
+// ============================================
+function gerarSenha(numero, servicoId, servicosConfig = {}) {
+    let prefixo = 'S';
+    
+    if (servicosConfig[servicoId] && servicosConfig[servicoId].abreviacao) {
+        prefixo = servicosConfig[servicoId].abreviacao;
+    } else {
+        const nomePartes = servicoId.split('_');
+        if (nomePartes.length > 0) {
+            prefixo = nomePartes[0].substring(0, 3).toUpperCase();
+        }
+    }
+    
+    const numeroFormatado = numero.toString().padStart(2, '0');
+    return `${prefixo}${numeroFormatado}`;
 }
 
 // ============================================
@@ -1396,7 +1444,62 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// RECONSTRUIR LISTA DE AGENDAMENTOS (ADMIN) - ESTRUTURA MAPS
+// VARIÁVEL GLOBAL PARA CONFIGURAÇÕES DOS SERVIÇOS (adicione no topo do arquivo)
+// ============================================
+let servicosConfig = {};
+
+// ============================================
+// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS (adicione esta função)
+// ============================================
+async function carregarConfiguracoesServicos() {
+    try {
+        const servicosRef = collection(
+            db, 
+            'configuracoes', 
+            'servico_agendamento',
+            lojaIdAtual
+        );
+        
+        const snapshot = await getDocs(servicosRef);
+        
+        servicosConfig = {};
+        snapshot.forEach(doc => {
+            servicosConfig[doc.id] = doc.data();
+        });
+        
+        console.log('📋 Configurações dos serviços carregadas:', servicosConfig);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar configurações:', error);
+        servicosConfig = {};
+    }
+}
+
+// ============================================
+// GERAR SENHA BASEADA NO SERVIÇO (não no status)
+// ============================================
+function gerarSenha(numero, servicoId) {
+    // Buscar a abreviação do serviço na configuração
+    let prefixo = 'S';
+    
+    if (servicosConfig[servicoId] && servicosConfig[servicoId].abreviacao) {
+        prefixo = servicosConfig[servicoId].abreviacao;
+    } else {
+        // Fallback: pegar primeiras 3 letras do serviço em maiúsculo
+        const nomePartes = servicoId.split('_');
+        if (nomePartes.length > 0) {
+            prefixo = nomePartes[0].substring(0, 3).toUpperCase();
+        }
+    }
+    
+    // Número com 2 dígitos (01, 02, etc)
+    const numeroFormatado = numero.toString().padStart(2, '0');
+    
+    return `${prefixo}${numeroFormatado}`;
+}
+
+// ============================================
+// RECONSTRUIR LISTA DE AGENDAMENTOS (ADMIN) - COM NUMERAÇÃO POR SERVIÇO
 // ============================================
 async function reconstruirListaAgendamentosAdmin() {
     try {
@@ -1442,20 +1545,27 @@ async function reconstruirListaAgendamentosAdmin() {
             
             console.log(`📅 Processando data: ${dataId}`);
             
-            // Iterar sobre cada serviço (cada chave do objeto)
+            // 🔥 PARA CADA SERVIÇO, ORDENAR AGENDAMENTOS POR HORÁRIO
             for (const [servicoId, agendamentosMap] of Object.entries(dadosData)) {
                 console.log(`  🔧 Serviço: ${servicoId}`);
                 
-                // agendamentosMap é um objeto onde as chaves são 'agendamento_1', etc.
-                for (const [agendamentoId, dados] of Object.entries(agendamentosMap || {})) {
+                // Converter o mapa em array e ordenar por data/hora
+                const agendamentosArray = Object.entries(agendamentosMap || {})
+                    .sort((a, b) => {
+                        const dataA = a[1].data_hora_agendada?.toDate?.() || new Date(a[1].data hora_agendada);
+                        const dataB = b[1].data_hora_agendada?.toDate?.() || new Date(b[1].data_hora_agendada);
+                        return dataA - dataB;
+                    });
+                
+                // 🔥 Processar agendamentos ordenados, atribuindo números de senha baseados na posição
+                agendamentosArray.forEach(([agendamentoId, dados], index) => {
                     
                     if (dados && dados.data_hora_agendada) {
                         const dataHoraAgendada = dados.data_hora_agendada?.toDate?.() || 
                                                 new Date(dados.data_hora_agendada);
                         
-                        // Extrair número para gerar senha
-                        const numeroMatch = agendamentoId.match(/\d+/);
-                        const numero = numeroMatch ? numeroMatch[0] : '1';
+                        // 🔥 O número da senha é a posição no array + 1
+                        const numero = index + 1;
                         
                         // Separar agendamentos de hoje e futuros
                         if (dataHoraAgendada >= hoje && dataHoraAgendada < amanha) {
@@ -1465,7 +1575,7 @@ async function reconstruirListaAgendamentosAdmin() {
                                 data_id: dataId,
                                 mes_ano: mesAnoAtual,
                                 servico_id: servicoId,
-                                servico_nome: servicoId.replace(/_/g, ' '),
+                                servico_nome: servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' '),
                                 agendamento_id: agendamentoId,
                                 cliente_email: dados.cliente_email,
                                 cliente_nome: dados.cliente_nome || 'Cliente',
@@ -1475,7 +1585,9 @@ async function reconstruirListaAgendamentosAdmin() {
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                senha: gerarSenha(parseInt(numero), dados.status_agendamento)
+                                // 🔥 Usar a nova função gerarSenha com o número correto
+                                senha: gerarSenha(numero, servicoId),
+                                timestamp: dataHoraAgendada.getTime()
                             });
                             
                         } else if (dataHoraAgendada >= amanha) {
@@ -1485,7 +1597,7 @@ async function reconstruirListaAgendamentosAdmin() {
                                 data_id: dataId,
                                 mes_ano: mesAnoAtual,
                                 servico_id: servicoId,
-                                servico_nome: servicoId.replace(/_/g, ' '),
+                                servico_nome: servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' '),
                                 agendamento_id: agendamentoId,
                                 cliente_email: dados.cliente_email,
                                 cliente_nome: dados.cliente_nome || 'Cliente',
@@ -1500,12 +1612,12 @@ async function reconstruirListaAgendamentosAdmin() {
                             });
                         }
                     }
-                }
+                });
             }
         }
         
-        // Ordenar agendamentos de hoje por horário
-        agendamentosHojeTemp.sort((a, b) => a.data_hora - b.data_hora);
+        // 🔥 Ordenar agendamentos de hoje por horário (todos os serviços juntos)
+        agendamentosHojeTemp.sort((a, b) => a.timestamp - b.timestamp);
         
         // Ordenar agendamentos futuros por data/horário
         agendamentosFuturosTemp.sort((a, b) => {
