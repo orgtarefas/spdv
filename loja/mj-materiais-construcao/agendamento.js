@@ -1927,7 +1927,7 @@ function configurarCheckboxesAtendimento() {
         });
     }
     
-    // Botão concluir selecionados - AGORA USA A FUNÇÃO CORRETA
+    // ✅ CORREÇÃO AQUI: Botão concluir selecionados
     btnConcluir.addEventListener('click', async () => {
         const selecionados = Array.from(document.querySelectorAll('.checkbox-atendimento:checked'))
             .map(cb => cb.dataset.id);
@@ -1939,11 +1939,8 @@ function configurarCheckboxesAtendimento() {
             for (const id of selecionados) {
                 const agendamento = agendamentosAtivos.find(a => a.id === id);
                 if (agendamento) {
-                    await atualizarStatusAgendamentoAdmin(
-                        agendamento.cliente_email,
-                        agendamento.agendamento_key,
-                        'Concluido'
-                    );
+                    // ✅ CORRETO: Passar o objeto completo
+                    await atualizarStatusAgendamento(agendamento, 'Concluido');
                 }
             }
             mostrarMensagem(`${selecionados.length} atendimento(s) concluído(s)!`, 'success');
