@@ -3059,16 +3059,39 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 }
 
 // ============================================
-// teste
+// FUNÇÕES DE TESTE NO CONSOLE
 // ============================================
 
-// ============================================
-// teste_agendamentos - VERSÃO CORRIGIDA
-// ============================================
+window.teste_rapido = async function() {
+    try {
+        const dataDocRef = doc(db, 'agendamentos', 'mj-materiais-construcao', '03_2026', '09_03_2026');
+        const dataDoc = await getDoc(dataDocRef);
+        
+        if (!dataDoc.exists()) {
+            console.log('❌ Nenhum agendamento');
+            return;
+        }
+        
+        const dados = dataDoc.data();
+        let total = 0;
+        
+        console.log('📋 AGENDAMENTOS DO DIA:');
+        for (const [servico, agendamentos] of Object.entries(dados)) {
+            console.log(`\n🔧 ${servico}:`);
+            for (const [id, ag] of Object.entries(agendamentos)) {
+                total++;
+                const data = ag.data_hora_agendada?.toDate?.();
+                console.log(`   ${id}: ${ag.cliente_nome} - ${data?.toLocaleTimeString('pt-BR')} (${ag.status_agendamento})`);
+            }
+        }
+        
+        console.log(`\n✅ Total: ${total} agendamentos`);
+        
+    } catch (error) {
+        console.error('Erro:', error);
+    }
+};
 
-// ============================================
-// teste_agendamentos_dia_completo - Lista todos os serviços e agendamentos do dia
-// ============================================
 
 window.teste_agendamentos_dia_completo = async function() {
     try {
@@ -3259,6 +3282,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
