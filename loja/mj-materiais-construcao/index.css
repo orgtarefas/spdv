@@ -2585,11 +2585,6 @@ body {
     transform: translateY(0);
 }
 
-.agendamento-coluna:hover {
-    box-shadow: 0 12px 28px rgba(255,107,0,0.12);
-    border-color: rgba(255,107,0,0.3);
-}
-
 /* Tamanhos específicos das colunas */
 .coluna-chamando {
     flex: 1;
@@ -2677,12 +2672,6 @@ body {
     gap: 8px;
 }
 
-.item-fila-vertical:hover {
-    transform: translateX(5px);
-    background: white;
-    box-shadow: 0 4px 12px rgba(33,150,243,0.15);
-}
-
 .item-fila-vertical.chamando {
     border-left-color: #ff6b00;
     background: #fff9f0;
@@ -2710,10 +2699,6 @@ body {
 .item-fila-vertical.chamando .senha-numero {
     color: #ff6b00;
     background: #fff0e0;
-}
-
-.item-fila-vertical .senha-info {
-    flex: 1;
 }
 
 .item-fila-vertical .senha-cliente {
@@ -2790,28 +2775,6 @@ body {
 .proximos-scroll::-webkit-scrollbar-thumb {
     background: #ff6b00;
     border-radius: 10px;
-}
-
-.proximos-track {
-    display: flex;
-    gap: 15px;
-    padding: 5px;
-    min-width: min-content;
-}
-
-.proximo-card:hover {
-    transform: translateY(-5px) scale(1.02);
-    border-color: #ff6b00;
-    box-shadow: 0 15px 30px rgba(255,107,0,0.15);
-    background: white;
-}
-
-.proximo-card .senha-numero {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #ff6b00;
-    line-height: 1;
-    margin-bottom: 8px;
 }
 
 .proximo-card .senha-cliente {
@@ -3000,17 +2963,6 @@ body {
     100% { opacity: 1; }
 }
 
-.empty-agendamento i {
-    font-size: 3rem;
-    margin-bottom: 15px;
-    opacity: 0.5;
-}
-
-.empty-agendamento p {
-    margin: 0 0 15px 0;
-    font-size: 1rem;
-}
-
 .btn-agendar-pequeno {
     background: linear-gradient(135deg, #ff6b00, #ff8c40);
     color: white;
@@ -3139,11 +3091,7 @@ body {
         flex: 1 1 100%;
         min-width: 100%;
     }
-    
-    .proximos-track {
-        padding-bottom: 10px;
-    }
-    
+       
     .minha-senha-card {
         width: 100%;
         justify-content: center;
@@ -3201,11 +3149,7 @@ body {
     .agendamento-header h2 i {
         font-size: 1.5rem;
     }
-       
-    .proximo-card .senha-numero {
-        font-size: 1.8rem;
-    }
-    
+          
     .coluna-header h3 {
         font-size: 0.9rem;
     }
@@ -3516,22 +3460,6 @@ body {
     vertical-align: middle;
 }
 
-.card-chamando-item .servico-tag {
-    background: rgba(255, 255, 255, 0.2);
-    margin-bottom: 10px;
-}
-
-.card-chamando-item .senha-grande {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin: 10px 0;
-}
-
-.card-chamando-item .cliente-nome {
-    font-size: 1.2rem;
-    font-weight: 500;
-}
-
 /* ============================================
    CARDS COMPACTOS PARA EM ATENDIMENTO
    ============================================ */
@@ -3632,32 +3560,6 @@ body {
     min-height: 0; /* Importante */
 }
 
-/* ============================================
-   COLUNAS COM ALTURA FIXA E IGUAL
-   ============================================ */
-
-/* Container principal das colunas */
-.agendamento-colunas {
-    display: flex;
-    gap: 15px;
-    margin-top: 15px;
-    height: 400px; /* Altura fixa para todas as colunas */
-    min-height: 400px;
-    max-height: 400px;
-}
-
-/* Todas as colunas com a mesma altura */
-.agendamento-coluna {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    height: 100%;
-    overflow: hidden; /* Importante para manter o border-radius */
-}
-
 /* Coluna específica com largura diferente se necessário */
 .agendamento-coluna.coluna-chamando {
     flex: 1.2; /* Um pouco maior se quiser destaque */
@@ -3671,22 +3573,59 @@ body {
     flex: 1.5; /* Maior para o carrossel */
 }
 
-/* Headers fixos no topo */
+.agendamento-coluna.coluna-chamando .coluna-badge {
+    background: rgba(255,255,255,0.2);
+}
+
+/* ============================================
+   COLUNAS PADRONIZADAS - TODAS IGUAIS
+   ============================================ */
+
+/* Container principal das colunas */
+.agendamento-colunas {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    height: 400px; /* Altura fixa para todas as colunas */
+    min-height: 400px;
+    max-height: 400px;
+}
+
+/* Todas as colunas com o mesmo padrão */
+.agendamento-coluna {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.agendamento-coluna:hover {
+    box-shadow: 0 8px 20px rgba(255,107,0,0.12);
+    border-color: rgba(255,107,0,0.3);
+}
+
+/* Headers - TODOS IGUAIS (exceto cor) */
 .agendamento-coluna .coluna-header {
     flex-shrink: 0;
-    padding: 12px 15px;
+    padding: 12px 16px;
     background: #f8f9fa;
     border-bottom: 2px solid #e9ecef;
-    border-radius: 12px 12px 0 0;
+    border-radius: 16px 16px 0 0;
     display: flex;
     align-items: center;
     gap: 8px;
+    font-family: 'Inter', sans-serif;
 }
 
-/* Header da coluna de chamada com cor especial */
+/* Header da coluna EM ATENDIMENTO - só muda a cor */
 .agendamento-coluna.coluna-chamando .coluna-header {
     background: #ff6b00;
-    color: white;
     border-bottom: 2px solid #e65c00;
 }
 
@@ -3695,32 +3634,66 @@ body {
     color: white;
 }
 
-/* Badge da coluna */
+/* Headers das outras colunas - padrão */
+.agendamento-coluna.coluna-fila .coluna-header,
+.agendamento-coluna.coluna-proximos .coluna-header {
+    background: #f8f9fa;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.agendamento-coluna.coluna-fila .coluna-header i,
+.agendamento-coluna.coluna-proximos .coluna-header i {
+    color: #ff6b00;
+}
+
+.agendamento-coluna.coluna-fila .coluna-header h3,
+.agendamento-coluna.coluna-proximos .coluna-header h3 {
+    color: #1e293b;
+}
+
+/* Ícones dos headers - todos do mesmo tamanho */
+.agendamento-coluna .coluna-header i {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+/* Títulos dos headers - todos iguais */
+.agendamento-coluna .coluna-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    flex: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Badges - todas iguais */
 .agendamento-coluna .coluna-badge {
-    margin-left: auto;
-    background: rgba(0,0,0,0.1);
-    padding: 2px 8px;
-    border-radius: 12px;
+    background: #ff6b00;
+    color: white;
+    border-radius: 30px;
+    padding: 4px 10px;
     font-size: 0.8rem;
-    font-weight: bold;
+    font-weight: 700;
+    min-width: 32px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(255,107,0,0.2);
 }
 
-.agendamento-coluna.coluna-chamando .coluna-badge {
-    background: rgba(255,255,255,0.2);
-}
-
-/* Content com scroll - ocupa todo espaço disponível */
+/* Content com scroll - todas iguais */
 .agendamento-coluna .coluna-content {
     flex: 1;
     overflow-y: auto;
-    padding: 12px;
-    min-height: 0; /* Importante para o flex funcionar */
+    padding: 16px;
+    min-height: 0;
+    background: #ffffff;
 }
 
-/* Para a coluna de carrossel, overflow horizontal */
+/* Para a coluna de carrossel */
 .agendamento-coluna.coluna-proximos .coluna-content {
-    overflow: hidden; /* O carrossel gerencia o scroll */
-    padding: 12px 0 12px 12px;
+    overflow: hidden;
+    padding: 16px 0 16px 16px;
 }
 
 /* Container do carrossel */
@@ -3728,8 +3701,8 @@ body {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding-right: 12px;
+    gap: 8px;
+    padding-right: 16px;
     min-height: 0;
 }
 
@@ -3740,49 +3713,75 @@ body {
     overflow-y: hidden;
     white-space: nowrap;
     scroll-behavior: smooth;
-    padding: 5px 0;
+    padding: 4px 0;
 }
 
 .proximos-track {
     display: inline-flex;
-    gap: 10px;
+    gap: 12px;
     min-width: 100%;
 }
 
-/* Cards do carrossel */
+/* Cards do carrossel - padronizados */
 .proximo-card {
     width: 160px;
     background: white;
     border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 12px;
+    padding: 14px;
     display: inline-block;
     white-space: normal;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    transition: all 0.2s ease;
 }
 
-/* Cards de atendimento */
+.proximo-card:hover {
+    transform: translateY(-3px);
+    border-color: #ff6b00;
+    box-shadow: 0 8px 16px rgba(255,107,0,0.1);
+}
+
+/* Cards de atendimento - padronizados */
 .card-chamando-item {
-    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c40 100%);
     color: white;
-    border-radius: 6px;
-    padding: 10px 12px;
+    border-radius: 10px;
+    padding: 12px 14px;
     margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(255,107,0,0.2);
+    transition: all 0.2s ease;
 }
 
 .card-chamando-item:last-child {
     margin-bottom: 0;
 }
 
-/* Itens da fila vertical */
+.card-chamando-item:hover {
+    transform: translateX(3px);
+    box-shadow: 0 4px 12px rgba(255,107,0,0.3);
+}
+
+/* Itens da fila vertical - padronizados */
 .item-fila-vertical {
     background: white;
     border: 1px solid #e9ecef;
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 12px 14px;
     margin-bottom: 8px;
     display: flex;
     flex-direction: column;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.item-fila-vertical:last-child {
+    margin-bottom: 0;
+}
+
+.item-fila-vertical:hover {
+    transform: translateX(3px);
+    border-color: #ff6b00;
+    box-shadow: 0 4px 10px rgba(255,107,0,0.1);
 }
 
 .item-fila-vertical.urgente {
@@ -3790,41 +3789,145 @@ body {
     background: #fff8f0;
 }
 
-/* Footers fixos na parte inferior */
-.agendamento-coluna .coluna-footer {
-    flex-shrink: 0;
-    padding: 10px 15px;
-    background: #f8f9fa;
-    border-top: 1px solid #e9ecef;
-    border-radius: 0 0 12px 12px;
-    font-size: 0.85rem;
-    color: #666;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.agendamento-coluna.coluna-chamando .coluna-footer {
-    background: #fff5eb;
-    border-top: 1px solid #ffe0cc;
-}
-
-/* Tags de serviço */
+/* Tags de serviço - TODAS IGUAIS */
 .servico-tag {
-    background: #ff6b00;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
+    background: rgba(255,107,0,0.1);
+    color: #ff6b00;
+    padding: 3px 8px;
+    border-radius: 30px;
     font-size: 0.7rem;
+    font-weight: 600;
     display: inline-block;
     max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(255,107,0,0.2);
 }
 
-/* Scrollbar personalizada */
+/* Tags dentro dos cards de atendimento - versão branca */
+.card-chamando-item .servico-tag {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* Senhas - TODAS IGUAIS */
+.senha-numero {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #ff6b00;
+    display: inline-block;
+    background: #fff0e6;
+    padding: 4px 10px;
+    border-radius: 30px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(255,107,0,0.1);
+}
+
+.card-chamando-item .senha-grande {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: white;
+    background: rgba(255,255,255,0.15);
+    padding: 4px 12px;
+    border-radius: 30px;
+    display: inline-block;
+    margin: 8px 0;
+    letter-spacing: 0.5px;
+}
+
+.proximo-card .senha-numero {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+    display: inline-block;
+}
+
+/* Nomes de cliente - TODOS IGUAIS */
+.cliente-nome,
+.senha-cliente {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-chamando-item .cliente-nome {
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+/* Info da senha */
+.senha-info {
+    margin-top: 6px;
+}
+
+.senha-servico {
+    font-size: 0.75rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.senha-servico i {
+    color: #ff6b00;
+    font-size: 0.7rem;
+}
+
+/* Posição na fila */
+.senha-posicao {
+    display: inline-block;
+    background: #e9ecef;
+    color: #495057;
+    padding: 3px 10px;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+/* Footer - TODOS IGUAIS */
+.agendamento-coluna .coluna-footer {
+    flex-shrink: 0;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 16px 16px;
+    font-size: 0.8rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 45px; /* Altura fixa para todos os footers */
+    min-height: 45px;
+    max-height: 45px;
+}
+
+/* Footer da coluna EM ATENDIMENTO - só muda a cor de fundo */
+.agendamento-coluna.coluna-chamando .coluna-footer {
+    background: #fff5eb;
+    border-top: 1px solid #ffe0cc;
+    color: #ff6b00;
+}
+
+.agendamento-coluna.coluna-chamando .coluna-footer i {
+    color: #ff6b00;
+}
+
+/* Ícones do footer - todos iguais */
+.agendamento-coluna .coluna-footer i {
+    font-size: 0.9rem;
+    width: 18px;
+    color: #ff6b00;
+}
+
+/* Scrollbar personalizada - TODAS IGUAIS */
 .agendamento-coluna .coluna-content::-webkit-scrollbar,
 .proximos-scroll::-webkit-scrollbar {
     width: 4px;
@@ -3833,7 +3936,7 @@ body {
 
 .agendamento-coluna .coluna-content::-webkit-scrollbar-track,
 .proximos-scroll::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.05);
+    background: #f1f5f9;
     border-radius: 4px;
 }
 
@@ -3843,20 +3946,33 @@ body {
     border-radius: 4px;
 }
 
-/* Estados vazios */
+/* Estado vazio - TODOS IGUAIS */
 .empty-agendamento {
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: #999;
-    background: #f9f9f9;
-    border-radius: 8px;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-radius: 10px;
     padding: 20px;
+    border: 1px dashed #cbd5e1;
 }
 
-/* Dots do carrossel */
+.empty-agendamento i {
+    font-size: 2.2rem;
+    margin-bottom: 12px;
+    opacity: 0.5;
+    color: #ff6b00;
+}
+
+.empty-agendamento p {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Dots do carrossel - TODOS IGUAIS */
 .scroll-indicator-dots {
     display: flex;
     gap: 4px;
@@ -3876,3 +3992,24 @@ body {
     width: 12px;
     border-radius: 6px;
 }
+
+/* Responsividade */
+@media (max-width: 1024px) {
+    .agendamento-colunas {
+        height: auto;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .agendamento-coluna {
+        min-height: 350px;
+        height: auto;
+    }
+    
+    .agendamento-coluna.coluna-chamando,
+    .agendamento-coluna.coluna-fila,
+    .agendamento-coluna.coluna-proximos {
+        flex: none;
+    }
+}
+
