@@ -194,7 +194,7 @@ async function atualizarStatusAgendamento(clienteEmail, agendamentoKey, novoStat
 }
 
 // ============================================
-// CARREGAR AGENDAMENTOS ATIVOS - POR SERVIÇO
+// CARREGAR AGENDAMENTOS ATIVOS - CORRIGIDO (estrutura por serviço)
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!agendamentoHabilitado || !lojaIdAtual) return;
@@ -202,27 +202,23 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // Referência para TODOS os serviços da loja
-        const lojaRef = collection(
-            db,
-            'agendamentos',
-            lojaIdAtual
-        );
+        // Referência para a coleção da loja
+        const lojaRef = collection(db, 'agendamentos', lojaIdAtual);
         
         unsubscribeAgendamentos = onSnapshot(lojaRef, async (snapshot) => {
-            const agendamentosPorServico = {};
-            const todosAgendamentos = [];
+            const agendamentosAtivosTemp = [];
+            const agendamentosFuturosTemp = [];
             
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
             const amanha = new Date(hoje);
             amanha.setDate(amanha.getDate() + 1);
             
-            // Para cada serviço (Corte_de_Cabelo, Manicure, etc)
+            // Para cada SERVIÇO (teste, corte, etc)
             for (const docServico of snapshot.docs) {
-                const servicoId = docServico.id;
+                const servicoId = docServico.id; // "teste"
                 
-                // Buscar TODOS os agendamentos deste serviço
+                // Buscar todos os agendamentos DESTE serviço
                 const agendamentosRef = collection(
                     db,
                     'agendamentos',
@@ -234,73 +230,97 @@ function iniciarEscutaAgendamentos() {
                 
                 agendamentosSnap.forEach(docAgendamento => {
                     const agendamento = docAgendamento.data();
-                    const agendamentoId = docAgendamento.id;
+                    const agendamentoId = docAgendamento.id; // "agendamento_1"
                     
                     if (agendamento && agendamento.data_hora_agendada) {
+                        // Converter timestamp para Date
                         const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
                                             new Date(agendamento.data_hora_agendada);
                         
-                        // Verificar se é de hoje e status permite estar na fila
-                        if (dataAgendada >= hoje && dataAgendada < amanha && 
-                            ['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
-                            
-                            // Gerar senha baseada no serviço e número
-                            const prefixo = servicoId.substring(0, 2).toUpperCase();
-                            
-                            todosAgendamentos.push({
+                        console.log(`📅 Agendamento encontrado:`, {
+                            servico: servicoId,
+                            id: agendamentoId,
+                            data: dataAgendada.toLocaleString(),
+                            status: agendamento.status_agendamento,
+                            cliente: agendamento.cliente_nome
+                        });
+                        
+                        // Verificar se é de HOJE
+                        if (dataAgendada >= hoje && dataAgendada < amanha) {
+                            // Status que devem aparecer na fila
+                            if (['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
+                                
+                                // Gerar senha baseada no serviço
+                                const prefixo = servicoId.substring(0, 2).toUpperCase();
+                                const numero = agendamentoId.split('_')[1] || '1';
+                                
+                                agendamentosAtivosTemp.push({
+                                    id: `${servicoId}_${agendamentoId}`,
+                                    servico_id: servicoId,
+                                    servico_nome: servicoId,
+                                    agendamento_id: agendamentoId,
+                                    cliente_email: agendamento.cliente_email,
+                                    cliente_nome: agendamento.cliente_nome || 'Cliente',
+                                    cliente_telefone: agendamento.cliente_telefone || '',
+                                    status: agendamento.status_agendamento,
+                                    data_hora: dataAgendada,
+                                    horario: dataAgendada.toLocaleTimeString([], { 
+                                        hour: '2-digit', 
+                                        minute: '2-digit' 
+                                    }),
+                                    senha: `${prefixo}${numero.padStart(2, '0')}`
+                                });
+                                
+                                console.log(`✅ Adicionado à fila: ${agendamento.cliente_nome} - ${agendamento.status_agendamento}`);
+                            }
+                        } else {
+                            // Agendamentos futuros
+                            agendamentosFuturosTemp.push({
                                 id: `${servicoId}_${agendamentoId}`,
                                 servico_id: servicoId,
-                                servico_nome: servicoId.replace(/_/g, ' '),
+                                servico_nome: servicoId,
                                 agendamento_id: agendamentoId,
                                 cliente_email: agendamento.cliente_email,
-                                cliente_nome: agendamento.cliente_nome,
+                                cliente_nome: agendamento.cliente_nome || 'Cliente',
                                 status: agendamento.status_agendamento,
-                                data_hora: dataAgendada,
+                                data: dataAgendada.toISOString().split('T')[0],
                                 horario: dataAgendada.toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                senha: `${prefixo}${agendamentoId.split('_')[1].padStart(2, '0')}`
-                            });
-                            
-                            // Agrupar por serviço
-                            if (!agendamentosPorServico[servicoId]) {
-                                agendamentosPorServico[servicoId] = [];
-                            }
-                            agendamentosPorServico[servicoId].push({
-                                ...agendamento,
-                                id: `${servicoId}_${agendamentoId}`,
-                                senha: `${prefixo}${agendamentoId.split('_')[1].padStart(2, '0')}`
+                                validado: agendamento.status_agendamento === 'Verificado'
                             });
                         }
                     }
                 });
             }
             
-            // Ordenar todos por horário
-            todosAgendamentos.sort((a, b) => a.data_hora - b.data_hora);
+            // Ordenar por horário
+            agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
+            agendamentosFuturosTemp.sort((a, b) => {
+                if (a.data < b.data) return -1;
+                if (a.data > b.data) return 1;
+                if (a.horario < b.horario) return -1;
+                if (a.horario > b.horario) return 1;
+                return 0;
+            });
             
-            // Agora você tem:
-            // - todosAgendamentos: lista geral para renderizar
-            // - agendamentosPorServico: separado por serviço para controle de filas individuais
+            agendamentosAtivos = agendamentosAtivosTemp;
+            agendamentosFuturos = agendamentosFuturosTemp;
             
-            agendamentosAtivos = todosAgendamentos;
+            console.log('📋 Agendamentos de hoje:', agendamentosAtivos.length);
+            console.log('📅 Agendamentos futuros:', agendamentosFuturos.length);
             
-            console.log('📋 Agendamentos por serviço:', agendamentosPorServico);
-            console.log('📋 Total:', todosAgendamentos);
-            
-            setTimeout(() => {
-                gerenciarFilaAtendimento();
-            }, 500);
-            
+            // Renderizar
             renderizarPainelAgendamento();
             
             setTimeout(() => {
+                gerenciarFilaAtendimento();
                 inicializarCarrosselAgendamento();
             }, 100);
             
         }, (error) => {
-            console.error('❌ Erro na escuta de agendamentos:', error);
+            console.error('❌ Erro na escuta:', error);
         });
         
     } catch (error) {
@@ -2981,6 +3001,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
