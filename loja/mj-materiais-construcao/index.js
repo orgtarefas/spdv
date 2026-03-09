@@ -3080,42 +3080,35 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 }
 
 // ============================================
-// TESTE DE CONSOLE
+// FUNÇÃO DE TESTE PARA CONSOLE
 // ============================================
-
-window.verTodosAgendamentos = async function() {
+window.teste_agendamentos = async function() {
     try {
-        console.log('🔍 BUSCANDO TODOS OS AGENDAMENTOS');
+        console.log('🔍 TESTE DE AGENDAMENTOS');
         
-        // 1. Listar meses
-        const mesesRef = collection(db, 'agendamentos', 'mj-materiais-construcao');
+        // Listar meses
+        const mesesRef = collection(db, 'agendamentos', lojaIdAtual);
         const meses = await getDocs(mesesRef);
+        console.log('📅 Meses:', meses.docs.map(d => d.id));
         
         for (const mes of meses.docs) {
-            console.log(`\n📅 Mês: ${mes.id}`);
-            
-            // 2. Listar datas
-            const datasRef = collection(db, 'agendamentos', 'mj-materiais-construcao', mes.id);
+            console.log(`\n📆 Mês: ${mes.id}`);
+            const datasRef = collection(db, 'agendamentos', lojaIdAtual, mes.id);
             const datas = await getDocs(datasRef);
             
             for (const data of datas.docs) {
-                console.log(`  📆 Data: ${data.id}`);
+                console.log(`   📅 Data: ${data.id}`);
+                const servicosRef = collection(db, 'agendamentos', lojaIdAtual, mes.id, data.id);
+                const servicos = await getDocs(servicosRef);
                 
-                // 3. Listar serviços (coleções)
-                // Como não podemos listar coleções diretamente, tentamos acessar por nome
-                // Vamos tentar alguns nomes comuns ou você pode especificar
-                const servicos = ['teste', 'mecanica_avancada', 'mecanica_basica']; // Adicione seus serviços aqui
-                
-                for (const servico of servicos) {
-                    const agendamentosRef = collection(db, 'agendamentos', 'mj-materiais-construcao', mes.id, data.id, servico);
+                for (const servico of servicos.docs) {
+                    console.log(`      🔧 Serviço: ${servico.id}`);
+                    const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, mes.id, data.id, servico.id);
                     const agendamentos = await getDocs(agendamentosRef);
                     
-                    if (agendamentos.size > 0) {
-                        console.log(`    🔧 Serviço: ${servico} (${agendamentos.size} agendamentos)`);
-                        agendamentos.forEach(doc => {
-                            console.log(`      📝 ${doc.id}:`, doc.data());
-                        });
-                    }
+                    agendamentos.forEach(doc => {
+                        console.log(`         📝 ${doc.id}:`, doc.data());
+                    });
                 }
             }
         }
@@ -3192,6 +3185,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
