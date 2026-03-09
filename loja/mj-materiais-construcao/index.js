@@ -552,7 +552,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO - CORRIGIDO
+// RENDERIZAR PAINEL DE AGENDAMENTO - VERSÃO COMPLETA E CORRIGIDA
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -570,7 +570,8 @@ function renderizarPainelAgendamento() {
     // 2. PRÓXIMO A ATENDER - SEMPRE PROCURAR, INDEPENDENTE DE TER ALGUÉM EM ATENDIMENTO
     let proximoAtender = agendamentosAtivos.find(a => a.status === 'Próximo a atender');
     
-    // 3. SE NÃO TIVER PRÓXIMO, PEGA O PRIMEIRO DA FILA
+    // 3. SE NÃO TIVER PRÓXIMO DEFINIDO, PEGA O PRIMEIRO DA FILA COMO SUGESTÃO
+    let primeiroDaFila = null;
     if (!proximoAtender) {
         const fila = agendamentosAtivos.filter(a => 
             a.status !== 'Em atendimento' && 
@@ -579,21 +580,22 @@ function renderizarPainelAgendamento() {
         ).sort((a, b) => a.data_hora - b.data_hora);
         
         if (fila.length > 0) {
-            proximoAtender = fila[0];
-            console.log(`🔄 Primeiro da fila definido como próximo: ${proximoAtender.cliente_nome}`);
+            primeiroDaFila = fila[0];
+            console.log(`🔄 Primeiro da fila: ${primeiroDaFila.cliente_nome}`);
         }
     }
     
-    // 4. OUTROS NA FILA (exclui emAtendimento e proximoAtender)
+    // 4. OUTROS NA FILA (exclui emAtendimento e proximoAtender/primeiroDaFila)
     const outrosNaFila = agendamentosAtivos.filter(a => {
         if (a.id === emAtendimento?.id) return false;
         if (a.id === proximoAtender?.id) return false;
+        if (a.id === primeiroDaFila?.id) return false;
         return ['Na fila', 'Verificado', 'Pendente'].includes(a.status);
     }).sort((a, b) => a.data_hora - b.data_hora);
     
     console.log('📊 Organização:', {
         emAtendimento: emAtendimento?.cliente_nome || 'Nenhum',
-        proximoAtender: proximoAtender?.cliente_nome || 'Nenhum',
+        proximoAtender: proximoAtender?.cliente_nome || (primeiroDaFila?.cliente_nome || 'Nenhum'),
         outrosNaFila: outrosNaFila.map(a => a.cliente_nome)
     });
     
@@ -602,7 +604,7 @@ function renderizarPainelAgendamento() {
     // ============================================
     
     // Total na fila (próximo + outros)
-    const totalFila = (proximoAtender ? 1 : 0) + outrosNaFila.length;
+    const totalFila = (proximoAtender || primeiroDaFila ? 1 : 0) + outrosNaFila.length;
     
     const totalFilaBadge = document.getElementById('totalFilaBadge');
     if (totalFilaBadge) totalFilaBadge.textContent = totalFila;
@@ -659,14 +661,17 @@ function renderizarPainelAgendamento() {
     // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
-        if (proximoAtender) {
+        // Quem deve aparecer na coluna "Próximos a atender"
+        const quemMostrar = proximoAtender || primeiroDaFila;
+        
+        if (quemMostrar) {
             proximosEl.innerHTML = `
                 <div class="item-fila-vertical urgente">
-                    <span class="senha-numero">${proximoAtender.senha}</span>
+                    <span class="senha-numero">${quemMostrar.senha}</span>
                     <div class="senha-info">
-                        <span class="senha-cliente">${proximoAtender.cliente_nome}</span>
+                        <span class="senha-cliente">${quemMostrar.cliente_nome}</span>
                         <span class="senha-servico">
-                            <i class="fas fa-clock"></i> ${proximoAtender.servico_nome || proximoAtender.servico_id || 'Serviço'}
+                            <i class="fas fa-clock"></i> ${quemMostrar.servico_nome || quemMostrar.servico_id || 'Serviço'}
                         </span>
                     </div>
                 </div>
@@ -755,11 +760,20 @@ function renderizarPainelAgendamento() {
                     statusTexto = 'Aguardando';
                     statusClass = '';
                     break;
+                default:
+                    statusTexto = meuAgendamento.status;
+                    statusClass = '';
             }
             
-            document.getElementById('minhaSenhaNumero').textContent = meuAgendamento.senha || '---';
-            document.getElementById('minhaSenhaStatus').textContent = statusTexto;
-            document.getElementById('minhaSenhaStatus').className = `minha-senha-status ${statusClass}`;
+            const senhaNumeroEl = document.getElementById('minhaSenhaNumero');
+            if (senhaNumeroEl) senhaNumeroEl.textContent = meuAgendamento.senha || '---';
+            
+            const senhaStatusEl = document.getElementById('minhaSenhaStatus');
+            if (senhaStatusEl) {
+                senhaStatusEl.textContent = statusTexto;
+                senhaStatusEl.className = `minha-senha-status ${statusClass}`;
+            }
+            
             minhaSenhaContainer.style.display = 'block';
         } else {
             minhaSenhaContainer.style.display = 'none';
@@ -3113,6 +3127,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
