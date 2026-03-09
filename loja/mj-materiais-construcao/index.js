@@ -3083,34 +3083,102 @@ window.diagnosticarAgendamentos = async function() {
     try {
         console.log('🔍 DIAGNÓSTICO DE AGENDAMENTOS');
         
-        // Não podemos listar subcoleções diretamente com getDocs
-        // Vamos tentar acessar o caminho completo diretamente
+        // 1. Listar meses
+        const mesesRef = collection(db, 'agendamentos', lojaIdAtual);
+        const meses = await getDocs(mesesRef);
+        console.log('📅 Meses:', meses.docs.map(d => d.id));
         
-        console.log('📅 Tentando acessar 03_2026 diretamente...');
-        const marcoRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026');
-        
-        try {
-            const marcoSnap = await getDocs(marcoRef);
-            console.log('📆 Datas em 03_2026:', marcoSnap.docs.map(d => d.id));
+        // 2. Para cada mês, listar datas
+        for (const mes of meses.docs) {
+            const datasRef = collection(db, 'agendamentos', lojaIdAtual, mes.id);
+            const datas = await getDocs(datasRef);
+            console.log(`📆 ${mes.id}:`, datas.docs.map(d => d.id));
             
-            if (marcoSnap.docs.length > 0) {
-                const primeiraData = marcoSnap.docs[0].id;
-                console.log('🔍 Primeira data:', primeiraData);
+            // 3. Para cada data, listar serviços (coleções)
+            for (const data of datas.docs) {
+                // Não podemos listar coleções diretamente, então tentamos acessar serviços conhecidos
+                // Ou usamos a lista de serviços cadastrados
+                console.log(`🔧 Serviços em ${data.id}:`);
                 
-                const servicosRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026', primeiraData);
-                const servicosSnap = await getDocs(servicosRef);
-                console.log('🔧 Serviços encontrados:', servicosSnap.docs.map(d => d.id));
-            } else {
-                console.log('❌ Nenhuma data encontrada em 03_2026');
+                // Buscar serviços das configurações
+                const servicosConfigRef = collection(db, 'configuracoes', 'servico_agendamento', lojaIdAtual);
+                const servicosConfig = await getDocs(servicosConfigRef);
+                
+                for (const servico of servicosConfig.docs) {
+                    const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, mes.id, data.id, servico.id);
+                    const agendamentos = await getDocs(agendamentosRef);
+                    if (agendamentos.size > 0) {
+                        console.log(`  - ${servico.id}: ${agendamentos.size} agendamentos`);
+                        agendamentos.forEach(doc => {
+                            console.log(`    * ${doc.id}:`, doc.data());
+                        });
+                    }
+                }
             }
-        } catch (e) {
-            console.log('❌ 03_2026 não existe como coleção');
         }
         
     } catch (error) {
-        console.error('❌ Erro no diagnóstico:', error);
+        console.error('❌ Erro:', error);
     }
 };
+
+// ============================================
+// INICIALIZAÇÃO (CORRIGIDA - EXECUTA IMEDIATAMENTE)
+// ============================================
+(async function() {
+    console.log("📄 Inicializando clientes.js imediatamente...");
+    
+    mostrarLoading('Carregando loja...');
+    
+    try {
+        // Garantir que temos o lojaId
+        if (!lojaIdAtual) {
+            lojaIdAtual = window.lojaIdAtual || extrairLojaIdDaURL();
+        }
+        
+        console.log(`📍 Loja ID: ${lojaIdAtual}`);
+        
+        if (!lojaIdAtual) {
+            console.error('❌ Loja não identificada');
+            mostrarMensagem('Erro ao identificar a loja', 'error');
+            return;
+        }
+        
+        // Configurar favicon
+        configurarFavicon();
+        
+        // Carregar logo
+        carregarLogoLoja();
+        
+        // Carregar dados da loja (com retry)
+        await carregarDadosLoja();
+        
+        // 🔥 NOVO: Verificar se agendamento está habilitado
+        agendamentoHabilitado = await verificarAgendamentoHabilitado();
+        console.log(`📅 Agendamento habilitado para esta loja? ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
+        toggleAgendamentoContainer(agendamentoHabilitado);
+
+        if (agendamentoHabilitado) {
+            iniciarEscutaAgendamentos();
+        }
+        
+        // Configurar eventos
+        configurarEventos();
+        
+        // Carregar produtos e categorias
+        await carregarProdutos();
+        await carregarCategorias();
+        await carregarProdutosDestaque();
+        
+        esconderLoading();
+        console.log("✅ Loja clientes pronta!");
+        
+    } catch (error) {
+        console.error("❌ Erro na inicialização:", error);
+        mostrarMensagem('Erro ao carregar loja', 'error');
+        esconderLoading();
+    }
+})();
 
 // ============================================
 // EXPOR FUNÇÕES GLOBAIS
@@ -3121,6 +3189,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
