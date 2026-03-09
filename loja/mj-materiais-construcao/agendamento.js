@@ -1985,17 +1985,34 @@ async function chamarProximo(agendamentoId) {
 }
 
 // ============================================
-// SALVAR CONFIGURAÇÃO DO AGENDAMENTO (ESTRUTURA INVERTIDA)
+// SALVAR CONFIGURAÇÃO DO AGENDAMENTO - COM ABREVIAÇÃO
 // ============================================
 async function salvarCriarAgendamento() {
     try {
         const nomeServico = document.getElementById('servicoNome').value;
+        const abreviacao = document.getElementById('servicoAbreviacao').value.toUpperCase().trim();
         const descricao = document.getElementById('servicoDescricao').value;
         const permitirForaDia = document.getElementById('permitirForaDia').checked;
         const validacao = document.querySelector('input[name="validacao"]:checked')?.value || 'automatico_dia';
         
         if (!nomeServico) {
             mostrarMensagem('Nome do serviço é obrigatório', 'warning');
+            return;
+        }
+        
+        if (!abreviacao) {
+            mostrarMensagem('Abreviação da senha é obrigatória', 'warning');
+            return;
+        }
+        
+        if (abreviacao.length > 10) {
+            mostrarMensagem('Abreviação deve ter no máximo 10 caracteres', 'warning');
+            return;
+        }
+        
+        // Validar se contém apenas letras e números
+        if (!/^[A-Z0-9]+$/.test(abreviacao)) {
+            mostrarMensagem('Abreviação deve conter apenas letras e números', 'warning');
             return;
         }
         
@@ -2038,19 +2055,19 @@ async function salvarCriarAgendamento() {
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         
-        // 🔥 NOVA ESTRUTURA INVERTIDA:
-        // configuracoes / servico_agendamento / [lojaId] / [servicoId]
+        // 🔥 ESTRUTURA: configuracoes / servico_agendamento / [lojaId] / [servicoId]
         const configRef = doc(
             db, 
             'configuracoes', 
-            'servico_agendamento',  // ← Documento fixo
-            lojaIdAtual,             // ← Agora é subcoleção (ID da loja)
-            servicoId                 // ← Documento do serviço
+            'servico_agendamento',
+            lojaIdAtual,
+            servicoId
         );
         
         const configData = {
             id: servicoId,
             nome: nomeServico,
+            abreviacao: abreviacao, // 🔥 NOVO: salvar abreviação
             descricao: descricao,
             permitirForaDia: permitirForaDia,
             validacao: validacao,
