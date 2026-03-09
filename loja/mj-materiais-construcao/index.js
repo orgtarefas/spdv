@@ -140,13 +140,12 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS NO FIREBASE (NOVA ESTRUTURA)
+// ATUALIZAR STATUS NO FIREBASE - SÓ ATUALIZA SE EXISTIR
 // ============================================
 async function atualizarStatusAgendamento(servicoId, agendamentoId, novoStatus) {
     try {
         console.log(`📝 Atualizando agendamento ${agendamentoId} do serviço ${servicoId} para ${novoStatus}`);
         
-        // ✅ NOVA ESTRUTURA: agendamentos / lojaId / servicoId / agendamentoId
         const agendamentoRef = doc(
             db,
             'agendamentos',
@@ -155,6 +154,16 @@ async function atualizarStatusAgendamento(servicoId, agendamentoId, novoStatus) 
             agendamentoId
         );
         
+        // 🔥 VERIFICAR SE O DOCUMENTO EXISTE PRIMEIRO
+        const docSnap = await getDoc(agendamentoRef);
+        
+        if (!docSnap.exists()) {
+            // Se não existe, é porque ainda não foi criado (agendamento pendente ou futuro)
+            console.log(`⚠️ Agendamento ${agendamentoId} ainda não existe no Firestore - ignorando atualização`);
+            return false;
+        }
+        
+        // Só atualiza se existir
         await updateDoc(agendamentoRef, {
             status_agendamento: novoStatus
         });
@@ -395,7 +404,7 @@ function gerarSenha(numero, status) {
 }
 
 // ============================================
-// GERENCIAR FILA DE ATENDIMENTO (CORRIGIDO)
+// GERENCIAR FILA DE ATENDIMENTO - IGNORA ERROS DE DOCUMENTO INEXISTENTE
 // ============================================
 async function gerenciarFilaAtendimento() {
     try {
@@ -431,16 +440,42 @@ async function gerenciarFilaAtendimento() {
             
             if (proximoAtender) {
                 console.log(`➡️ Chamando ${proximoAtender.cliente_nome} para atendimento`);
-                const [servicoId, idAgendamento] = proximoAtender.id.split('_');
-                await atualizarStatusAgendamento(servicoId, idAgendamento, 'Em atendimento');
+                
+                const partes = proximoAtender.id.split('_');
+                const servicoId = partes[0];
+                const idAgendamento = partes.slice(1).join('_');
+                
+                // 🔥 Tenta atualizar, mas ignora se documento não existir
+                const resultado = await atualizarStatusAgendamento(servicoId, idAgendamento, 'Em atendimento');
+                
+                if (resultado) {
+                    // Só atualiza local se conseguiu no Firebase
+                    agendamentosAtivos = agendamentosAtivos.map(a => 
+                        a.id === proximoAtender.id ? { ...a, status: 'Em atendimento' } : a
+                    );
+                    renderizarPainelAgendamento();
+                }
                 return;
             }
             
             if (fila.length > 0) {
                 const primeiroDaFila = fila[0];
                 console.log(`➡️ Primeiro da fila ${primeiroDaFila.cliente_nome} vai para atendimento`);
-                const [servicoId, idAgendamento] = primeiroDaFila.id.split('_');
-                await atualizarStatusAgendamento(servicoId, idAgendamento, 'Em atendimento');
+                
+                const partes = primeiroDaFila.id.split('_');
+                const servicoId = partes[0];
+                const idAgendamento = partes.slice(1).join('_');
+                
+                // 🔥 Tenta atualizar, mas ignora se documento não existir
+                const resultado = await atualizarStatusAgendamento(servicoId, idAgendamento, 'Em atendimento');
+                
+                if (resultado) {
+                    // Só atualiza local se conseguiu no Firebase
+                    agendamentosAtivos = agendamentosAtivos.map(a => 
+                        a.id === primeiroDaFila.id ? { ...a, status: 'Em atendimento' } : a
+                    );
+                    renderizarPainelAgendamento();
+                }
                 return;
             }
         }
@@ -455,8 +490,20 @@ async function gerenciarFilaAtendimento() {
                 if (filaSemAtendimento.length > 0) {
                     const primeiroDaFila = filaSemAtendimento[0];
                     console.log(`⬆️ ${primeiroDaFila.cliente_nome} agora é o próximo a atender`);
-                    const [servicoId, idAgendamento] = primeiroDaFila.id.split('_');
-                    await atualizarStatusAgendamento(servicoId, idAgendamento, 'Próximo a atender');
+                    
+                    const partes = primeiroDaFila.id.split('_');
+                    const servicoId = partes[0];
+                    const idAgendamento = partes.slice(1).join('_');
+                    
+                    // 🔥 Tenta atualizar, mas ignora se documento não existir
+                    const resultado = await atualizarStatusAgendamento(servicoId, idAgendamento, 'Próximo a atender');
+                    
+                    if (resultado) {
+                        agendamentosAtivos = agendamentosAtivos.map(a => 
+                            a.id === primeiroDaFila.id ? { ...a, status: 'Próximo a atender' } : a
+                        );
+                        renderizarPainelAgendamento();
+                    }
                     return;
                 }
             }
@@ -3037,6 +3084,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
