@@ -438,96 +438,105 @@ function gerarSenha(numero, servicoId, servicosConfig = {}) {
 }
 
 // ============================================
-// GERENCIAR FILA DE ATENDIMENTO - IGNORA ERROS DE DOCUMENTO INEXISTENTE
+// GERENCIAR FILA DE ATENDIMENTO - INDEPENDENTE POR SERVIÇO
 // ============================================
 async function gerenciarFilaAtendimento() {
     try {
-        console.log('🔄 Gerenciando fila de atendimento...');
+        console.log('🔄 Gerenciando fila de atendimento (independente por serviço)...');
         
         if (!agendamentosAtivos || agendamentosAtivos.length === 0) {
             console.log('📭 Fila vazia');
             return;
         }
         
-        // Ordenar todos por data/hora
-        const todosOrdenados = [...agendamentosAtivos].sort((a, b) => a.data_hora - b.data_hora);
+        // Agrupar agendamentos por serviço
+        const agendamentosPorServico = {};
         
-        // Identificar status atuais
-        const emAtendimento = todosOrdenados.find(a => a.status === 'Em atendimento');
-        const proximoAtender = todosOrdenados.find(a => a.status === 'Próximo a atender');
-        
-        // Filtrar quem está na fila
-        const fila = todosOrdenados.filter(a => 
-            a.status !== 'Em atendimento' && 
-            (a.status === 'Na fila' || a.status === 'Verificado' || a.status === 'Próximo a atender')
-        );
-        
-        console.log('📊 Status atual:', {
-            emAtendimento: emAtendimento?.cliente_nome || 'ninguém',
-            proximoAtender: proximoAtender?.cliente_nome || 'ninguém',
-            naFila: fila.length
+        agendamentosAtivos.forEach(ag => {
+            if (!agendamentosPorServico[ag.servico_id]) {
+                agendamentosPorServico[ag.servico_id] = [];
+            }
+            agendamentosPorServico[ag.servico_id].push(ag);
         });
         
-        // REGRA 1: SE NÃO TEM NINGUÉM EM ATENDIMENTO
-        if (!emAtendimento) {
-            console.log('📞 Ninguém em atendimento - preciso chamar alguém');
-            
-            if (proximoAtender) {
-                console.log(`➡️ Chamando ${proximoAtender.cliente_nome} para atendimento`);
-                
-                // Usar o objeto completo
-                const resultado = await atualizarStatusAgendamento(proximoAtender, 'Em atendimento');
-                
-                if (resultado) {
-                    agendamentosAtivos = agendamentosAtivos.map(a => 
-                        a.id === proximoAtender.id ? { ...a, status: 'Em atendimento' } : a
-                    );
-                    renderizarPainelAgendamento();
-                }
-                return;
-            }
-            
-            if (fila.length > 0) {
-                const primeiroDaFila = fila[0];
-                console.log(`➡️ Primeiro da fila ${primeiroDaFila.cliente_nome} vai para atendimento`);
-                
-                const resultado = await atualizarStatusAgendamento(primeiroDaFila, 'Em atendimento');
-                
-                if (resultado) {
-                    agendamentosAtivos = agendamentosAtivos.map(a => 
-                        a.id === primeiroDaFila.id ? { ...a, status: 'Em atendimento' } : a
-                    );
-                    renderizarPainelAgendamento();
-                }
-                return;
-            }
-        }
+        console.log('📊 Agendamentos por serviço:', Object.keys(agendamentosPorServico).length);
         
-        // REGRA 2: SE TEM ALGUÉM EM ATENDIMENTO
-        if (emAtendimento) {
-            console.log(`👤 Em atendimento: ${emAtendimento.cliente_nome}`);
+        // Processar cada serviço independentemente
+        for (const [servicoId, agendamentos] of Object.entries(agendamentosPorServico)) {
+            console.log(`\n🔧 Processando serviço: ${servicoId} (${agendamentos.length} agendamentos)`);
             
-            if (!proximoAtender && fila.length > 0) {
-                const filaSemAtendimento = fila.filter(a => a.id !== emAtendimento.id);
+            // Ordenar por data/hora
+            const ordenados = agendamentos.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Identificar status atuais para este serviço
+            const emAtendimento = ordenados.find(a => a.status === 'Em atendimento');
+            const proximoAtender = ordenados.find(a => a.status === 'Próximo a atender');
+            
+            // Filtrar quem está na fila (exclui Em atendimento)
+            const fila = ordenados.filter(a => 
+                a.status !== 'Em atendimento' && 
+                ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
+            );
+            
+            console.log(`  📊 Status atual do serviço ${servicoId}:`, {
+                emAtendimento: emAtendimento?.cliente_nome || 'ninguém',
+                proximoAtender: proximoAtender?.cliente_nome || 'ninguém',
+                naFila: fila.length
+            });
+            
+            // REGRA 1: SE NÃO TEM NINGUÉM EM ATENDIMENTO NESTE SERVIÇO
+            if (!emAtendimento) {
+                console.log(`  📞 Ninguém em atendimento no serviço ${servicoId} - preciso chamar alguém`);
                 
-                if (filaSemAtendimento.length > 0) {
-                    const primeiroDaFila = filaSemAtendimento[0];
-                    console.log(`⬆️ ${primeiroDaFila.cliente_nome} agora é o próximo a atender`);
+                if (proximoAtender) {
+                    console.log(`  ➡️ Chamando ${proximoAtender.cliente_nome} para atendimento no serviço ${servicoId}`);
                     
-                    const resultado = await atualizarStatusAgendamento(primeiroDaFila, 'Próximo a atender');
+                    const resultado = await atualizarStatusAgendamento(proximoAtender, 'Em atendimento');
                     
                     if (resultado) {
-                        agendamentosAtivos = agendamentosAtivos.map(a => 
-                            a.id === primeiroDaFila.id ? { ...a, status: 'Próximo a atender' } : a
-                        );
-                        renderizarPainelAgendamento();
+                        // Não precisamos atualizar localmente, o onSnapshot vai atualizar
+                        console.log(`  ✅ ${proximoAtender.cliente_nome} agora está em atendimento`);
                     }
-                    return;
+                    continue; // Passa para o próximo serviço
+                }
+                
+                if (fila.length > 0) {
+                    const primeiroDaFila = fila[0];
+                    console.log(`  ➡️ Primeiro da fila ${primeiroDaFila.cliente_nome} vai para atendimento no serviço ${servicoId}`);
+                    
+                    const resultado = await atualizarStatusAgendamento(primeiroDaFila, 'Em atendimento');
+                    
+                    if (resultado) {
+                        console.log(`  ✅ ${primeiroDaFila.cliente_nome} agora está em atendimento`);
+                    }
+                    continue; // Passa para o próximo serviço
+                }
+            }
+            
+            // REGRA 2: SE TEM ALGUÉM EM ATENDIMENTO NESTE SERVIÇO
+            if (emAtendimento) {
+                console.log(`  👤 Em atendimento no serviço ${servicoId}: ${emAtendimento.cliente_nome}`);
+                
+                // Se não tem próximo definido e tem fila, promover o primeiro da fila
+                if (!proximoAtender && fila.length > 0) {
+                    // Filtrar para não incluir quem já está em atendimento
+                    const filaSemAtendimento = fila.filter(a => a.id !== emAtendimento.id);
+                    
+                    if (filaSemAtendimento.length > 0) {
+                        const primeiroDaFila = filaSemAtendimento[0];
+                        console.log(`  ⬆️ ${primeiroDaFila.cliente_nome} agora é o próximo a atender no serviço ${servicoId}`);
+                        
+                        const resultado = await atualizarStatusAgendamento(primeiroDaFila, 'Próximo a atender');
+                        
+                        if (resultado) {
+                            console.log(`  ✅ ${primeiroDaFila.cliente_nome} promovido a próximo`);
+                        }
+                    }
                 }
             }
         }
         
-        console.log('✅ Fila está organizada corretamente');
+        console.log('✅ Fila organizada corretamente (todos os serviços processados)');
         
     } catch (error) {
         console.error('❌ Erro ao gerenciar fila:', error);
@@ -535,7 +544,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO - VERSÃO COMPLETA E CORRIGIDA
+// RENDERIZAR PAINEL DE AGENDAMENTO - COM SEPARAÇÃO POR SERVIÇO
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -544,50 +553,34 @@ function renderizarPainelAgendamento() {
     console.log('Agendamentos ativos:', agendamentosAtivos);
     
     // ============================================
-    // ORGANIZAR POR STATUS (FLUXO AUTOMÁTICO)
+    // ORGANIZAR POR STATUS (independente do serviço para visualização)
     // ============================================
     
-    // 1. EM ATENDIMENTO (prioridade máxima)
-    let emAtendimento = agendamentosAtivos.find(a => a.status === 'Em atendimento');
+    // 1. EM ATENDIMENTO (todos os serviços)
+    const emAtendimento = agendamentosAtivos.filter(a => a.status === 'Em atendimento');
     
-    // 2. PRÓXIMO A ATENDER - SEMPRE PROCURAR, INDEPENDENTE DE TER ALGUÉM EM ATENDIMENTO
-    let proximoAtender = agendamentosAtivos.find(a => a.status === 'Próximo a atender');
+    // 2. PRÓXIMOS A ATENDER (todos os serviços)
+    const proximosAtender = agendamentosAtivos.filter(a => a.status === 'Próximo a atender');
     
-    // 3. SE NÃO TIVER PRÓXIMO DEFINIDO, PEGA O PRIMEIRO DA FILA COMO SUGESTÃO
-    let primeiroDaFila = null;
-    if (!proximoAtender) {
-        const fila = agendamentosAtivos.filter(a => 
-            a.status !== 'Em atendimento' && 
-            a.status !== 'Próximo a atender' &&
-            ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
-        ).sort((a, b) => a.data_hora - b.data_hora);
-        
-        if (fila.length > 0) {
-            primeiroDaFila = fila[0];
-            console.log(`🔄 Primeiro da fila: ${primeiroDaFila.cliente_nome}`);
-        }
-    }
-    
-    // 4. OUTROS NA FILA (exclui emAtendimento e proximoAtender/primeiroDaFila)
-    const outrosNaFila = agendamentosAtivos.filter(a => {
-        if (a.id === emAtendimento?.id) return false;
-        if (a.id === proximoAtender?.id) return false;
-        if (a.id === primeiroDaFila?.id) return false;
-        return ['Na fila', 'Verificado', 'Pendente'].includes(a.status);
-    }).sort((a, b) => a.data_hora - b.data_hora);
+    // 3. OUTROS NA FILA (todos os serviços, ordenados por horário)
+    const outrosNaFila = agendamentosAtivos.filter(a => 
+        a.status !== 'Em atendimento' && 
+        a.status !== 'Próximo a atender' &&
+        ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
+    ).sort((a, b) => a.timestamp - b.timestamp);
     
     console.log('📊 Organização:', {
-        emAtendimento: emAtendimento?.cliente_nome || 'Nenhum',
-        proximoAtender: proximoAtender?.cliente_nome || (primeiroDaFila?.cliente_nome || 'Nenhum'),
-        outrosNaFila: outrosNaFila.map(a => a.cliente_nome)
+        emAtendimento: emAtendimento.map(a => `${a.servico_nome}: ${a.cliente_nome}`),
+        proximosAtender: proximosAtender.map(a => `${a.servico_nome}: ${a.cliente_nome}`),
+        outrosNaFila: outrosNaFila.length
     });
     
     // ============================================
     // ATUALIZAR BADGES E CONTADORES
     // ============================================
     
-    // Total na fila (próximo + outros)
-    const totalFila = (proximoAtender || primeiroDaFila ? 1 : 0) + outrosNaFila.length;
+    // Total na fila (próximos + outros)
+    const totalFila = proximosAtender.length + outrosNaFila.length;
     
     const totalFilaBadge = document.getElementById('totalFilaBadge');
     if (totalFilaBadge) totalFilaBadge.textContent = totalFila;
@@ -605,16 +598,20 @@ function renderizarPainelAgendamento() {
     // ============================================
     const chamandoEl = document.getElementById('chamandoAgoraCard');
     if (chamandoEl) {
-        if (emAtendimento) {
-            chamandoEl.innerHTML = `
-                <div class="card-chamando-destaque">
-                    <div class="senha-grande">${emAtendimento.senha || '---'}</div>
-                    <div class="cliente-nome">${emAtendimento.cliente_nome}</div>
-                    <div class="servico-nome">
-                        <i class="fas fa-clock"></i> ${emAtendimento.servico_nome || emAtendimento.servico_id || 'Serviço'}
+        if (emAtendimento.length > 0) {
+            let html = '';
+            emAtendimento.forEach(item => {
+                html += `
+                    <div class="card-chamando-item">
+                        <div class="servico-tag" style="background: #ff6b00; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-bottom: 5px; display: inline-block;">
+                            ${item.servico_nome || item.servico_id}
+                        </div>
+                        <div class="senha-grande">${item.senha || '---'}</div>
+                        <div class="cliente-nome">${item.cliente_nome}</div>
                     </div>
-                </div>
-            `;
+                `;
+            });
+            chamandoEl.innerHTML = html;
             
             // Atualizar última hora chamada
             const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
@@ -629,7 +626,7 @@ function renderizarPainelAgendamento() {
             chamandoEl.innerHTML = `
                 <div class="empty-agendamento">
                     <i class="fas fa-check-circle"></i>
-                    <p>Nenhum chamado no momento</p>
+                    <p>Nenhum atendimento no momento</p>
                 </div>
             `;
             
@@ -644,21 +641,22 @@ function renderizarPainelAgendamento() {
     // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
-        // Quem deve aparecer na coluna "Próximos a atender"
-        const quemMostrar = proximoAtender || primeiroDaFila;
-        
-        if (quemMostrar) {
-            proximosEl.innerHTML = `
-                <div class="item-fila-vertical urgente">
-                    <span class="senha-numero">${quemMostrar.senha}</span>
-                    <div class="senha-info">
-                        <span class="senha-cliente">${quemMostrar.cliente_nome}</span>
-                        <span class="senha-servico">
-                            <i class="fas fa-clock"></i> ${quemMostrar.servico_nome || quemMostrar.servico_id || 'Serviço'}
-                        </span>
+        if (proximosAtender.length > 0) {
+            let html = '';
+            proximosAtender.forEach(item => {
+                html += `
+                    <div class="item-fila-vertical urgente">
+                        <div class="servico-tag" style="background: #ff6b00; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-bottom: 5px; display: inline-block;">
+                            ${item.servico_nome || item.servico_id}
+                        </div>
+                        <span class="senha-numero">${item.senha}</span>
+                        <div class="senha-info">
+                            <span class="senha-cliente">${item.cliente_nome}</span>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            });
+            proximosEl.innerHTML = html;
         } else {
             proximosEl.innerHTML = `
                 <div class="empty-agendamento">
@@ -681,11 +679,11 @@ function renderizarPainelAgendamento() {
                 
                 html += `
                     <div class="proximo-card">
+                        <div class="servico-tag" style="background: #ff6b00; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-bottom: 5px; display: inline-block;">
+                            ${item.servico_nome || item.servico_id}
+                        </div>
                         <div class="senha-numero">${item.senha}</div>
                         <div class="senha-cliente">${item.cliente_nome}</div>
-                        <div class="senha-servico">
-                            <i class="fas fa-clock"></i> ${item.servico_nome || item.servico_id || 'Serviço'}
-                        </div>
                         <span class="senha-posicao">${posicao}° na fila</span>
                     </div>
                 `;
@@ -703,7 +701,6 @@ function renderizarPainelAgendamento() {
                         <div class="senha-numero">--</div>
                         <div class="senha-info">
                             <span class="senha-cliente">Aguardando...</span>
-                            <span class="senha-servico">---</span>
                         </div>
                     </div>
                 `;
@@ -753,7 +750,7 @@ function renderizarPainelAgendamento() {
             
             const senhaStatusEl = document.getElementById('minhaSenhaStatus');
             if (senhaStatusEl) {
-                senhaStatusEl.textContent = statusTexto;
+                senhaStatusEl.textContent = `${meuAgendamento.servico_nome} - ${statusTexto}`;
                 senhaStatusEl.className = `minha-senha-status ${statusClass}`;
             }
             
@@ -3127,5 +3124,6 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
