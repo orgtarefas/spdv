@@ -3066,90 +3066,126 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 // teste_agendamentos - VERSÃO CORRIGIDA
 // ============================================
 
-window.teste_agendamentos = async function() {
+// ============================================
+// teste_agendamentos_dia_completo - Lista todos os serviços e agendamentos do dia
+// ============================================
+
+window.teste_agendamentos_dia_completo = async function() {
     try {
-        console.log('🔍 ACESSANDO agendamento_1 DIRETAMENTE');
+        console.log('🔍 LISTANDO TODOS OS AGENDAMENTOS DO DIA 09/03/2026');
+        console.log('==========================================');
         
-        // CAMINHO COMPLETO até agendamento_1
-        const docRef = doc(
+        // Referência para a data específica
+        const dataRef = collection(
             db, 
             'agendamentos', 
             'mj-materiais-construcao', 
             '03_2026', 
-            '09_03_2026', 
-            'mecanica_avancada',  // ← serviço correto
-            'agendamento_1'
+            '09_03_2026'
         );
         
-        const docSnap = await getDoc(docRef);
+        // Buscar todos os serviços (coleções) desta data
+        const servicos = await getDocs(dataRef);
         
-        if (docSnap.exists()) {
-            console.log('✅ AGENDAMENTO ENCONTRADO!');
+        if (servicos.empty) {
+            console.log('❌ Nenhum serviço encontrado para esta data');
+            return;
+        }
+        
+        console.log(`📋 Encontrados ${servicos.size} serviços com agendamentos:`);
+        console.log('Serviços:', servicos.docs.map(doc => doc.id));
+        console.log('==========================================\n');
+        
+        let totalAgendamentos = 0;
+        const todosAgendamentos = [];
+        
+        // Para cada serviço, buscar seus agendamentos
+        for (const servicoDoc of servicos.docs) {
+            const nomeServico = servicoDoc.id;
+            console.log(`🔧 SERVIÇO: ${nomeServico}`);
+            console.log('------------------------');
             
-            // Pegar os dados brutos
-            const dados = docSnap.data();
+            // Referência para a coleção de agendamentos deste serviço
+            const agendamentosRef = collection(
+                db, 
+                'agendamentos', 
+                'mj-materiais-construcao', 
+                '03_2026', 
+                '09_03_2026',
+                nomeServico
+            );
             
-            // Converter Timestamps para formato legível
-            const dadosFormatados = {
-                ...dados,
-                // Converter data_hora_agendada
-                data_hora_agendada: dados.data_hora_agendada?.toDate 
-                    ? dados.data_hora_agendada.toDate().toLocaleString('pt-BR', { 
-                        timeZone: 'America/Sao_Paulo' 
-                      })
-                    : dados.data_hora_agendada,
-                
-                // Converter criado_em
-                criado_em: dados.criado_em?.toDate
-                    ? dados.criado_em.toDate().toLocaleString('pt-BR', {
-                        timeZone: 'America/Sao_Paulo'
-                      })
-                    : dados.criado_em
-            };
+            // Buscar todos os documentos de agendamento (agendamento_1, agendamento_2, etc)
+            const agendamentos = await getDocs(agendamentosRef);
             
-            console.log('📄 Dados (com Timestamps convertidos):', dadosFormatados);
-            
-            // Mostrar também os dados originais para comparação
-            console.log('📄 Dados originais (com Timestamp):', dados);
-            
-            // Verificar se os campos importantes existem
-            console.log('📊 Verificação de campos:');
-            console.log('- data_hora_agendada:', dados.data_hora_agendada ? '✅' : '❌');
-            console.log('- criado_em:', dados.criado_em ? '✅' : '❌');
-            console.log('- cliente_nome:', dados.cliente_nome ? '✅' : '❌');
-            console.log('- status_agendamento:', dados.status_agendamento ? '✅' : '❌');
-            
-            // Se quiser testar uma conversão específica
-            if (dados.data_hora_agendada) {
-                const dataObj = dados.data_hora_agendada.toDate();
-                console.log('📅 Data agendada (objeto Date):', dataObj);
-                console.log('📅 Data agendada (formatada):', 
-                    dataObj.toLocaleDateString('pt-BR') + ' às ' + 
-                    dataObj.toLocaleTimeString('pt-BR')
-                );
+            if (agendamentos.empty) {
+                console.log('   ⚠️ Nenhum agendamento para este serviço\n');
+                continue;
             }
             
-        } else {
-            console.log('❌ agendamento_1 NÃO encontrado');
+            console.log(`   📊 Total: ${agendamentos.size} agendamento(s)`);
             
-            // Diagnóstico: verificar o que existe
-            console.log('\n🔍 DIAGNÓSTICO:');
-            
-            // Verificar meses
-            const mesesRef = collection(db, 'agendamentos', 'mj-materiais-construcao');
-            const meses = await getDocs(mesesRef);
-            console.log('📅 Meses:', meses.docs.map(d => d.id));
-            
-            // Verificar datas em 03_2026
-            const datasRef = collection(db, 'agendamentos', 'mj-materiais-construcao', '03_2026');
-            const datas = await getDocs(datasRef);
-            console.log('📆 Datas em 03_2026:', datas.docs.map(d => d.id));
-            
-            // Verificar serviços em 09_03_2026
-            const servicosRef = collection(db, 'agendamentos', 'mj-materiais-construcao', '03_2026', '09_03_2026');
-            const servicos = await getDocs(servicosRef);
-            console.log('🔧 Serviços em 09_03_2026:', servicos.docs.map(d => d.id));
+            // Processar cada agendamento
+            for (const agendamentoDoc of agendamentos.docs) {
+                totalAgendamentos++;
+                const dados = agendamentoDoc.data();
+                const idAgendamento = agendamentoDoc.id;
+                
+                // Formatar os dados
+                const agendamentoFormatado = {
+                    id: idAgendamento,
+                    servico: nomeServico,
+                    cliente_nome: dados.cliente_nome || 'N/A',
+                    cliente_telefone: dados.cliente_telefone || 'N/A',
+                    cliente_email: dados.cliente_email || 'N/A',
+                    status: dados.status_agendamento || 'N/A',
+                    
+                    // Converter Timestamps
+                    data_hora_agendada: dados.data_hora_agendada?.toDate 
+                        ? dados.data_hora_agendada.toDate() 
+                        : null,
+                    criado_em: dados.criado_em?.toDate 
+                        ? dados.criado_em.toDate() 
+                        : null,
+                    
+                    // Versões formatadas
+                    data_hora_agendada_str: dados.data_hora_agendada?.toDate 
+                        ? dados.data_hora_agendada.toDate().toLocaleString('pt-BR', { 
+                            timeZone: 'America/Sao_Paulo',
+                            dateStyle: 'short',
+                            timeStyle: 'short'
+                          })
+                        : 'N/A',
+                    criado_em_str: dados.criado_em?.toDate 
+                        ? dados.criado_em.toDate().toLocaleString('pt-BR', { 
+                            timeZone: 'America/Sao_Paulo',
+                            dateStyle: 'short',
+                            timeStyle: 'short'
+                          })
+                        : 'N/A'
+                };
+                
+                todosAgendamentos.push(agendamentoFormatado);
+                
+                // Exibir o agendamento
+                console.log(`   📅 ${idAgendamento}:`);
+                console.log(`      👤 Cliente: ${agendamentoFormatado.cliente_nome}`);
+                console.log(`      📞 Telefone: ${agendamentoFormatado.cliente_telefone}`);
+                console.log(`      📧 Email: ${agendamentoFormatado.cliente_email}`);
+                console.log(`      ⏰ Data/Hora: ${agendamentoFormatado.data_hora_agendada_str}`);
+                console.log(`      📝 Status: ${agendamentoFormatado.status}`);
+                console.log(`      🕐 Criado em: ${agendamentoFormatado.criado_em_str}`);
+                console.log('      ---');
+            }
+            console.log(''); // Linha em branco entre serviços
         }
+        
+        console.log('==========================================');
+        console.log(`✅ TOTAL GERAL: ${totalAgendamentos} agendamento(s) encontrados`);
+        console.log('==========================================');
+        
+        // Retornar todos os agendamentos para uso posterior
+        return todosAgendamentos;
         
     } catch (error) {
         console.error('❌ Erro:', error);
@@ -3223,6 +3259,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
