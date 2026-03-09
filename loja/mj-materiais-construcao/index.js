@@ -3083,39 +3083,28 @@ window.diagnosticarAgendamentos = async function() {
     try {
         console.log('🔍 DIAGNÓSTICO DE AGENDAMENTOS');
         
-        // 1. Direto para os meses (coleções) dentro de agendamentos/lojaId
-        const mesesRef = collection(db, 'agendamentos', lojaIdAtual);
-        const mesesSnap = await getDocs(mesesRef);
-        console.log('📅 Meses encontrados:', mesesSnap.docs.map(d => d.id));
+        // Não podemos listar subcoleções diretamente com getDocs
+        // Vamos tentar acessar o caminho completo diretamente
         
-        // 2. Verificar março/2026
-        if (mesesSnap.docs.some(d => d.id === '03_2026')) {
-            const marcoRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026');
+        console.log('📅 Tentando acessar 03_2026 diretamente...');
+        const marcoRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026');
+        
+        try {
             const marcoSnap = await getDocs(marcoRef);
             console.log('📆 Datas em 03_2026:', marcoSnap.docs.map(d => d.id));
             
-            // 3. Verificar serviços dentro da primeira data
             if (marcoSnap.docs.length > 0) {
                 const primeiraData = marcoSnap.docs[0].id;
-                console.log('🔍 Verificando data:', primeiraData);
+                console.log('🔍 Primeira data:', primeiraData);
                 
                 const servicosRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026', primeiraData);
                 const servicosSnap = await getDocs(servicosRef);
                 console.log('🔧 Serviços encontrados:', servicosSnap.docs.map(d => d.id));
-                
-                // 4. Verificar agendamentos no primeiro serviço
-                if (servicosSnap.docs.length > 0) {
-                    const primeiroServico = servicosSnap.docs[0].id;
-                    const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026', primeiraData, primeiroServico);
-                    const agendamentosSnap = await getDocs(agendamentosRef);
-                    console.log(`📋 Agendamentos em ${primeiroServico}:`, agendamentosSnap.docs.map(d => ({
-                        id: d.id,
-                        ...d.data()
-                    })));
-                }
+            } else {
+                console.log('❌ Nenhuma data encontrada em 03_2026');
             }
-        } else {
-            console.log('❌ Mês 03_2026 não encontrado!');
+        } catch (e) {
+            console.log('❌ 03_2026 não existe como coleção');
         }
         
     } catch (error) {
@@ -3132,6 +3121,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
