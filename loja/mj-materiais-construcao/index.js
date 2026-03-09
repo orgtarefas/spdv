@@ -138,53 +138,26 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS NO FIREBASE (CORRIGIDO - SEM CONCATENAÇÃO)
+// ATUALIZAR STATUS NO FIREBASE (NOVA ESTRUTURA)
 // ============================================
-async function atualizarStatusAgendamento(clienteEmail, agendamentoKey, novoStatus) {
+async function atualizarStatusAgendamento(servicoId, agendamentoId, novoStatus) {
     try {
-        console.log(`📝 Atualizando agendamento ${agendamentoKey} do cliente ${clienteEmail} para ${novoStatus}`);
+        console.log(`📝 Atualizando agendamento ${agendamentoId} do serviço ${servicoId} para ${novoStatus}`);
         
+        // ✅ NOVA ESTRUTURA: agendamentos / lojaId / servicoId / agendamentoId
         const agendamentoRef = doc(
-            db,  // Projeto spdv-3872a
+            db,
             'agendamentos',
             lojaIdAtual,
-            'agendamento_clientes',
-            clienteEmail
+            servicoId,
+            agendamentoId
         );
         
-        const agendamentoDoc = await getDoc(agendamentoRef);
-        
-        if (!agendamentoDoc.exists()) {
-            console.error('❌ Documento do cliente não encontrado:', clienteEmail);
-            return false;
-        }
-        
-        const dadosCliente = agendamentoDoc.data();
-        
-        if (!dadosCliente[agendamentoKey]) {
-            console.error('❌ Agendamento não encontrado. Chaves disponíveis:', Object.keys(dadosCliente));
-            return false;
-        }
-        
-        // Atualizar status
-        dadosCliente[agendamentoKey].status_agendamento = novoStatus;
-        
-        // Adicionar ao histórico
-        if (!dadosCliente[agendamentoKey].historico_status) {
-            dadosCliente[agendamentoKey].historico_status = [];
-        }
-        
-        dadosCliente[agendamentoKey].historico_status.push({
-            status: novoStatus,
-            data: new Date().toISOString(),
-            alterado_por: 'sistema_auto'
+        await updateDoc(agendamentoRef, {
+            status_agendamento: novoStatus
         });
         
-        // Salvar no Firebase
-        await setDoc(agendamentoRef, dadosCliente);
-        
         console.log(`✅ Status atualizado para ${novoStatus}`);
-        
         return true;
         
     } catch (error) {
@@ -382,48 +355,19 @@ async function chamarProximo(agendamentoId) {
         const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
         if (!agendamento) return;
         
-        // 🔥 CORREÇÃO: Atualizar no Firebase
-        const [clienteEmail, agendamentoKey] = agendamento.id.split('_');
+        // Extrair serviço e ID do agendamento
+        const [servicoId, idAgendamento] = agendamento.id.split('_');
         
-        const agendamentoRef = doc(
-            db,  // 👈 Usar db (spdv-3872a)
-            'agendamentos',
-            lojaIdAtual,
-            'agendamento_clientes',
-            clienteEmail
+        // ✅ NOVA ESTRUTURA
+        await atualizarStatusAgendamento(servicoId, idAgendamento, 'Em atendimento');
+        
+        // Atualizar localmente
+        agendamentosAtivos = agendamentosAtivos.map(a => 
+            a.id === agendamentoId ? { ...a, status: 'Em atendimento' } : a
         );
         
-        // Buscar dados atuais
-        const agendamentoDoc = await getDoc(agendamentoRef);
-        
-        if (agendamentoDoc.exists()) {
-            const dadosCliente = agendamentoDoc.data();
-            
-            // Atualizar status
-            dadosCliente[agendamentoKey].status_agendamento = 'Em atendimento';
-            
-            // Adicionar ao histórico
-            if (!dadosCliente[agendamentoKey].historico_status) {
-                dadosCliente[agendamentoKey].historico_status = [];
-            }
-            
-            dadosCliente[agendamentoKey].historico_status.push({
-                status: 'Em atendimento',
-                data: new Date().toISOString(),
-                alterado_por: dadosUsuario?.email || 'sistema'
-            });
-            
-            // Salvar no Firebase
-            await setDoc(agendamentoRef, dadosCliente);
-            
-            // Atualizar localmente
-            agendamentosAtivos = agendamentosAtivos.map(a => 
-                a.id === agendamentoId ? { ...a, status: 'Em atendimento' } : a
-            );
-            
-            renderizarPainelAgendamento();
-            mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome}`, 'success');
-        }
+        renderizarPainelAgendamento();
+        mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome}`, 'success');
         
     } catch (error) {
         console.error('❌ Erro ao chamar próximo:', error);
@@ -448,9 +392,6 @@ function gerarSenha(numero, status) {
     return `${prefixo}${numero.toString().padStart(2, '0')}`;
 }
 
-// ============================================
-// GERENCIAR FILA DE ATENDIMENTO (AUTOMÁTICO)
-// ============================================
 // ============================================
 // GERENCIAR FILA DE ATENDIMENTO (CORRIGIDO)
 // ============================================
@@ -488,22 +429,16 @@ async function gerenciarFilaAtendimento() {
             
             if (proximoAtender) {
                 console.log(`➡️ Chamando ${proximoAtender.cliente_nome} para atendimento`);
-                await atualizarStatusAgendamento(
-                    proximoAtender.cliente_email, 
-                    proximoAtender.agendamento_key, 
-                    'Em atendimento'
-                );
+                const [servicoId, idAgendamento] = proximoAtender.id.split('_');
+                await atualizarStatusAgendamento(servicoId, idAgendamento, 'Em atendimento');
                 return;
             }
             
             if (fila.length > 0) {
                 const primeiroDaFila = fila[0];
                 console.log(`➡️ Primeiro da fila ${primeiroDaFila.cliente_nome} vai para atendimento`);
-                await atualizarStatusAgendamento(
-                    primeiroDaFila.cliente_email, 
-                    primeiroDaFila.agendamento_key, 
-                    'Em atendimento'
-                );
+                const [servicoId, idAgendamento] = primeiroDaFila.id.split('_');
+                await atualizarStatusAgendamento(servicoId, idAgendamento, 'Em atendimento');
                 return;
             }
         }
@@ -518,11 +453,8 @@ async function gerenciarFilaAtendimento() {
                 if (filaSemAtendimento.length > 0) {
                     const primeiroDaFila = filaSemAtendimento[0];
                     console.log(`⬆️ ${primeiroDaFila.cliente_nome} agora é o próximo a atender`);
-                    await atualizarStatusAgendamento(
-                        primeiroDaFila.cliente_email, 
-                        primeiroDaFila.agendamento_key, 
-                        'Próximo a atender'
-                    );
+                    const [servicoId, idAgendamento] = primeiroDaFila.id.split('_');
+                    await atualizarStatusAgendamento(servicoId, idAgendamento, 'Próximo a atender');
                     return;
                 }
             }
@@ -3046,6 +2978,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
