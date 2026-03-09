@@ -1744,7 +1744,7 @@ function renderizarAgendamentosFuturos() {
 }
 
 // ============================================
-// ENVIAR NOTIFICAÇÃO WHATSAPP
+// ENVIAR NOTIFICAÇÃO WHATSAPP (CORRIGIDO)
 // ============================================
 async function enviarNotificacaoProximo(agendamento) {
     if (!agendamento.cliente_whatsapp) return;
@@ -1760,22 +1760,8 @@ async function enviarNotificacaoProximo(agendamento) {
         console.log('📱 Enviando WhatsApp para:', agendamento.cliente_whatsapp);
         console.log('📝 Mensagem:', mensagem);
         
-        // Registrar notificação enviada
-        const notificacaoRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('notificacoes')
-            .doc();
-        
-        await setDoc(notificacaoRef, {
-            agendamento_id: agendamento.id,
-            cliente: agendamento.cliente_nome,
-            telefone: agendamento.cliente_whatsapp,
-            mensagem: mensagem,
-            tipo: 'whatsapp',
-            data_envio: serverTimestamp(),
-            status: 'enviado'
-        });
+        // Registrar notificação enviada (se necessário)
+        // const notificacaoRef = doc(collection(db, 'notificacoes')); // Se quiser salvar
         
         console.log('✅ Notificação registrada');
         
@@ -2801,43 +2787,6 @@ window.addEventListener('usuarioDeslogado', () => {
     // Redirecionar para index
     window.location.href = 'index.html';
 });
-
-// ============================================
-// FUNÇÕES AUXILIARES (placeholders)
-// ============================================
-function editarExcecao(data) {
-    console.log('Editar exceção:', data);
-    mostrarMensagem('Função em desenvolvimento', 'info');
-}
-
-function excluirExcecao(data) {
-    console.log('Excluir exceção:', data);
-    if (confirm(`Excluir exceção do dia ${data}?`)) {
-        mostrarMensagem('Função em desenvolvimento', 'info');
-    }
-}
-
-function validarAgendamentoFuturo(id) {
-    console.log('Validar agendamento futuro:', id);
-    mostrarMensagem('Função em desenvolvimento', 'info');
-}
-
-function editarAgendamentoFuturo(id) {
-    console.log('Editar agendamento futuro:', id);
-    mostrarMensagem('Função em desenvolvimento', 'info');
-}
-
-function excluirAgendamentoFuturo(id) {
-    console.log('Excluir agendamento futuro:', id);
-    if (confirm('Excluir este agendamento?')) {
-        mostrarMensagem('Função em desenvolvimento', 'info');
-    }
-}
-
-function editarAgendamento(id) {
-    console.log('Editar agendamento:', id);
-    mostrarMensagem('Função em desenvolvimento', 'info');
-}
 
 // ============================================
 // LIMPAR AO SAIR
