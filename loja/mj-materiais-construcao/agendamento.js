@@ -1920,7 +1920,7 @@ async function chamarProximo(agendamentoId) {
 }
 
 // ============================================
-// SALVAR CONFIGURAÇÃO DO AGENDAMENTO (USANDO spdv-3872a)
+// SALVAR CONFIGURAÇÃO DO AGENDAMENTO (ESTRUTURA INVERTIDA)
 // ============================================
 async function salvarCriarAgendamento() {
     try {
@@ -1973,13 +1973,14 @@ async function salvarCriarAgendamento() {
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         
-        // ✅ USANDO db (spdv-3872a) - CONFIGURAÇÕES DO SERVIÇO
+        // 🔥 NOVA ESTRUTURA INVERTIDA:
+        // configuracoes / servico_agendamento / [lojaId] / [servicoId]
         const configRef = doc(
             db, 
             'configuracoes', 
-            lojaIdAtual, 
-            'servico_agendamento', 
-            servicoId
+            'servico_agendamento',  // ← Documento fixo
+            lojaIdAtual,             // ← Agora é subcoleção (ID da loja)
+            servicoId                 // ← Documento do serviço
         );
         
         const configData = {
