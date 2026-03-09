@@ -978,7 +978,7 @@ async function carregarClientesParaSelect() {
 }
 
 // ============================================
-// CARREGAR SERVIÇOS PARA CLIENTE
+// CARREGAR SERVIÇOS PARA CLIENTE (ESTRUTURA INVERTIDA)
 // ============================================
 async function carregarServicosCliente() {
     const select = document.getElementById('servicoSelect');
@@ -988,21 +988,24 @@ async function carregarServicosCliente() {
     select.disabled = true;
     
     try {
-        console.log('🔍 Buscando serviços em:', `configuracoes/${lojaIdAtual}/servico_agendamento`);
+        console.log('🔍 Buscando serviços em:', `configuracoes/servico_agendamento/${lojaIdAtual}`);
         
-        // Buscar TODOS os serviços da subcoleção 'servico_agendamento'
-        const servicosRef = collection(db, 'configuracoes', lojaIdAtual, 'servico_agendamento');
+        // 🔥 NOVA ESTRUTURA: configuracoes / servico_agendamento / [lojaId]
+        const servicosRef = collection(
+            db, 
+            'configuracoes', 
+            'servico_agendamento',  // ← Documento fixo
+            lojaIdAtual               // ← Subcoleção da loja
+        );
+        
         const snapshot = await getDocs(servicosRef);
         
         let servicosEncontrados = [];
         snapshot.forEach(doc => {
-            // Ignorar documentos de sistema
-            if (doc.id !== 'excecoes') {
-                servicosEncontrados.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            }
+            servicosEncontrados.push({
+                id: doc.id,
+                ...doc.data()
+            });
         });
         
         console.log('📋 Serviços encontrados:', servicosEncontrados);
@@ -1013,12 +1016,10 @@ async function carregarServicosCliente() {
             return;
         }
         
-        // Preencher select com os serviços
         select.innerHTML = '<option value="">Selecione um serviço...</option>';
         
         servicosEncontrados.forEach(servico => {
             if (servico.nome) {
-                // 🔥 ÍCONE GENÉRICO (relógio) em vez de tesoura
                 select.innerHTML += `<option value="${servico.id}" data-config='${JSON.stringify(servico)}'>⏱️ ${servico.nome}</option>`;
             }
         });
@@ -2990,6 +2991,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
