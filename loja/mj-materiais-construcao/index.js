@@ -552,7 +552,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO (FLUXO AUTOMÁTICO)
+// RENDERIZAR PAINEL DE AGENDAMENTO - CORRIGIDO
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -567,39 +567,34 @@ function renderizarPainelAgendamento() {
     // 1. EM ATENDIMENTO (prioridade máxima)
     let emAtendimento = agendamentosAtivos.find(a => a.status === 'Em atendimento');
     
-    // 2. PRÓXIMO A ATENDER (só aparece se NÃO tiver ninguém em atendimento)
-    let proximoAtender = null;
-    if (!emAtendimento) {
-        proximoAtender = agendamentosAtivos.find(a => a.status === 'Próximo a atender');
-    }
+    // 2. PRÓXIMO A ATENDER - SEMPRE PROCURAR, INDEPENDENTE DE TER ALGUÉM EM ATENDIMENTO
+    let proximoAtender = agendamentosAtivos.find(a => a.status === 'Próximo a atender');
     
-    // 3. PRIMEIRO DA FILA (se não tiver próximo, pega o primeiro de "Na fila" ou "Verificado")
-    let primeiroDaFila = null;
-    if (!emAtendimento && !proximoAtender) {
+    // 3. SE NÃO TIVER PRÓXIMO, PEGA O PRIMEIRO DA FILA
+    if (!proximoAtender) {
         const fila = agendamentosAtivos.filter(a => 
-            a.status === 'Na fila' || a.status === 'Verificado'
+            a.status !== 'Em atendimento' && 
+            a.status !== 'Próximo a atender' &&
+            ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
         ).sort((a, b) => a.data_hora - b.data_hora);
         
         if (fila.length > 0) {
-            primeiroDaFila = fila[0];
+            proximoAtender = fila[0];
+            console.log(`🔄 Primeiro da fila definido como próximo: ${proximoAtender.cliente_nome}`);
         }
     }
     
-    // 4. OUTROS NA FILA (todos os que sobraram)
+    // 4. OUTROS NA FILA (exclui emAtendimento e proximoAtender)
     const outrosNaFila = agendamentosAtivos.filter(a => {
-        // Excluir quem já está em alguma categoria
         if (a.id === emAtendimento?.id) return false;
         if (a.id === proximoAtender?.id) return false;
-        if (a.id === primeiroDaFila?.id) return false;
-        
-        // Incluir apenas quem está na fila
-        return a.status === 'Na fila' || a.status === 'Verificado';
+        return ['Na fila', 'Verificado', 'Pendente'].includes(a.status);
     }).sort((a, b) => a.data_hora - b.data_hora);
     
     console.log('📊 Organização:', {
         emAtendimento: emAtendimento?.cliente_nome || 'Nenhum',
-        proximoAtender: proximoAtender?.cliente_nome || (primeiroDaFila?.cliente_nome || 'Nenhum'),
-        outrosNaFila: outrosNaFila.length
+        proximoAtender: proximoAtender?.cliente_nome || 'Nenhum',
+        outrosNaFila: outrosNaFila.map(a => a.cliente_nome)
     });
     
     // ============================================
@@ -607,7 +602,7 @@ function renderizarPainelAgendamento() {
     // ============================================
     
     // Total na fila (próximo + outros)
-    const totalFila = (proximoAtender || primeiroDaFila ? 1 : 0) + outrosNaFila.length;
+    const totalFila = (proximoAtender ? 1 : 0) + outrosNaFila.length;
     
     const totalFilaBadge = document.getElementById('totalFilaBadge');
     if (totalFilaBadge) totalFilaBadge.textContent = totalFila;
@@ -631,7 +626,7 @@ function renderizarPainelAgendamento() {
                     <div class="senha-grande">${emAtendimento.senha || '---'}</div>
                     <div class="cliente-nome">${emAtendimento.cliente_nome}</div>
                     <div class="servico-nome">
-                        <i class="fas fa-clock"></i> ${emAtendimento.servico}
+                        <i class="fas fa-clock"></i> ${emAtendimento.servico_nome || emAtendimento.servico_id || 'Serviço'}
                     </div>
                 </div>
             `;
@@ -664,16 +659,14 @@ function renderizarPainelAgendamento() {
     // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
-        const quemMostrar = proximoAtender || primeiroDaFila;
-        
-        if (quemMostrar) {
+        if (proximoAtender) {
             proximosEl.innerHTML = `
                 <div class="item-fila-vertical urgente">
-                    <span class="senha-numero">${quemMostrar.senha}</span>
+                    <span class="senha-numero">${proximoAtender.senha}</span>
                     <div class="senha-info">
-                        <span class="senha-cliente">${quemMostrar.cliente_nome}</span>
+                        <span class="senha-cliente">${proximoAtender.cliente_nome}</span>
                         <span class="senha-servico">
-                            <i class="fas fa-clock"></i> ${quemMostrar.servico}
+                            <i class="fas fa-clock"></i> ${proximoAtender.servico_nome || proximoAtender.servico_id || 'Serviço'}
                         </span>
                     </div>
                 </div>
@@ -703,7 +696,7 @@ function renderizarPainelAgendamento() {
                         <div class="senha-numero">${item.senha}</div>
                         <div class="senha-cliente">${item.cliente_nome}</div>
                         <div class="senha-servico">
-                            <i class="fas fa-clock"></i> ${item.servico}
+                            <i class="fas fa-clock"></i> ${item.servico_nome || item.servico_id || 'Serviço'}
                         </div>
                         <span class="senha-posicao">${posicao}° na fila</span>
                     </div>
@@ -740,7 +733,7 @@ function renderizarPainelAgendamento() {
         // Procurar agendamento do usuário logado
         const meuAgendamento = agendamentosAtivos.find(a => 
             a.cliente_email === dadosUsuario.email && 
-            ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado'].includes(a.status)
+            ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado', 'Pendente'].includes(a.status)
         );
         
         if (meuAgendamento) {
@@ -758,6 +751,7 @@ function renderizarPainelAgendamento() {
                     break;
                 case 'Na fila':
                 case 'Verificado':
+                case 'Pendente':
                     statusTexto = 'Aguardando';
                     statusClass = '';
                     break;
@@ -3119,6 +3113,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
