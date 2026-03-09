@@ -138,23 +138,14 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS NO FIREBASE
+// ATUALIZAR STATUS NO FIREBASE (CORRIGIDO - SEM CONCATENAÇÃO)
 // ============================================
-async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
+async function atualizarStatusAgendamento(clienteEmail, agendamentoKey, novoStatus) {
     try {
-        // ✅ CORREÇÃO: usar o nome correto da variável
-        console.log(`📝 Atualizando ${agendamentoId} para ${novoStatus}`);
-        
-        // O agendamentoId vem no formato: "clienteEmail_agendamento_1"
-        const partes = agendamentoId.split('_');
-        const numero = partes.pop();
-        const clienteEmail = partes.join('_');
-        const agendamentoKey = `agendamento_${numero}`;
-        
-        console.log(`📧 Cliente: ${clienteEmail}, Chave: ${agendamentoKey}`);
+        console.log(`📝 Atualizando agendamento ${agendamentoKey} do cliente ${clienteEmail} para ${novoStatus}`);
         
         const agendamentoRef = doc(
-            db,
+            db,  // Projeto spdv-3872a
             'agendamentos',
             lojaIdAtual,
             'agendamento_clientes',
@@ -164,14 +155,14 @@ async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
         const agendamentoDoc = await getDoc(agendamentoRef);
         
         if (!agendamentoDoc.exists()) {
-            console.error('❌ Agendamento não encontrado para o cliente:', clienteEmail);
+            console.error('❌ Documento do cliente não encontrado:', clienteEmail);
             return false;
         }
         
         const dadosCliente = agendamentoDoc.data();
         
         if (!dadosCliente[agendamentoKey]) {
-            console.error('❌ Agendamento específico não encontrado. Chaves disponíveis:', Object.keys(dadosCliente));
+            console.error('❌ Agendamento não encontrado. Chaves disponíveis:', Object.keys(dadosCliente));
             return false;
         }
         
@@ -194,14 +185,6 @@ async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
         
         console.log(`✅ Status atualizado para ${novoStatus}`);
         
-        // Mostrar mensagem se for chamada
-        if (novoStatus === 'Em atendimento') {
-            const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
-            if (agendamento) {
-                mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome}`, 'success');
-            }
-        }
-        
         return true;
         
     } catch (error) {
@@ -211,7 +194,7 @@ async function atualizarStatusAgendamento(agendamentoId, novoStatus) {
 }
 
 // ============================================
-// CARREGAR AGENDAMENTOS ATIVOS (TEMPO REAL)
+// CARREGAR AGENDAMENTOS ATIVOS (CORRIGIDO)
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!agendamentoHabilitado || !lojaIdAtual) return;
@@ -219,48 +202,41 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // Usar a sintaxe correta com collection() importada
         const agendamentosClientesRef = collection(
-            db,  // Instância do Firebase
+            db,
             'agendamentos',
             lojaIdAtual,
             'agendamento_clientes'
         );
         
-        // Escutar mudanças em tempo real
         unsubscribeAgendamentos = onSnapshot(agendamentosClientesRef, async (snapshot) => {
             const agendamentosAtivosTemp = [];
             
-            // Para cada cliente com agendamentos
             snapshot.forEach((docCliente) => {
                 const clienteEmail = docCliente.id;
                 const agendamentosCliente = docCliente.data();
                 
-                // Para cada agendamento deste cliente (agendamento_1, agendamento_2, etc)
-                for (const [agendamentoId, agendamento] of Object.entries(agendamentosCliente)) {
-                    // Verificar se é um agendamento válido
+                for (const [agendamentoKey, agendamento] of Object.entries(agendamentosCliente)) {
                     if (agendamento && agendamento.data_hora_agendada) {
                         
-                        // Converter data_hora_agendada para comparar
                         const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
                                             new Date(agendamento.data_hora_agendada);
                         
                         const hoje = new Date();
                         hoje.setHours(0, 0, 0, 0);
-                        
                         const amanha = new Date(hoje);
                         amanha.setDate(amanha.getDate() + 1);
                         
-                        // Verificar se é de hoje e status permite estar na fila
                         if (dataAgendada >= hoje && 
                             dataAgendada < amanha && 
                             ['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
                             
                             agendamentosAtivosTemp.push({
-                                id: `${clienteEmail}_${agendamentoId}`,
+                                id: `${clienteEmail}_${agendamentoKey}`, // Apenas para front-end
                                 cliente_email: clienteEmail,
-                                cliente_nome: agendamento.cliente?.nome || 'Cliente',
-                                servico: agendamento.servico?.nome || 'Serviço',
+                                agendamento_key: agendamentoKey, // Guardar a chave real
+                                cliente_nome: agendamento.cliente_nome || 'Cliente',
+                                servico: agendamento.nome_do_servico || 'Serviço',
                                 senha: gerarSenha(agendamentosAtivosTemp.length + 1, agendamento.status_agendamento),
                                 status: agendamento.status_agendamento,
                                 data_hora: dataAgendada,
@@ -271,23 +247,17 @@ function iniciarEscutaAgendamentos() {
                 }
             });
             
-            // Ordenar por horário
             agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
-            
-            // Atualizar a lista global
             agendamentosAtivos = agendamentosAtivosTemp;
             
             console.log('📋 Agendamentos ativos de hoje:', agendamentosAtivos);
             
-            // 🔥 NOVO: Gerenciar fila automaticamente (com delay para garantir processamento)
             setTimeout(() => {
                 gerenciarFilaAtendimento();
             }, 500);
             
-            // Renderizar o painel
             renderizarPainelAgendamento();
             
-            // Inicializar carrossel
             setTimeout(() => {
                 inicializarCarrosselAgendamento();
             }, 100);
@@ -379,6 +349,9 @@ function gerarSenha(numero, status) {
 // ============================================
 // GERENCIAR FILA DE ATENDIMENTO (AUTOMÁTICO)
 // ============================================
+// ============================================
+// GERENCIAR FILA DE ATENDIMENTO (CORRIGIDO)
+// ============================================
 async function gerenciarFilaAtendimento() {
     try {
         console.log('🔄 Gerenciando fila de atendimento...');
@@ -395,7 +368,7 @@ async function gerenciarFilaAtendimento() {
         const emAtendimento = todosOrdenados.find(a => a.status === 'Em atendimento');
         const proximoAtender = todosOrdenados.find(a => a.status === 'Próximo a atender');
         
-        // Filtrar quem está na fila (exclui quem já está em atendimento)
+        // Filtrar quem está na fila
         const fila = todosOrdenados.filter(a => 
             a.status !== 'Em atendimento' && 
             (a.status === 'Na fila' || a.status === 'Verificado' || a.status === 'Próximo a atender')
@@ -411,18 +384,24 @@ async function gerenciarFilaAtendimento() {
         if (!emAtendimento) {
             console.log('📞 Ninguém em atendimento - preciso chamar alguém');
             
-            // Se tem alguém como "Próximo a atender", chama ele
             if (proximoAtender) {
                 console.log(`➡️ Chamando ${proximoAtender.cliente_nome} para atendimento`);
-                await atualizarStatusAgendamento(proximoAtender.id, 'Em atendimento');
+                await atualizarStatusAgendamento(
+                    proximoAtender.cliente_email, 
+                    proximoAtender.agendamento_key, 
+                    'Em atendimento'
+                );
                 return;
             }
             
-            // Se não tem próximo, pega o primeiro da fila
             if (fila.length > 0) {
                 const primeiroDaFila = fila[0];
                 console.log(`➡️ Primeiro da fila ${primeiroDaFila.cliente_nome} vai para atendimento`);
-                await atualizarStatusAgendamento(primeiroDaFila.id, 'Em atendimento');
+                await atualizarStatusAgendamento(
+                    primeiroDaFila.cliente_email, 
+                    primeiroDaFila.agendamento_key, 
+                    'Em atendimento'
+                );
                 return;
             }
         }
@@ -431,15 +410,17 @@ async function gerenciarFilaAtendimento() {
         if (emAtendimento) {
             console.log(`👤 Em atendimento: ${emAtendimento.cliente_nome}`);
             
-            // Se não tem próximo definido, o primeiro da fila vira próximo
             if (!proximoAtender && fila.length > 0) {
-                // Excluir quem já está em atendimento da fila
                 const filaSemAtendimento = fila.filter(a => a.id !== emAtendimento.id);
                 
                 if (filaSemAtendimento.length > 0) {
                     const primeiroDaFila = filaSemAtendimento[0];
                     console.log(`⬆️ ${primeiroDaFila.cliente_nome} agora é o próximo a atender`);
-                    await atualizarStatusAgendamento(primeiroDaFila.id, 'Próximo a atender');
+                    await atualizarStatusAgendamento(
+                        primeiroDaFila.cliente_email, 
+                        primeiroDaFila.agendamento_key, 
+                        'Próximo a atender'
+                    );
                     return;
                 }
             }
@@ -1053,7 +1034,7 @@ async function carregarServicosCliente() {
 }
 
 // ============================================
-// CARREGAR HORÁRIOS PARA CLIENTE (CORRIGIDO - USA CONFIGURAÇÃO POR DIA)
+// CARREGAR HORÁRIOS PARA CLIENTE (COMPLETO E AJUSTADO)
 // ============================================
 async function carregarHorariosCliente() {
     const dataInput = document.getElementById('agendamentoData');
@@ -1077,7 +1058,68 @@ async function carregarHorariosCliente() {
     horarioSelect.disabled = true;
     
     try {
-        // Pegar configuração do serviço selecionado
+        // ============================================
+        // 1. CARREGAR HORÁRIO DE FUNCIONAMENTO DA LOJA (banco lojasite-ba36f)
+        // ============================================
+        let lojaAbertura = "00:00";
+        let lojaFechamento = "23:59";
+        
+        try {
+            if (window.loginDb) {
+                const lojaDoc = await window.loginDb
+                    .collection('lojas')
+                    .doc(lojaIdAtual)
+                    .get();
+                
+                if (lojaDoc.exists) {
+                    const dados = lojaDoc.data();
+                    
+                    // Identificar o dia da semana
+                    const dataObj = new Date(dataSelecionada + 'T12:00:00');
+                    const diaSemana = dataObj.getDay(); // 0 = domingo, 1 = segunda, etc.
+                    
+                    const diasMap = {
+                        0: 'domingo',
+                        1: 'segunda',
+                        2: 'terca',
+                        3: 'quarta',
+                        4: 'quinta',
+                        5: 'sexta',
+                        6: 'sabado'
+                    };
+                    
+                    const diaId = diasMap[diaSemana];
+                    
+                    // Pegar horário de funcionamento do dia
+                    if (dados.funcionamento && dados.funcionamento[diaId]) {
+                        const horarioLoja = dados.funcionamento[diaId];
+                        
+                        // Formato esperado: "08:00h às 18:00h"
+                        if (horarioLoja && horarioLoja.trim() !== '') {
+                            const match = horarioLoja.match(/(\d{2}:\d{2})h às (\d{2}:\d{2})h/);
+                            if (match) {
+                                lojaAbertura = match[1];
+                                lojaFechamento = match[2];
+                                console.log(`🏪 Loja abre: ${lojaAbertura}, fecha: ${lojaFechamento}`);
+                            }
+                        } else {
+                            // Loja fechada neste dia
+                            horarioSelect.innerHTML = `<option value="">🔒 Loja fechada neste dia</option>`;
+                            horarioSelect.disabled = true;
+                            return;
+                        }
+                    } else {
+                        console.log('⚠️ Horário de funcionamento não encontrado para este dia');
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ Erro ao carregar horário da loja:', e);
+        }
+        
+        // ============================================
+        // 2. CARREGAR CONFIGURAÇÃO DO SERVIÇO (banco spdv-3872a)
+        // ============================================
         const selectedOption = servicoSelect.selectedOptions[0];
         const configServico = JSON.parse(selectedOption.dataset.config || '{}');
         
@@ -1099,10 +1141,10 @@ async function carregarHorariosCliente() {
         
         const diaId = diasMap[diaSemana];
         
-        // Verificar se o dia está nos dias ativos
+        // Verificar se o dia está nos dias ativos do serviço
         const diasAtivos = configServico.diasAtivos || [];
         if (!diasAtivos.includes(diaId)) {
-            horarioSelect.innerHTML = `<option value="">🔒 Fechado neste dia</option>`;
+            horarioSelect.innerHTML = `<option value="">🔒 Serviço não disponível neste dia</option>`;
             horarioSelect.disabled = true;
             return;
         }
@@ -1115,27 +1157,65 @@ async function carregarHorariosCliente() {
             return;
         }
         
-        // Gerar horários baseado na configuração do dia
-        const horarios = [];
+        // ============================================
+        // 3. CONVERTER STRINGS PARA MINUTOS
+        // ============================================
+        function timeToMinutes(time) {
+            const [h, m] = time.split(':').map(Number);
+            return h * 60 + m;
+        }
+        
+        const minutosLojaAbertura = timeToMinutes(lojaAbertura);
+        const minutosLojaFechamento = timeToMinutes(lojaFechamento);
+        
+        // ============================================
+        // 4. GERAR HORÁRIOS BASEADO NA CONFIGURAÇÃO DO SERVIÇO
+        // ============================================
         const [hInicio, mInicio] = configDia.inicio.split(':').map(Number);
         const [hFim, mFim] = configDia.fim.split(':').map(Number);
         const duracao = configDia.duracao || 30;
         const intervaloEntre = configDia.intervaloEntre || 0;
         
-        let minutosInicio = hInicio * 60 + mInicio;
-        const minutosFim = hFim * 60 + mFim;
+        let minutosInicioServico = hInicio * 60 + mInicio;
+        const minutosFimServico = hFim * 60 + mFim;
         
-        // Gerar horários a cada (duracao) minutos
-        while (minutosInicio + duracao <= minutosFim) {
-            const hora = Math.floor(minutosInicio / 60);
-            const minuto = minutosInicio % 60;
+        // ============================================
+        // 5. APLICAR LIMITES DA LOJA (interseção)
+        // ============================================
+        // O horário de atendimento deve estar DENTRO do horário de funcionamento da loja
+        let minutosInicio = Math.max(minutosInicioServico, minutosLojaAbertura);
+        let minutosFim = Math.min(minutosFimServico, minutosLojaFechamento);
+        
+        console.log(`⏰ Interseção de horários:`, {
+            servico: `${configDia.inicio} às ${configDia.fim}`,
+            loja: `${lojaAbertura} às ${lojaFechamento}`,
+            resultado: `${Math.floor(minutosInicio/60)}:${(minutosInicio%60).toString().padStart(2,'0')} às ${Math.floor(minutosFim/60)}:${(minutosFim%60).toString().padStart(2,'0')}`
+        });
+        
+        if (minutosInicio >= minutosFim) {
+            horarioSelect.innerHTML = `<option value="">⏰ Fora do horário de funcionamento</option>`;
+            horarioSelect.disabled = true;
+            return;
+        }
+        
+        // ============================================
+        // 6. GERAR HORÁRIOS DISPONÍVEIS
+        // ============================================
+        const horarios = [];
+        let minutosAtual = minutosInicio;
+        
+        while (minutosAtual + duracao <= minutosFim) {
+            const hora = Math.floor(minutosAtual / 60);
+            const minuto = minutosAtual % 60;
             const horarioStr = `${hora.toString().padStart(2, '0')}:${minuto.toString().padStart(2, '0')}`;
             
             horarios.push(horarioStr);
-            minutosInicio += duracao + intervaloEntre;
+            minutosAtual += duracao + intervaloEntre;
         }
         
-        // Filtrar intervalo de almoço se existir
+        // ============================================
+        // 7. FILTRAR INTERVALO DE ALMOÇO DO SERVIÇO
+        // ============================================
         let horariosFiltrados = horarios;
         if (configDia.intervaloInicio && configDia.intervaloFim) {
             const [hIntInicio, mIntInicio] = configDia.intervaloInicio.split(':').map(Number);
@@ -1149,9 +1229,13 @@ async function carregarHorariosCliente() {
                 const minutos = h * 60 + m;
                 return minutos < minutosIntInicio || minutos >= minutosIntFim;
             });
+            
+            console.log(`🍽️ Removendo intervalo de almoço: ${configDia.intervaloInicio} às ${configDia.intervaloFim}`);
         }
         
-        // 🔥 FILTRO: Remover horários que já passaram (apenas para o dia atual)
+        // ============================================
+        // 8. FILTRO: REMOVER HORÁRIOS QUE JÁ PASSARAM
+        // ============================================
         const hoje = new Date().toISOString().split('T')[0];
         const agora = new Date();
         const horaAtual = agora.getHours();
@@ -1166,19 +1250,25 @@ async function carregarHorariosCliente() {
             console.log(`⏰ Hoje - removendo horários passados. Restam: ${horariosFiltrados.length}`);
         }
         
+        // ============================================
+        // 9. VERIFICAR SE HÁ HORÁRIOS DISPONÍVEIS
+        // ============================================
         if (horariosFiltrados.length === 0) {
             horarioSelect.innerHTML = '<option value="">⏰ Nenhum horário disponível</option>';
             horarioSelect.disabled = true;
             return;
         }
         
+        // ============================================
+        // 10. PREENCHER SELECT COM HORÁRIOS
+        // ============================================
         horarioSelect.innerHTML = '<option value="">Selecione um horário</option>';
         horariosFiltrados.forEach(h => {
             horarioSelect.innerHTML += `<option value="${h}">${h}</option>`;
         });
         horarioSelect.disabled = false;
         
-        console.log(`✅ ${horariosFiltrados.length} horários gerados`);
+        console.log(`✅ ${horariosFiltrados.length} horários gerados:`, horariosFiltrados);
         
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
@@ -2900,6 +2990,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
