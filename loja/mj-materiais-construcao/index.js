@@ -45,6 +45,7 @@ let lojaIdAtual = null;
 // ============================================
 let agendamentoHabilitado = false;
 let agendamentosAtivos = [];
+let agendamentosFuturos = [];
 let unsubscribeAgendamentos = null;
 let intervaloAtualizacaoAgendamento = null;
 
@@ -3035,6 +3036,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
