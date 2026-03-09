@@ -3079,86 +3079,22 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }, tempo);
 }
 
-// ============================================
-// INICIALIZAÇÃO (CORRIGIDA - EXECUTA IMEDIATAMENTE)
-// ============================================
-(async function() {
-    console.log("📄 Inicializando clientes.js imediatamente...");
-    
-    mostrarLoading('Carregando loja...');
-    
-    try {
-        // Garantir que temos o lojaId
-        if (!lojaIdAtual) {
-            lojaIdAtual = window.lojaIdAtual || extrairLojaIdDaURL();
-        }
-        
-        console.log(`📍 Loja ID: ${lojaIdAtual}`);
-        
-        if (!lojaIdAtual) {
-            console.error('❌ Loja não identificada');
-            mostrarMensagem('Erro ao identificar a loja', 'error');
-            return;
-        }
-        
-        // Configurar favicon
-        configurarFavicon();
-        
-        // Carregar logo
-        carregarLogoLoja();
-        
-        // Carregar dados da loja (com retry)
-        await carregarDadosLoja();
-        
-        // 🔥 NOVO: Verificar se agendamento está habilitado
-        agendamentoHabilitado = await verificarAgendamentoHabilitado();
-        console.log(`📅 Agendamento habilitado para esta loja? ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
-        toggleAgendamentoContainer(agendamentoHabilitado);
-
-        if (agendamentoHabilitado) {
-            iniciarEscutaAgendamentos();
-        }
-        
-        // Configurar eventos
-        configurarEventos();
-        
-        // Carregar produtos e categorias
-        await carregarProdutos();
-        await carregarCategorias();
-        await carregarProdutosDestaque();
-        
-        esconderLoading();
-        console.log("✅ Loja clientes pronta!");
-        
-    } catch (error) {
-        console.error("❌ Erro na inicialização:", error);
-        mostrarMensagem('Erro ao carregar loja', 'error');
-        esconderLoading();
-    }
-})();
-
-
 window.diagnosticarAgendamentos = async function() {
     try {
         console.log('🔍 DIAGNÓSTICO DE AGENDAMENTOS');
         
-        // 1. Verificar coleção agendamentos
-        const agendamentosRef = collection(db, 'agendamentos');
-        const agendamentosSnap = await getDocs(agendamentosRef);
-        console.log('📁 Lojas com agendamentos:', agendamentosSnap.docs.map(d => d.id));
-        
-        // 2. Verificar meses (coleções) dentro do documento da loja
+        // 1. Verificar meses (coleções) dentro de agendamentos/lojaId
         const mesesRef = collection(db, 'agendamentos', lojaIdAtual);
         const mesesSnap = await getDocs(mesesRef);
         console.log('📅 Meses encontrados:', mesesSnap.docs.map(d => d.id));
         
-        // 3. Verificar março/2026
+        // 2. Verificar março/2026
         if (mesesSnap.docs.some(d => d.id === '03_2026')) {
             const marcoRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026');
             const marcoSnap = await getDocs(marcoRef);
             console.log('📆 Datas em 03_2026:', marcoSnap.docs.map(d => d.id));
             
-            // 4. Verificar serviços dentro da primeira data
+            // 3. Verificar serviços dentro da primeira data
             if (marcoSnap.docs.length > 0) {
                 const primeiraData = marcoSnap.docs[0].id;
                 console.log('🔍 Verificando data:', primeiraData);
@@ -3166,6 +3102,17 @@ window.diagnosticarAgendamentos = async function() {
                 const servicosRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026', primeiraData);
                 const servicosSnap = await getDocs(servicosRef);
                 console.log('🔧 Serviços encontrados:', servicosSnap.docs.map(d => d.id));
+                
+                // 4. Verificar agendamentos no primeiro serviço
+                if (servicosSnap.docs.length > 0) {
+                    const primeiroServico = servicosSnap.docs[0].id;
+                    const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026', primeiraData, primeiroServico);
+                    const agendamentosSnap = await getDocs(agendamentosRef);
+                    console.log(`📋 Agendamentos em ${primeiroServico}:`, agendamentosSnap.docs.map(d => ({
+                        id: d.id,
+                        ...d.data()
+                    })));
+                }
             }
         }
         
@@ -3183,6 +3130,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
