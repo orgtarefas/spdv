@@ -1590,34 +1590,41 @@ async function atualizarStatusAgendamentoAdmin(agendamento, novoStatus) {
         
         // Verificar se o serviço e agendamento existem
         if (!dadosAtuais[servicoId] || !dadosAtuais[servicoId][agendamentoId]) {
-            console.error('❌ Agendamento não encontrado no mapa:', {
-                temServico: !!dadosAtuais[servicoId],
-                temAgendamento: dadosAtuais[servicoId] ? !!dadosAtuais[servicoId][agendamentoId] : false
-            });
+            console.error('❌ Agendamento não encontrado no mapa');
             mostrarMensagem('Agendamento não encontrado', 'error');
             return false;
         }
         
-        // Criar cópia para atualização
-        const novosDados = JSON.parse(JSON.stringify(dadosAtuais));
+        // 🔥 CORREÇÃO: Usar paths específicos em vez de substituir o objeto inteiro
         
-        // Atualizar status
-        novosDados[servicoId][agendamentoId].status_agendamento = novoStatus;
+        // Criar caminhos
+        const statusPath = `${servicoId}.${agendamentoId}.status_agendamento`;
         
-        // Criar histórico de status se não existir
-        if (!novosDados[servicoId][agendamentoId].historico_status) {
-            novosDados[servicoId][agendamentoId].historico_status = [];
-        }
+        // Objeto de atualização
+        const updateData = {
+            [statusPath]: novoStatus
+        };
         
-        novosDados[servicoId][agendamentoId].historico_status.push({
-            status: novoStatus,
-            data: new Date().toISOString(),
-            alterado_por: dadosUsuario?.email || 'admin',
-            timestamp: serverTimestamp()
-        });
+        // Buscar histórico atual
+        const historicoAtual = dadosAtuais[servicoId][agendamentoId].historico_status || [];
+        
+        // Criar novo histórico com entrada adicionada
+        const novoHistorico = [
+            ...historicoAtual,
+            {
+                status: novoStatus,
+                data: new Date().toISOString(), // Usar ISO string
+                alterado_por: dadosUsuario?.email || 'admin'
+                // Removido timestamp: serverTimestamp()
+            }
+        ];
+        
+        // Adicionar histórico ao update
+        const historicoPath = `${servicoId}.${agendamentoId}.historico_status`;
+        updateData[historicoPath] = novoHistorico;
         
         // Atualizar no Firestore
-        await updateDoc(diaDocRef, novosDados);
+        await updateDoc(diaDocRef, updateData);
         
         console.log(`✅ Status atualizado para ${novoStatus}`);
         mostrarMensagem(`Status atualizado para ${novoStatus}`, 'success');
