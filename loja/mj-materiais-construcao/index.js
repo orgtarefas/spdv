@@ -17,6 +17,7 @@ import {
     getDocs, 
     getDoc, 
     setDoc,
+    updateDoc,
     onSnapshot,
     serverTimestamp,
     lojaServices,
@@ -3036,6 +3037,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
