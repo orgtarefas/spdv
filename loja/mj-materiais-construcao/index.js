@@ -194,7 +194,7 @@ async function atualizarStatusAgendamento(clienteEmail, agendamentoKey, novoStat
 }
 
 // ============================================
-// CARREGAR AGENDAMENTOS ATIVOS (CORRIGIDO)
+// CARREGAR AGENDAMENTOS ATIVOS - POR SERVIÇO
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!agendamentoHabilitado || !lojaIdAtual) return;
@@ -202,55 +202,92 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        const agendamentosClientesRef = collection(
+        // Referência para TODOS os serviços da loja
+        const lojaRef = collection(
             db,
             'agendamentos',
-            lojaIdAtual,
-            'agendamento_clientes'
+            lojaIdAtual
         );
         
-        unsubscribeAgendamentos = onSnapshot(agendamentosClientesRef, async (snapshot) => {
-            const agendamentosAtivosTemp = [];
+        unsubscribeAgendamentos = onSnapshot(lojaRef, async (snapshot) => {
+            const agendamentosPorServico = {};
+            const todosAgendamentos = [];
             
-            snapshot.forEach((docCliente) => {
-                const clienteEmail = docCliente.id;
-                const agendamentosCliente = docCliente.data();
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const amanha = new Date(hoje);
+            amanha.setDate(amanha.getDate() + 1);
+            
+            // Para cada serviço (Corte_de_Cabelo, Manicure, etc)
+            for (const docServico of snapshot.docs) {
+                const servicoId = docServico.id;
                 
-                for (const [agendamentoKey, agendamento] of Object.entries(agendamentosCliente)) {
+                // Buscar TODOS os agendamentos deste serviço
+                const agendamentosRef = collection(
+                    db,
+                    'agendamentos',
+                    lojaIdAtual,
+                    servicoId
+                );
+                
+                const agendamentosSnap = await getDocs(agendamentosRef);
+                
+                agendamentosSnap.forEach(docAgendamento => {
+                    const agendamento = docAgendamento.data();
+                    const agendamentoId = docAgendamento.id;
+                    
                     if (agendamento && agendamento.data_hora_agendada) {
-                        
                         const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
                                             new Date(agendamento.data_hora_agendada);
                         
-                        const hoje = new Date();
-                        hoje.setHours(0, 0, 0, 0);
-                        const amanha = new Date(hoje);
-                        amanha.setDate(amanha.getDate() + 1);
-                        
-                        if (dataAgendada >= hoje && 
-                            dataAgendada < amanha && 
+                        // Verificar se é de hoje e status permite estar na fila
+                        if (dataAgendada >= hoje && dataAgendada < amanha && 
                             ['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
                             
-                            agendamentosAtivosTemp.push({
-                                id: `${clienteEmail}_${agendamentoKey}`, // Apenas para front-end
-                                cliente_email: clienteEmail,
-                                agendamento_key: agendamentoKey, // Guardar a chave real
-                                cliente_nome: agendamento.cliente_nome || 'Cliente',
-                                servico: agendamento.nome_do_servico || 'Serviço',
-                                senha: gerarSenha(agendamentosAtivosTemp.length + 1, agendamento.status_agendamento),
+                            // Gerar senha baseada no serviço e número
+                            const prefixo = servicoId.substring(0, 2).toUpperCase();
+                            
+                            todosAgendamentos.push({
+                                id: `${servicoId}_${agendamentoId}`,
+                                servico_id: servicoId,
+                                servico_nome: servicoId.replace(/_/g, ' '),
+                                agendamento_id: agendamentoId,
+                                cliente_email: agendamento.cliente_email,
+                                cliente_nome: agendamento.cliente_nome,
                                 status: agendamento.status_agendamento,
                                 data_hora: dataAgendada,
-                                horario: dataAgendada.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                horario: dataAgendada.toLocaleTimeString([], { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                }),
+                                senha: `${prefixo}${agendamentoId.split('_')[1].padStart(2, '0')}`
+                            });
+                            
+                            // Agrupar por serviço
+                            if (!agendamentosPorServico[servicoId]) {
+                                agendamentosPorServico[servicoId] = [];
+                            }
+                            agendamentosPorServico[servicoId].push({
+                                ...agendamento,
+                                id: `${servicoId}_${agendamentoId}`,
+                                senha: `${prefixo}${agendamentoId.split('_')[1].padStart(2, '0')}`
                             });
                         }
                     }
-                }
-            });
+                });
+            }
             
-            agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
-            agendamentosAtivos = agendamentosAtivosTemp;
+            // Ordenar todos por horário
+            todosAgendamentos.sort((a, b) => a.data_hora - b.data_hora);
             
-            console.log('📋 Agendamentos ativos de hoje:', agendamentosAtivos);
+            // Agora você tem:
+            // - todosAgendamentos: lista geral para renderizar
+            // - agendamentosPorServico: separado por serviço para controle de filas individuais
+            
+            agendamentosAtivos = todosAgendamentos;
+            
+            console.log('📋 Agendamentos por serviço:', agendamentosPorServico);
+            console.log('📋 Total:', todosAgendamentos);
             
             setTimeout(() => {
                 gerenciarFilaAtendimento();
@@ -1279,7 +1316,7 @@ async function carregarHorariosCliente() {
 }
 
 // ============================================
-// CONFIRMAR AGENDAMENTO (USANDO spdv-3872a)
+// CONFIRMAR AGENDAMENTO - ESTRUTURA POR SERVIÇO
 // ============================================
 document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', async function() {
     try {
@@ -1307,7 +1344,6 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
             return;
         }
         
-        // Verificar login
         if (!usuarioLogado || !dadosUsuario) {
             mostrarMensagem('Faça login para agendar', 'warning');
             fecharModal('agendamentoRapidoModal');
@@ -1317,64 +1353,28 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         
         mostrarLoading('Confirmando agendamento...');
         
-        // Determinar cliente (se for funcionário, pode agendar para outro)
+        // Determinar cliente
         let clienteEmail = dadosUsuario.email;
         let clienteNome = dadosUsuario.nome;
         let clienteTelefone = dadosUsuario.telefone || '';
         
-        const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
-        const tipo = dadosUsuario.tipo;
-        const isFuncionario = (tipo === 'admin' || tipo === 'funcionario' || 
-                              perfil === 'admin' || perfil === 'gerente' || 
-                              perfil === 'supervisor' || perfil === 'vendedor');
-        
-        // Se for funcionário, verificar se selecionou um cliente
-        if (isFuncionario) {
-            const clienteSelect = document.getElementById('clienteSelect');
-            if (clienteSelect && clienteSelect.value) {
-                clienteEmail = clienteSelect.value;
-                
-                // Buscar dados completos do cliente
-                try {
-                    const clienteDoc = await window.loginDb
-                        .collection('usuarios')
-                        .doc(lojaIdAtual)
-                        .collection('clientes')
-                        .doc(clienteEmail)
-                        .get();
-                    
-                    if (clienteDoc.exists) {
-                        const clienteData = clienteDoc.data();
-                        clienteNome = clienteData.nome || clienteEmail;
-                        clienteTelefone = clienteData.telefone || '';
-                    }
-                } catch (e) {
-                    console.warn('⚠️ Erro ao buscar dados do cliente:', e);
-                }
-            }
-        }
-        
-        // Verificar configuração de validação da loja
+        // Verificar configuração de validação
         let precisaValidar = true;
         try {
-            // 🔥 Usando db (spdv-3872a) para config de validação
             const configRef = doc(
                 db,
                 'configuracoes',
-                lojaIdAtual,
                 'servico_agendamento',
+                lojaIdAtual,
                 servico
             );
             
             const configDoc = await getDoc(configRef);
             if (configDoc.exists()) {
                 const config = configDoc.data();
-                // Se validação automática para todos, já entra validado
                 if (config.validacao === 'automatico_todos') {
                     precisaValidar = false;
-                }
-                // Se for agendamento para hoje e config for 'automatico_dia'
-                else if (config.validacao === 'automatico_dia') {
+                } else if (config.validacao === 'automatico_dia') {
                     const hoje = new Date().toISOString().split('T')[0];
                     if (data === hoje) {
                         precisaValidar = false;
@@ -1385,78 +1385,68 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
             console.warn('⚠️ Erro ao verificar configuração:', e);
         }
 
-        // Pegar dados completos do serviço
+        // Pegar nome do serviço
         const selectedOption = servicoSelect.selectedOptions[0];
         const configServico = JSON.parse(selectedOption.dataset.config || '{}');
+        const nomeServico = configServico.nome || servicoText;
         
-        // 🔥 NOVA ESTRUTURA DE DADOS (conforme solicitado)
+        // Sanitizar nome do serviço para usar como ID da coleção
+        const servicoId = nomeServico
+            .toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/g, '_')
+            .replace(/_+/g, '_')
+            .replace(/^_|_$/g, '');
+        
+        // Dados simplificados do agendamento
         const agendamentoData = {
-            data_hora_agendada: new Date(`${data}T${horario}:00-03:00`), // Timestamp
-            status_agendamento: precisaValidar ? "Pendente" : "Verificado",
-            servico: {
-                id: configServico.id,
-                nome: configServico.nome,
-                duracao: configServico.duracao || 30
-            },
-            cliente: {
-                email: clienteEmail,
-                nome: clienteNome,
-                telefone: clienteTelefone
-            },
-            criado_por: {
-                email: dadosUsuario.email,
-                nome: dadosUsuario.nome
-            },
             criado_em: serverTimestamp(),
-            loja_id: lojaIdAtual
+            data_hora_agendada: new Date(`${data}T${horario}:00-03:00`),
+            status_agendamento: precisaValidar ? "Pendente" : "Verificado",
+            cliente_email: clienteEmail,
+            cliente_nome: clienteNome,
+            cliente_telefone: clienteTelefone
         };
         
         console.log('📝 Salvando agendamento:', agendamentoData);
         
-        // 🔥 SALVANDO NO PROJETO spdv-3872a (db)
-        // Estrutura: agendamentos / [lojaId] / agendamento_clientes / [clienteEmail]
-        const agendamentoRef = doc(
-            db,  // 👈 Projeto spdv-3872a
+        // 🔥 NOVA ESTRUTURA:
+        // agendamentos / [lojaId] / [servicoId] / [agendamento_X]
+        
+        // Referência para a coleção do serviço
+        const servicoRef = collection(
+            db,
             'agendamentos',
             lojaIdAtual,
-            'agendamento_clientes',
-            clienteEmail
+            servicoId
         );
         
-        // Buscar agendamentos existentes do cliente
-        const agendamentoDoc = await getDoc(agendamentoRef);
+        // Contar quantos agendamentos já existem para este serviço
+        const snapshot = await getDocs(servicoRef);
+        const nextNumber = snapshot.size + 1;
+        const agendamentoId = `agendamento_${nextNumber}`;
         
-        let agendamentosCliente = {};
-        if (agendamentoDoc.exists()) {
-            agendamentosCliente = agendamentoDoc.data();
-        }
+        // Salvar o agendamento
+        const agendamentoRef = doc(
+            db,
+            'agendamentos',
+            lojaIdAtual,
+            servicoId,
+            agendamentoId
+        );
         
-        // Criar um ID único para este agendamento (agendamento_1, agendamento_2, etc)
-        const nextNumber = Object.keys(agendamentosCliente).length + 1;
-        const agendamentoKey = `agendamento_${nextNumber}`;
+        await setDoc(agendamentoRef, agendamentoData);
         
-        // Adicionar o novo agendamento ao mapa
-        agendamentosCliente[agendamentoKey] = agendamentoData;
+        console.log(`✅ Agendamento ${agendamentoId} salvo no serviço ${servicoId}`);
         
-        // Salvar todos os agendamentos do cliente
-        await setDoc(agendamentoRef, agendamentosCliente);
-        
-        // Mensagem de sucesso conforme validação
+        // Mensagem de sucesso
         if (precisaValidar) {
-            mostrarMensagem('✅ Agendamento solicitado! Aguarde confirmação da loja.', 'success', 5000);
+            mostrarMensagem(`✅ Agendamento solicitado para ${nomeServico}! Aguarde confirmação.`, 'success', 5000);
         } else {
-            mostrarMensagem('✅ Agendamento confirmado!', 'success');
+            mostrarMensagem(`✅ Agendamento confirmado para ${nomeServico}!`, 'success');
         }
         
-        // Fechar modal
         fecharModal('agendamentoRapidoModal');
-        
-        // Se for cliente, mostrar mensagem sobre acompanhamento
-        if (!isFuncionario) {
-            setTimeout(() => {
-                mostrarMensagem('🔔 Acompanhe seu agendamento na seção "Meus Agendamentos"', 'info', 4000);
-            }, 1000);
-        }
         
     } catch (error) {
         console.error('❌ Erro ao confirmar agendamento:', error);
@@ -2991,6 +2981,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
