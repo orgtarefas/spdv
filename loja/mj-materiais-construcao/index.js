@@ -3062,6 +3062,10 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 // teste
 // ============================================
 
+// ============================================
+// teste_agendamentos - VERSÃO CORRIGIDA
+// ============================================
+
 window.teste_agendamentos = async function() {
     try {
         console.log('🔍 ACESSANDO agendamento_1 DIRETAMENTE');
@@ -3081,7 +3085,50 @@ window.teste_agendamentos = async function() {
         
         if (docSnap.exists()) {
             console.log('✅ AGENDAMENTO ENCONTRADO!');
-            console.log('📄 Dados:', docSnap.data());
+            
+            // Pegar os dados brutos
+            const dados = docSnap.data();
+            
+            // Converter Timestamps para formato legível
+            const dadosFormatados = {
+                ...dados,
+                // Converter data_hora_agendada
+                data_hora_agendada: dados.data_hora_agendada?.toDate 
+                    ? dados.data_hora_agendada.toDate().toLocaleString('pt-BR', { 
+                        timeZone: 'America/Sao_Paulo' 
+                      })
+                    : dados.data_hora_agendada,
+                
+                // Converter criado_em
+                criado_em: dados.criado_em?.toDate
+                    ? dados.criado_em.toDate().toLocaleString('pt-BR', {
+                        timeZone: 'America/Sao_Paulo'
+                      })
+                    : dados.criado_em
+            };
+            
+            console.log('📄 Dados (com Timestamps convertidos):', dadosFormatados);
+            
+            // Mostrar também os dados originais para comparação
+            console.log('📄 Dados originais (com Timestamp):', dados);
+            
+            // Verificar se os campos importantes existem
+            console.log('📊 Verificação de campos:');
+            console.log('- data_hora_agendada:', dados.data_hora_agendada ? '✅' : '❌');
+            console.log('- criado_em:', dados.criado_em ? '✅' : '❌');
+            console.log('- cliente_nome:', dados.cliente_nome ? '✅' : '❌');
+            console.log('- status_agendamento:', dados.status_agendamento ? '✅' : '❌');
+            
+            // Se quiser testar uma conversão específica
+            if (dados.data_hora_agendada) {
+                const dataObj = dados.data_hora_agendada.toDate();
+                console.log('📅 Data agendada (objeto Date):', dataObj);
+                console.log('📅 Data agendada (formatada):', 
+                    dataObj.toLocaleDateString('pt-BR') + ' às ' + 
+                    dataObj.toLocaleTimeString('pt-BR')
+                );
+            }
+            
         } else {
             console.log('❌ agendamento_1 NÃO encontrado');
             
@@ -3176,6 +3223,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
