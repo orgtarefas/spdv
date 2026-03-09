@@ -3759,3 +3759,23 @@ body {
     color: #999;
 }
 
+/* Para manter o footer fixo na parte inferior */
+.agendamento-coluna.coluna-chamando {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.agendamento-coluna.coluna-chamando .coluna-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0; /* Importante */
+}
+
+.agendamento-coluna.coluna-chamando .coluna-footer {
+    flex-shrink: 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    border-radius: 0 0 10px 10px;
+}
