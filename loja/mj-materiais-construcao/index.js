@@ -3083,7 +3083,7 @@ window.diagnosticarAgendamentos = async function() {
     try {
         console.log('🔍 DIAGNÓSTICO DE AGENDAMENTOS');
         
-        // 1. Verificar meses (coleções) dentro de agendamentos/lojaId
+        // 1. Direto para os meses (coleções) dentro de agendamentos/lojaId
         const mesesRef = collection(db, 'agendamentos', lojaIdAtual);
         const mesesSnap = await getDocs(mesesRef);
         console.log('📅 Meses encontrados:', mesesSnap.docs.map(d => d.id));
@@ -3114,6 +3114,8 @@ window.diagnosticarAgendamentos = async function() {
                     })));
                 }
             }
+        } else {
+            console.log('❌ Mês 03_2026 não encontrado!');
         }
         
     } catch (error) {
@@ -3130,6 +3132,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
