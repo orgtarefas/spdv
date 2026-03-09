@@ -1313,19 +1313,22 @@ async function carregarHorariosCliente() {
 }
 
 // ============================================
-// CONFIRMAR AGENDAMENTO - ESTRUTURA POR SERVIÇO
+// CONFIRMAR AGENDAMENTO - FOCO NO SERVIÇO SELECIONADO
 // ============================================
 document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', async function() {
     try {
+        // ============================================
+        // 1. VALIDAÇÕES BÁSICAS
+        // ============================================
         const dataInput = document.getElementById('agendamentoData');
         const horarioSelect = document.getElementById('agendamentoHorario');
+        const servicoSelect = document.getElementById('servicoSelect');
         
         const servico = servicoSelect?.value;
         const servicoText = servicoSelect?.selectedOptions[0]?.text.split(' - ')[0] || servico;
         const data = dataInput?.value;
         const horario = horarioSelect?.value;
         
-        // Validações
         if (!servico) {
             mostrarMensagem('Selecione um serviço', 'warning');
             return;
@@ -1350,12 +1353,47 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         
         mostrarLoading('Confirmando agendamento...');
         
-        // Determinar cliente
+        // ============================================
+        // 2. DETERMINAR CLIENTE
+        // ============================================
         let clienteEmail = dadosUsuario.email;
         let clienteNome = dadosUsuario.nome;
         let clienteTelefone = dadosUsuario.telefone || '';
         
-        // Verificar configuração de validação
+        // Se for funcionário, verificar se selecionou outro cliente
+        const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+        const tipo = dadosUsuario.tipo;
+        const isFuncionario = (tipo === 'admin' || tipo === 'funcionario' || 
+                              perfil === 'admin' || perfil === 'gerente' || 
+                              perfil === 'supervisor' || perfil === 'vendedor');
+        
+        if (isFuncionario) {
+            const clienteSelect = document.getElementById('clienteSelect');
+            if (clienteSelect && clienteSelect.value) {
+                clienteEmail = clienteSelect.value;
+                
+                try {
+                    const clienteDoc = await window.loginDb
+                        .collection('usuarios')
+                        .doc(lojaIdAtual)
+                        .collection('clientes')
+                        .doc(clienteEmail)
+                        .get();
+                    
+                    if (clienteDoc.exists) {
+                        const clienteData = clienteDoc.data();
+                        clienteNome = clienteData.nome || clienteEmail;
+                        clienteTelefone = clienteData.telefone || '';
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Erro ao buscar dados do cliente:', e);
+                }
+            }
+        }
+        
+        // ============================================
+        // 3. VERIFICAR VALIDAÇÃO
+        // ============================================
         let precisaValidar = true;
         try {
             const configRef = doc(
@@ -1381,8 +1419,10 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         } catch (e) {
             console.warn('⚠️ Erro ao verificar configuração:', e);
         }
-
-        // Pegar nome do serviço
+        
+        // ============================================
+        // 4. PREPARAR DADOS DO AGENDAMENTO
+        // ============================================
         const selectedOption = servicoSelect.selectedOptions[0];
         const configServico = JSON.parse(selectedOption.dataset.config || '{}');
         const nomeServico = configServico.nome || servicoText;
@@ -1406,11 +1446,16 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         };
         
         console.log('📝 Salvando agendamento:', agendamentoData);
+        console.log('🔧 Serviço ID:', servicoId);
         
-        // 🔥 NOVA ESTRUTURA:
+        // ============================================
+        // 5. SALVAR NO FIREBASE (APENAS NO SERVIÇO SELECIONADO)
+        // ============================================
+        
+        // ✅ FOCO APENAS NO SERVIÇO SELECIONADO
         // agendamentos / [lojaId] / [servicoId] / [agendamento_X]
         
-        // Referência para a coleção do serviço
+        // Referência para a coleção do serviço específico
         const servicoRef = collection(
             db,
             'agendamentos',
@@ -1418,10 +1463,13 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
             servicoId
         );
         
-        // Contar quantos agendamentos já existem para este serviço
+        // Contar quantos agendamentos já existem para ESTE serviço
         const snapshot = await getDocs(servicoRef);
         const nextNumber = snapshot.size + 1;
         const agendamentoId = `agendamento_${nextNumber}`;
+        
+        console.log(`📊 Já existem ${snapshot.size} agendamentos em ${servicoId}`);
+        console.log(`🆓 Próximo ID: ${agendamentoId}`);
         
         // Salvar o agendamento
         const agendamentoRef = doc(
@@ -1436,7 +1484,9 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         
         console.log(`✅ Agendamento ${agendamentoId} salvo no serviço ${servicoId}`);
         
-        // Mensagem de sucesso
+        // ============================================
+        // 6. MENSAGEM DE SUCESSO
+        // ============================================
         if (precisaValidar) {
             mostrarMensagem(`✅ Agendamento solicitado para ${nomeServico}! Aguarde confirmação.`, 'success', 5000);
         } else {
@@ -1444,6 +1494,13 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         }
         
         fecharModal('agendamentoRapidoModal');
+        
+        // Se for cliente, mostrar mensagem sobre acompanhamento
+        if (!isFuncionario) {
+            setTimeout(() => {
+                mostrarMensagem('🔔 Acompanhe sua posição na fila acima', 'info', 4000);
+            }, 1000);
+        }
         
     } catch (error) {
         console.error('❌ Erro ao confirmar agendamento:', error);
@@ -2978,6 +3035,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
