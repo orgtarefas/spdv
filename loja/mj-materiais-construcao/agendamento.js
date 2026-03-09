@@ -1662,7 +1662,7 @@ function renderizarPainelFila() {
                         <h4>${item.cliente_nome}</h4>
                         <div>
                             <span class="senha">${item.senha || '---'}</span>
-                            <span class="servico">${item.servico}</span>
+                            <span class="servico">${item.servico_nome || item.servico_id || 'Serviço'}</span>
                         </div>
                     </div>
                 </div>
