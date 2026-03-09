@@ -3654,3 +3654,108 @@ body {
     font-size: 1.2rem;
     font-weight: 500;
 }
+
+/* ============================================
+   CARDS COMPACTOS PARA EM ATENDIMENTO
+   ============================================ */
+
+/* Container com scroll para múltiplos atendimentos */
+#chamandoAgoraCard {
+    max-height: 160px; /* Altura para ver aproximadamente 2 cards */
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Cards individuais - MESMO HTML que você já tem */
+#chamandoAgoraCard .card-chamando-item {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+    color: white;
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Header do card - sem mudanças */
+#chamandoAgoraCard .card-header {
+    margin-bottom: 2px;
+}
+
+/* Tag do serviço - mais compacta */
+#chamandoAgoraCard .servico-tag {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 500;
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Corpo do card */
+#chamandoAgoraCard .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+/* Senha em destaque - menor */
+#chamandoAgoraCard .senha-grande {
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1px 6px;
+    border-radius: 4px;
+    min-width: 45px;
+    text-align: center;
+}
+
+/* Nome do cliente - menor */
+#chamandoAgoraCard .cliente-nome {
+    font-size: 0.85rem;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+}
+
+/* Scrollbar personalizada */
+#chamandoAgoraCard::-webkit-scrollbar {
+    width: 3px;
+}
+
+#chamandoAgoraCard::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+    border-radius: 3px;
+}
+
+#chamandoAgoraCard::-webkit-scrollbar-thumb {
+    background: #ff6b00;
+    border-radius: 3px;
+}
+
+/* Estado vazio */
+#chamandoAgoraCard .empty-agendamento {
+    height: 160px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #666;
+    background: #f5f5f5;
+    border-radius: 8px;
+}
+
+#chamandoAgoraCard .empty-agendamento i {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    color: #999;
+}
+
