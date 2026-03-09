@@ -49,6 +49,7 @@ let agendamentosAtivos = [];
 let agendamentosFuturos = [];
 let unsubscribeAgendamentos = null;
 let dadosAgendamentoHoje = null;
+let servicosConfig = {}; // Mapa de id do serviço -> configuração
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
@@ -238,6 +239,33 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
+// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS
+// ============================================
+async function carregarConfiguracoesServicos() {
+    try {
+        const servicosRef = collection(
+            db, 
+            'configuracoes', 
+            'servico_agendamento',
+            lojaIdAtual
+        );
+        
+        const snapshot = await getDocs(servicosRef);
+        
+        servicosConfig = {};
+        snapshot.forEach(doc => {
+            servicosConfig[doc.id] = doc.data();
+        });
+        
+        console.log('📋 Configurações dos serviços carregadas:', servicosConfig);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar configurações:', error);
+        servicosConfig = {};
+    }
+}
+
+// ============================================
 // RECONSTRUIR LISTA DE AGENDAMENTOS
 // ============================================
 function reconstruirListaAgendamentos(dadosDoDia) {
@@ -259,8 +287,16 @@ function reconstruirListaAgendamentos(dadosDoDia) {
         Object.entries(dadosDoDia).forEach(([servicoId, agendamentosMap]) => {
             console.log(`  🔧 Serviço: ${servicoId}`);
             
-            // agendamentosMap é um objeto onde as chaves são 'agendamento_1', 'agendamento_2', etc.
-            Object.entries(agendamentosMap || {}).forEach(([agendamentoId, dados]) => {
+            // Ordenar agendamentos por data/hora para garantir numeração consistente
+            const agendamentosArray = Object.entries(agendamentosMap || {})
+                .sort((a, b) => {
+                    const dataA = a[1].data_hora_agendada?.toDate?.() || new Date(a[1].data_hora_agendada);
+                    const dataB = b[1].data_hora_agendada?.toDate?.() || new Date(b[1].data_hora_agendada);
+                    return dataA - dataB;
+                });
+            
+            // Atribuir números de senha baseados na ordem do dia (não no ID)
+            agendamentosArray.forEach(([agendamentoId, dados], index) => {
                 console.log(`    📝 ${agendamentoId}:`, dados);
                 
                 if (dados && dados.data_hora_agendada) {
@@ -272,9 +308,8 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                     dataAgendadaDate.setHours(0, 0, 0, 0);
                     
                     if (dataAgendadaDate.getTime() === hoje.getTime()) {
-                        // Extrair número do agendamento para gerar senha
-                        const numeroMatch = agendamentoId.match(/\d+/);
-                        const numero = numeroMatch ? numeroMatch[0] : '1';
+                        // 🔥 A posição no array define o número da senha (1-based)
+                        const numero = index + 1;
                         
                         const statusFila = [
                             'Em atendimento',
@@ -288,7 +323,7 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                             agendamentosAtivosTemp.push({
                                 id: `${servicoId}_${agendamentoId}`,
                                 servico_id: servicoId,
-                                servico_nome: servicoId.replace(/_/g, ' '),
+                                servico_nome: servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' '),
                                 agendamento_id: agendamentoId,
                                 cliente_email: dados.cliente_email,
                                 cliente_nome: dados.cliente_nome,
@@ -298,7 +333,8 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                senha: gerarSenha(parseInt(numero), dados.status_agendamento),
+                                // 🔥 Gerar senha com a abreviação do serviço
+                                senha: gerarSenha(numero, servicoId, servicosConfig),
                                 timestamp: dataHoraAgendada.getTime()
                             });
                         }
@@ -307,7 +343,7 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                         agendamentosFuturos.push({
                             id: `${servicoId}_${agendamentoId}`,
                             servico_id: servicoId,
-                            servico_nome: servicoId.replace(/_/g, ' '),
+                            servico_nome: servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' '),
                             agendamento_id: agendamentoId,
                             cliente_email: dados.cliente_email,
                             cliente_nome: dados.cliente_nome,
@@ -324,7 +360,7 @@ function reconstruirListaAgendamentos(dadosDoDia) {
             });
         });
         
-        // Ordenar por horário
+        // Ordenar por horário (todos os serviços juntos)
         agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
         
         agendamentosAtivos = agendamentosAtivosTemp;
@@ -376,22 +412,29 @@ async function chamarProximo(agendamentoId) {
         mostrarMensagem('Erro ao chamar cliente', 'error');
     }
 }
+
 // ============================================
-// GERAR SENHA BASEADA NO STATUS
+// GERAR SENHA BASEADA NO SERVIÇO
 // ============================================
-function gerarSenha(numero, status) {
-    const prefixos = {
-        'Em atendimento': 'A',
-        'Próximo a atender': 'P',
-        'Na fila': 'F',
-        'Verificado': 'V',
-        'Pendente': 'S',
-        'Cancelado': 'C',
-        'Concluido': 'X'
-    };
+function gerarSenha(numero, servicoId, servicosConfig = {}) {
+    // Buscar a abreviação do serviço na configuração
+    // Se não encontrar, usa as primeiras 3-4 letras do serviço como fallback
+    let prefixo = 'S';
     
-    const prefixo = prefixos[status] || 'S';
-    return `${prefixo}${numero.toString().padStart(2, '0')}`;
+    if (servicosConfig[servicoId] && servicosConfig[servicoId].abreviacao) {
+        prefixo = servicosConfig[servicoId].abreviacao;
+    } else {
+        // Fallback: pegar primeiras 3 letras do serviço em maiúsculo
+        const nomePartes = servicoId.split('_');
+        if (nomePartes.length > 0) {
+            prefixo = nomePartes[0].substring(0, 3).toUpperCase();
+        }
+    }
+    
+    // Número com 2 dígitos (01, 02, etc)
+    const numeroFormatado = numero.toString().padStart(2, '0');
+    
+    return `${prefixo}${numeroFormatado}`;
 }
 
 // ============================================
@@ -3017,7 +3060,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 
 
 // ============================================
-// INICIALIZAÇÃO (CORRIGIDA - EXECUTA IMEDIATAMENTE)
+// INICIALIZAÇÃO
 // ============================================
 (async function() {
     console.log("📄 Inicializando clientes.js imediatamente...");
@@ -3053,6 +3096,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
         toggleAgendamentoContainer(agendamentoHabilitado);
 
         if (agendamentoHabilitado) {
+            await carregarConfiguracoesServicos();
             iniciarEscutaAgendamentos();
         }
         
@@ -3083,4 +3127,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
