@@ -1405,7 +1405,7 @@ async function carregarHorariosCliente() {
 }
 
 // ============================================
-// CONFIRMAR AGENDAMENTO - FOCO NO SERVIÇO SELECIONADO
+// CONFIRMAR AGENDAMENTO - NOVA ESTRUTURA COM MÊS/ANO
 // ============================================
 document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', async function() {
     try {
@@ -1527,7 +1527,12 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         
-        // Dados simplificados do agendamento
+        // Extrair data para criar os segmentos
+        const [ano, mes, dia] = data.split('-');
+        const mesAno = `${mes}_${ano}`; // Ex: "03_2026"
+        const dataFormatada = `${dia}_${mes}_${ano}`; // Ex: "09_03_2026"
+        
+        // Dados do agendamento
         const agendamentoData = {
             criado_em: serverTimestamp(),
             data_hora_agendada: new Date(`${data}T${horario}:00-03:00`),
@@ -1539,28 +1544,29 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
         
         console.log('📝 Salvando agendamento:', agendamentoData);
         console.log('🔧 Serviço ID:', servicoId);
+        console.log('📅 Mês/Ano:', mesAno, 'Data:', dataFormatada);
         
         // ============================================
-        // 5. SALVAR NO FIREBASE (APENAS NO SERVIÇO SELECIONADO)
+        // 5. SALVAR NO FIREBASE - NOVA ESTRUTURA
         // ============================================
+        // agendamentos / [lojaId] / [mes_ano] / [data] / [servicoId] / [agendamento_X]
         
-        // ✅ FOCO APENAS NO SERVIÇO SELECIONADO
-        // agendamentos / [lojaId] / [servicoId] / [agendamento_X]
-        
-        // Referência para a coleção do serviço específico
+        // Referência para a coleção do serviço dentro da data específica
         const servicoRef = collection(
             db,
             'agendamentos',
             lojaIdAtual,
-            servicoId
+            mesAno,           // ← Mês/Ano como coleção
+            dataFormatada,    // ← Data como documento
+            servicoId         // ← Serviço como coleção
         );
         
-        // Contar quantos agendamentos já existem para ESTE serviço
+        // Contar quantos agendamentos já existem para ESTE serviço nesta data
         const snapshot = await getDocs(servicoRef);
         const nextNumber = snapshot.size + 1;
         const agendamentoId = `agendamento_${nextNumber}`;
         
-        console.log(`📊 Já existem ${snapshot.size} agendamentos em ${servicoId}`);
+        console.log(`📊 Já existem ${snapshot.size} agendamentos em ${servicoId} para ${dataFormatada}`);
         console.log(`🆓 Próximo ID: ${agendamentoId}`);
         
         // Salvar o agendamento
@@ -1568,13 +1574,15 @@ document.getElementById('btnConfirmarAgendamento')?.addEventListener('click', as
             db,
             'agendamentos',
             lojaIdAtual,
+            mesAno,
+            dataFormatada,
             servicoId,
             agendamentoId
         );
         
         await setDoc(agendamentoRef, agendamentoData);
         
-        console.log(`✅ Agendamento ${agendamentoId} salvo no serviço ${servicoId}`);
+        console.log(`✅ Agendamento ${agendamentoId} salvo em ${mesAno}/${dataFormatada}/${servicoId}`);
         
         // ============================================
         // 6. MENSAGEM DE SUCESSO
@@ -3127,6 +3135,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
