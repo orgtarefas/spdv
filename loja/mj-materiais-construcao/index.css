@@ -3616,3 +3616,41 @@ body {
     margin-left: 8px;
     vertical-align: middle;
 }
+
+/* Adicione ao seu arquivo CSS */
+.servico-tag {
+    background: #ff6b00;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+.card-chamando-item {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.card-chamando-item .servico-tag {
+    background: rgba(255, 255, 255, 0.2);
+    margin-bottom: 10px;
+}
+
+.card-chamando-item .senha-grande {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.card-chamando-item .cliente-nome {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
