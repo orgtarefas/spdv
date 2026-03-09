@@ -3137,6 +3137,63 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }
 })();
 
+
+// ============================================
+// DIAGNÓSTICO - EXPOR DB PARA CONSOLE (TEMPORÁRIO)
+// ============================================
+window.diagnosticarAgendamentos = async function() {
+    try {
+        console.log('🔍 DIAGNÓSTICO DE AGENDAMENTOS');
+        
+        // Verificar se a coleção agendamentos existe
+        const agendamentosRef = collection(db, 'agendamentos');
+        const agendamentosSnap = await getDocs(agendamentosRef);
+        console.log('📁 Lojas com agendamentos:', agendamentosSnap.docs.map(d => d.id));
+        
+        // Verificar documento da loja
+        const lojaRef = doc(db, 'agendamentos', lojaIdAtual);
+        const lojaSnap = await getDoc(lojaRef);
+        console.log(`🏪 Documento da loja ${lojaIdAtual} existe?`, lojaSnap.exists());
+        
+        // Verificar meses
+        const mesesRef = collection(db, 'agendamentos', lojaIdAtual);
+        const mesesSnap = await getDocs(mesesRef);
+        console.log('📅 Meses encontrados:', mesesSnap.docs.map(d => d.id));
+        
+        // Verificar março/2026
+        if (mesesSnap.docs.some(d => d.id === '03_2026')) {
+            const marcoRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026');
+            const marcoSnap = await getDocs(marcoRef);
+            console.log('📆 Datas em 03_2026:', marcoSnap.docs.map(d => d.id));
+            
+            // Verificar primeira data
+            if (marcoSnap.docs.length > 0) {
+                const primeiraData = marcoSnap.docs[0].id;
+                console.log(`🔍 Verificando data: ${primeiraData}`);
+                
+                // Verificar serviços dentro da data
+                const servicosRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026', primeiraData);
+                const servicosSnap = await getDocs(servicosRef);
+                console.log('🔧 Serviços encontrados:', servicosSnap.docs.map(d => d.id));
+                
+                // Verificar agendamentos no primeiro serviço
+                if (servicosSnap.docs.length > 0) {
+                    const primeiroServico = servicosSnap.docs[0].id;
+                    const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, '03_2026', primeiraData, primeiroServico);
+                    const agendamentosSnap = await getDocs(agendamentosRef);
+                    console.log(`📋 Agendamentos em ${primeiroServico}:`, agendamentosSnap.docs.map(d => ({
+                        id: d.id,
+                        ...d.data()
+                    })));
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro no diagnóstico:', error);
+    }
+};
+
 // ============================================
 // EXPOR FUNÇÕES GLOBAIS
 // ============================================
@@ -3146,5 +3203,6 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
