@@ -293,16 +293,11 @@ async function reconstruirListaAgendamentos() {
         
         console.log(`🔍 Buscando agendamentos do mês: ${mesAnoAtual}`);
         
-        const mesRef = collection(
-            db,
-            'agendamentos',
-            lojaIdAtual,
-            mesAnoAtual
-        );
-        
+        // 1. Acessar a coleção do mês atual
+        const mesRef = collection(db, 'agendamentos', lojaIdAtual, mesAnoAtual);
         const datasSnapshot = await getDocs(mesRef);
         
-        console.log(`📊 Encontradas ${datasSnapshot.size} datas com agendamentos`);
+        console.log(`📊 Encontradas ${datasSnapshot.size} datas no mês ${mesAnoAtual}`);
         
         const statusFila = [
             'Em atendimento',
@@ -312,25 +307,19 @@ async function reconstruirListaAgendamentos() {
             'Pendente'
         ];
         
+        // 2. Para cada data, buscar serviços e agendamentos
         for (const dataDoc of datasSnapshot.docs) {
-            const dataId = dataDoc.id;
+            const dataId = dataDoc.id; // Ex: "09_03_2026"
             
-            const servicosConfigRef = collection(db, 'configuracoes', 'servico_agendamento', lojaIdAtual);
-            const servicosConfigSnap = await getDocs(servicosConfigRef);
+            // 3. Acessar a coleção de serviços dentro da data
+            const servicosRef = collection(db, 'agendamentos', lojaIdAtual, mesAnoAtual, dataId);
+            const servicosSnapshot = await getDocs(servicosRef);
             
-            for (const servicoConfigDoc of servicosConfigSnap.docs) {
-                const servicoId = servicoConfigDoc.id;
-                const servicoNome = servicoConfigDoc.data().nome || servicoId;
+            for (const servicoDoc of servicosSnapshot.docs) {
+                const servicoId = servicoDoc.id; // Ex: "mecanica_avancada"
                 
-                const agendamentosRef = collection(
-                    db,
-                    'agendamentos',
-                    lojaIdAtual,
-                    mesAnoAtual,
-                    dataId,
-                    servicoId
-                );
-                
+                // 4. Acessar os agendamentos dentro do serviço
+                const agendamentosRef = collection(db, 'agendamentos', lojaIdAtual, mesAnoAtual, dataId, servicoId);
                 const agendamentosSnapshot = await getDocs(agendamentosRef);
                 
                 agendamentosSnapshot.forEach(agendamentoDoc => {
@@ -341,6 +330,7 @@ async function reconstruirListaAgendamentos() {
                         const dataHoraAgendada = agendamento.data_hora_agendada?.toDate?.() || 
                                                 new Date(agendamento.data_hora_agendada);
                         
+                        // Verificar se é de HOJE
                         if (dataHoraAgendada >= hoje && dataHoraAgendada < amanha) {
                             if (statusFila.includes(agendamento.status_agendamento)) {
                                 
@@ -351,7 +341,7 @@ async function reconstruirListaAgendamentos() {
                                     data_id: dataId,
                                     mes_ano: mesAnoAtual,
                                     servico_id: servicoId,
-                                    servico_nome: servicoNome,
+                                    servico_nome: servicoId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                                     agendamento_id: agendamentoId,
                                     cliente_email: agendamento.cliente_email,
                                     cliente_nome: agendamento.cliente_nome || 'Cliente',
@@ -372,7 +362,7 @@ async function reconstruirListaAgendamentos() {
                                 data_id: dataId,
                                 mes_ano: mesAnoAtual,
                                 servico_id: servicoId,
-                                servico_nome: servicoNome,
+                                servico_nome: servicoId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                                 agendamento_id: agendamentoId,
                                 cliente_email: agendamento.cliente_email,
                                 cliente_nome: agendamento.cliente_nome || 'Cliente',
@@ -3197,6 +3187,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
