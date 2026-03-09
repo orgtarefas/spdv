@@ -275,7 +275,7 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// FUNÇÃO PARA RECONSTRUIR A LISTA DE AGENDAMENTOS
+// FUNÇÃO PARA RECONSTRUIR A LISTA DE AGENDAMENTOS - CORRIGIDA
 // ============================================
 async function reconstruirListaAgendamentos() {
     try {
@@ -287,14 +287,12 @@ async function reconstruirListaAgendamentos() {
         const amanha = new Date(hoje);
         amanha.setDate(amanha.getDate() + 1);
         
-        // Mês e ano atual
         const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
         const anoAtual = hoje.getFullYear();
         const mesAnoAtual = `${mesAtual}_${anoAtual}`;
         
         console.log(`🔍 Buscando agendamentos do mês: ${mesAnoAtual}`);
         
-        // Referência para a coleção do mês atual
         const mesRef = collection(
             db,
             'agendamentos',
@@ -302,42 +300,28 @@ async function reconstruirListaAgendamentos() {
             mesAnoAtual
         );
         
-        // Buscar todas as datas do mês
         const datasSnapshot = await getDocs(mesRef);
         
         console.log(`📊 Encontradas ${datasSnapshot.size} datas com agendamentos`);
         
-        // 🔥 TODOS OS STATUS QUE DEVEM SER EXIBIDOS NA FILA
         const statusFila = [
-            'Em atendimento',    // Quem está sendo atendido agora
-            'Próximo a atender',  // Quem é o próximo
-            'Na fila',            // Quem está aguardando
-            'Verificado',         // Quem já confirmou presença
-            'Pendente'            // Quem agendou mas ainda não confirmou
+            'Em atendimento',
+            'Próximo a atender',
+            'Na fila',
+            'Verificado',
+            'Pendente'
         ];
         
-        // Para cada data, buscar os serviços e agendamentos
         for (const dataDoc of datasSnapshot.docs) {
-            const dataId = dataDoc.id; // Formato: "09_03_2026"
-            const [dia, mes, ano] = dataId.split('_').map(Number);
+            const dataId = dataDoc.id;
             
-            // Referência para a coleção de serviços dentro desta data
-            const servicosRef = collection(
-                db,
-                'agendamentos',
-                lojaIdAtual,
-                mesAnoAtual,
-                dataId
-            );
+            const servicosConfigRef = collection(db, 'configuracoes', 'servico_agendamento', lojaIdAtual);
+            const servicosConfigSnap = await getDocs(servicosConfigRef);
             
-            const servicosSnapshot = await getDocs(servicosRef);
-            
-            // Para cada serviço, buscar seus agendamentos
-            for (const servicoDoc of servicosSnapshot.docs) {
-                const servicoId = servicoDoc.id;
-                const servicoNome = servicoId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            for (const servicoConfigDoc of servicosConfigSnap.docs) {
+                const servicoId = servicoConfigDoc.id;
+                const servicoNome = servicoConfigDoc.data().nome || servicoId;
                 
-                // Buscar agendamentos deste serviço
                 const agendamentosRef = collection(
                     db,
                     'agendamentos',
@@ -349,8 +333,6 @@ async function reconstruirListaAgendamentos() {
                 
                 const agendamentosSnapshot = await getDocs(agendamentosRef);
                 
-                console.log(`📊 Serviço ${servicoId} na data ${dataId}: ${agendamentosSnapshot.size} agendamentos`);
-                
                 agendamentosSnapshot.forEach(agendamentoDoc => {
                     const agendamento = agendamentoDoc.data();
                     const agendamentoId = agendamentoDoc.id;
@@ -359,25 +341,13 @@ async function reconstruirListaAgendamentos() {
                         const dataHoraAgendada = agendamento.data_hora_agendada?.toDate?.() || 
                                                 new Date(agendamento.data_hora_agendada);
                         
-                        // LOG PARA DEBUG - Mostrar todos os agendamentos encontrados
-                        console.log(`📝 Documento: ${agendamentoId}`, {
-                            nome: agendamento.cliente_nome,
-                            status: agendamento.status_agendamento,
-                            data: dataHoraAgendada.toLocaleString(),
-                            email: agendamento.cliente_email
-                        });
-                        
-                        // Verificar se é de HOJE
                         if (dataHoraAgendada >= hoje && dataHoraAgendada < amanha) {
-                            // 🔥 INCLUI TODOS OS STATUS DA FILA
                             if (statusFila.includes(agendamento.status_agendamento)) {
                                 
-                                // Gerar senha baseada no serviço e status
-                                const prefixo = servicoId.substring(0, 2).toUpperCase();
                                 const numero = agendamentoId.split('_')[1] || '1';
                                 
                                 agendamentosAtivosTemp.push({
-                                    id: `${dataId}_${servicoId}_${agendamentoId}`, // ID único
+                                    id: `${dataId}_${servicoId}_${agendamentoId}`,
                                     data_id: dataId,
                                     mes_ano: mesAnoAtual,
                                     servico_id: servicoId,
@@ -395,15 +365,8 @@ async function reconstruirListaAgendamentos() {
                                     senha: gerarSenha(parseInt(numero), agendamento.status_agendamento),
                                     timestamp: dataHoraAgendada.getTime()
                                 });
-                                
-                                console.log(`✅ ADICIONADO À FILA: ${agendamento.cliente_nome} - ${agendamento.status_agendamento} - ${agendamento.cliente_email}`);
-                            } else {
-                                console.log(`⏭️ Ignorado (status não está na fila): ${agendamento.cliente_nome} - ${agendamento.status_agendamento}`);
                             }
                         } else {
-                            // Agendamentos futuros (outros dias)
-                            console.log(`📅 Agendamento futuro: ${agendamento.cliente_nome} - ${dataHoraAgendada.toLocaleDateString()}`);
-                            
                             agendamentosFuturosTemp.push({
                                 id: `${dataId}_${servicoId}_${agendamentoId}`,
                                 data_id: dataId,
@@ -428,36 +391,16 @@ async function reconstruirListaAgendamentos() {
             }
         }
         
-        // ORDENAR POR HORÁRIO (MAIS ANTIGO PRIMEIRO)
         agendamentosAtivosTemp.sort((a, b) => a.timestamp - b.timestamp);
         
-        // ATUALIZAR VARIÁVEIS GLOBAIS
         agendamentosAtivos = agendamentosAtivosTemp;
         agendamentosFuturos = agendamentosFuturosTemp;
         
-        // LOG RESUMO
         console.log('📋 ===== RESUMO DOS AGENDAMENTOS DE HOJE =====');
         console.log(`📋 Total: ${agendamentosAtivos.length} agendamentos`);
         
-        // Mostrar contagem por status
-        const contagemStatus = {};
-        agendamentosAtivos.forEach(a => {
-            contagemStatus[a.status] = (contagemStatus[a.status] || 0) + 1;
-        });
-        console.log('📊 Por status:', contagemStatus);
-        
-        // Listar todos
-        agendamentosAtivos.forEach((a, index) => {
-            console.log(`   ${index+1}. ${a.cliente_nome} - ${a.status} - ${a.horario} - ${a.senha}`);
-        });
-        
-        console.log('📅 Agendamentos futuros:', agendamentosFuturos.length);
-        console.log('📋 ===========================================');
-        
-        // RENDERIZAR PAINEL
         renderizarPainelAgendamento();
         
-        // GERENCIAR FILA APÓS RENDERIZAR
         setTimeout(() => {
             gerenciarFilaAtendimento();
             inicializarCarrosselAgendamento();
@@ -3203,4 +3146,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
