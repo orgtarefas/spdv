@@ -140,7 +140,7 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS AGENDAMENTO
+// ATUALIZAR STATUS AGENDAMENTO - VERSÃO SUPER SIMPLES
 // ============================================
 async function atualizarStatusAgendamento(agendamento, novoStatus) {
     try {
@@ -167,58 +167,13 @@ async function atualizarStatusAgendamento(agendamento, novoStatus) {
             dataFormatada
         );
         
-        // Buscar documento atual
-        const docSnap = await getDoc(diaDocRef);
-        
-        if (!docSnap.exists()) {
-            console.error('❌ Documento do dia não encontrado');
-            return false;
-        }
-        
-        const dadosAtuais = docSnap.data();
-        
-        // Verificar se o serviço e agendamento existem
-        if (!dadosAtuais[servicoId] || !dadosAtuais[servicoId][agendamentoId]) {
-            console.error('❌ Agendamento não encontrado no mapa');
-            return false;
-        }
-        
-        // Criar cópia para atualização
-        const novosDados = JSON.parse(JSON.stringify(dadosAtuais));
-        
-        // Atualizar status
-        novosDados[servicoId][agendamentoId].status_agendamento = novoStatus;
-        
-        // Se for conclusão, adicionar data
-        if (novoStatus === 'Concluido') {
-            novosDados[servicoId][agendamentoId].data_conclusao = serverTimestamp();
-        }
-        
-        // Se for cancelamento
-        if (novoStatus === 'Cancelado') {
-            novosDados[servicoId][agendamentoId].data_cancelamento = serverTimestamp();
-        }
-        
-        // Adicionar histórico
-        if (!novosDados[servicoId][agendamentoId].historico_status) {
-            novosDados[servicoId][agendamentoId].historico_status = [];
-        }
-        
-        novosDados[servicoId][agendamentoId].historico_status.push({
-            status: novoStatus,
-            data: new Date().toISOString(),
-            alterado_por: dadosUsuario?.email || 'sistema',
-            timestamp: serverTimestamp()
+        await updateDoc(diaDocRef, {
+            [`${servicoId}.${agendamentoId}.status_agendamento`]: novoStatus
         });
-        
-        // Atualizar no Firestore
-        await updateDoc(diaDocRef, novosDados);
         
         console.log(`✅ Status atualizado para ${novoStatus}`);
         
-        // Atualizar cache local
-        dadosAgendamentoHoje = novosDados;
-        
+        // O onSnapshot vai detectar a mudança automaticamente
         return true;
         
     } catch (error) {
@@ -3128,3 +3083,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
