@@ -1817,7 +1817,6 @@ function iniciarContadorPausa(minutos) {
         if (diff <= 0) {
             clearInterval(intervaloPausa);
             intervaloPausa = null;
-            retomarAtendimento();
             return;
         }
         
@@ -1829,33 +1828,6 @@ function iniciarContadorPausa(minutos) {
     }, 1000);
 }
 
-// ============================================
-// RETOMAR ATENDIMENTO
-// ============================================
-async function retomarAtendimento() {
-    if (!window.loginDb || !lojaIdAtual) return;
-    
-    try {
-        const pausaRef = window.loginDb
-            .collection('configuracoes')
-            .doc(lojaIdAtual)
-            .collection('agendamento')
-            .doc('pausa');
-        
-        await updateDoc(pausaRef, {
-            ativo: false,
-            data_retomada: serverTimestamp()
-        });
-        
-        document.getElementById('statusFuncionamento').style.display = 'flex';
-        document.getElementById('statusPausa').style.display = 'none';
-        
-        mostrarMensagem('Atendimento retomado!', 'success');
-        
-    } catch (error) {
-        console.error('❌ Erro ao retomar:', error);
-    }
-}
 
 // ============================================
 // CONFIGURAR CHECKBOXES DE ATENDIMENTO (CORRIGIDO)
