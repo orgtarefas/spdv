@@ -194,7 +194,7 @@ async function atualizarStatusAgendamento(clienteEmail, agendamentoKey, novoStat
 }
 
 // ============================================
-// CARREGAR AGENDAMENTOS ATIVOS - CORRIGIDO (estrutura por serviço)
+// CARREGAR AGENDAMENTOS ATIVOS - ESTRUTURA CORRETA
 // ============================================
 function iniciarEscutaAgendamentos() {
     if (!agendamentoHabilitado || !lojaIdAtual) return;
@@ -202,23 +202,27 @@ function iniciarEscutaAgendamentos() {
     console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // Referência para a coleção da loja
-        const lojaRef = collection(db, 'agendamentos', lojaIdAtual);
+        // 🔥 Referência para o documento da loja
+        const lojaDocRef = doc(db, 'agendamentos', lojaIdAtual);
         
-        unsubscribeAgendamentos = onSnapshot(lojaRef, async (snapshot) => {
-            const agendamentosAtivosTemp = [];
-            const agendamentosFuturosTemp = [];
+        // 🔥 Escutar TODAS as subcoleções deste documento
+        // Infelizmente não dá para escutar todas subcoleções de uma vez
+        // Precisamos primeiro listar os serviços
+        
+        // Buscar todos os serviços disponíveis nas configurações
+        const servicosRef = collection(db, 'configuracoes', 'servico_agendamento', lojaIdAtual);
+        
+        getDocs(servicosRef).then((servicosSnap) => {
+            console.log(`🔍 Encontrados ${servicosSnap.size} serviços`);
             
-            const hoje = new Date();
-            hoje.setHours(0, 0, 0, 0);
-            const amanha = new Date(hoje);
-            amanha.setDate(amanha.getDate() + 1);
+            // Array para guardar os unsubscribes
+            const unsubscribes = [];
             
-            // Para cada SERVIÇO (teste, corte, etc)
-            for (const docServico of snapshot.docs) {
-                const servicoId = docServico.id; // "teste"
+            // Para cada serviço, escutar sua subcoleção de agendamentos
+            servicosSnap.forEach((servicoDoc) => {
+                const servicoId = servicoDoc.id; // "teste", "corte", etc
                 
-                // Buscar todos os agendamentos DESTE serviço
+                // ✅ CORRETO: agendamentos / [lojaId] / [servicoId]
                 const agendamentosRef = collection(
                     db,
                     'agendamentos',
@@ -226,102 +230,143 @@ function iniciarEscutaAgendamentos() {
                     servicoId
                 );
                 
-                const agendamentosSnap = await getDocs(agendamentosRef);
+                console.log(`👂 Escutando serviço: ${servicoId}`);
                 
-                agendamentosSnap.forEach(docAgendamento => {
-                    const agendamento = docAgendamento.data();
-                    const agendamentoId = docAgendamento.id; // "agendamento_1"
+                const unsubscribe = onSnapshot(agendamentosRef, (snapshot) => {
+                    console.log(`📨 Atualização em ${servicoId}: ${snapshot.size} agendamentos`);
                     
-                    if (agendamento && agendamento.data_hora_agendada) {
-                        // Converter timestamp para Date
-                        const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
-                                            new Date(agendamento.data_hora_agendada);
+                    // Reconstruir a lista completa de todos os serviços
+                    reconstruirListaAgendamentos();
+                    
+                }, (error) => {
+                    console.error(`❌ Erro no serviço ${servicoId}:`, error);
+                });
+                
+                unsubscribes.push(unsubscribe);
+            });
+            
+            // Guardar todos os unsubscribes para limpar depois
+            window.unsubscribesAgendamentos = unsubscribes;
+            
+            // Carregar a lista inicial
+            reconstruirListaAgendamentos();
+            
+        }).catch((error) => {
+            console.error('❌ Erro ao buscar serviços:', error);
+        });
+        
+        // Função para reconstruir a lista de agendamentos
+        async function reconstruirListaAgendamentos() {
+            try {
+                const agendamentosAtivosTemp = [];
+                const agendamentosFuturosTemp = [];
+                
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0);
+                const amanha = new Date(hoje);
+                amanha.setDate(amanha.getDate() + 1);
+                
+                // Buscar serviços novamente
+                const servicosSnap = await getDocs(servicosRef);
+                
+                // Para cada serviço, buscar seus agendamentos
+                for (const servicoDoc of servicosSnap.docs) {
+                    const servicoId = servicoDoc.id;
+                    
+                    const agendamentosRef = collection(
+                        db,
+                        'agendamentos',
+                        lojaIdAtual,
+                        servicoId
+                    );
+                    
+                    const agendamentosSnap = await getDocs(agendamentosRef);
+                    
+                    agendamentosSnap.forEach(docAgendamento => {
+                        const agendamento = docAgendamento.data();
+                        const agendamentoId = docAgendamento.id;
                         
-                        console.log(`📅 Agendamento encontrado:`, {
-                            servico: servicoId,
-                            id: agendamentoId,
-                            data: dataAgendada.toLocaleString(),
-                            status: agendamento.status_agendamento,
-                            cliente: agendamento.cliente_nome
-                        });
-                        
-                        // Verificar se é de HOJE
-                        if (dataAgendada >= hoje && dataAgendada < amanha) {
-                            // Status que devem aparecer na fila
-                            if (['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
-                                
-                                // Gerar senha baseada no serviço
-                                const prefixo = servicoId.substring(0, 2).toUpperCase();
-                                const numero = agendamentoId.split('_')[1] || '1';
-                                
-                                agendamentosAtivosTemp.push({
+                        if (agendamento && agendamento.data_hora_agendada) {
+                            const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
+                                                new Date(agendamento.data_hora_agendada);
+                            
+                            // Verificar se é de HOJE
+                            if (dataAgendada >= hoje && dataAgendada < amanha) {
+                                if (['Verificado', 'Na fila', 'Próximo a atender', 'Em atendimento'].includes(agendamento.status_agendamento)) {
+                                    
+                                    // Gerar senha baseada no serviço
+                                    const prefixo = servicoId.substring(0, 2).toUpperCase();
+                                    const numero = agendamentoId.split('_')[1] || '1';
+                                    
+                                    agendamentosAtivosTemp.push({
+                                        id: `${servicoId}_${agendamentoId}`,
+                                        servico_id: servicoId,
+                                        servico_nome: servicoId,
+                                        agendamento_id: agendamentoId,
+                                        cliente_email: agendamento.cliente_email,
+                                        cliente_nome: agendamento.cliente_nome || 'Cliente',
+                                        cliente_telefone: agendamento.cliente_telefone || '',
+                                        status: agendamento.status_agendamento,
+                                        data_hora: dataAgendada,
+                                        horario: dataAgendada.toLocaleTimeString([], { 
+                                            hour: '2-digit', 
+                                            minute: '2-digit' 
+                                        }),
+                                        senha: `${prefixo}${numero.padStart(2, '0')}`
+                                    });
+                                    
+                                    console.log(`✅ Fila: ${agendamento.cliente_nome} - ${agendamento.status_agendamento}`);
+                                }
+                            } else {
+                                // Agendamentos futuros
+                                agendamentosFuturosTemp.push({
                                     id: `${servicoId}_${agendamentoId}`,
                                     servico_id: servicoId,
                                     servico_nome: servicoId,
                                     agendamento_id: agendamentoId,
                                     cliente_email: agendamento.cliente_email,
                                     cliente_nome: agendamento.cliente_nome || 'Cliente',
-                                    cliente_telefone: agendamento.cliente_telefone || '',
                                     status: agendamento.status_agendamento,
-                                    data_hora: dataAgendada,
+                                    data: dataAgendada.toISOString().split('T')[0],
                                     horario: dataAgendada.toLocaleTimeString([], { 
                                         hour: '2-digit', 
                                         minute: '2-digit' 
                                     }),
-                                    senha: `${prefixo}${numero.padStart(2, '0')}`
+                                    validado: agendamento.status_agendamento === 'Verificado'
                                 });
-                                
-                                console.log(`✅ Adicionado à fila: ${agendamento.cliente_nome} - ${agendamento.status_agendamento}`);
                             }
-                        } else {
-                            // Agendamentos futuros
-                            agendamentosFuturosTemp.push({
-                                id: `${servicoId}_${agendamentoId}`,
-                                servico_id: servicoId,
-                                servico_nome: servicoId,
-                                agendamento_id: agendamentoId,
-                                cliente_email: agendamento.cliente_email,
-                                cliente_nome: agendamento.cliente_nome || 'Cliente',
-                                status: agendamento.status_agendamento,
-                                data: dataAgendada.toISOString().split('T')[0],
-                                horario: dataAgendada.toLocaleTimeString([], { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit' 
-                                }),
-                                validado: agendamento.status_agendamento === 'Verificado'
-                            });
                         }
-                    }
+                    });
+                }
+                
+                // Ordenar por horário
+                agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
+                agendamentosFuturosTemp.sort((a, b) => {
+                    if (a.data < b.data) return -1;
+                    if (a.data > b.data) return 1;
+                    if (a.horario < b.horario) return -1;
+                    if (a.horario > b.horario) return 1;
+                    return 0;
                 });
+                
+                agendamentosAtivos = agendamentosAtivosTemp;
+                agendamentosFuturos = agendamentosFuturosTemp;
+                
+                console.log('📋 Agendamentos de hoje:', agendamentosAtivos.length);
+                console.log('📅 Agendamentos futuros:', agendamentosFuturos.length);
+                
+                // Renderizar
+                renderizarPainelAgendamento();
+                
+                setTimeout(() => {
+                    gerenciarFilaAtendimento();
+                    inicializarCarrosselAgendamento();
+                }, 100);
+                
+            } catch (error) {
+                console.error('❌ Erro ao reconstruir lista:', error);
             }
-            
-            // Ordenar por horário
-            agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
-            agendamentosFuturosTemp.sort((a, b) => {
-                if (a.data < b.data) return -1;
-                if (a.data > b.data) return 1;
-                if (a.horario < b.horario) return -1;
-                if (a.horario > b.horario) return 1;
-                return 0;
-            });
-            
-            agendamentosAtivos = agendamentosAtivosTemp;
-            agendamentosFuturos = agendamentosFuturosTemp;
-            
-            console.log('📋 Agendamentos de hoje:', agendamentosAtivos.length);
-            console.log('📅 Agendamentos futuros:', agendamentosFuturos.length);
-            
-            // Renderizar
-            renderizarPainelAgendamento();
-            
-            setTimeout(() => {
-                gerenciarFilaAtendimento();
-                inicializarCarrosselAgendamento();
-            }, 100);
-            
-        }, (error) => {
-            console.error('❌ Erro na escuta:', error);
-        });
+        }
         
     } catch (error) {
         console.error('❌ Erro ao iniciar escuta:', error);
@@ -3001,6 +3046,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
