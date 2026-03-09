@@ -1024,6 +1024,34 @@ function configurarAbasDias() {
 }
 
 // ============================================
+// VALIDAR AGENDAMENTO FUTURO (CORRIGIDO)
+// ============================================
+window.validarAgendamentoFuturo = async function(clienteEmail, agendamentoKey) {
+    try {
+        await atualizarStatusAgendamentoAdmin(clienteEmail, agendamentoKey, 'Verificado');
+        mostrarMensagem('Agendamento validado com sucesso!', 'success');
+    } catch (error) {
+        console.error('❌ Erro ao validar:', error);
+        mostrarMensagem('Erro ao validar agendamento', 'error');
+    }
+};
+
+// ============================================
+// CANCELAR AGENDAMENTO FUTURO
+// ============================================
+window.cancelarAgendamentoFuturo = async function(clienteEmail, agendamentoKey) {
+    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+    
+    try {
+        await atualizarStatusAgendamentoAdmin(clienteEmail, agendamentoKey, 'Cancelado');
+        mostrarMensagem('Agendamento cancelado!', 'success');
+    } catch (error) {
+        console.error('❌ Erro ao cancelar:', error);
+        mostrarMensagem('Erro ao cancelar agendamento', 'error');
+    }
+};
+
+// ============================================
 // CONFIGURAR ESPELHAMENTO (FORA DO BOTÃO, VISÍVEL APENAS NA SEGUNDA)
 // ============================================
 function configurarEspelhamentoAutomatico() {
@@ -1294,84 +1322,136 @@ function configurarValidacaoAntesSalvar() {
 }
 
 // ============================================
-// INICIAR ESCUTA DE AGENDAMENTOS (SEM ÍNDICES)
+// INICIAR ESCUTA DE AGENDAMENTOS (COMPLETO E CORRIGIDO)
 // ============================================
 function iniciarEscutaAgendamentos() {
-    if (!lojaIdAtual || !window.loginDb) {
+    if (!lojaIdAtual) {
         console.error('❌ Não foi possível iniciar escuta');
         return;
     }
     
-    console.log('📅 Iniciando escuta em tempo real dos agendamentos (sem índices)...');
+    console.log('📅 Iniciando escuta em tempo real dos agendamentos...');
     
     try {
-        // 🔥 ATIVOS: Buscar sem orderBy ou apenas com um campo
-        const ativosRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('ativos');
+        // Usar a estrutura correta com db (spdv-3872a)
+        const agendamentosClientesRef = collection(
+            db,  // Projeto spdv-3872a
+            'agendamentos',
+            lojaIdAtual,
+            'agendamento_clientes'
+        );
         
-        unsubscribeAgendamentos = ativosRef.onSnapshot((snapshot) => {
-            const agendamentos = [];
-            snapshot.forEach(doc => {
-                agendamentos.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
+        // Escutar mudanças em tempo real
+        unsubscribeAgendamentos = onSnapshot(agendamentosClientesRef, (snapshot) => {
+            // ============================================
+            // VARIÁVEIS TEMPORÁRIAS (CORRIGIDO)
+            // ============================================
+            const agendamentosHojeTemp = [];
+            const agendamentosFuturosTemp = [];
             
-            // 🔥 ORDENAR MANUALMENTE no JavaScript
-            agendamentos.sort((a, b) => {
-                // Primeiro por status (chamando > aguardando)
-                if (a.status === 'chamando' && b.status !== 'chamando') return -1;
-                if (a.status !== 'chamando' && b.status === 'chamando') return 1;
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const amanha = new Date(hoje);
+            amanha.setDate(amanha.getDate() + 1);
+            
+            // ============================================
+            // PROCESSAR CADA CLIENTE
+            // ============================================
+            snapshot.forEach((docCliente) => {
+                const clienteEmail = docCliente.id;
+                const agendamentosCliente = docCliente.data();
                 
-                // Depois por senha (numérica)
-                const senhaA = parseInt(a.senha) || 0;
-                const senhaB = parseInt(b.senha) || 0;
-                return senhaA - senhaB;
+                // Processar cada agendamento do cliente
+                for (const [agendamentoKey, agendamento] of Object.entries(agendamentosCliente)) {
+                    // Verificar se é um agendamento válido
+                    if (agendamento && agendamento.data_hora_agendada) {
+                        
+                        // Converter data_hora_agendada para comparar
+                        const dataAgendada = agendamento.data_hora_agendada?.toDate?.() || 
+                                            new Date(agendamento.data_hora_agendada);
+                        
+                        // Separar agendamentos de hoje e futuros
+                        if (dataAgendada >= hoje && dataAgendada < amanha) {
+                            // ============================================
+                            // AGENDAMENTO DE HOJE (vai para a fila)
+                            // ============================================
+                            agendamentosHojeTemp.push({
+                                id: `${clienteEmail}_${agendamentoKey}`,
+                                cliente_email: clienteEmail,
+                                agendamento_key: agendamentoKey,
+                                cliente_nome: agendamento.cliente_nome || 'Cliente',
+                                servico: agendamento.nome_do_servico || 'Serviço',
+                                status: agendamento.status_agendamento || 'Pendente',
+                                data_hora: dataAgendada,
+                                horario: dataAgendada.toLocaleTimeString([], { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                })
+                            });
+                            
+                        } else if (dataAgendada >= amanha) {
+                            // ============================================
+                            // AGENDAMENTOS FUTUROS (não entram na fila hoje)
+                            // ============================================
+                            agendamentosFuturosTemp.push({
+                                id: `${clienteEmail}_${agendamentoKey}`,
+                                cliente_email: clienteEmail,
+                                agendamento_key: agendamentoKey,
+                                cliente_nome: agendamento.cliente_nome || 'Cliente',
+                                servico: agendamento.nome_do_servico || 'Serviço',
+                                status: agendamento.status_agendamento || 'Pendente',
+                                data: dataAgendada.toISOString().split('T')[0],
+                                horario: dataAgendada.toLocaleTimeString([], { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                }),
+                                validado: agendamento.status_agendamento === 'Verificado'
+                            });
+                        }
+                    }
+                }
             });
             
-            agendamentosAtivos = agendamentos;
-            renderizarPainelFila();
+            // ============================================
+            // ORDENAR AGENDAMENTOS DE HOJE POR HORÁRIO
+            // ============================================
+            agendamentosHojeTemp.sort((a, b) => a.data_hora - b.data_hora);
             
-        }, (error) => {
-            console.error('❌ Erro na escuta de ativos:', error);
-        });
-        
-        // 🔥 FUTUROS: Buscar sem orderBy ou apenas com um campo
-        const futurosRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('futuros');
-        
-        unsubscribeFuturos = futurosRef.onSnapshot((snapshot) => {
-            const futuros = [];
-            snapshot.forEach(doc => {
-                futuros.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
-            });
+            // ============================================
+            // ATRIBUIR ÀS VARIÁVEIS GLOBAIS (CORRIGIDO)
+            // ============================================
+            agendamentosAtivos = agendamentosHojeTemp;
             
-            // 🔥 ORDENAR MANUALMENTE no JavaScript
-            futuros.sort((a, b) => {
-                // Por data
+            // ============================================
+            // ORDENAR AGENDAMENTOS FUTUROS POR DATA/HORÁRIO
+            // ============================================
+            agendamentosFuturosTemp.sort((a, b) => {
                 if (a.data < b.data) return -1;
                 if (a.data > b.data) return 1;
-                
-                // Mesma data, por horário
                 if (a.horario < b.horario) return -1;
                 if (a.horario > b.horario) return 1;
-                
                 return 0;
             });
             
-            agendamentosFuturos = futuros;
+            // ============================================
+            // ATRIBUIR ÀS VARIÁVEIS GLOBAIS (CORRIGIDO)
+            // ============================================
+            agendamentosFuturos = agendamentosFuturosTemp;
+            
+            // ============================================
+            // LOG PARA DEBUG
+            // ============================================
+            console.log('📋 Agendamentos de hoje:', agendamentosHojeTemp.length);
+            console.log('📅 Agendamentos futuros:', agendamentosFuturosTemp.length);
+            
+            // ============================================
+            // RENDERIZAR PAINÉIS
+            // ============================================
+            renderizarPainelFila();
             renderizarAgendamentosFuturos();
             
         }, (error) => {
-            console.error('❌ Erro na escuta de futuros:', error);
+            console.error('❌ Erro na escuta de agendamentos:', error);
         });
         
     } catch (error) {
@@ -1380,13 +1460,94 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE FILA (COM CHECKBOX)
+// PROMOVER PARA PRÓXIMO A ATENDER
+// ============================================
+async function promoverParaProximo(agendamentoId) {
+    try {
+        const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
+        if (!agendamento) return;
+        
+        await atualizarStatusAgendamentoAdmin(
+            agendamento.cliente_email, 
+            agendamento.agendamento_key, 
+            'Próximo a atender'
+        );
+        
+    } catch (error) {
+        console.error('❌ Erro ao promover:', error);
+    }
+}
+
+// ============================================
+// ATUALIZAR STATUS NO FIREBASE (ADMIN)
+// ============================================
+async function atualizarStatusAgendamentoAdmin(clienteEmail, agendamentoKey, novoStatus) {
+    try {
+        console.log(`📝 Atualizando agendamento ${agendamentoKey} do cliente ${clienteEmail} para ${novoStatus}`);
+        
+        const agendamentoRef = doc(
+            db,  // Projeto spdv-3872a
+            'agendamentos',
+            lojaIdAtual,
+            'agendamento_clientes',
+            clienteEmail
+        );
+        
+        const agendamentoDoc = await getDoc(agendamentoRef);
+        
+        if (!agendamentoDoc.exists()) {
+            console.error('❌ Documento do cliente não encontrado:', clienteEmail);
+            mostrarMensagem('Cliente não encontrado', 'error');
+            return false;
+        }
+        
+        const dadosCliente = agendamentoDoc.data();
+        
+        if (!dadosCliente[agendamentoKey]) {
+            console.error('❌ Agendamento não encontrado. Chaves disponíveis:', Object.keys(dadosCliente));
+            mostrarMensagem('Agendamento não encontrado', 'error');
+            return false;
+        }
+        
+        // Atualizar status
+        dadosCliente[agendamentoKey].status_agendamento = novoStatus;
+        
+        // Adicionar ao histórico
+        if (!dadosCliente[agendamentoKey].historico_status) {
+            dadosCliente[agendamentoKey].historico_status = [];
+        }
+        
+        dadosCliente[agendamentoKey].historico_status.push({
+            status: novoStatus,
+            data: new Date().toISOString(),
+            alterado_por: dadosUsuario?.email || 'admin'
+        });
+        
+        // Salvar no Firebase
+        await setDoc(agendamentoRef, dadosCliente);
+        
+        console.log(`✅ Status atualizado para ${novoStatus}`);
+        mostrarMensagem(`Status atualizado para ${novoStatus}`, 'success');
+        
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Erro ao atualizar status:', error);
+        mostrarMensagem('Erro ao atualizar status', 'error');
+        return false;
+    }
+}
+
+// ============================================
+// RENDERIZAR PAINEL DE FILA (CORRIGIDO)
 // ============================================
 function renderizarPainelFila() {
     // Filtrar por status
-    const emAtendimento = agendamentosAtivos.filter(a => a.status === 'chamando');
-    const proximos = agendamentosAtivos.filter(a => a.status === 'aguardando' && a.validado === true);
-    const outros = agendamentosAtivos.filter(a => a.status === 'aguardando' && a.validado !== true);
+    const emAtendimento = agendamentosAtivos.filter(a => a.status === 'Em atendimento');
+    const proximos = agendamentosAtivos.filter(a => a.status === 'Próximo a atender');
+    const outros = agendamentosAtivos.filter(a => 
+        a.status === 'Verificado' || a.status === 'Na fila'
+    );
     
     // Atualizar badges
     document.getElementById('emAtendimentoBadge').textContent = emAtendimento.length;
@@ -1394,20 +1555,20 @@ function renderizarPainelFila() {
     document.getElementById('outrosBadge').textContent = outros.length;
     document.getElementById('filaTotalBadge').textContent = proximos.length + outros.length;
     
-    // Renderizar EM ATENDIMENTO (COM CHECKBOX)
+    // Renderizar EM ATENDIMENTO
     const emAtendimentoLista = document.getElementById('emAtendimentoLista');
     if (emAtendimento.length > 0) {
         let html = '';
         emAtendimento.forEach(item => {
             html += `
-                <div class="card-atendimento" data-id="${item.id}">
+                <div class="card-atendimento" data-id="${item.id}" data-email="${item.cliente_email}" data-key="${item.agendamento_key}">
                     <div class="card-checkbox">
                         <input type="checkbox" class="checkbox-atendimento" data-id="${item.id}">
                     </div>
                     <div class="info">
                         <h4>${item.cliente_nome}</h4>
                         <div>
-                            <span class="senha">${item.senha}</span>
+                            <span class="senha">${item.senha || '---'}</span>
                             <span class="servico">${item.servico}</span>
                         </div>
                     </div>
@@ -1415,8 +1576,6 @@ function renderizarPainelFila() {
             `;
         });
         emAtendimentoLista.innerHTML = html;
-        
-        // Configurar eventos dos checkboxes
         configurarCheckboxesAtendimento();
     } else {
         emAtendimentoLista.innerHTML = `
@@ -1433,8 +1592,11 @@ function renderizarPainelFila() {
         let html = '';
         proximos.forEach((item, index) => {
             html += `
-                <div class="card-aguardando ${index === 0 ? 'proximo' : ''}" data-id="${item.id}">
-                    <span class="senha-numero">${item.senha}</span>
+                <div class="card-aguardando ${index === 0 ? 'proximo' : ''}" 
+                     data-id="${item.id}" 
+                     data-email="${item.cliente_email}" 
+                     data-key="${item.agendamento_key}">
+                    <span class="senha-numero">${item.senha || '---'}</span>
                     <div class="info">
                         <span class="cliente">${item.cliente_nome}</span>
                         <span class="servico">
@@ -1442,8 +1604,8 @@ function renderizarPainelFila() {
                         </span>
                     </div>
                     <div class="acoes">
-                        <button class="btn-acao-card" onclick="editarAgendamento('${item.id}')" title="Editar">
-                            <i class="fas fa-edit"></i>
+                        <button class="btn-acao-card" onclick="chamarProximo('${item.id}')" title="Chamar">
+                            <i class="fas fa-bell"></i>
                         </button>
                     </div>
                 </div>
@@ -1465,24 +1627,21 @@ function renderizarPainelFila() {
         let html = '';
         outros.forEach(item => {
             html += `
-                <div class="card-aguardando pendente" data-id="${item.id}">
-                    <span class="senha-numero">${item.senha}</span>
+                <div class="card-aguardando pendente" 
+                     data-id="${item.id}" 
+                     data-email="${item.cliente_email}" 
+                     data-key="${item.agendamento_key}">
+                    <span class="senha-numero">${item.senha || '---'}</span>
                     <div class="info">
                         <span class="cliente">${item.cliente_nome}</span>
                         <span class="servico">
                             <i class="fas fa-cut"></i> ${item.servico}
                         </span>
-                        ${!item.validado ? '<span class="badge-validar">Aguardando validação</span>' : ''}
                     </div>
                     <div class="acoes">
-                        <button class="btn-acao-card" onclick="editarAgendamento('${item.id}')" title="Editar">
-                            <i class="fas fa-edit"></i>
+                        <button class="btn-acao-card" onclick="promoverParaProximo('${item.id}')" title="Promover para próximo">
+                            <i class="fas fa-arrow-up"></i>
                         </button>
-                        ${!item.validado ? `
-                            <button class="btn-acao-card success" onclick="validarAgendamento('${item.id}')" title="Validar">
-                                <i class="fas fa-check"></i>
-                            </button>
-                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1499,7 +1658,7 @@ function renderizarPainelFila() {
 }
 
 // ============================================
-// RENDERIZAR AGENDAMENTOS FUTUROS
+// RENDERIZAR AGENDAMENTOS FUTUROS (CORRIGIDO)
 // ============================================
 function renderizarAgendamentosFuturos() {
     const grid = document.getElementById('futurosGrid');
@@ -1534,51 +1693,41 @@ function renderizarAgendamentosFuturos() {
             day: 'numeric' 
         });
         
-        // Verificar limite do dia
-        const totalDia = agendamentos.length;
-        const limiteDia = configLoja.maxClientesDia;
-        const corLimite = totalDia >= limiteDia ? '#dc3545' : '#28a745';
-        
         html += `
             <div class="data-group">
                 <div class="data-header">
                     <h4>${dataFormatada}</h4>
-                    <span class="limite-dia" style="color: ${corLimite}">
-                        ${totalDia}/${limiteDia} agendamentos
+                    <span class="limite-dia">
+                        ${agendamentos.length} agendamentos
                     </span>
                 </div>
                 <div class="agendamentos-data">
         `;
         
         agendamentos.forEach(ag => {
-            const validado = ag.validado ? 'validado' : 'pendente';
-            const temWhatsApp = ag.cliente_whatsapp ? '✅' : '❌';
+            const statusClass = ag.validado ? 'validado' : 'pendente';
+            const statusText = ag.validado ? 'Verificado' : ag.status;
             
             html += `
-                <div class="futuro-card ${validado}" data-id="${ag.id}">
+                <div class="futuro-card ${statusClass}" 
+                     data-email="${ag.cliente_email}" 
+                     data-key="${ag.agendamento_key}">
                     <div class="futuro-horario">${ag.horario}</div>
                     <div class="futuro-info">
                         <strong>${ag.cliente_nome}</strong>
                         <span>${ag.servico}</span>
-                        <small>Whats: ${temWhatsApp} | Email: ${ag.cliente_email || '---'}</small>
                     </div>
                     <div class="futuro-status">
-                        ${!ag.validado ? 
-                            '<span class="badge-pendente">Pendente</span>' : 
-                            '<span class="badge-validado">Validado</span>'
-                        }
+                        <span class="badge-${statusClass}">${statusText}</span>
                     </div>
                     <div class="futuro-acoes">
                         ${!ag.validado ? `
-                            <button class="btn-validar" onclick="validarAgendamentoFuturo('${ag.id}')">
+                            <button class="btn-validar" onclick="validarAgendamentoFuturo('${ag.cliente_email}', '${ag.agendamento_key}')">
                                 <i class="fas fa-check"></i> Validar
                             </button>
                         ` : ''}
-                        <button class="btn-editar" onclick="editarAgendamentoFuturo('${ag.id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-excluir" onclick="excluirAgendamentoFuturo('${ag.id}')">
-                            <i class="fas fa-trash"></i>
+                        <button class="btn-cancelar" onclick="cancelarAgendamentoFuturo('${ag.cliente_email}', '${ag.agendamento_key}')">
+                            <i class="fas fa-ban"></i> Cancelar
                         </button>
                     </div>
                 </div>
@@ -1592,81 +1741,6 @@ function renderizarAgendamentosFuturos() {
     }
     
     grid.innerHTML = html;
-}
-
-// ============================================
-// VALIDAR AGENDAMENTO
-// ============================================
-async function validarAgendamento(id) {
-    if (!window.loginDb || !lojaIdAtual) return;
-    
-    try {
-        const agRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('ativos')
-            .doc(id);
-        
-        await updateDoc(agRef, {
-            validado: true,
-            data_validacao: serverTimestamp(),
-            validado_por: dadosUsuario?.email || 'sistema'
-        });
-        
-        mostrarMensagem('Agendamento validado com sucesso!', 'success');
-        
-    } catch (error) {
-        console.error('❌ Erro ao validar:', error);
-        mostrarMensagem('Erro ao validar agendamento', 'error');
-    }
-}
-
-// ============================================
-// VALIDAR TODOS OS AGENDAMENTOS FUTUROS
-// ============================================
-async function validarTodosFuturos() {
-    if (!window.loginDb || !lojaIdAtual) return;
-    
-    const pendentes = agendamentosFuturos.filter(a => !a.validado);
-    
-    if (pendentes.length === 0) {
-        mostrarMensagem('Não há agendamentos pendentes', 'info');
-        return;
-    }
-    
-    if (!confirm(`Deseja validar ${pendentes.length} agendamento(s)?`)) return;
-    
-    try {
-        mostrarLoading('Validando todos...');
-        
-        const batch = [];
-        pendentes.forEach(ag => {
-            batch.push(
-                updateDoc(
-                    window.loginDb
-                        .collection('agendamentos')
-                        .doc(lojaIdAtual)
-                        .collection('futuros')
-                        .doc(ag.id),
-                    {
-                        validado: true,
-                        data_validacao: serverTimestamp(),
-                        validado_por: dadosUsuario?.email || 'sistema'
-                    }
-                )
-            );
-        });
-        
-        await Promise.all(batch);
-        
-        mostrarMensagem(`${pendentes.length} agendamentos validados!`, 'success');
-        
-    } catch (error) {
-        console.error('❌ Erro ao validar todos:', error);
-        mostrarMensagem('Erro ao validar agendamentos', 'error');
-    } finally {
-        esconderLoading();
-    }
 }
 
 // ============================================
@@ -1707,82 +1781,6 @@ async function enviarNotificacaoProximo(agendamento) {
         
     } catch (error) {
         console.error('❌ Erro ao enviar notificação:', error);
-    }
-}
-
-// ============================================
-// PAUSAR ATENDIMENTO
-// ============================================
-async function pausarAtendimento(modo, tempo) {
-    if (!window.loginDb || !lojaIdAtual) return;
-    
-    try {
-        mostrarLoading('Aplicando pausa...');
-        
-        const pausaRef = window.loginDb
-            .collection('configuracoes')
-            .doc(lojaIdAtual)
-            .collection('agendamento')
-            .doc('pausa');
-        
-        const fimPausa = tempo > 0 ? new Date(Date.now() + tempo * 60000) : null;
-        
-        await setDoc(pausaRef, {
-            ativo: true,
-            modo: modo,
-            tempo: tempo,
-            data_inicio: serverTimestamp(),
-            data_fim: fimPausa,
-            pausado_por: dadosUsuario?.email || 'sistema'
-        });
-        
-        // Aplicar regras baseadas no modo
-        if (modo === 'apenas_atendimento') {
-            console.log('Modo: apenas atendimento');
-            
-        } else if (modo === 'todos') {
-            const emAtendimento = agendamentosAtivos.filter(a => a.status === 'chamando');
-            for (const ag of emAtendimento) {
-                await concluirMultiplosAtendimentos([ag.id]);
-            }
-            
-        } else if (modo === 'ate_proximos') {
-            const outros = agendamentosAtivos.filter(a => 
-                a.status === 'aguardando' && a.validado === true
-            );
-            for (const ag of outros.slice(1)) { // Pula o primeiro (próximo)
-                await updateDoc(
-                    window.loginDb
-                        .collection('agendamentos')
-                        .doc(lojaIdAtual)
-                        .collection('ativos')
-                        .doc(ag.id),
-                    {
-                        status: 'pausado',
-                        data_pausa: serverTimestamp()
-                    }
-                );
-            }
-        }
-        
-        // Atualizar interface
-        document.getElementById('statusFuncionamento').style.display = 'none';
-        document.getElementById('statusPausa').style.display = 'flex';
-        
-        if (tempo > 0) {
-            iniciarContadorPausa(tempo);
-        } else {
-            document.getElementById('tempoPausaRestante').textContent = 'Indeterminado';
-        }
-        
-        fecharModal('pausaModal');
-        mostrarMensagem('Atendimento pausado com sucesso!', 'success');
-        
-    } catch (error) {
-        console.error('❌ Erro ao pausar:', error);
-        mostrarMensagem('Erro ao pausar atendimento', 'error');
-    } finally {
-        esconderLoading();
     }
 }
 
@@ -1842,7 +1840,7 @@ async function retomarAtendimento() {
 }
 
 // ============================================
-// CONFIGURAR CHECKBOXES DE ATENDIMENTO
+// CONFIGURAR CHECKBOXES DE ATENDIMENTO (CORRIGIDO)
 // ============================================
 function configurarCheckboxesAtendimento() {
     const checkboxes = document.querySelectorAll('.checkbox-atendimento');
@@ -1881,7 +1879,7 @@ function configurarCheckboxesAtendimento() {
         });
     }
     
-    // Botão concluir selecionados
+    // Botão concluir selecionados - AGORA USA A FUNÇÃO CORRETA
     btnConcluir.addEventListener('click', async () => {
         const selecionados = Array.from(document.querySelectorAll('.checkbox-atendimento:checked'))
             .map(cb => cb.dataset.id);
@@ -1889,133 +1887,49 @@ function configurarCheckboxesAtendimento() {
         if (selecionados.length === 0) return;
         
         if (confirm(`Concluir ${selecionados.length} atendimento(s)?`)) {
-            await concluirMultiplosAtendimentos(selecionados);
+            // Para cada agendamento concluído, atualizar status para 'Concluido'
+            for (const id of selecionados) {
+                const agendamento = agendamentosAtivos.find(a => a.id === id);
+                if (agendamento) {
+                    await atualizarStatusAgendamentoAdmin(
+                        agendamento.cliente_email,
+                        agendamento.agendamento_key,
+                        'Concluido'
+                    );
+                }
+            }
+            mostrarMensagem(`${selecionados.length} atendimento(s) concluído(s)!`, 'success');
         }
     });
 }
 
 // ============================================
-// CONCLUIR MÚLTIPLOS ATENDIMENTOS
+// CHAMAR PRÓXIMO (ATUALIZAR STATUS) - CORRIGIDO
 // ============================================
-async function concluirMultiplosAtendimentos(ids) {
-    if (!window.loginDb || !lojaIdAtual || !ids || ids.length === 0) {
-        mostrarMensagem('Nenhum atendimento selecionado', 'warning');
-        return;
-    }
-    
+async function chamarProximo(agendamentoId) {
     try {
-        mostrarLoading(`Concluindo ${ids.length} atendimento(s)...`);
-        
-        let concluidos = 0;
-        let erros = 0;
-        
-        for (const id of ids) {
-            try {
-                const agRef = window.loginDb
-                    .collection('agendamentos')
-                    .doc(lojaIdAtual)
-                    .collection('ativos')
-                    .doc(id);
-                
-                const agDoc = await agRef.get();
-                
-                if (!agDoc.exists) {
-                    console.warn(`⚠️ Agendamento ${id} não encontrado`);
-                    erros++;
-                    continue;
-                }
-                
-                const dados = agDoc.data();
-                
-                // Mover para histórico
-                const historicoRef = window.loginDb
-                    .collection('agendamentos')
-                    .doc(lojaIdAtual)
-                    .collection('historico')
-                    .doc(id);
-                
-                await setDoc(historicoRef, {
-                    ...dados,
-                    status: 'concluido',
-                    data_conclusao: serverTimestamp(),
-                    concluido_por: dadosUsuario?.email || 'sistema',
-                    concluido_em: new Date().toISOString()
-                });
-                
-                // Remover dos ativos
-                await deleteDoc(agRef);
-                
-                concluidos++;
-                
-            } catch (itemError) {
-                console.error(`❌ Erro ao concluir agendamento ${id}:`, itemError);
-                erros++;
-            }
+        // Encontrar o agendamento na lista
+        const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
+        if (!agendamento) {
+            mostrarMensagem('Agendamento não encontrado', 'error');
+            return;
         }
         
-        // Mensagem de resultado
-        if (concluidos > 0) {
-            mostrarMensagem(`${concluidos} atendimento(s) concluído(s) com sucesso!${erros > 0 ? ` (${erros} erro(s))` : ''}`, 'success');
-        } else {
-            mostrarMensagem('Nenhum atendimento foi concluído', 'error');
+        // Verificar se pode ser chamado (deve estar em "Na fila" ou "Próximo a atender")
+        if (agendamento.status !== 'Na fila' && agendamento.status !== 'Próximo a atender') {
+            mostrarMensagem('Este agendamento não pode ser chamado agora', 'warning');
+            return;
         }
         
-        // Chamar próximo automaticamente (o primeiro da fila)
-        setTimeout(() => {
-            const proximo = agendamentosAtivos.find(a => 
-                a.status === 'aguardando' && a.validado === true
-            );
-            if (proximo) {
-                chamarProximo(proximo.id);
-            }
-        }, 500);
-        
-    } catch (error) {
-        console.error('❌ Erro ao concluir múltiplos atendimentos:', error);
-        mostrarMensagem('Erro ao concluir atendimentos: ' + error.message, 'error');
-    } finally {
-        esconderLoading();
-    }
-}
-
-// ============================================
-// CHAMAR PRÓXIMO (AUTOMÁTICO)
-// ============================================
-async function chamarProximo(id) {
-    if (!window.loginDb || !lojaIdAtual || !id) {
-        console.error('❌ Dados insuficientes para chamar próximo');
-        return;
-    }
-    
-    try {
-        console.log(`🔔 Chamando agendamento ID: ${id}`);
-        
-        const agRef = window.loginDb
-            .collection('agendamentos')
-            .doc(lojaIdAtual)
-            .collection('ativos')
-            .doc(id);
-        
-        await updateDoc(agRef, {
-            status: 'chamando',
-            data_chamada: serverTimestamp()
-        });
-        
-        // Buscar dados do agendamento para mostrar mensagem
-        const agendamento = agendamentosAtivos.find(a => a.id === id);
-        
-        if (agendamento) {
-            mostrarMensagem(`🔔 Chamando ${agendamento.cliente_nome} - Senha ${agendamento.senha}`, 'success');
-            
-            // Enviar notificação se configurado
-            if (configLoja.notificacoesAtivas && agendamento.cliente_whatsapp) {
-                await enviarNotificacaoProximo(agendamento);
-            }
-        }
+        await atualizarStatusAgendamentoAdmin(
+            agendamento.cliente_email, 
+            agendamento.agendamento_key, 
+            'Em atendimento'
+        );
         
     } catch (error) {
         console.error('❌ Erro ao chamar próximo:', error);
-        mostrarMensagem('Erro ao chamar próximo cliente', 'error');
+        mostrarMensagem('Erro ao chamar cliente', 'error');
     }
 }
 
@@ -2697,7 +2611,7 @@ window.excluirServico = function() {
 };
 
 // ============================================
-// CONFIGURAR EVENTOS
+// CONFIGURAR EVENTOS (CORRIGIDO)
 // ============================================
 function configurarEventos() {
     // Botão voltar
@@ -2722,10 +2636,11 @@ function configurarEventos() {
     
     // Botão pausar
     document.getElementById('btnPausarAtendimento')?.addEventListener('click', () => {
-        abrirModal('pausaModal');
+        mostrarMensagem('Funcionalidade de pausa em desenvolvimento', 'info');
     });
     
-    // Confirmar pausa
+    // Confirmar pausa - REMOVIDO (não existe mais)
+    /*
     document.getElementById('btnConfirmarPausa')?.addEventListener('click', () => {
         const modo = document.querySelector('input[name="modoPausa"]:checked')?.value;
         const tempo = parseInt(document.getElementById('tempoPausa').value);
@@ -2733,9 +2648,10 @@ function configurarEventos() {
             pausarAtendimento(modo, tempo);
         }
     });
+    */
     
-    // Botão validar todos
-    document.getElementById('btnValidarTodos')?.addEventListener('click', validarTodosFuturos);
+    // Botão validar todos - REMOVIDO (não existe mais)
+    // document.getElementById('btnValidarTodos')?.addEventListener('click', validarTodosFuturos);
     
     // Botão histórico clientes
     document.getElementById('btnHistoricoClientes')?.addEventListener('click', () => {
