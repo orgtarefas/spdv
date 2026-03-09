@@ -3079,9 +3079,13 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
     }, tempo);
 }
 
-window.teste_agendamentoss = async function() {
+// ============================================
+// teste
+// ============================================
+
+window.teste_agendamentos = async function() {
     try {
-        console.log('🔍 TESTANDO ACESSO DIRETO AO agendamento_1');
+        console.log('🔍 ACESSANDO agendamento_1 DIRETAMENTE');
         
         // CAMINHO COMPLETO até agendamento_1
         const docRef = doc(
@@ -3090,30 +3094,35 @@ window.teste_agendamentoss = async function() {
             'mj-materiais-construcao', 
             '03_2026', 
             '09_03_2026', 
-            'teste', 
+            'mecanica_avancada',  // ← serviço correto
             'agendamento_1'
         );
         
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-            console.log('✅ AGENDAMENTO ENCONTRADO:');
-            console.log(docSnap.data());
+            console.log('✅ AGENDAMENTO ENCONTRADO!');
+            console.log('📄 Dados:', docSnap.data());
         } else {
-            console.log('❌ agendamento_1 não encontrado');
-            console.log('Verificando se o caminho está correto...');
+            console.log('❌ agendamento_1 NÃO encontrado');
             
-            // Verificar se o mês existe
+            // Diagnóstico: verificar o que existe
+            console.log('\n🔍 DIAGNÓSTICO:');
+            
+            // Verificar meses
             const mesesRef = collection(db, 'agendamentos', 'mj-materiais-construcao');
             const meses = await getDocs(mesesRef);
-            console.log('📅 Meses existentes:', meses.docs.map(d => d.id));
+            console.log('📅 Meses:', meses.docs.map(d => d.id));
             
-            // Verificar se a data existe
-            if (meses.docs.some(d => d.id === '03_2026')) {
-                const datasRef = collection(db, 'agendamentos', 'mj-materiais-construcao', '03_2026');
-                const datas = await getDocs(datasRef);
-                console.log('📆 Datas em 03_2026:', datas.docs.map(d => d.id));
-            }
+            // Verificar datas em 03_2026
+            const datasRef = collection(db, 'agendamentos', 'mj-materiais-construcao', '03_2026');
+            const datas = await getDocs(datasRef);
+            console.log('📆 Datas em 03_2026:', datas.docs.map(d => d.id));
+            
+            // Verificar serviços em 09_03_2026
+            const servicosRef = collection(db, 'agendamentos', 'mj-materiais-construcao', '03_2026', '09_03_2026');
+            const servicos = await getDocs(servicosRef);
+            console.log('🔧 Serviços em 09_03_2026:', servicos.docs.map(d => d.id));
         }
         
     } catch (error) {
@@ -3188,6 +3197,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
