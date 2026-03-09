@@ -590,7 +590,239 @@ function carregarLogoLoja() {
     testImg.src = logoPath;
 }
 
+// ============================================
+// CARREGAR CONFIGURAÇÕES DA LOJA (CORRIGIDO)
+// ============================================
+async function carregarConfiguracoesLoja() {
+    if (!lojaIdAtual || !window.loginDb) return;
+    
+    try {
+        // Buscar DIRETAMENTE do documento da loja na coleção 'lojas'
+        const lojaDoc = await window.loginDb
+            .collection('lojas')  // ← Coleção correta!
+            .doc(lojaIdAtual)      // ← Documento da loja
+            .get();
+        
+        if (lojaDoc.exists) {
+            const dados = lojaDoc.data();
+            
+            // Atualizar configLoja com os dados da loja
+            configLoja = {
+                ...configLoja,
+                habilitar_agendamento: dados.habilitar_agendamento || false,
+                maxClientesDia: dados.max_clientes_dia || 30,
+                maxSimultaneos: dados.max_simultaneos || 3,
+                // Outras configurações...
+            };
+            
+            console.log('✅ Configurações da loja carregadas:', configLoja);
+        } else {
+            console.log('⚠️ Documento da loja não encontrado');
+        }
+        
+        return configLoja;
+    } catch (error) {
+        console.error('❌ Erro ao carregar configurações da loja:', error);
+        return configLoja;
+    }
+}
 
+// ============================================
+// CARREGAR HORÁRIOS DE FUNCIONAMENTO (CORRIGIDO)
+// ============================================
+async function carregarHorariosFuncionamento() {
+    if (!lojaIdAtual || !window.loginDb) return;
+    
+    try {
+        // Buscar DIRETAMENTE do documento da loja
+        const lojaDoc = await window.loginDb
+            .collection('lojas')  // ← Coleção correta!
+            .doc(lojaIdAtual)      // ← Documento da loja
+            .get();
+        
+        const diasSemana = [
+            { id: 'segunda', nome: 'Segunda-feira' },
+            { id: 'terca', nome: 'Terça-feira' },
+            { id: 'quarta', nome: 'Quarta-feira' },
+            { id: 'quinta', nome: 'Quinta-feira' },
+            { id: 'sexta', nome: 'Sexta-feira' },
+            { id: 'sabado', nome: 'Sábado' },
+            { id: 'domingo', nome: 'Domingo' }
+        ];
+        
+        let html = '';
+        
+        if (lojaDoc.exists) {
+            const dados = lojaDoc.data();
+            const funcionamento = dados.funcionamento || {};
+            
+            diasSemana.forEach(dia => {
+                const horarioStr = funcionamento[dia.id] || '';
+                
+                // Extrair horários do formato "08:00h às 18:00h"
+                let abertura = '08:00';
+                let fechamento = '18:00';
+                let intervaloInicio = '12:00';
+                let intervaloFim = '13:00';
+                let aberto = true;
+                
+                if (horarioStr && horarioStr.trim() !== '') {
+                    const match = horarioStr.match(/(\d{2}:\d{2})h às (\d{2}:\d{2})h/);
+                    if (match) {
+                        abertura = match[1];
+                        fechamento = match[2];
+                    }
+                } else {
+                    aberto = false;
+                }
+                
+                html += `
+                    <div class="horario-card" data-dia="${dia.id}">
+                        <div class="dia-header">
+                            <span class="dia-nome">${dia.nome}</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" class="toggle-dia" ${aberto ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="horario-inputs" ${!aberto ? 'style="opacity:0.5; pointer-events:none;"' : ''}>
+                            <div class="input-group">
+                                <label>Abertura</label>
+                                <input type="time" class="abertura" value="${abertura}">
+                            </div>
+                            <div class="input-group">
+                                <label>Fechamento</label>
+                                <input type="time" class="fechamento" value="${fechamento}">
+                            </div>
+                            
+                            <div class="input-group intervalo">
+                                <label>Intervalo</label>
+                                <div class="intervalo-inputs">
+                                    <input type="time" class="intervalo-inicio" value="${intervaloInicio}">
+                                    <span>às</span>
+                                    <input type="time" class="intervalo-fim" value="${intervaloFim}">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Máx. Clientes</label>
+                                <input type="number" class="max-clientes" value="30" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Carregar exceções (se houver)
+            const excecoes = dados.excecoes || [];
+            renderizarExcecoes(excecoes);
+            
+        } else {
+            // Valores padrão
+            diasSemana.forEach(dia => {
+                const aberto = dia.id !== 'domingo';
+                html += `
+                    <div class="horario-card" data-dia="${dia.id}">
+                        <div class="dia-header">
+                            <span class="dia-nome">${dia.nome}</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" class="toggle-dia" ${aberto ? 'checked' : ''}>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="horario-inputs" ${!aberto ? 'style="opacity:0.5; pointer-events:none;"' : ''}>
+                            <div class="input-group">
+                                <label>Abertura</label>
+                                <input type="time" class="abertura" value="08:00">
+                            </div>
+                            <div class="input-group">
+                                <label>Fechamento</label>
+                                <input type="time" class="fechamento" value="18:00">
+                            </div>
+                            
+                            <div class="input-group intervalo">
+                                <label>Intervalo</label>
+                                <div class="intervalo-inputs">
+                                    <input type="time" class="intervalo-inicio" value="12:00">
+                                    <span>às</span>
+                                    <input type="time" class="intervalo-fim" value="13:00">
+                                </div>
+                            </div>
+                            
+                            <div class="input-group">
+                                <label>Máx. Clientes</label>
+                                <input type="number" class="max-clientes" value="30" min="0" max="100">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        const horariosSemana = document.getElementById('horariosSemana');
+        if (horariosSemana) {
+            horariosSemana.innerHTML = html;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar horários:', error);
+    }
+}
+
+// ============================================
+// SALVAR CONFIGURAÇÕES DE FUNCIONAMENTO (CORRIGIDO)
+// ============================================
+async function salvarConfigFuncionamento() {
+    try {
+        mostrarLoading('Salvando configurações...');
+        
+        // Coletar horários do formulário
+        const funcionamento = {};
+        document.querySelectorAll('.horario-card').forEach(card => {
+            const dia = card.dataset.dia;
+            const aberto = card.querySelector('.toggle-dia')?.checked || false;
+            
+            if (aberto) {
+                const abertura = card.querySelector('.abertura')?.value || '08:00';
+                const fechamento = card.querySelector('.fechamento')?.value || '18:00';
+                funcionamento[dia] = `${abertura}h às ${fechamento}h`;
+            } else {
+                funcionamento[dia] = "";
+            }
+        });
+        
+        // Salvar limites
+        const maxClientesDia = document.getElementById('maxClientesDia')?.value || 30;
+        const maxSimultaneos = document.getElementById('maxSimultaneos')?.value || 3;
+        
+        // Atualizar no documento da loja
+        const lojaRef = window.loginDb
+            .collection('lojas')
+            .doc(lojaIdAtual);
+        
+        await setDoc(lojaRef, {
+            funcionamento: funcionamento,
+            max_clientes_dia: parseInt(maxClientesDia),
+            max_simultaneos: parseInt(maxSimultaneos),
+            atualizado_em: serverTimestamp()
+        }, { merge: true });
+        
+        // Atualizar configuração local
+        configLoja.maxClientesDia = parseInt(maxClientesDia);
+        configLoja.maxSimultaneos = parseInt(maxSimultaneos);
+        configLoja.horarioFuncionamento = funcionamento;
+        
+        mostrarMensagem('Configurações salvas com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar configurações:', error);
+        mostrarMensagem('Erro ao salvar configurações: ' + error.message, 'error');
+    } finally {
+        esconderLoading();
+    }
+}
 
 // ============================================
 // FUNÇÕES DE CONFIGURAÇÃO DOS DIAS E ESPELHAMENTO
