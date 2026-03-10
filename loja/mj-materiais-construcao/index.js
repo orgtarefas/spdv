@@ -674,8 +674,16 @@ function renderizarPainelAgendamento() {
             
             let html = '';
             
-            // Criar uma fileira para cada serviço
-            Object.entries(agendamentosPorServico).forEach(([servicoId, servico]) => {
+            // 🔥 CORREÇÃO: Ordenar os serviços por nome para ter ordem fixa
+            const servicosOrdenados = Object.keys(agendamentosPorServico).sort((a, b) => {
+                const nomeA = agendamentosPorServico[a].nome.toLowerCase();
+                const nomeB = agendamentosPorServico[b].nome.toLowerCase();
+                return nomeA.localeCompare(nomeB);
+            });
+            
+            // Criar uma fileira para cada serviço (agora em ordem alfabética)
+            servicosOrdenados.forEach(servicoId => {
+                const servico = agendamentosPorServico[servicoId];
                 const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
                 
                 html += `
@@ -735,7 +743,7 @@ function renderizarPainelAgendamento() {
             proximosTrack.innerHTML = html;
             
             // Atualizar dots do carrossel geral
-            atualizarDotsScroll(Object.keys(agendamentosPorServico).length);
+            atualizarDotsScroll(servicosOrdenados.length);
         } else {
             // Placeholders quando não há dados
             let placeholders = '';
@@ -3115,6 +3123,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
