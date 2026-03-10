@@ -2345,9 +2345,9 @@ body {
     align-items: center;
     gap: 12px;
     border-bottom: 1px solid #edf2f7;
-    height: 70px;
-    min-height: 70px;
-    max-height: 70px;
+    height: 50px;
+    min-height: 50px;
+    max-height: 50px;
 }
 
 .agendamento-coluna.coluna-chamando .coluna-header {
@@ -3107,6 +3107,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
