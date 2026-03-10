@@ -2194,6 +2194,21 @@ body {
         min-width: 200px;
         right: -10px;
     }
+   
+   .agendamento-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+   .agendamento-header-left {
+        justify-content: center;
+    }
+
+   .btn-agendar {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
     
     .profile-menu-btn {
         padding: 6px 10px;
@@ -2229,17 +2244,26 @@ body {
     align-items: center;
     margin-bottom: 15px;
     padding: 0 8px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* Container para o título e status (lado esquerdo) */
+.agendamento-header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
 .agendamento-header h2 {
     display: flex;
     align-items: center;
-    gap: 14px;
-    font-size: 1.65rem;
+    gap: 10px;
+    font-size: 1.5rem;
     font-weight: 600;
     color: #1e293b;
     margin: 0;
-    letter-spacing: -0.02em;
 }
 
 .agendamento-header h2 i {
@@ -2251,23 +2275,24 @@ body {
     box-shadow: 0 4px 10px rgba(0, 86, 179, 0.1);
 }
 
-/* Botão Agendar Principal */
+/* Botão Agendar */
 .btn-agendar {
     background: linear-gradient(145deg, #0056b3, #003d82);
     color: white;
     border: none;
-    padding: 14px 32px;
+    padding: 10px 24px;
     border-radius: 60px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 12px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    gap: 8px;
+    transition: all 0.25s ease;
     box-shadow: 0 10px 20px -8px rgba(0, 86, 179, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    letter-spacing: 0.3px;
+    white-space: nowrap;
+    margin-left: auto; /* Empurra para a direita */
 }
 
 .btn-agendar:hover {
@@ -2957,16 +2982,19 @@ body {
     padding: 0 8px;
 }
 
+/* Estilo do status */
 .agendamento-status {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 0.85rem;
-    color: #4a5a72;
+    color: #2c3e50;
     background: #f0f4fa;
-    padding: 10px 22px;
-    border-radius: 50px;
+    padding: 6px 14px;
+    border-radius: 40px;
     border: 1px solid #dde5ed;
+    white-space: nowrap;
+    order: -1; /* Garante que fique antes do título */
 }
 
 .status-indicator {
@@ -2974,13 +3002,13 @@ body {
     height: 10px;
     border-radius: 50%;
     background: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
     animation: pulse-green 2s infinite;
 }
 
 @keyframes pulse-green {
     0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
     100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
@@ -3072,6 +3100,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
