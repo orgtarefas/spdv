@@ -2389,12 +2389,18 @@ body {
 }
 
 /* Ajuste das setas */
+/* Seta "prev" (chevron-left) vai para a DIREITA */
 .coluna-outros .servico-arrow.prev {
-    order: 2;
+    order: 2;  /* Segunda na ordem visual (direita) */
+    margin-left: auto;
+    margin-right: 0;
 }
 
+/* Seta "next" (chevron-right) vai para a ESQUERDA */
 .coluna-outros .servico-arrow.next {
-    order: 1;
+    order: 1;  /* Primeira na ordem visual (esquerda) */
+    margin-right: auto;
+    margin-left: 0;
 }
 
 .coluna-outros .servico-arrow.prev i,
@@ -3193,6 +3199,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
