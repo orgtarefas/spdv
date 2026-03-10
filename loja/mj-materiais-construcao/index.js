@@ -272,13 +272,15 @@ function reconstruirListaAgendamentos(dadosDoDia) {
     try {
         console.log('📊 Processando dados do dia:', dadosDoDia);
         
-        const agendamentosAtivosTemp = [];
+        // Limpar arrays anteriores
+        agendamentosAtivos = [];
+        agendamentosFuturos = [];
+        
         const hoje = new Date();
         hoje.setHours(0, 0, 0, 0);
         
         // Se não há dados, lista vazia
         if (!dadosDoDia) {
-            agendamentosAtivos = [];
             renderizarPainelAgendamento();
             return;
         }
@@ -287,16 +289,8 @@ function reconstruirListaAgendamentos(dadosDoDia) {
         Object.entries(dadosDoDia).forEach(([servicoId, agendamentosMap]) => {
             console.log(`  🔧 Serviço: ${servicoId}`);
             
-            // Ordenar agendamentos por data/hora para garantir numeração consistente
-            const agendamentosArray = Object.entries(agendamentosMap || {})
-                .sort((a, b) => {
-                    const dataA = a[1].data_hora_agendada?.toDate?.() || new Date(a[1].data_hora_agendada);
-                    const dataB = b[1].data_hora_agendada?.toDate?.() || new Date(b[1].data_hora_agendada);
-                    return dataA - dataB;
-                });
-            
-            // Atribuir números de senha baseados na ordem do dia (não no ID)
-            agendamentosArray.forEach(([agendamentoId, dados], index) => {
+            // Iterar sobre cada agendamento DENTRO do serviço
+            Object.entries(agendamentosMap || {}).forEach(([agendamentoId, dados]) => {
                 console.log(`    📝 ${agendamentoId}:`, dados);
                 
                 if (dados && dados.data_hora_agendada) {
@@ -307,10 +301,14 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                     const dataAgendadaDate = new Date(dataHoraAgendada);
                     dataAgendadaDate.setHours(0, 0, 0, 0);
                     
+                    // Extrair número do agendamento_id (ex: "agendamento_1" -> 1)
+                    const numeroMatch = agendamentoId.match(/\d+$/);
+                    const numero = numeroMatch ? parseInt(numeroMatch[0]) : 1;
+                    
                     if (dataAgendadaDate.getTime() === hoje.getTime()) {
-                        // 🔥 A posição no array define o número da senha (1-based)
-                        const numero = index + 1;
+                        // Agendamento de HOJE
                         
+                        // SÓ adicionar se o status for um dos que devem aparecer na fila
                         const statusFila = [
                             'Em atendimento',
                             'Próximo a atender',
@@ -320,22 +318,23 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                         ];
                         
                         if (statusFila.includes(dados.status_agendamento)) {
-                            agendamentosAtivosTemp.push({
+                            agendamentosAtivos.push({
                                 id: `${servicoId}_${agendamentoId}`,
                                 servico_id: servicoId,
                                 servico_nome: servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' '),
                                 agendamento_id: agendamentoId,
                                 cliente_email: dados.cliente_email,
                                 cliente_nome: dados.cliente_nome,
-                                status: dados.status_agendamento,
+                                status: dados.status_agendamento, // 🔥 PRESERVA O STATUS ORIGINAL
                                 data_hora: dataHoraAgendada,
                                 horario: dataHoraAgendada.toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                // 🔥 Gerar senha com a abreviação do serviço
+                                // 🔥 Usar o número do agendamento_id, não reordenar
                                 senha: gerarSenha(numero, servicoId, servicosConfig),
-                                timestamp: dataHoraAgendada.getTime()
+                                timestamp: dataHoraAgendada.getTime(),
+                                numero_original: numero // Guardar para referência
                             });
                         }
                     } else {
@@ -360,16 +359,13 @@ function reconstruirListaAgendamentos(dadosDoDia) {
             });
         });
         
-        // Ordenar por horário (todos os serviços juntos)
-        agendamentosAtivosTemp.sort((a, b) => a.data_hora - b.data_hora);
+        // 🔥 NÃO REORDENAR MAIS! Manter a ordem original do Firestore
+        // Apenas garantir que Em atendimento apareça primeiro (já que é único)
         
-        agendamentosAtivos = agendamentosAtivosTemp;
         console.log(`✅ Total agendamentos hoje: ${agendamentosAtivos.length}`);
+        console.log('📋 Status preservados:', agendamentosAtivos.map(a => `${a.senha}: ${a.status}`));
         
         renderizarPainelAgendamento();
-        
-        // Disparar evento para gerenciar fila
-        gerenciarFilaAtendimento();
         
     } catch (error) {
         console.error('❌ Erro ao reconstruir lista:', error);
@@ -544,7 +540,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO - COM SEPARAÇÃO POR SERVIÇO
+// RENDERIZAR PAINEL DE AGENDAMENTO - VERSÃO CORRIGIDA
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -553,25 +549,25 @@ function renderizarPainelAgendamento() {
     console.log('Agendamentos ativos:', agendamentosAtivos);
     
     // ============================================
-    // ORGANIZAR POR STATUS (independente do serviço para visualização)
+    // ORGANIZAR POR STATUS
     // ============================================
     
-    // 1. EM ATENDIMENTO (todos os serviços)
+    // 1. EM ATENDIMENTO
     const emAtendimento = agendamentosAtivos.filter(a => a.status === 'Em atendimento');
     
-    // 2. PRÓXIMOS A ATENDER (todos os serviços)
+    // 2. PRÓXIMOS A ATENDER
     const proximosAtender = agendamentosAtivos.filter(a => a.status === 'Próximo a atender');
     
-    // 3. OUTROS NA FILA (todos os serviços, ordenados por horário)
+    // 3. OUTROS NA FILA (Na fila, Verificado, Pendente)
     const outrosNaFila = agendamentosAtivos.filter(a => 
         a.status !== 'Em atendimento' && 
         a.status !== 'Próximo a atender' &&
         ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
-    ).sort((a, b) => a.timestamp - b.timestamp);
+    );
     
     console.log('📊 Organização:', {
-        emAtendimento: emAtendimento.map(a => `${a.servico_nome}: ${a.cliente_nome}`),
-        proximosAtender: proximosAtender.map(a => `${a.servico_nome}: ${a.cliente_nome}`),
+        emAtendimento: emAtendimento.length,
+        proximosAtender: proximosAtender.length,
         outrosNaFila: outrosNaFila.length
     });
     
@@ -579,7 +575,6 @@ function renderizarPainelAgendamento() {
     // ATUALIZAR BADGES E CONTADORES
     // ============================================
     
-    // Total na fila (próximos + outros)
     const totalFila = proximosAtender.length + outrosNaFila.length;
     
     const totalFilaBadge = document.getElementById('totalFilaBadge');
@@ -588,10 +583,8 @@ function renderizarPainelAgendamento() {
     const totalFilaTexto = document.getElementById('totalFilaTexto');
     if (totalFilaTexto) totalFilaTexto.textContent = totalFila;
     
-    // Calcular tempo médio de espera
-    const tempoMedioEspera = calcularTempoMedioEspera();
-    const tempoMedioElement = document.getElementById('tempoMedioEspera');
-    if (tempoMedioElement) tempoMedioElement.textContent = tempoMedioEspera;
+    const tempoMedioEspera = document.getElementById('tempoMedioEspera');
+    if (tempoMedioEspera) tempoMedioEspera.textContent = calcularTempoMedioEspera();
     
     // ============================================
     // COLUNA 1: EM ATENDIMENTO
@@ -603,9 +596,7 @@ function renderizarPainelAgendamento() {
             emAtendimento.forEach(item => {
                 html += `
                     <div class="card-chamando-item">
-                        <div class="servico-tag" style="background: #ff6b00; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; margin-bottom: 5px; display: inline-block;">
-                            ${item.servico_nome || item.servico_id}
-                        </div>
+                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
                         <div class="senha-grande">${item.senha || '---'}</div>
                         <div class="cliente-nome">${item.cliente_nome}</div>
                     </div>
@@ -613,7 +604,6 @@ function renderizarPainelAgendamento() {
             });
             chamandoEl.innerHTML = html;
             
-            // Atualizar última hora chamada
             const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
             if (ultimoChamadoHora) {
                 const agora = new Date();
@@ -629,8 +619,6 @@ function renderizarPainelAgendamento() {
                     <p>Nenhum atendimento no momento</p>
                 </div>
             `;
-            
-            // Limpar última hora
             const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
             if (ultimoChamadoHora) ultimoChamadoHora.textContent = '--:--';
         }
@@ -646,9 +634,7 @@ function renderizarPainelAgendamento() {
             proximosAtender.forEach(item => {
                 html += `
                     <div class="item-fila-vertical urgente">
-                        <div class="servico-tag" style="background: #ff6b00; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-bottom: 5px; display: inline-block;">
-                            ${item.servico_nome || item.servico_id}
-                        </div>
+                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
                         <span class="senha-numero">${item.senha}</span>
                         <div class="senha-info">
                             <span class="senha-cliente">${item.cliente_nome}</span>
@@ -668,39 +654,110 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // COLUNA 3: OUTROS NA FILA (CARROSSEL)
+    // COLUNA 3: OUTROS NA FILA - VERSÃO CORRIGIDA
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
         if (outrosNaFila.length > 0) {
+            // Agrupar por serviço
+            const agendamentosPorServico = {};
+            
+            outrosNaFila.forEach(item => {
+                if (!agendamentosPorServico[item.servico_id]) {
+                    agendamentosPorServico[item.servico_id] = {
+                        nome: item.servico_nome,
+                        itens: []
+                    };
+                }
+                agendamentosPorServico[item.servico_id].itens.push(item);
+            });
+            
             let html = '';
-            outrosNaFila.forEach((item, index) => {
-                const posicao = index + 1;
+            
+            // Criar uma fileira para cada serviço
+            Object.entries(agendamentosPorServico).forEach(([servicoId, servico]) => {
+                const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
                 
                 html += `
-                    <div class="proximo-card">
-                        <div class="servico-tag" style="background: #ff6b00; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-bottom: 5px; display: inline-block;">
-                            ${item.servico_nome || item.servico_id}
+                    <div class="fila-servico">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-cut"></i>
+                            <h4 title="${servico.nome}">${servico.nome}</h4>
+                            <span class="servico-count">${servico.itens.length}</span>
                         </div>
-                        <div class="senha-numero">${item.senha}</div>
-                        <div class="senha-cliente">${item.cliente_nome}</div>
-                        <span class="senha-posicao">${posicao}° na fila</span>
+                        
+                        <div class="servico-carousel-container">
+                            <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${servico.itens.length <= 2 ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            
+                            <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
+                                <div class="servico-track">
+                `;
+                
+                // Adicionar cards para cada agendamento deste serviço
+                servico.itens.forEach((item, idx) => {
+                    const posicao = idx + 1;
+                    html += `
+                        <div class="servico-card">
+                            <div class="servico-tag-small" title="${item.servico_nome}">${item.servico_nome}</div>
+                            <div class="senha-numero-small">${item.senha}</div>
+                            <div class="senha-cliente-small">${item.cliente_nome}</div>
+                            <span class="senha-posicao-small">${posicao}° na fila</span>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                                </div>
+                            </div>
+                            
+                            <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${servico.itens.length <= 2 ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
+                `;
+                
+                // Gerar dots baseado na quantidade de páginas (considerando 2 cards por página)
+                const totalPages = Math.ceil(servico.itens.length / 2);
+                for (let i = 0; i < totalPages; i++) {
+                    html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
+                }
+                
+                html += `
+                        </div>
                     </div>
                 `;
             });
+            
             proximosTrack.innerHTML = html;
             
-            // Atualizar dots do carrossel
-            atualizarDotsScroll(outrosNaFila.length);
+            // Atualizar dots do carrossel geral
+            atualizarDotsScroll(Object.keys(agendamentosPorServico).length);
         } else {
             // Placeholders quando não há dados
             let placeholders = '';
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < 2; i++) {
                 placeholders += `
-                    <div class="proximo-card-placeholder">
-                        <div class="senha-numero">--</div>
-                        <div class="senha-info">
-                            <span class="senha-cliente">Aguardando...</span>
+                    <div class="fila-servico">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-cut"></i>
+                            <h4>Aguardando...</h4>
+                            <span class="servico-count">0</span>
+                        </div>
+                        <div class="servico-carousel-container">
+                            <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
+                            <div class="servico-scroll">
+                                <div class="servico-track">
+                                    <div class="servico-card-placeholder">
+                                        <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
+                                        <div class="placeholder-text">Sem agendamentos</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
                 `;
@@ -711,11 +768,10 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // MINHA SENHA (se usuário logado)
+    // MINHA SENHA
     // ============================================
     const minhaSenhaContainer = document.getElementById('minhaSenhaContainer');
     if (minhaSenhaContainer && usuarioLogado && dadosUsuario) {
-        // Procurar agendamento do usuário logado
         const meuAgendamento = agendamentosAtivos.find(a => 
             a.cliente_email === dadosUsuario.email && 
             ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado', 'Pendente'].includes(a.status)
@@ -734,14 +790,8 @@ function renderizarPainelAgendamento() {
                     statusTexto = 'Você é o próximo!';
                     statusClass = 'proximo';
                     break;
-                case 'Na fila':
-                case 'Verificado':
-                case 'Pendente':
-                    statusTexto = 'Aguardando';
-                    statusClass = '';
-                    break;
                 default:
-                    statusTexto = meuAgendamento.status;
+                    statusTexto = 'Aguardando';
                     statusClass = '';
             }
             
@@ -762,7 +812,7 @@ function renderizarPainelAgendamento() {
         minhaSenhaContainer.style.display = 'none';
     }
     
-    // Inicializar scroll horizontal
+    // Inicializar funções de scroll
     setTimeout(() => {
         inicializarScrollHorizontal();
     }, 100);
@@ -803,8 +853,8 @@ function atualizarDotsScroll(totalItens) {
     const dotsContainer = document.getElementById('scrollDots');
     if (!dotsContainer) return;
     
-    // Calcular número de dots baseado na quantidade de itens
-    const numDots = Math.min(totalItens, 5); // Máximo 5 dots
+    // Para a coluna 3, os dots representam as fileiras de serviços
+    const numDots = Math.min(totalItens, 5);
     
     let dotsHtml = '';
     for (let i = 0; i < numDots; i++) {
@@ -817,83 +867,225 @@ function atualizarDotsScroll(totalItens) {
 // ============================================
 // FUNÇÃO ÚNICA E CORRIGIDA PARA INICIALIZAR SCROLL HORIZONTAL
 // ============================================
+// ============================================
+// INICIALIZAR SCROLL HORIZONTAL - VERSÃO CORRIGIDA
+// ============================================
 function inicializarScrollHorizontal() {
+    console.log('🔄 Inicializando scroll horizontal...');
+    
+    // ============================================
+    // 1. SCROLL PRINCIPAL DA COLUNA 3 (fileiras de serviços)
+    // ============================================
     const track = document.getElementById('proximasSenhasTrack');
     const scrollContainer = document.getElementById('proximasSenhasScroll');
     const prevBtn = document.getElementById('proximasSenhasPrev');
     const nextBtn = document.getElementById('proximasSenhasNext');
     
-    if (!track || !scrollContainer) return;
-    
-    const scrollAmount = 200; // Quantidade de pixels para scrollar
-    
-    // Clonar e substituir botões para remover listeners antigos
-    if (prevBtn) {
-        const newPrevBtn = prevBtn.cloneNode(true);
-        prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+    if (track && scrollContainer) {
+        const scrollAmount = 400; // Quantidade para scrollar (2 fileiras)
         
-        newPrevBtn.addEventListener('click', () => {
-            scrollContainer.scrollBy({
-                left: -scrollAmount,
-                behavior: 'smooth'
-            });
-        });
-    }
-    
-    if (nextBtn) {
-        const newNextBtn = nextBtn.cloneNode(true);
-        nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
-        
-        newNextBtn.addEventListener('click', () => {
-            scrollContainer.scrollBy({
-                left: scrollAmount,
-                behavior: 'smooth'
-            });
-        });
-    }
-    
-    // Clonar e substituir o scrollContainer para remover listeners antigos
-    const newScrollContainer = scrollContainer.cloneNode(true);
-    scrollContainer.parentNode.replaceChild(newScrollContainer, scrollContainer);
-    
-    // Adicionar event listener de scroll
-    newScrollContainer.addEventListener('scroll', () => {
-        const scrollLeft = newScrollContainer.scrollLeft;
-        const maxScroll = newScrollContainer.scrollWidth - newScrollContainer.clientWidth;
-        
-        // Atualizar dots baseado na posição
-        const dots = document.querySelectorAll('.scroll-indicator-dots .dot');
-        if (dots.length > 0 && maxScroll > 0) {
-            const scrollPercent = scrollLeft / maxScroll;
-            const activeDot = Math.floor(scrollPercent * dots.length);
+        // Clonar e substituir botões para remover listeners antigos
+        if (prevBtn) {
+            const newPrevBtn = prevBtn.cloneNode(true);
+            prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
             
-            dots.forEach((dot, index) => {
-                if (index === activeDot) {
-                    dot.classList.add('active');
-                } else {
-                    dot.classList.remove('active');
-                }
+            newPrevBtn.addEventListener('click', () => {
+                scrollContainer.scrollBy({
+                    left: -scrollAmount,
+                    behavior: 'smooth'
+                });
             });
         }
         
-        // Habilitar/desabilitar botões
-        const currentPrevBtn = document.getElementById('proximasSenhasPrev');
-        const currentNextBtn = document.getElementById('proximasSenhasNext');
+        if (nextBtn) {
+            const newNextBtn = nextBtn.cloneNode(true);
+            nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+            
+            newNextBtn.addEventListener('click', () => {
+                scrollContainer.scrollBy({
+                    left: scrollAmount,
+                    behavior: 'smooth'
+                });
+            });
+        }
         
-        if (currentPrevBtn) {
-            currentPrevBtn.disabled = scrollLeft <= 0;
+        // Clonar e substituir o scrollContainer para remover listeners antigos
+        const newScrollContainer = scrollContainer.cloneNode(true);
+        scrollContainer.parentNode.replaceChild(newScrollContainer, scrollContainer);
+        
+        // Adicionar event listener de scroll para o container principal
+        newScrollContainer.addEventListener('scroll', () => {
+            const scrollLeft = newScrollContainer.scrollLeft;
+            const maxScroll = newScrollContainer.scrollWidth - newScrollContainer.clientWidth;
+            
+            // Atualizar dots principais baseado na posição
+            const dots = document.querySelectorAll('.scroll-indicator-dots .dot');
+            if (dots.length > 0 && maxScroll > 0) {
+                const scrollPercent = scrollLeft / maxScroll;
+                const activeDot = Math.floor(scrollPercent * dots.length);
+                
+                dots.forEach((dot, index) => {
+                    if (index === activeDot) {
+                        dot.classList.add('active');
+                    } else {
+                        dot.classList.remove('active');
+                    }
+                });
+            }
+            
+            // Habilitar/desabilitar botões principais
+            const currentPrevBtn = document.getElementById('proximasSenhasPrev');
+            const currentNextBtn = document.getElementById('proximasSenhasNext');
+            
+            if (currentPrevBtn) {
+                currentPrevBtn.disabled = scrollLeft <= 5;
+            }
+            if (currentNextBtn) {
+                currentNextBtn.disabled = scrollLeft >= maxScroll - 5;
+            }
+        });
+        
+        // Trigger scroll event para inicializar estado dos botões
+        setTimeout(() => {
+            newScrollContainer.dispatchEvent(new Event('scroll'));
+        }, 100);
+    }
+    
+    // ============================================
+    // 2. SCROLL DOS CARROSSÉIS DE CADA SERVIÇO
+    // ============================================
+    document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+        // Remover listeners antigos clonando e substituindo
+        const newScrollEl = scrollEl.cloneNode(true);
+        scrollEl.parentNode.replaceChild(newScrollEl, scrollEl);
+        
+        // Encontrar os botões associados a este scroll
+        const container = newScrollEl.closest('.servico-carousel-container');
+        if (!container) return;
+        
+        const prevBtn = container.querySelector('.servico-arrow.prev');
+        const nextBtn = container.querySelector('.servico-arrow.next');
+        
+        // Configurar botões de navegação
+        if (prevBtn) {
+            const newPrevBtn = prevBtn.cloneNode(true);
+            prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+            
+            newPrevBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                newScrollEl.scrollBy({
+                    left: -200, // Scroll de 200px (aproximadamente 1 card)
+                    behavior: 'smooth'
+                });
+            });
         }
-        if (currentNextBtn) {
-            currentNextBtn.disabled = scrollLeft >= maxScroll - 5;
+        
+        if (nextBtn) {
+            const newNextBtn = nextBtn.cloneNode(true);
+            nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+            
+            newNextBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                newScrollEl.scrollBy({
+                    left: 200,
+                    behavior: 'smooth'
+                });
+            });
         }
+        
+        // Adicionar event listener de scroll
+        newScrollEl.addEventListener('scroll', () => {
+            const scrollLeft = newScrollEl.scrollLeft;
+            const maxScroll = newScrollEl.scrollWidth - newScrollEl.clientWidth;
+            
+            // Extrair ID do serviço do elemento
+            const containerId = newScrollEl.id;
+            if (!containerId) return;
+            
+            const servicoId = containerId.replace('servico-', '').replace('-scroll', '');
+            
+            // Atualizar dots do serviço
+            const dotsContainer = document.getElementById(`servico-${servicoId}-dots`);
+            if (dotsContainer) {
+                const dots = dotsContainer.querySelectorAll('.dot');
+                if (dots.length > 0 && maxScroll > 0) {
+                    // Calcular página atual baseado no scroll (cada página = 2 cards ≈ 384px)
+                    const cardWidth = 192; // 180px card + 12px gap
+                    const cardsPerPage = 2;
+                    const pageWidth = cardWidth * cardsPerPage;
+                    const currentPage = Math.round(scrollLeft / pageWidth);
+                    
+                    dots.forEach((dot, index) => {
+                        if (index === currentPage) {
+                            dot.classList.add('active');
+                        } else {
+                            dot.classList.remove('active');
+                        }
+                    });
+                }
+            }
+            
+            // Habilitar/desabilitar botões do serviço
+            const currentPrevBtn = container.querySelector('.servico-arrow.prev');
+            const currentNextBtn = container.querySelector('.servico-arrow.next');
+            
+            if (currentPrevBtn) {
+                currentPrevBtn.disabled = scrollLeft <= 5;
+            }
+            if (currentNextBtn) {
+                currentNextBtn.disabled = scrollLeft >= maxScroll - 5;
+            }
+        });
+        
+        // Trigger scroll event para inicializar estado dos botões
+        setTimeout(() => {
+            newScrollEl.dispatchEvent(new Event('scroll'));
+        }, 100);
     });
     
-    // Trigger scroll event para inicializar estado dos botões
-    setTimeout(() => {
-        newScrollContainer.dispatchEvent(new Event('scroll'));
-    }, 100);
+    // ============================================
+    // 3. CLICK NOS DOTS PARA NAVEGAÇÃO RÁPIDA
+    // ============================================
+    document.querySelectorAll('.servico-page-dots .dot').forEach(dot => {
+        const newDot = dot.cloneNode(true);
+        dot.parentNode.replaceChild(newDot, dot);
+        
+        newDot.addEventListener('click', function() {
+            const dotsContainer = this.closest('.servico-page-dots');
+            if (!dotsContainer) return;
+            
+            const servicoId = dotsContainer.id.replace('servico-', '').replace('-dots', '');
+            const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
+            
+            if (scrollEl) {
+                const dots = Array.from(dotsContainer.querySelectorAll('.dot'));
+                const dotIndex = dots.indexOf(this);
+                
+                if (dotIndex !== -1) {
+                    // Calcular scroll baseado no índice do dot (cada página = 2 cards)
+                    const cardWidth = 192; // 180px card + 12px gap
+                    const cardsPerPage = 2;
+                    const scrollAmount = dotIndex * (cardWidth * cardsPerPage);
+                    
+                    scrollEl.scrollTo({
+                        left: scrollAmount,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Atualizar dots
+                    dots.forEach((d, idx) => {
+                        if (idx === dotIndex) {
+                            d.classList.add('active');
+                        } else {
+                            d.classList.remove('active');
+                        }
+                    });
+                }
+            }
+        });
+    });
     
-    console.log('✅ Scroll horizontal inicializado');
+    console.log('✅ Scroll horizontal inicializado com sucesso');
 }
 
 // ============================================
@@ -3052,9 +3244,37 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 }
 
 // ============================================
-// FUNÇÕES DE TESTE NO CONSOLE
+// FUNÇÕES AUXILIARES PARA SCROLL DA COLUNA 3 -  PARTE DE AGENDAMENTO
 // ============================================
 
+// Função para scroll horizontal dos serviços
+window.scrollServico = function(servicoId, amount) {
+    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
+    if (scrollEl) {
+        scrollEl.scrollBy({ left: amount, behavior: 'smooth' });
+    }
+};
+
+// Função para ir para uma página específica do serviço
+window.goToServicoPage = function(servicoId, pageIndex) {
+    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
+    if (scrollEl) {
+        // Assumindo que cada card tem 180px + gap 12px = 192px por card
+        // 2 cards por página = 384px
+        const scrollAmount = pageIndex * 384;
+        scrollEl.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+        
+        // Atualizar dots
+        const dots = document.querySelectorAll(`#servico-${servicoId}-dots .dot`);
+        dots.forEach((dot, idx) => {
+            if (idx === pageIndex) {
+                dot.classList.add('active');
+            } else {
+                dot.classList.remove('active');
+            }
+        });
+    }
+};
 
 // ============================================
 // INICIALIZAÇÃO
@@ -3124,6 +3344,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
