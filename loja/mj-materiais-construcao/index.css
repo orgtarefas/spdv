@@ -2545,15 +2545,16 @@ body {
 .fila-servico {
     background: #fafcff;
     border-radius: 18px;
-    padding: 12px;
+    padding: 16px; /* AUMENTA PADDING */
     border: 1px solid #edf2f7;
-    height: calc(50% - 6px);
-    min-height: 200px;
+    height: calc(50% - 8px); /* AJUSTA MARGEM */
+    min-height: 240px; /* AUMENTA ALTURA MÍNIMA */
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
+
 
 .fila-servico:last-child {
     margin-bottom: 0;
@@ -2564,8 +2565,8 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
+    margin-bottom: 14px; /* AUMENTA MARGEM */
+    padding-bottom: 8px;
     border-bottom: 1px solid #e2e8f0;
     flex-shrink: 0;
 }
@@ -2605,8 +2606,9 @@ body {
     align-items: center;
     gap: 8px;
     flex: 1;
-    min-height: 120px;
+    min-height: 180px; /* ALTURA FIXA MAIOR */
     width: 100%;
+    height: auto;
 }
 
 /* Área de scroll HORIZONTAL */
@@ -2619,7 +2621,8 @@ body {
     padding: 4px 0 8px;
     scrollbar-width: thin;
     scrollbar-color: #0056b3 #f1f5f9;
-    height: 100%;
+    height: auto; /* MUDA DE height: 100% PARA auto */
+    min-height: fit-content; /* ADICIONA min-height */
 }
 
 .servico-scroll::-webkit-scrollbar {
@@ -2642,8 +2645,9 @@ body {
     gap: 12px;
     min-width: 100%;
     padding: 0 4px;
-    height: 100%;
-    align-items: center;
+    height: auto; /* MUDA DE height: 100% PARA auto */
+    min-height: fit-content; /* ADICIONA min-height */
+    align-items: stretch; /* MUDA PARA stretch PARA QUE TODOS OS CARDS TENHAM A MESMA ALTURA */
 }
 
 /* DOTS DE PAGINAÇÃO */
@@ -2732,16 +2736,6 @@ body {
     border-radius: 8px;
 }
 
-/* Track horizontal - ITENS LADO A LADO (MESMO SERVIÇO) */
-.servico-track {
-    display: inline-flex;
-    gap: 12px;
-    min-width: 100%;
-    padding: 0 4px;
-    height: 100%;
-    align-items: center;
-}
-
 /* CARDS DA COLUNA 3 - MESMO VISUAL DA COLUNA 2 */
 .servico-card {
     width: 180px;
@@ -2755,7 +2749,8 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
     transition: all 0.2s ease;
     vertical-align: middle;
-    height: 150px;
+    height: auto; /* MUDA DE height: 150px PARA auto */
+    min-height: 150px; /* ADICIONA min-height PARA GARANTIR TAMANHO MÍNIMO */
     flex-shrink: 0;
 }
 
@@ -2769,46 +2764,49 @@ body {
 .servico-card .servico-tag-small {
     background: #eef2f6;
     color: #2c3e50;
-    padding: 4px 10px;
+    padding: 6px 12px; /* AUMENTA O PADDING */
     border-radius: 30px;
-    font-size: 0.7rem;
+    font-size: 0.75rem; /* AUMENTA O FONTE */
     font-weight: 600;
     display: inline-block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     border: 1px solid #dde3e9;
     align-self: flex-start;
+    max-width: 100%;
+    white-space: normal; /* PERMITE QUEBRA DE LINHA */
+    word-break: break-word;
 }
 
 /* NÚMERO DA SENHA - IGUAL COLUNA 2 */
 .servico-card .senha-numero-small {
-    font-size: 1.4rem;
+    font-size: 1.6rem; /* AUMENTA LIGEIRAMENTE */
     font-weight: 800;
     color: #0056b3;
     background: #f0f7ff;
-    padding: 4px 12px;
+    padding: 6px 16px; /* AUMENTA O PADDING */
     border-radius: 40px;
     display: inline-block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     border: 1px solid #cce4ff;
     align-self: flex-start;
 }
 
 /* NOME DO CLIENTE - IGUAL COLUNA 2 */
 .servico-card .senha-cliente-small {
-    font-size: 0.9rem;
+    font-size: 1rem; /* AUMENTA */
     font-weight: 600;
     color: #1e293b;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     word-break: break-word;
     white-space: normal;
-    line-height: 1.3;
-    flex: 1;
+    line-height: 1.4;
+    flex: 0 0 auto; /* MUDA DE flex: 1 PARA flex: 0 0 auto */
 }
 
 /* POSIÇÃO NA FILA - IGUAL COLUNA 2 */
 .servico-card .senha-posicao-small {
-    font-size: 0.7rem;
-    padding: 3px 10px;
+    font-size: 0.75rem; /* AUMENTA */
+    padding: 4px 12px; /* AUMENTA PADDING */
     border-radius: 30px;
     display: inline-block;
     align-self: flex-start;
@@ -2816,6 +2814,7 @@ body {
     color: #495057;
     border: 1px solid #d0d7de;
     font-weight: 600;
+    margin-top: auto; /* EMPURRA PARA BAIXO SE HOUVER ESPAÇO */
 }
 
 /* Placeholder para serviços sem agendamentos */
@@ -3108,6 +3107,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
