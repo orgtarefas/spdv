@@ -2203,8 +2203,8 @@ body {
 }
 
 /* ============================================
-   ATENDIMENTO AGENDADO - VERSÃO PROFISSIONAL
-   CORREÇÃO: FOOTERS IGUAIS, HORIZONTAL PARA MESMO SERVIÇO
+   ATENDIMENTO AGENDADO - VERSÃO DEFINITIVA
+   COLUNAS FIXAS COM FUNÇÕES ESPECÍFICAS
    ============================================ */
 
 .agendamento-section {
@@ -2293,9 +2293,9 @@ body {
     display: flex;
     gap: 20px;
     margin: 20px 0 0;
-    height: 520px;
-    min-height: 520px;
-    max-height: 520px;
+    height: 550px;
+    min-height: 550px;
+    max-height: 550px;
 }
 
 /* Coluna 1: EM ATENDIMENTO - 1/4 */
@@ -2319,7 +2319,7 @@ body {
     max-width: 50%;
 }
 
-/* Estilo base das colunas */
+/* Estilo base das colunas - TODAS IGUAIS */
 .agendamento-coluna {
     display: flex;
     flex-direction: column;
@@ -2337,7 +2337,7 @@ body {
     border-color: rgba(0, 86, 179, 0.2);
 }
 
-/* Headers das colunas */
+/* Headers das colunas - TODOS COM MESMA ALTURA */
 .agendamento-coluna .coluna-header {
     flex-shrink: 0;
     padding: 16px 18px;
@@ -2347,6 +2347,7 @@ body {
     border-bottom: 1px solid #edf2f7;
     height: 70px;
     min-height: 70px;
+    max-height: 70px;
 }
 
 .agendamento-coluna.coluna-chamando .coluna-header {
@@ -2408,37 +2409,19 @@ body {
     background: #ffffff;
     display: flex;
     flex-direction: column;
-    min-height: 0; /* IMPORTANTE: permite que o conteúdo encolha */
+    min-height: 0;
 }
 
 /* ============================================
-   COLUNA 1 - EM ATENDIMENTO
+   COLUNA 1 - EM ATENDIMENTO (FIXA)
    ============================================ */
 
-/* Container do carrossel vertical */
-.vertical-carousel-container {
-    position: relative;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-.vertical-scroll {
-    flex: 1;
-    overflow-y: hidden;
-    scroll-behavior: smooth;
-    position: relative;
-    height: 100%;
-    min-height: 0;
-}
-
-.vertical-track {
+/* Container da coluna 1 */
+.coluna-chamando .coluna-content {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    transition: transform 0.3s ease;
-    height: 100%;
+    overflow-y: auto;
 }
 
 /* Cards da coluna 1 */
@@ -2450,10 +2433,7 @@ body {
     box-shadow: 0 12px 20px -10px rgba(255, 107, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.2s ease;
-    height: calc(50% - 6px);
-    min-height: 160px;
-    display: flex;
-    flex-direction: column;
+    flex-shrink: 0;
 }
 
 .card-chamando-item:hover {
@@ -2472,7 +2452,6 @@ body {
     margin-bottom: 10px;
     border: 1px solid rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(4px);
-    align-self: flex-start;
 }
 
 .card-chamando-item .senha-grande {
@@ -2483,9 +2462,8 @@ body {
     padding: 4px 16px;
     border-radius: 40px;
     display: inline-block;
-    margin: 6px 0;
+    margin: 8px 0;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    align-self: flex-start;
 }
 
 .card-chamando-item .cliente-nome {
@@ -2493,16 +2471,21 @@ body {
     font-weight: 600;
     color: white;
     word-break: break-word;
-    flex: 1;
-    display: flex;
-    align-items: center;
 }
 
 /* ============================================
-   COLUNA 2 - PRÓXIMOS A ATENDER
+   COLUNA 2 - PRÓXIMOS A ATENDER (FIXA)
    ============================================ */
 
-/* Cards da coluna 2 (mesmo visual usado na coluna 3) */
+/* Container da coluna 2 */
+.coluna-fila .coluna-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+}
+
+/* Cards da coluna 2 */
 .item-fila-vertical {
     background: white;
     border: 1px solid #edf2f7;
@@ -2510,10 +2493,7 @@ body {
     padding: 16px;
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-    height: calc(50% - 6px);
-    min-height: 150px;
-    display: flex;
-    flex-direction: column;
+    flex-shrink: 0;
 }
 
 .item-fila-vertical:hover {
@@ -2537,7 +2517,6 @@ body {
     display: inline-block;
     margin-bottom: 8px;
     border: 1px solid #dde3e9;
-    align-self: flex-start;
 }
 
 .item-fila-vertical .senha-numero {
@@ -2550,89 +2529,38 @@ body {
     display: inline-block;
     margin-bottom: 8px;
     border: 1px solid #cce4ff;
-    align-self: flex-start;
 }
 
 .item-fila-vertical .senha-cliente {
     font-size: 0.95rem;
     font-weight: 600;
     color: #1e293b;
-    flex: 1;
-    display: flex;
-    align-items: center;
-}
-
-/* Controles de paginação vertical */
-.vertical-pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 12px;
-    margin-top: 12px;
-    padding-top: 8px;
-    border-top: 1px dashed #e2e8f0;
-    flex-shrink: 0;
-}
-
-.vertical-pagination .page-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: white;
-    border: 1px solid #e2e8f0;
-    color: #2c3e50;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    font-size: 0.9rem;
-}
-
-.vertical-pagination .page-btn:hover:not(:disabled) {
-    background: #0056b3;
-    color: white;
-    border-color: #0056b3;
-    transform: scale(1.05);
-}
-
-.vertical-pagination .page-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.vertical-pagination .page-indicator {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #4a5a72;
-    background: #f1f5f9;
-    padding: 4px 12px;
-    border-radius: 30px;
 }
 
 /* ============================================
-   COLUNA 3 - OUTROS NA FILA (DUAS FILEIRAS)
+   COLUNA 3 - OUTROS NA FILA (DUAS FILEIRAS HORIZONTAIS)
    ============================================ */
 
-/* Container principal da coluna 3 */
+/* Container da coluna 3 */
 .coluna-proximos .coluna-content {
     padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    min-height: 0;
+    overflow: hidden;
 }
 
-/* Cada fileira (serviço) */
+/* Cada fileira representa UM SERVIÇO */
 .fila-servico {
     background: #fafcff;
     border-radius: 18px;
     padding: 12px;
     border: 1px solid #edf2f7;
     height: calc(50% - 6px);
-    min-height: 180px;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* Cabeçalho do serviço */
@@ -2672,48 +2600,52 @@ body {
     border-radius: 30px;
     font-size: 0.7rem;
     font-weight: 600;
+    flex-shrink: 0;
 }
 
-/* Container do carrossel horizontal por serviço */
+/* Container do carrossel horizontal - ITENS LADO A LADO */
 .servico-carousel-container {
     display: flex;
     align-items: center;
     gap: 8px;
     flex: 1;
     min-height: 0;
+    width: 100%;
 }
 
-/* Setas fixas sempre visíveis */
+/* SETAS FIXAS - SEMPRE VISÍVEIS */
 .servico-arrow {
     width: 32px;
     height: 32px;
     border-radius: 50%;
     background: white;
-    border: 2px solid #e2e8f0;
-    color: #2c3e50;
+    border: 2px solid #0056b3;
+    color: #0056b3;
     cursor: pointer;
-    display: flex;
+    display: flex !important; /* FORÇA VISIBILIDADE */
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
     flex-shrink: 0;
     font-size: 1rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
+    z-index: 10;
+    opacity: 1 !important; /* FORÇA OPACIDADE */
+    visibility: visible !important; /* FORÇA VISIBILIDADE */
 }
 
 .servico-arrow:hover:not(:disabled) {
-    background: #ff6b00;
+    background: #0056b3;
     color: white;
-    border-color: #ff6b00;
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.4);
 }
 
 .servico-arrow:disabled {
-    opacity: 0.25;
+    opacity: 0.3;
     cursor: not-allowed;
-    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #94a3b8;
 }
 
 /* Área de scroll horizontal */
@@ -2725,7 +2657,7 @@ body {
     scroll-behavior: smooth;
     padding: 4px 0 8px;
     scrollbar-width: thin;
-    scrollbar-color: #ff6b00 #f1f5f9;
+    scrollbar-color: #0056b3 #f1f5f9;
     height: 100%;
     min-height: 0;
 }
@@ -2740,11 +2672,11 @@ body {
 }
 
 .servico-scroll::-webkit-scrollbar-thumb {
-    background: #ff6b00;
+    background: #0056b3;
     border-radius: 8px;
 }
 
-/* Track horizontal - itens lado a lado */
+/* Track horizontal - ITENS LADO A LADO (MESMO SERVIÇO) */
 .servico-track {
     display: inline-flex;
     gap: 12px;
@@ -2754,7 +2686,7 @@ body {
     align-items: center;
 }
 
-/* Cards da coluna 3 - MESMO VISUAL DA COLUNA 2 */
+/* CARDS DA COLUNA 3 - MESMO VISUAL DA COLUNA 2 */
 .servico-card {
     width: 180px;
     background: white;
@@ -2767,7 +2699,8 @@ body {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
     transition: all 0.2s ease;
     vertical-align: middle;
-    height: 140px;
+    height: 150px;
+    flex-shrink: 0;
 }
 
 .servico-card:hover {
@@ -2776,12 +2709,13 @@ body {
     box-shadow: 0 12px 20px -10px rgba(0, 86, 179, 0.15);
 }
 
+/* TAG DO SERVIÇO - IGUAL COLUNA 2 */
 .servico-card .servico-tag-small {
     background: #eef2f6;
     color: #2c3e50;
-    padding: 3px 10px;
+    padding: 4px 10px;
     border-radius: 30px;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 600;
     display: inline-block;
     margin-bottom: 8px;
@@ -2789,6 +2723,7 @@ body {
     align-self: flex-start;
 }
 
+/* NÚMERO DA SENHA - IGUAL COLUNA 2 */
 .servico-card .senha-numero-small {
     font-size: 1.4rem;
     font-weight: 800;
@@ -2802,6 +2737,7 @@ body {
     align-self: flex-start;
 }
 
+/* NOME DO CLIENTE - IGUAL COLUNA 2 */
 .servico-card .senha-cliente-small {
     font-size: 0.9rem;
     font-weight: 600;
@@ -2813,15 +2749,17 @@ body {
     flex: 1;
 }
 
+/* POSIÇÃO NA FILA - IGUAL COLUNA 2 */
 .servico-card .senha-posicao-small {
-    font-size: 0.65rem;
-    padding: 3px 8px;
+    font-size: 0.7rem;
+    padding: 3px 10px;
     border-radius: 30px;
     display: inline-block;
     align-self: flex-start;
     background: #e9ecef;
     color: #495057;
     border: 1px solid #d0d7de;
+    font-weight: 600;
 }
 
 /* Placeholder para serviços sem agendamentos */
@@ -2836,7 +2774,8 @@ body {
     align-items: center;
     justify-content: center;
     opacity: 0.6;
-    height: 130px;
+    height: 140px;
+    flex-shrink: 0;
 }
 
 .servico-card-placeholder .placeholder-icon {
@@ -2866,57 +2805,9 @@ body {
 }
 
 .servico-page-dots .dot.active {
-    background: #ff6b00;
+    background: #0056b3;
     width: 16px;
     border-radius: 8px;
-}
-
-/* Controles de página da coluna 3 (navegação entre fileiras) */
-.coluna3-pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 15px;
-    margin-top: 8px;
-    padding: 8px 0 4px;
-    border-top: 1px dashed #e2e8f0;
-    flex-shrink: 0;
-}
-
-.coluna3-page-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: white;
-    border: 2px solid #e2e8f0;
-    color: #2c3e50;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    font-size: 0.9rem;
-}
-
-.coluna3-page-btn:hover:not(:disabled) {
-    background: #0056b3;
-    color: white;
-    border-color: #0056b3;
-    transform: scale(1.05);
-}
-
-.coluna3-page-btn:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.coluna3-page-indicator {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #4a5a72;
-    background: #f1f5f9;
-    padding: 4px 16px;
-    border-radius: 30px;
 }
 
 /* ============================================
@@ -2937,6 +2828,7 @@ body {
     min-height: 48px;
     max-height: 48px;
     width: 100%;
+    margin-top: auto; /* GARANTE QUE FICA NA PARTE INFERIOR */
 }
 
 .agendamento-coluna.coluna-chamando .coluna-footer {
@@ -2949,9 +2841,8 @@ body {
     color: #ff6b00;
 }
 
-.agendamento-coluna .coluna-footer i {
-    font-size: 0.9rem;
-    width: 18px;
+.agendamento-coluna.coluna-fila .coluna-footer i,
+.agendamento-coluna.coluna-proximos .coluna-footer i {
     color: #64748b;
 }
 
@@ -3107,54 +2998,6 @@ body {
 }
 
 /* ============================================
-   MODAL DE AGENDAMENTO
-   ============================================ */
-
-#agendamentoRapidoModal .modal-content {
-    max-width: 500px;
-    border-radius: 28px;
-    overflow: hidden;
-    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.3);
-}
-
-#agendamentoRapidoModal .modal-header {
-    background: linear-gradient(145deg, #0056b3, #003d82);
-    padding: 22px 28px;
-}
-
-.agendamento-rapido-form .form-select,
-.agendamento-rapido-form .form-input {
-    padding: 14px 16px;
-    border: 2px solid #e9edf2;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    background: #ffffff;
-    transition: all 0.2s;
-}
-
-.agendamento-rapido-form .form-select:focus,
-.agendamento-rapido-form .form-input:focus {
-    border-color: #0056b3;
-    box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.1);
-}
-
-.btn-confirmar-agendamento {
-    padding: 16px 20px;
-    background: linear-gradient(145deg, #0056b3, #003d82);
-    border-radius: 60px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-top: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 12px 25px -8px rgba(0, 86, 179, 0.4);
-}
-
-.btn-confirmar-agendamento:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 18px 35px -8px rgba(0, 86, 179, 0.5);
-}
-
-/* ============================================
    RESPONSIVIDADE
    ============================================ */
 
@@ -3206,6 +3049,6 @@ body {
     
     .servico-card {
         width: 160px;
-        height: 130px;
+        height: 140px;
     }
 }
