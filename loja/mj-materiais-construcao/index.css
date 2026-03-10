@@ -2293,9 +2293,9 @@ body {
     display: flex;
     gap: 20px;
     margin: 20px 0 0;
-    height: 550px;
-    min-height: 550px;
-    max-height: 550px;
+    height: 650px;
+    min-height: 650px;
+    max-height: 650px;
 }
 
 /* Coluna 1: EM ATENDIMENTO - 1/4 */
@@ -3107,6 +3107,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
