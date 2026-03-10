@@ -150,47 +150,9 @@
                 </button>
             </div>
             
-            <!-- Container com 3 colunas de tamanhos diferentes -->
+            <!-- Container com 3 colunas de tamanhos diferentes - REORDENADO -->
             <div class="agendamento-colunas">
-                <!-- Coluna 1: EM ATENDIMENTO (Menor - destaque) -->
-                <div class="agendamento-coluna coluna-chamando">
-                    <div class="coluna-header chamando">
-                        <i class="fas fa-bell"></i>
-                        <h3>EM ATENDIMENTO</h3>
-                    </div>
-                    <div class="coluna-content" id="chamandoAgoraCard">
-                        <div class="empty-agendamento">
-                            <i class="fas fa-check-circle"></i>
-                            <p>Nenhum chamado no momento</p>
-                        </div>
-                    </div>
-                    <div class="coluna-footer">
-                        <i class="fas fa-volume-up"></i> 
-                        Último: <span id="ultimoChamadoHora">--:--</span>
-                    </div>
-                </div>
-                
-                <!-- Coluna 2: PRÓXIMOS A ATENDER (Média - lista vertical) -->
-                <div class="agendamento-coluna coluna-fila">
-                    <div class="coluna-header">
-                        <i class="fas fa-users"></i>
-                        <h3>PRÓXIMOS A ATENDER</h3>
-                        <span class="coluna-badge" id="totalFilaBadge">0</span>
-                    </div>
-                    <div class="coluna-content lista-vertical" id="proximosFilaCard">
-                        <div class="empty-agendamento">
-                            <i class="fas fa-users"></i>
-                            <p>Fila vazia</p>
-                        </div>
-                    </div>
-                    <div class="coluna-footer">
-                        <i class="fas fa-clock"></i> 
-                        <span id="totalFilaTexto">0</span> pessoas • 
-                        <span id="tempoMedioEspera">0</span> min
-                    </div>
-                </div>
-                
-                <!-- Coluna 3: OUTROS NA FILA (Maior - carrossel horizontal) -->
+                <!-- Coluna 3: OUTROS NA FILA (AGORA À ESQUERDA) -->
                 <div class="agendamento-coluna coluna-proximos">
                     <div class="coluna-header">
                         <i class="fas fa-arrow-right"></i>
@@ -199,42 +161,51 @@
                     
                     <!-- Carrossel horizontal -->
                     <div class="proximos-carousel-container">
-                      
                         <div class="proximos-scroll" id="proximasSenhasScroll">
                             <div class="proximos-track" id="proximasSenhasTrack">
-                                <!-- Cards horizontais serão inseridos aqui via JavaScript -->
-                                <div class="proximo-card-placeholder">
-                                    <div class="senha-numero">--</div>
-                                    <div class="senha-info">
-                                        <span class="senha-cliente">Aguardando...</span>
-                                        <span class="senha-servico">---</span>
-                                    </div>
-                                </div>
-                                <div class="proximo-card-placeholder">
-                                    <div class="senha-numero">--</div>
-                                    <div class="senha-info">
-                                        <span class="senha-cliente">Aguardando...</span>
-                                        <span class="senha-servico">---</span>
-                                    </div>
-                                </div>
-                                <div class="proximo-card-placeholder">
-                                    <div class="senha-numero">--</div>
-                                    <div class="senha-info">
-                                        <span class="senha-cliente">Aguardando...</span>
-                                        <span class="senha-servico">---</span>
-                                    </div>
-                                </div>
-                                <div class="proximo-card-placeholder">
-                                    <div class="senha-numero">--</div>
-                                    <div class="senha-info">
-                                        <span class="senha-cliente">Aguardando...</span>
-                                        <span class="senha-servico">---</span>
-                                    </div>
-                                </div>
+                                <!-- Conteúdo dos serviços... -->
                             </div>
                         </div>
-            
                     </div>
+                    
+                    <div class="coluna-footer">
+                        <i class="fas fa-arrow-right"></i> Deslize para ver mais
+                        <span class="scroll-indicator-dots" id="scrollDots"></span>
+                    </div>
+                </div>
+                
+                <!-- Coluna 2: PRÓXIMOS A ATENDER (NO MEIO) -->
+                <div class="agendamento-coluna coluna-fila">
+                    <div class="coluna-header">
+                        <i class="fas fa-users"></i>
+                        <h3>PRÓXIMOS A ATENDER</h3>
+                        <span class="coluna-badge" id="totalFilaBadge">6</span>
+                    </div>
+                    <div class="coluna-content lista-vertical" id="proximosFilaCard">
+                        <!-- Conteúdo... -->
+                    </div>
+                    <div class="coluna-footer">
+                        <i class="fas fa-clock"></i> 
+                        <span id="totalFilaTexto">6</span> pessoas • 
+                        <span id="tempoMedioEspera">105</span> min
+                    </div>
+                </div>
+                
+                <!-- Coluna 1: EM ATENDIMENTO (AGORA À DIREITA) -->
+                <div class="agendamento-coluna coluna-chamando">
+                    <div class="coluna-header chamando">
+                        <i class="fas fa-bell"></i>
+                        <h3>EM ATENDIMENTO</h3>
+                    </div>
+                    <div class="coluna-content" id="chamandoAgoraCard">
+                        <!-- Conteúdo... -->
+                    </div>
+                    <div class="coluna-footer">
+                        <i class="fas fa-volume-up"></i> 
+                        Último: <span id="ultimoChamadoHora">16:16</span>
+                    </div>
+                </div>
+            </div>
                     
                     <div class="coluna-footer">
                         <i class="fas fa-arrow-right"></i> Deslize para ver mais
@@ -650,6 +621,7 @@
     </script>
 </body>
 </html>
+
 
 
 
