@@ -1916,321 +1916,6 @@ body {
     font-style: italic;
 }
 
-/* ====================================
-   RESPONSIVIDADE
-   ==================================== */
-@media (max-width: 1200px) {
-    .footer-content {
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-    }
-}
-
-@media (max-width: 1024px) {
-    .header-top {
-        grid-template-columns: 1fr 1.5fr 1fr;
-        gap: 1rem;
-    }
-    
-    .produto-detalhe {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 300px;
-    }
-    
-    .produto-info-detalhe h2 {
-        font-size: 1.5rem;
-    }
-    
-    .produto-preco {
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 900px) {
-    .footer-content {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        align-items: center;
-    }
-    
-    .footer-contacts,
-    .footer-address,
-    .footer-chat {
-        text-align: center;
-        align-items: center;
-        width: 100%;
-    }
-    
-    .footer-address {
-        text-align: center;
-    }
-    
-    .address-item {
-        justify-content: center;
-    }
-    
-    .address-content {
-        align-items: center;
-    }
-    
-    .address-text {
-        align-items: center;
-    }
-    
-    .footer-chat {
-        align-items: center;
-    }
-    
-    .chat-container {
-        justify-content: center;
-    }
-}
-
-@media (max-width: 768px) {
-    .main-header {
-        padding: 0.8rem 1rem;
-    }
-    
-    .header-top {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-    
-    .header-left {
-        justify-content: center;
-    }
-    
-    .logo-img {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .logo-text h1 {
-        font-size: 1rem;
-    }
-    
-    .logo-text .subtitle {
-        font-size: 0.65rem;
-    }
-    
-    .header-center {
-        width: 100%;
-    }
-    
-    .header-center .search-wrapper {
-        max-width: 100%;
-    }
-    
-    .header-right {
-        align-items: center;
-    }
-    
-    .user-info {
-        justify-content: center;
-    }
-    
-    .header-info {
-        text-align: center;
-    }
-    
-    .categories-section,
-    .featured-products {
-        padding: 1.5rem 1rem;
-    }
-    
-    .categories-carousel-container,
-    .carousel-container {
-        padding: 0 35px;
-    }
-    
-    .modal-content {
-        width: 95%;
-        max-height: 95vh;
-    }
-    
-    .modal-header {
-        padding: 1.2rem 1.5rem;
-    }
-    
-    .modal-header h3 {
-        font-size: 1.1rem;
-    }
-    
-    .modal-body {
-        padding: 1.5rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 250px;
-    }
-    
-    .main-footer {
-        padding: 1rem 1rem 0;
-    }
-    
-    .footer-content {
-        padding: 0;
-    }
-    
-    .contact-item {
-        justify-content: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .logo-img {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .logo-text h1 {
-        font-size: 0.9rem;
-    }
-    
-    .user-info {
-        padding: 0.3rem 0.8rem;
-    }
-    
-    #userName {
-        font-size: 0.75rem;
-    }
-    
-    .btn-login, .btn-logout {
-        padding: 0.2rem 0.6rem;
-        font-size: 0.7rem;
-    }
-    
-    .header-center input {
-        font-size: 0.8rem;
-    }
-    
-    .header-center .btn-cart-header {
-        padding: 0.4rem 1rem;
-        font-size: 0.8rem;
-    }
-    
-    .header-center .cart-badge {
-        top: -6px;
-        right: -6px;
-        min-width: 16px;
-        height: 16px;
-        font-size: 0.6rem;
-    }
-    
-    .categories-section,
-    .featured-products {
-        padding: 1rem 0.8rem;
-    }
-    
-    .product-image {
-        height: 120px;
-    }
-    
-    .current-price {
-        font-size: 0.9rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 200px;
-    }
-    
-    .produto-info-detalhe h2 {
-        font-size: 1.2rem;
-    }
-    
-    .produto-preco {
-        font-size: 1.5rem;
-    }
-    
-    .produto-codigo,
-    .produto-categoria,
-    .produto-descricao {
-        font-size: 0.85rem;
-    }
-    
-    .btn-add-cart-large {
-        padding: 0.8rem;
-        font-size: 1rem;
-    }
-    
-    .rua-numero {
-        font-size: 0.75rem;
-    }
-    
-    .cidade-uf-cep {
-        font-size: 0.65rem;
-    }
-    
-    .contact-value,
-    .address-text {
-        font-size: 0.75rem;
-    }
-    
-    .contact-label,
-    .address-label {
-        font-size: 0.7rem;
-    }
-    
-    .chat-icon-large {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .chat-icon-large img {
-        width: 22px;
-        height: 22px;
-    }
-    
-    .chat-button {
-        padding: 0.4rem 1rem;
-        font-size: 0.85rem;
-    }
-    
-    .footer-copyright p {
-        font-size: 0.6rem;
-    }
-}
-
-/* ====================================
-   AJUSTES ESPECÍFICOS POR NAVEGADOR
-   ==================================== */
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-    html {
-        -webkit-text-size-adjust: 100%;
-    }
-    
-    body {
-        -webkit-font-smoothing: antialiased;
-    }
-}
-
-@-moz-document url-prefix() {
-    html {
-        font-size: 16px;
-        scrollbar-width: thin;
-    }
-}
-
-@supports (-ms-ime-align: auto) {
-    html {
-        zoom: 1;
-    }
-    
-    .container {
-        display: block;
-    }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
 /* ============================================ */
 /* MENU DE PERFIL - 3 PONTINHOS (FONTE BRANCA AO SELECIONAR) */
 /* ============================================ */
@@ -2518,1016 +2203,174 @@ body {
 }
 
 /* ============================================
-   ATENDIMENTO AGENDADO - 3 COLUNAS (CLIENTE)
+   ATENDIMENTO AGENDADO - VERSÃO PROFISSIONAL
    ============================================ */
 
 .agendamento-section {
-    margin: 30px 20px;
+    margin: 30px 25px;
     padding: 25px;
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    border-radius: 30px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    border: 1px solid rgba(255,107,0,0.15);
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15), 0 4px 18px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    transition: all 0.3s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+.agendamento-section:hover {
+    box-shadow: 0 25px 50px -12px rgba(0, 86, 179, 0.2);
+}
+
+/* Cabeçalho do Agendamento */
 .agendamento-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    padding: 0 10px;
+    margin-bottom: 28px;
+    padding: 0 8px;
 }
 
 .agendamento-header h2 {
     display: flex;
     align-items: center;
-    gap: 12px;
-    font-size: 1.8rem;
+    gap: 14px;
+    font-size: 1.65rem;
+    font-weight: 600;
     color: #1e293b;
     margin: 0;
+    letter-spacing: -0.02em;
 }
 
 .agendamento-header h2 i {
-    color: #ff6b00;
-    font-size: 2rem;
-    animation: pulse 2s infinite;
+    color: #0056b3;
+    font-size: 1.9rem;
+    background: rgba(0, 86, 179, 0.08);
+    padding: 10px;
+    border-radius: 18px;
+    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.1);
 }
 
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
-
+/* Botão Agendar Principal */
 .btn-agendar {
-    background: linear-gradient(135deg, #ff6b00, #ff8c40);
+    background: linear-gradient(145deg, #0056b3, #003d82);
     color: white;
     border: none;
-    padding: 12px 28px;
-    border-radius: 50px;
+    padding: 14px 32px;
+    border-radius: 60px;
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
-    transition: all 0.3s;
-    box-shadow: 0 4px 15px rgba(255,107,0,0.3);
-    border: 1px solid rgba(255,255,255,0.2);
+    gap: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 20px -8px rgba(0, 86, 179, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    letter-spacing: 0.3px;
 }
 
 .btn-agendar:hover {
+    background: linear-gradient(145deg, #0066cc, #004a99);
     transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(255,107,0,0.4);
+    box-shadow: 0 18px 30px -8px rgba(0, 86, 179, 0.5);
 }
 
 .btn-agendar:active {
     transform: translateY(0);
+    box-shadow: 0 8px 15px -6px rgba(0, 86, 179, 0.5);
 }
 
-/* Tamanhos específicos das colunas */
-.coluna-chamando {
-    flex: 1;
-    min-width: 220px;
-}
-
-.coluna-fila {
-    flex: 1.2;
-    min-width: 260px;
-}
-
-.coluna-proximos {
-    flex: 2;
-    min-width: 380px;
-}
-
-.coluna-header {
-    padding: 16px 18px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-bottom: 2px solid #f1f5f9;
-}
-
-.coluna-header i {
-    font-size: 1.3rem;
-}
-
-.coluna-header h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 700;
-    flex: 1;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.coluna-header.chamando {
-    background: linear-gradient(135deg, #ff6b00, #ff8c40);
-    color: white;
-}
-
-.coluna-header.chamando i {
-    animation: bell-shake 0.5s infinite;
-}
-
-@keyframes bell-shake {
-    0%, 100% { transform: rotate(0); }
-    25% { transform: rotate(15deg); }
-    75% { transform: rotate(-15deg); }
-}
-
-.coluna-badge {
-    background: #ff6b00;
-    color: white;
-    border-radius: 30px;
-    padding: 4px 12px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    min-width: 30px;
-    text-align: center;
-}
-
-.coluna-content {
-    padding: 15px;
-    flex: 1;
-    overflow-y: auto;
-    max-height: 260px;
-}
-
-.coluna-content.lista-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.coluna-footer {
-    padding: 12px 18px;
-    background: #f8f9fa;
-    border-top: 1px solid #e9ecef;
-    font-size: 0.85rem;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.item-fila-vertical.chamando {
-    border-left-color: #ff6b00;
-    background: #fff9f0;
-    animation: highlight-pulse 1.5s infinite;
-}
-
-@keyframes highlight-pulse {
-    0% { background: #fff9f0; }
-    50% { background: #ffe4d0; }
-    100% { background: #fff9f0; }
-}
-
-.item-fila-vertical .senha-numero {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #2196f3;
-    min-width: 70px;
-    text-align: center;
-    background: white;
-    padding: 5px 10px;
-    border-radius: 40px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-.item-fila-vertical.chamando .senha-numero {
-    color: #ff6b00;
-    background: #fff0e0;
-}
-
-.item-fila-vertical .senha-cliente {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #1e293b;
-    display: block;
-    margin-bottom: 4px;
-}
-
-.item-fila-vertical .senha-servico {
-    font-size: 0.8rem;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.item-fila-vertical .senha-servico i {
-    color: #ff6b00;
-    font-size: 0.7rem;
-}
-
-/* Card Chamando Agora (destaque) */
-.card-chamando-destaque {
-    background: linear-gradient(135deg, #fff9f0, #ffffff);
-    border-radius: 20px;
-    padding: 25px 15px;
-    text-align: center;
-    border: 2px solid #ff6b00;
-    animation: glow-pulse 2s infinite;
-}
-
-@keyframes glow-pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255,107,0,0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(255,107,0,0); }
-    100% { box-shadow: 0 0 0 0 rgba(255,107,0,0); }
-}
-
-.card-chamando-destaque .senha-grande {
-    font-size: 3.5rem;
-    font-weight: 900;
-    color: #ff6b00;
-    line-height: 1;
-    margin: 15px 0;
-    text-shadow: 3px 3px 0 rgba(255,107,0,0.2);
-}
-
-.card-chamando-destaque .cliente-nome {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 8px;
-}
-
-.card-chamando-destaque .servico-nome {
-    font-size: 1rem;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.proximos-scroll::-webkit-scrollbar {
-    height: 6px;
-}
-
-.proximos-scroll::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 10px;
-}
-
-.proximos-scroll::-webkit-scrollbar-thumb {
-    background: #ff6b00;
-    border-radius: 10px;
-}
-
-.proximo-card .senha-cliente {
-    font-weight: 700;
-    font-size: 1rem;
-    color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.proximo-card .senha-servico {
-    font-size: 0.9rem;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.proximo-card .senha-servico i {
-    color: #ff6b00;
-    font-size: 0.8rem;
-}
-
-.proximo-card .senha-posicao {
-    display: inline-block;
-    background: #e3f2fd;
-    color: #1976d2;
-    padding: 4px 12px;
-    border-radius: 30px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-top: 8px;
-    align-self: flex-start;
-}
-
-.proximo-card.urgente .senha-posicao {
-    background: #ff6b00;
-    color: white;
-    animation: pulse 1s infinite;
-}
-
-/* Placeholder para quando não há dados */
-.proximo-card-placeholder {
-    min-width: 180px;
-    background: #f1f5f9;
-    border-radius: 20px;
-    padding: 18px;
-    border: 1px dashed #cbd5e1;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    opacity: 0.6;
-}
-
-.proximo-card-placeholder .senha-numero {
-    font-size: 2.2rem;
-    font-weight: 900;
-    color: #94a3b8;
-    line-height: 1;
-}
-
-.proximo-card-placeholder .senha-info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.proximo-card-placeholder .senha-cliente {
-    height: 16px;
-    width: 120px;
-    background: #cbd5e1;
-    border-radius: 8px;
-}
-
-.proximo-card-placeholder .senha-servico {
-    height: 14px;
-    width: 80px;
-    background: #cbd5e1;
-    border-radius: 8px;
-}
-
-/* Setas do carrossel */
-.carousel-arrow-small {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: white;
-    border: 1px solid #e9ecef;
-    color: #64748b;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    flex-shrink: 0;
-}
-
-.carousel-arrow-small:hover {
-    background: #ff6b00;
-    color: white;
-    border-color: #ff6b00;
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(255,107,0,0.3);
-}
-
-.carousel-arrow-small:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-/* Minha Senha Container */
-.minha-senha-container {
-    margin-top: 25px;
-    padding: 0 10px;
-}
-
-.minha-senha-card {
-    background: linear-gradient(135deg, #9c27b0, #ba68c8);
-    border-radius: 60px;
-    padding: 15px 25px;
-    display: inline-flex;
-    align-items: center;
-    gap: 20px;
-    color: white;
-    box-shadow: 0 10px 25px rgba(156,39,176,0.3);
-    animation: slideIn 0.5s ease-out;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateX(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.minha-senha-card i {
-    font-size: 2rem;
-    opacity: 0.9;
-}
-
-.minha-senha-info {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.minha-senha-label {
-    font-weight: 500;
-    opacity: 0.9;
-    font-size: 0.95rem;
-}
-
-.minha-senha-numero {
-    font-size: 1.8rem;
-    font-weight: 900;
-    background: rgba(255,255,255,0.2);
-    padding: 5px 20px;
-    border-radius: 40px;
-    letter-spacing: 1px;
-}
-
-.minha-senha-status {
-    background: rgba(255,255,255,0.3);
-    padding: 5px 15px;
-    border-radius: 30px;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.minha-senha-status.chamando {
-    background: #ff6b00;
-    animation: pulse-status 1s infinite;
-}
-
-@keyframes pulse-status {
-    0% { opacity: 1; }
-    50% { opacity: 0.7; }
-    100% { opacity: 1; }
-}
-
-.btn-agendar-pequeno {
-    background: linear-gradient(135deg, #ff6b00, #ff8c40);
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 40px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-    box-shadow: 0 4px 10px rgba(255,107,0,0.3);
-    transition: all 0.3s;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.btn-agendar-pequeno:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(255,107,0,0.4);
-}
-
-.btn-agendar-pequeno:active {
-    transform: translateY(0);
-}
-
-/* Footer do agendamento */
-.agendamento-footer-info {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-top: 20px;
-    padding: 0 10px;
-}
-
-.agendamento-status {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
-    color: #64748b;
-    background: #f8f9fa;
-    padding: 8px 18px;
-    border-radius: 40px;
-    border: 1px solid #e9ecef;
-}
-
-.status-indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #4caf50;
-    animation: pulse-green 2s infinite;
-}
-
-.status-indicator.online {
-    background: #4caf50;
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
-    animation: pulse-green 2s infinite;
-}
-
-@keyframes pulse-green {
-    0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(76, 175, 80, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-}
-
-/* Modal de Agendamento */
-.modal-small {
-    max-width: 450px;
-}
-
-.form-row {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 5px;
-}
-
-.form-group.half {
-    flex: 1;
-}
-
-.form-group.half .form-input,
-.form-group.half .form-select {
-    width: 100%;
-}
-
-.btn-confirmar-agendamento {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #ff6b00, #ff8c40);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 20px;
-    transition: all 0.3s;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.btn-confirmar-agendamento:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255,107,0,0.3);
-}
-
-.btn-confirmar-agendamento:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-/* Responsividade */
-@media (max-width: 1024px) {
-    
-    .coluna-chamando,
-    .coluna-fila,
-    .coluna-proximos {
-        flex: 1 1 100%;
-        min-width: 100%;
-    }
-       
-    .minha-senha-card {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 768px) {
-    .agendamento-section {
-        margin: 20px 15px;
-        padding: 20px;
-    }
-    
-    .agendamento-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-    
-    .btn-agendar {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .agendamento-header h2 {
-        font-size: 1.5rem;
-    }
-    
-    .minha-senha-info {
-        flex-direction: column;
-        gap: 8px;
-        text-align: center;
-    }
-    
-    .minha-senha-card {
-        flex-direction: column;
-        text-align: center;
-        padding: 20px;
-    }
-    
-    .agendamento-footer-info {
-        justify-content: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .agendamento-section {
-        margin: 15px 10px;
-        padding: 15px;
-    }
-    
-    .agendamento-header h2 {
-        font-size: 1.3rem;
-    }
-    
-    .agendamento-header h2 i {
-        font-size: 1.5rem;
-    }
-          
-    .coluna-header h3 {
-        font-size: 0.9rem;
-    }
-    
-    .carousel-arrow-small {
-        width: 30px;
-        height: 30px;
-    }
-    
-    .form-row {
-        flex-direction: column;
-        gap: 0;
-    }
-}
-
-/* ============================================
-   MODAL DE AGENDAMENTO PARA CLIENTES
-   ============================================ */
-
-/* Container do modal */
-#agendamentoRapidoModal .modal-content {
-    max-width: 500px;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-}
-
-/* Cabeçalho do modal */
-#agendamentoRapidoModal .modal-header {
-    background: linear-gradient(135deg, #0056b3, #00a86b);
-    padding: 20px 25px;
-    border-bottom: none;
-}
-
-#agendamentoRapidoModal .modal-header h3 {
-    font-size: 1.3rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-#agendamentoRapidoModal .modal-header h3 i {
-    font-size: 1.5rem;
-    color: white;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
-
-#agendamentoRapidoModal .modal-close {
-    background: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-#agendamentoRapidoModal .modal-close:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: rotate(90deg);
-}
-
-/* Corpo do modal */
-#agendamentoRapidoModal .modal-body {
-    padding: 25px;
-    background: #ffffff;
-}
-
-/* Formulário */
-.agendamento-rapido-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* Grupos de formulário */
-.agendamento-rapido-form .form-group {
-    margin-bottom: 0;
-}
-
-.agendamento-rapido-form .form-group label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 8px;
-    font-size: 0.95rem;
-}
-
-.agendamento-rapido-form .form-group label i {
-    color: #0056b3;
-    font-size: 1rem;
-    width: 18px;
-}
-
-/* Inputs e selects */
-.agendamento-rapido-form .form-select,
-.agendamento-rapido-form .form-input {
-    width: 100%;
-    padding: 12px 15px;
-    border: 2px solid #e9ecef;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    transition: all 0.2s;
-    background: #f8fafc;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 15px center;
-}
-
-.agendamento-rapido-form .form-input {
-    background-image: none;
-}
-
-.agendamento-rapido-form .form-select:focus,
-.agendamento-rapido-form .form-input:focus {
-    outline: none;
-    border-color: #0056b3;
-    background-color: #fff;
-    box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.1);
-}
-
-.agendamento-rapido-form .form-select:disabled,
-.agendamento-rapido-form .form-input:disabled {
-    background-color: #f1f5f9;
-    border-color: #e2e8f0;
-    color: #94a3b8;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
-
-/* Linha com duas colunas */
-.agendamento-rapido-form .form-row {
-    display: flex;
-    gap: 15px;
-    margin: 0;
-}
-
-.agendamento-rapido-form .form-group.half {
-    flex: 1;
-}
-
-/* Campo de seleção de cliente (para funcionários) */
-#clienteSelectField {
-    background: #f0f7ff;
-    border-radius: 16px;
-    padding: 15px;
-    border: 1px solid #cce4ff;
-    margin-bottom: 10px;
-    animation: fadeIn 0.3s ease;
-}
-
-#clienteSelectField label {
-    color: #0056b3 !important;
-}
-
-#clienteSelectField small {
-    display: block;
-    color: #64748b;
-    font-size: 0.8rem;
-    margin-top: 8px;
-    font-style: italic;
-}
-
-/* Botão confirmar */
-.btn-confirmar-agendamento {
-    width: 100%;
-    padding: 14px 20px;
-    background: linear-gradient(135deg, #0056b3, #00a86b);
-    color: white;
-    border: none;
-    border-radius: 50px;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    transition: all 0.3s;
-    margin-top: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 15px rgba(0, 86, 179, 0.3);
-}
-
-.btn-confirmar-agendamento:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 86, 179, 0.4);
-}
-
-.btn-confirmar-agendamento:active {
-    transform: translateY(0);
-}
-
-.btn-confirmar-agendamento i {
+.btn-agendar i {
     font-size: 1.2rem;
 }
 
-/* Estados de carregamento */
-.agendamento-rapido-form .form-select option:first-child {
-    color: #94a3b8;
-}
-
-/* Animações */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Responsividade */
-@media (max-width: 480px) {
-    #agendamentoRapidoModal .modal-content {
-        width: 95%;
-        margin: 0 auto;
-    }
-    
-    .agendamento-rapido-form .form-row {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .btn-confirmar-agendamento {
-        padding: 12px 16px;
-        font-size: 1rem;
-    }
-    
-    #agendamentoRapidoModal .modal-header {
-        padding: 15px 20px;
-    }
-    
-    #agendamentoRapidoModal .modal-body {
-        padding: 20px;
-    }
-}
-
-/* Estilo para mensagens de validação */
-.agendamento-rapido-form .form-group .error-message {
-    color: #dc3545;
-    font-size: 0.8rem;
-    margin-top: 5px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* Estilo para quando o campo está inválido */
-.agendamento-rapido-form .form-select:invalid,
-.agendamento-rapido-form .form-input:invalid {
-    border-color: #0056b3;
-}
-
-/* Placeholder para selects vazios */
-.agendamento-rapido-form .form-select option[value=""] {
-    color: #94a3b8;
-}
-
-/* Efeito de foco nos campos */
-.agendamento-rapido-form .form-group {
-    position: relative;
-}
-
-.agendamento-rapido-form .form-group:focus-within label {
-    color: #0056b3;
-}
-
-.agendamento-rapido-form .form-group:focus-within label i {
-    transform: scale(1.1);
-}
-
-/* Tooltip para informações */
-.agendamento-rapido-form .form-group .info-tooltip {
-    position: absolute;
-    right: 10px;
-    top: 38px;
-    color: #94a3b8;
-    cursor: help;
-    font-size: 0.9rem;
-}
-
-.agendamento-rapido-form .form-group .info-tooltip:hover {
-    color: #0056b3;
-}
-
-/* Badge de funcionário */
-.funcionario-badge {
-    display: inline-block;
-    background: #0056b3;
-    color: white;
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 30px;
-    margin-left: 8px;
-    vertical-align: middle;
-}
-
-
 /* ============================================
-   COLUNAS PADRONIZADAS - TODAS IGUAIS
+   LAYOUT DAS 3 COLUNAS - DIVISÃO PROFISSIONAL
    ============================================ */
 
-/* Container principal das colunas */
 .agendamento-colunas {
     display: flex;
-    gap: 15px;
-    margin-top: 15px;
-    height: 400px; /* Altura fixa para todas as colunas */
+    gap: 20px;
+    margin: 20px 0 15px;
     min-height: 400px;
-    max-height: 400px;
 }
 
-/* Todas as colunas com o mesmo padrão */
-.agendamento-coluna {
+/* Coluna 1: EM ATENDIMENTO - 1/4 da largura (25%) */
+.agendamento-coluna.coluna-chamando {
     flex: 1;
+    min-width: 0;
+    max-width: 25%;
+}
+
+/* Coluna 2: PRÓXIMOS A ATENDER - 1/4 da largura (25%) */
+.agendamento-coluna.coluna-fila {
+    flex: 1;
+    min-width: 0;
+    max-width: 25%;
+}
+
+/* Coluna 3: OUTROS NA FILA - 2/4 da largura (50%) - O DOBRO */
+.agendamento-coluna.coluna-proximos {
+    flex: 2;
+    min-width: 0;
+    max-width: 50%;
+}
+
+/* Estilo base para todas as colunas */
+.agendamento-coluna {
     display: flex;
     flex-direction: column;
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    height: 100%;
+    border-radius: 22px;
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
+    border: 1px solid #edf2f7;
     overflow: hidden;
-    border: 1px solid #e9ecef;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    height: 100%;
 }
 
 .agendamento-coluna:hover {
-    box-shadow: 0 8px 20px rgba(255,107,0,0.12);
-    border-color: rgba(255,107,0,0.3);
+    box-shadow: 0 15px 30px -10px rgba(0, 86, 179, 0.12);
+    border-color: rgba(0, 86, 179, 0.2);
 }
 
-/* Headers - TODOS IGUAIS (exceto cor) */
+/* Headers das Colunas - TODOS IGUAIS, apenas cores diferenciadas */
 .agendamento-coluna .coluna-header {
     flex-shrink: 0;
-    padding: 12px 16px;
-    background: #f8f9fa;
-    border-bottom: 2px solid #e9ecef;
-    border-radius: 16px 16px 0 0;
+    padding: 16px 18px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
+    border-bottom: 1px solid #edf2f7;
     font-family: 'Inter', sans-serif;
 }
 
-/* Header da coluna EM ATENDIMENTO - só muda a cor */
+/* Header da coluna EM ATENDIMENTO */
 .agendamento-coluna.coluna-chamando .coluna-header {
-    background: #ff6b00;
-    border-bottom: 2px solid #e65c00;
+    background: #fff6f0;
+    border-bottom: 2px solid #ff6b00;
 }
 
-.agendamento-coluna.coluna-chamando .coluna-header i,
+.agendamento-coluna.coluna-chamando .coluna-header i {
+    color: #ff6b00;
+    font-size: 1.3rem;
+}
+
 .agendamento-coluna.coluna-chamando .coluna-header h3 {
-    color: white;
+    color: #c53f00;
 }
 
-/* Headers das outras colunas - padrão */
+/* Headers das demais colunas */
 .agendamento-coluna.coluna-fila .coluna-header,
 .agendamento-coluna.coluna-proximos .coluna-header {
-    background: #f8f9fa;
-    border-bottom: 2px solid #e9ecef;
+    background: #f8fafd;
+    border-bottom: 2px solid #e2e8f0;
 }
 
 .agendamento-coluna.coluna-fila .coluna-header i,
 .agendamento-coluna.coluna-proximos .coluna-header i {
-    color: #ff6b00;
+    color: #0056b3;
+    font-size: 1.3rem;
 }
 
 .agendamento-coluna.coluna-fila .coluna-header h3,
@@ -3535,105 +2378,82 @@ body {
     color: #1e293b;
 }
 
-/* Ícones dos headers - todos do mesmo tamanho */
+/* Ícones e títulos padronizados */
 .agendamento-coluna .coluna-header i {
-    font-size: 1.2rem;
-    width: 24px;
+    width: 26px;
     text-align: center;
 }
 
-/* Títulos dos headers - todos iguais */
 .agendamento-coluna .coluna-header h3 {
     margin: 0;
     font-size: 0.95rem;
     font-weight: 700;
     flex: 1;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
 }
 
-/* Badges - todas iguais */
+/* Badge de contagem (apenas coluna 2) */
 .agendamento-coluna .coluna-badge {
-    background: #ff6b00;
+    background: #0056b3;
     color: white;
-    border-radius: 30px;
-    padding: 4px 10px;
+    border-radius: 40px;
+    padding: 5px 12px;
     font-size: 0.8rem;
     font-weight: 700;
-    min-width: 32px;
+    min-width: 36px;
     text-align: center;
-    box-shadow: 0 2px 4px rgba(255,107,0,0.2);
+    box-shadow: 0 3px 8px rgba(0, 86, 179, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Content com scroll - todas iguais */
+/* Área de conteúdo com scroll */
 .agendamento-coluna .coluna-content {
     flex: 1;
     overflow-y: auto;
     padding: 16px;
-    min-height: 0;
     background: #ffffff;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
-/* Para a coluna de carrossel */
-.agendamento-coluna.coluna-proximos .coluna-content {
-    overflow: hidden;
-    padding: 16px 0 16px 16px;
+.agendamento-coluna .coluna-content::-webkit-scrollbar {
+    width: 4px;
 }
 
-/* Container do carrossel */
-.proximos-carousel-container {
-    flex: 1;
+.agendamento-coluna .coluna-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.agendamento-coluna .coluna-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 8px;
+}
+
+.agendamento-coluna .coluna-content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Lista vertical (coluna 2) */
+.lista-vertical {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-right: 16px;
-    min-height: 0;
-}
-
-/* Scroll horizontal */
-.proximos-scroll {
-    flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    scroll-behavior: smooth;
-    padding: 4px 0;
-}
-
-.proximos-track {
-    display: inline-flex;
+    flex-direction: column;
     gap: 12px;
-    min-width: 100%;
 }
 
-/* Cards do carrossel - padronizados */
-.proximo-card {
-    width: 160px;
-    background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 12px;
-    padding: 14px;
-    display: inline-block;
-    white-space: normal;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-    transition: all 0.2s ease;
-}
+/* ============================================
+   CARDS DE ATENDIMENTO - COLUNA 1 (EM ATENDIMENTO)
+   ============================================ */
 
-.proximo-card:hover {
-    transform: translateY(-3px);
-    border-color: #ff6b00;
-    box-shadow: 0 8px 16px rgba(255,107,0,0.1);
-}
-
-/* Cards de atendimento - padronizados */
 .card-chamando-item {
-    background: linear-gradient(135deg, #ff6b00 0%, #ff8c40 100%);
+    background: linear-gradient(145deg, #ff6b00, #ff8c40);
     color: white;
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    box-shadow: 0 2px 8px rgba(255,107,0,0.2);
+    border-radius: 18px;
+    padding: 18px 16px;
+    box-shadow: 0 12px 20px -10px rgba(255, 107, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.2s ease;
+    margin-bottom: 10px;
 }
 
 .card-chamando-item:last-child {
@@ -3641,260 +2461,936 @@ body {
 }
 
 .card-chamando-item:hover {
-    transform: translateX(3px);
-    box-shadow: 0 4px 12px rgba(255,107,0,0.3);
+    transform: translateX(4px);
+    box-shadow: 0 16px 25px -10px #ff6b00;
 }
 
-/* Itens da fila vertical - padronizados */
+.card-chamando-item .servico-tag {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+}
+
+.card-chamando-item .senha-grande {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: white;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 6px 16px;
+    border-radius: 50px;
+    display: inline-block;
+    margin: 12px 0 8px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-chamando-item .cliente-nome {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    margin-top: 6px;
+    word-break: break-word;
+}
+
+/* ============================================
+   ITENS DA FILA - COLUNA 2 (PRÓXIMOS A ATENDER)
+   ============================================ */
+
 .item-fila-vertical {
     background: white;
-    border: 1px solid #e9ecef;
-    border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    display: flex;
-    flex-direction: column;
+    border: 1px solid #edf2f7;
+    border-radius: 18px;
+    padding: 16px;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.item-fila-vertical:last-child {
-    margin-bottom: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .item-fila-vertical:hover {
-    transform: translateX(3px);
-    border-color: #ff6b00;
-    box-shadow: 0 4px 10px rgba(255,107,0,0.1);
+    transform: translateX(4px);
+    border-color: #0056b3;
+    box-shadow: 0 10px 20px -8px rgba(0, 86, 179, 0.15);
 }
 
 .item-fila-vertical.urgente {
     border-left: 4px solid #ff6b00;
-    background: #fff8f0;
+    background: #fffaf5;
 }
 
-/* Tags de serviço - TODAS IGUAIS */
-.servico-tag {
-    background: rgba(255,107,0,0.1);
-    color: #ff6b00;
-    padding: 3px 8px;
+.item-fila-vertical .servico-tag {
+    background: #eef2f6;
+    color: #2c3e50;
+    padding: 4px 12px;
     border-radius: 30px;
     font-size: 0.7rem;
     font-weight: 600;
     display: inline-block;
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-bottom: 6px;
-    border: 1px solid rgba(255,107,0,0.2);
+    margin-bottom: 12px;
+    border: 1px solid #dde3e9;
 }
 
-/* Tags dentro dos cards de atendimento - versão branca */
-.card-chamando-item .servico-tag {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.3);
-}
-
-/* Senhas - TODAS IGUAIS */
-.senha-numero {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: #ff6b00;
-    display: inline-block;
-    background: #fff0e6;
-    padding: 4px 10px;
-    border-radius: 30px;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 4px rgba(255,107,0,0.1);
-}
-
-.card-chamando-item .senha-grande {
+.item-fila-vertical .senha-numero {
     font-size: 1.5rem;
     font-weight: 800;
-    color: white;
-    background: rgba(255,255,255,0.15);
+    color: #0056b3;
+    background: #f0f7ff;
+    padding: 6px 14px;
+    border-radius: 40px;
+    display: inline-block;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    border: 1px solid #cce4ff;
+}
+
+.item-fila-vertical .senha-cliente {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* ============================================
+   CARROSSEL HORIZONTAL - COLUNA 3 (OUTROS NA FILA)
+   ============================================ */
+
+.proximos-carousel-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 16px 16px 8px;
+    min-height: 0;
+}
+
+.proximos-scroll {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scroll-behavior: smooth;
+    padding: 4px 0 10px;
+    scrollbar-width: thin;
+    scrollbar-color: #ff6b00 #f1f5f9;
+}
+
+.proximos-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.proximos-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 8px;
+}
+
+.proximos-scroll::-webkit-scrollbar-thumb {
+    background: #ff6b00;
+    border-radius: 8px;
+}
+
+.proximos-track {
+    display: inline-flex;
+    gap: 16px;
+    min-width: 100%;
+    padding: 0 4px;
+}
+
+/* Cards do carrossel */
+.proximo-card {
+    width: 200px;
+    background: white;
+    border: 1px solid #edf2f7;
+    border-radius: 20px;
+    padding: 18px 16px;
+    display: inline-block;
+    white-space: normal;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.03);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    vertical-align: top;
+}
+
+.proximo-card:hover {
+    transform: translateY(-6px);
+    border-color: #0056b3;
+    box-shadow: 0 20px 30px -12px rgba(0, 86, 179, 0.25);
+}
+
+.proximo-card .servico-tag {
+    background: #f0f7ff;
+    color: #0056b3;
     padding: 4px 12px;
     border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
     display: inline-block;
-    margin: 8px 0;
-    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+    border: 1px solid #d4e6ff;
 }
 
 .proximo-card .senha-numero {
-    font-size: 1.5rem;
-    margin-bottom: 6px;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #ff6b00;
+    background: #fff3e6;
+    padding: 6px 14px;
+    border-radius: 40px;
     display: inline-block;
+    margin-bottom: 12px;
+    border: 1px solid #ffe0cc;
 }
 
-/* Nomes de cliente - TODOS IGUAIS */
-.cliente-nome,
-.senha-cliente {
-    font-size: 0.9rem;
+.proximo-card .senha-cliente {
+    font-size: 1rem;
     font-weight: 600;
     color: #1e293b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin-bottom: 10px;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
 }
 
-.card-chamando-item .cliente-nome {
-    color: white;
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
-/* Info da senha */
-.senha-info {
-    margin-top: 6px;
-}
-
-.senha-servico {
-    font-size: 0.75rem;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
-}
-
-.senha-servico i {
-    color: #ff6b00;
-    font-size: 0.7rem;
-}
-
-/* Posição na fila */
-.senha-posicao {
+.proximo-card .senha-posicao {
     display: inline-block;
     background: #e9ecef;
     color: #495057;
-    padding: 3px 10px;
-    border-radius: 30px;
-    font-size: 0.7rem;
+    padding: 5px 14px;
+    border-radius: 40px;
+    font-size: 0.75rem;
     font-weight: 600;
-    margin-top: 8px;
+    border: 1px solid #d0d7de;
 }
 
-/* Footer - TODOS IGUAIS */
-.agendamento-coluna .coluna-footer {
-    flex-shrink: 0;
-    padding: 12px 16px;
-    background: #f8f9fa;
-    border-top: 1px solid #e9ecef;
-    border-radius: 0 0 16px 16px;
-    font-size: 0.8rem;
-    color: #64748b;
+/* Placeholder para quando não há dados */
+.proximo-card-placeholder {
+    width: 200px;
+    background: #f8fafc;
+    border-radius: 20px;
+    padding: 18px 16px;
+    border: 1px dashed #cbd5e1;
+    display: inline-block;
+    vertical-align: top;
+    opacity: 0.7;
+}
+
+.proximo-card-placeholder .senha-numero {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #a0aec0;
+    background: #edf2f7;
+    padding: 6px 14px;
+    border-radius: 40px;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.proximo-card-placeholder .senha-info .senha-cliente {
+    color: #94a3b8;
+    font-size: 1rem;
+    font-weight: 500;
+    background: #e2e8f0;
+    height: 20px;
+    width: 120px;
+    border-radius: 30px;
+    display: inline-block;
+}
+
+/* Setas do carrossel */
+.carousel-arrow-small {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #2c3e50;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 6px;
-    height: 45px; /* Altura fixa para todos os footers */
-    min-height: 45px;
-    max-height: 45px;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+    flex-shrink: 0;
+    font-size: 1rem;
 }
 
-/* Footer da coluna EM ATENDIMENTO - só muda a cor de fundo */
+.carousel-arrow-small:hover:not(:disabled) {
+    background: #0056b3;
+    color: white;
+    border-color: #0056b3;
+    transform: scale(1.1);
+    box-shadow: 0 8px 18px rgba(0, 86, 179, 0.25);
+}
+
+.carousel-arrow-small:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    background: #f1f5f9;
+}
+
+/* ============================================
+   FOOTER DAS COLUNAS - TODOS IGUAIS
+   ============================================ */
+
+.agendamento-coluna .coluna-footer {
+    flex-shrink: 0;
+    padding: 14px 18px;
+    background: #f9fbfd;
+    border-top: 1px solid #eef2f6;
+    font-size: 0.8rem;
+    color: #4b5565;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 48px;
+    font-weight: 500;
+}
+
 .agendamento-coluna.coluna-chamando .coluna-footer {
-    background: #fff5eb;
-    border-top: 1px solid #ffe0cc;
-    color: #ff6b00;
+    background: #fffaf5;
+    border-top: 1px solid #ffe6d5;
+    color: #b24d00;
 }
 
 .agendamento-coluna.coluna-chamando .coluna-footer i {
     color: #ff6b00;
 }
 
-/* Ícones do footer - todos iguais */
 .agendamento-coluna .coluna-footer i {
     font-size: 0.9rem;
     width: 18px;
-    color: #ff6b00;
+    color: #64748b;
 }
 
-/* Scrollbar personalizada - TODAS IGUAIS */
-.agendamento-coluna .coluna-content::-webkit-scrollbar,
-.proximos-scroll::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+/* ============================================
+   MINHA SENHA (USUÁRIO LOGADO)
+   ============================================ */
+
+.minha-senha-container {
+    margin: 20px 0 15px;
 }
 
-.agendamento-coluna .coluna-content::-webkit-scrollbar-track,
-.proximos-scroll::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
+.minha-senha-card {
+    background: linear-gradient(145deg, #1a2634, #0f1620);
+    border-radius: 80px;
+    padding: 16px 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 20px;
+    color: white;
+    box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    animation: slideInFade 0.4s ease-out;
 }
 
-.agendamento-coluna .coluna-content::-webkit-scrollbar-thumb,
-.proximos-scroll::-webkit-scrollbar-thumb {
+@keyframes slideInFade {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.minha-senha-card i {
+    font-size: 2.2rem;
+    opacity: 0.9;
+    color: #ffb347;
+}
+
+.minha-senha-info {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.minha-senha-label {
+    font-weight: 500;
+    opacity: 0.8;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+}
+
+.minha-senha-numero {
+    font-size: 2rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px 24px;
+    border-radius: 50px;
+    letter-spacing: 1.5px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.minha-senha-status {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 6px 20px;
+    border-radius: 40px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.minha-senha-status.chamando {
     background: #ff6b00;
-    border-radius: 4px;
+    animation: pulse-gentle 1.5s infinite;
 }
 
-/* Estado vazio - TODOS IGUAIS */
+@keyframes pulse-gentle {
+    0% { opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { opacity: 1; }
+}
+
+/* ============================================
+   STATUS EM TEMPO REAL
+   ============================================ */
+
+.agendamento-footer-info {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 15px;
+    padding: 0 8px;
+}
+
+.agendamento-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    color: #4a5a72;
+    background: #f0f4fa;
+    padding: 10px 22px;
+    border-radius: 50px;
+    border: 1px solid #dde5ed;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ============================================
+   ESTADOS VAZIOS (PADRÃO PROFISSIONAL)
+   ============================================ */
+
 .empty-agendamento {
     height: 100%;
+    min-height: 200px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     color: #94a3b8;
-    background: #f8fafc;
-    border-radius: 10px;
-    padding: 20px;
+    background: #f9fbfd;
+    border-radius: 18px;
+    padding: 30px 20px;
     border: 1px dashed #cbd5e1;
+    text-align: center;
 }
 
 .empty-agendamento i {
-    font-size: 2.2rem;
-    margin-bottom: 12px;
+    font-size: 2.8rem;
+    margin-bottom: 16px;
     opacity: 0.5;
-    color: #ff6b00;
+    color: #a0b8cc;
 }
 
 .empty-agendamento p {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     margin: 0;
+    font-weight: 500;
+    color: #6b7a8f;
 }
 
-/* Dots do carrossel - TODOS IGUAIS */
+/* ============================================
+   SCROLL INDICATOR DOTS
+   ============================================ */
+
 .scroll-indicator-dots {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     margin-left: auto;
+    padding: 0 6px;
 }
 
 .scroll-indicator-dots .dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #ccc;
-    transition: all 0.3s;
+    background: #cbd5e1;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .scroll-indicator-dots .dot.active {
     background: #ff6b00;
-    width: 12px;
-    border-radius: 6px;
+    width: 18px;
+    border-radius: 10px;
 }
 
-/* Responsividade */
-@media (max-width: 1024px) {
-    .agendamento-colunas {
-        height: auto;
-        flex-direction: column;
-        gap: 20px;
+/* ============================================
+   MODAL DE AGENDAMENTO (JÁ EXISTENTE, APENAS REFINADO)
+   ============================================ */
+
+#agendamentoRapidoModal .modal-content {
+    max-width: 500px;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.3);
+}
+
+#agendamentoRapidoModal .modal-header {
+    background: linear-gradient(145deg, #0056b3, #003d82);
+    padding: 22px 28px;
+}
+
+#agendamentoRapidoModal .modal-header h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    gap: 12px;
+}
+
+#agendamentoRapidoModal .modal-header h3 i {
+    font-size: 1.6rem;
+}
+
+.agendamento-rapido-form .form-group label {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.agendamento-rapido-form .form-select,
+.agendamento-rapido-form .form-input {
+    padding: 14px 16px;
+    border: 2px solid #e9edf2;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    background: #ffffff;
+    transition: all 0.2s;
+}
+
+.agendamento-rapido-form .form-select:focus,
+.agendamento-rapido-form .form-input:focus {
+    border-color: #0056b3;
+    box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.1);
+}
+
+.btn-confirmar-agendamento {
+    padding: 16px 20px;
+    background: linear-gradient(145deg, #0056b3, #003d82);
+    border-radius: 60px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 25px -8px rgba(0, 86, 179, 0.4);
+}
+
+.btn-confirmar-agendamento:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 35px -8px rgba(0, 86, 179, 0.5);
+}
+
+/* ============================================
+   RESPONSIVIDADE GERAL
+   ============================================ */
+@media (max-width: 1200px) {
+    .footer-content {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
     }
-    
-    .agendamento-coluna {
-        min-height: 350px;
-        height: auto;
+}
+
+@media (max-width: 1100px) {
+    .agendamento-colunas {
+        flex-wrap: wrap;
+        gap: 18px;
     }
     
     .agendamento-coluna.coluna-chamando,
     .agendamento-coluna.coluna-fila,
     .agendamento-coluna.coluna-proximos {
-        flex: none;
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+    
+    .agendamento-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .btn-agendar {
+        width: 100%;
+        justify-content: center;
     }
 }
 
+@media (max-width: 1024px) {
+    .header-top {
+        grid-template-columns: 1fr 1.5fr 1fr;
+        gap: 1rem;
+    }
+    
+    .produto-detalhe {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .produto-imagem-grande {
+        height: 300px;
+    }
+    
+    .produto-info-detalhe h2 {
+        font-size: 1.5rem;
+    }
+    
+    .produto-preco {
+        font-size: 2rem;
+    }
+}
 
+@media (max-width: 900px) {
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        align-items: center;
+    }
+    
+    .footer-contacts,
+    .footer-address,
+    .footer-chat {
+        text-align: center;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .footer-address {
+        text-align: center;
+    }
+    
+    .address-item {
+        justify-content: center;
+    }
+    
+    .address-content {
+        align-items: center;
+    }
+    
+    .address-text {
+        align-items: center;
+    }
+    
+    .footer-chat {
+        align-items: center;
+    }
+    
+    .chat-container {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-header {
+        padding: 0.8rem 1rem;
+    }
+    
+    .header-top {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .header-left {
+        justify-content: center;
+    }
+    
+    .logo-img {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .logo-text h1 {
+        font-size: 1rem;
+    }
+    
+    .logo-text .subtitle {
+        font-size: 0.65rem;
+    }
+    
+    .header-center {
+        width: 100%;
+    }
+    
+    .header-center .search-wrapper {
+        max-width: 100%;
+    }
+    
+    .header-right {
+        align-items: center;
+    }
+    
+    .user-info {
+        justify-content: center;
+    }
+    
+    .header-info {
+        text-align: center;
+    }
+    
+    .categories-section,
+    .featured-products {
+        padding: 1.5rem 1rem;
+    }
+    
+    .categories-carousel-container,
+    .carousel-container {
+        padding: 0 35px;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .modal-header {
+        padding: 1.2rem 1.5rem;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .produto-imagem-grande {
+        height: 250px;
+    }
+    
+    .main-footer {
+        padding: 1rem 1rem 0;
+    }
+    
+    .footer-content {
+        padding: 0;
+    }
+    
+    .contact-item {
+        justify-content: center;
+    }
+    
+    .profile-menu-dropdown {
+        min-width: 200px;
+        right: -10px;
+    }
+    
+    .profile-menu-btn {
+        padding: 6px 10px;
+        width: 36px;
+        height: 36px;
+    }
+}
+
+@media (max-width: 600px) {
+    .agendamento-section {
+        margin: 20px 15px;
+        padding: 20px 15px;
+    }
+    
+    .agendamento-header h2 {
+        font-size: 1.4rem;
+    }
+    
+    .minha-senha-card {
+        width: 100%;
+        justify-content: center;
+        padding: 16px 20px;
+    }
+    
+    .minha-senha-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .proximo-card {
+        width: 170px;
+        padding: 14px;
+    }
+    
+    .proximo-card-placeholder {
+        width: 170px;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-img {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .logo-text h1 {
+        font-size: 0.9rem;
+    }
+    
+    .user-info {
+        padding: 0.3rem 0.8rem;
+    }
+    
+    #userName {
+        font-size: 0.75rem;
+    }
+    
+    .btn-login, .btn-logout {
+        padding: 0.2rem 0.6rem;
+        font-size: 0.7rem;
+    }
+    
+    .header-center input {
+        font-size: 0.8rem;
+    }
+    
+    .header-center .btn-cart-header {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+    }
+    
+    .header-center .cart-badge {
+        top: -6px;
+        right: -6px;
+        min-width: 16px;
+        height: 16px;
+        font-size: 0.6rem;
+    }
+    
+    .categories-section,
+    .featured-products {
+        padding: 1rem 0.8rem;
+    }
+    
+    .product-image {
+        height: 120px;
+    }
+    
+    .current-price {
+        font-size: 0.9rem;
+    }
+    
+    .produto-imagem-grande {
+        height: 200px;
+    }
+    
+    .produto-info-detalhe h2 {
+        font-size: 1.2rem;
+    }
+    
+    .produto-preco {
+        font-size: 1.5rem;
+    }
+    
+    .produto-codigo,
+    .produto-categoria,
+    .produto-descricao {
+        font-size: 0.85rem;
+    }
+    
+    .btn-add-cart-large {
+        padding: 0.8rem;
+        font-size: 1rem;
+    }
+    
+    .rua-numero {
+        font-size: 0.75rem;
+    }
+    
+    .cidade-uf-cep {
+        font-size: 0.65rem;
+    }
+    
+    .contact-value,
+    .address-text {
+        font-size: 0.75rem;
+    }
+    
+    .contact-label,
+    .address-label {
+        font-size: 0.7rem;
+    }
+    
+    .chat-icon-large {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .chat-icon-large img {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .chat-button {
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .footer-copyright p {
+        font-size: 0.6rem;
+    }
+}
+
+/* ====================================
+   AJUSTES ESPECÍFICOS POR NAVEGADOR
+   ==================================== */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+    
+    body {
+        -webkit-font-smoothing: antialiased;
+    }
+}
+
+@-moz-document url-prefix() {
+    html {
+        font-size: 16px;
+        scrollbar-width: thin;
+    }
+}
+
+@supports (-ms-ime-align: auto) {
+    html {
+        zoom: 1;
+    }
+    
+    .container {
+        display: block;
+    }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
