@@ -2575,14 +2575,14 @@ body {
 .fila-servico {
     background: #fafcff;
     border-radius: 18px;
-    padding: 16px; /* AUMENTA PADDING */
+    padding: 10px;
     border: 1px solid #edf2f7;
     height: calc(50% - 8px); /* AJUSTA MARGEM */
     min-height: 240px; /* AUMENTA ALTURA MÍNIMA */
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 
@@ -3100,6 +3100,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
