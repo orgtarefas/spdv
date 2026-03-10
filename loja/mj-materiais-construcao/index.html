@@ -152,11 +152,12 @@
             
             <!-- Container com 3 colunas de tamanhos diferentes -->
             <div class="agendamento-colunas">
-                <!-- Coluna 3: OUTROS NA FILA (AGORA À ESQUERDA) -->
-                <div class="agendamento-coluna coluna-proximos">
+                <!-- Coluna 1: OUTROS NA FILA (AGORA À ESQUERDA) -->
+                <div class="agendamento-coluna coluna-outros">
                     <div class="coluna-header">
-                        <i class="fas fa-arrow-right"></i>
-                        <h3>Outros na Fila</h3>
+                        <i class="fas fa-users"></i>
+                        <h3>OUTROS NA FILA</h3>
+                        <span class="coluna-badge" id="totalOutrosBadge">5</span>
                     </div>
                     
                     <!-- Carrossel horizontal -->
@@ -173,14 +174,20 @@
                 </div>
                 
                 <!-- Coluna 2: PRÓXIMOS A ATENDER (NO MEIO) -->
-                <div class="agendamento-coluna coluna-fila">
+                <div class="agendamento-coluna coluna-proximos">
                     <div class="coluna-header">
-                        <i class="fas fa-users"></i>
+                        <i class="fas fa-arrow-right"></i>
                         <h3>PRÓXIMOS A ATENDER</h3>
                         <span class="coluna-badge" id="totalFilaBadge">6</span>
                     </div>
                     <div class="coluna-content lista-vertical" id="proximosFilaCard">
-                        <!-- Conteúdo... -->
+                        <div class="item-fila-vertical urgente">
+                            <div class="servico-tag">Avaliação Mecânica Básica</div>
+                            <span class="senha-numero">AVA02</span>
+                            <div class="senha-info">
+                                <span class="senha-cliente">Thiago Barbosa</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="coluna-footer">
                         <i class="fas fa-clock"></i> 
@@ -189,18 +196,22 @@
                     </div>
                 </div>
                 
-                <!-- Coluna 1: EM ATENDIMENTO (AGORA À DIREITA) -->
+                <!-- Coluna 3: EM ATENDIMENTO (À DIREITA) -->
                 <div class="agendamento-coluna coluna-chamando">
                     <div class="coluna-header chamando">
                         <i class="fas fa-bell"></i>
                         <h3>EM ATENDIMENTO</h3>
                     </div>
                     <div class="coluna-content" id="chamandoAgoraCard">
-                        <!-- Conteúdo... -->
+                        <div class="card-chamando-item">
+                            <div class="servico-tag">Avaliação Mecânica Básica</div>
+                            <div class="senha-grande">AVA01</div>
+                            <div class="cliente-nome">Thiago Barbosa</div>
+                        </div>
                     </div>
                     <div class="coluna-footer">
                         <i class="fas fa-volume-up"></i> 
-                        Último: <span id="ultimoChamadoHora">16:16</span>
+                        Último: <span id="ultimoChamadoHora">16:31</span>
                     </div>
                 </div>
             </div>
@@ -607,6 +618,7 @@
     </script>
 </body>
 </html>
+
 
 
 
