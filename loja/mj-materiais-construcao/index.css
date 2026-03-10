@@ -2426,15 +2426,16 @@ body {
     direction: ltr; /* Texto normal */
 }
 
-/* Ajuste das setas */
-/* Seta "prev" (chevron-left) vai para a DIREITA */
-.coluna-outros .servico-arrow.prev {
-    order: 2;
-}
 
+/* Ajuste das setas */
 /* Seta "next" (chevron-right) vai para a ESQUERDA */
 .coluna-outros .servico-arrow.next {
     order: 1;
+}
+
+/* Seta "prev" (chevron-left) vai para a DIREITA */
+.coluna-outros .servico-arrow.prev {
+    order: 2;
 }
 
 /* Garantir que o primeiro card (1° na fila) fique à direita */
@@ -3201,6 +3202,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
