@@ -2541,6 +2541,11 @@ body {
    COLUNA 3 - CARDS HORIZONTAIS COM MESMO VISUAL DA COLUNA 2
    ============================================ */
 
+/* Esconde a tag de serviço APENAS nos cards da coluna 3 */
+.coluna-proximos .servico-card .servico-tag-small {
+    display: none !important;
+}
+
 /* Container da fileira de serviço */
 .fila-servico {
     background: #fafcff;
@@ -3067,6 +3072,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
