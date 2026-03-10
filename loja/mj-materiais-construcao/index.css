@@ -2366,7 +2366,7 @@ body {
     min-height: 180px;
     width: 100%;
     height: auto;
-    justify-content: space-between; /* MUDA para space-between */
+    justify-content: space-between;
 }
 
 /* Container principal da fileira de serviço */
@@ -2420,7 +2420,7 @@ body {
     direction: ltr;
 }
 
-/* Track dos cards */
+/* Track dos cards - CARDS À DIREITA */
 .coluna-outros .servico-track {
     display: inline-flex;
     gap: 12px;
@@ -2431,7 +2431,7 @@ body {
     min-height: fit-content;
     align-items: stretch;
     flex-direction: row;
-    justify-content: flex-start;
+    justify-content: flex-end; /* MUDA DE flex-start PARA flex-end */
 }
 
 /* Cards individuais */
@@ -2478,10 +2478,10 @@ body {
     margin-right: auto; /* Empurra para a esquerda */
 }
 
-/* Seta "prev" (chevron-left) na DIREITA */
+/* Garantir que a seta direita fique grudada nos cards */
 .coluna-outros .servico-arrow.prev {
-    order: 2; /* Última na ordem */
-    margin-left: auto; /* Empurra para a direita */
+    order: 2;
+    margin-left: 0; /* REMOVE o margin-left: auto */
 }
 
 /* Ícones normais */
@@ -3255,6 +3255,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
