@@ -2357,7 +2357,7 @@ body {
     height: 100%;
 }
 
-/* Container do carrossel - alinhar tudo à direita */
+/* Ajuste no container do carrossel */
 .coluna-outros .servico-carousel-container {
     display: flex;
     align-items: center;
@@ -2366,12 +2366,19 @@ body {
     min-height: 180px;
     width: 100%;
     height: auto;
-    justify-content: flex-end; /* ALINHA O CONJUNTO À DIREITA */
+    justify-content: flex-end;
 }
 
-/* Área de scroll - preparada para alinhamento à direita */
+/* Garantir que a fileira ocupe toda largura */
+.coluna-outros .fila-servico {
+    width: 100%;
+}
+
+
+
+/* Área de scroll - ocupar todo espaço disponível */
 .coluna-outros .servico-scroll {
-    flex: 0 1 auto; /* Não expande para ocupar todo espaço */
+    flex: 1 1 auto; /* MUDA de flex: 0 1 auto para flex: 1 1 auto */
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
@@ -2381,8 +2388,9 @@ body {
     scrollbar-color: #0056b3 #f1f5f9;
     height: auto;
     min-height: fit-content;
-    max-width: calc(100% - 80px); /* Espaço para as setas */
-    direction: rtl; /* Scroll começa da direita */
+    max-width: none; /* REMOVE o limite de largura */
+    width: 100%; /* GARANTE largura total */
+    direction: rtl;
 }
 
 /* Track dos cards */
@@ -2390,12 +2398,13 @@ body {
     display: inline-flex;
     gap: 12px;
     min-width: 100%;
+    width: auto; /* MUDA de min-width: 100% para width: auto */
     padding: 0 4px;
     height: auto;
     min-height: fit-content;
     align-items: stretch;
-    flex-direction: row-reverse; /* Inverte a ordem */
-    justify-content: flex-start; /* Mantém os cards juntos */
+    flex-direction: row-reverse;
+    justify-content: flex-start;
 }
 
 /* Cards individuais */
@@ -3192,6 +3201,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
