@@ -2650,28 +2650,7 @@ body {
     align-items: stretch; /* MUDA PARA stretch PARA QUE TODOS OS CARDS TENHAM A MESMA ALTURA */
 }
 
-/* DOTS DE PAGINAÇÃO */
-.servico-page-dots {
-    display: flex;
-    gap: 4px;
-    margin-top: 8px;
-    justify-content: center;
-}
 
-.servico-page-dots .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #cbd5e1;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-
-.servico-page-dots .dot.active {
-    background: #0056b3;
-    width: 16px;
-    border-radius: 8px;
-}
 
 /* SETAS FIXAS - SEMPRE VISÍVEIS */
 .servico-arrow {
@@ -2844,26 +2823,7 @@ body {
     color: #94a3b8;
 }
 
-/* Dots de página por fileira */
-.servico-page-dots {
-    display: flex;
-    gap: 4px;
-    margin-left: 8px;
-}
 
-.servico-page-dots .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #cbd5e1;
-    transition: all 0.2s;
-}
-
-.servico-page-dots .dot.active {
-    background: #0056b3;
-    width: 16px;
-    border-radius: 8px;
-}
 
 /* ============================================
    FOOTER DAS COLUNAS - TODOS IGUAIS E FIXOS
@@ -3107,6 +3067,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
