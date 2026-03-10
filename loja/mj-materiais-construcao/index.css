@@ -2323,14 +2323,12 @@ body {
     max-height: 600px;
 }
 
-/* Coluna 1: OUTROS NA FILA - 50% */
-.agendamento-coluna.coluna-outros {
-    flex: 2;
-    min-width: 0;
-    max-width: 50%;
+/* Coluna 1 */
+.coluna-outros {
+    width: 100%;
 }
 
-/* Container do carrossel - alinhar à direita */
+/* Container do carrossel - alinhar tudo à direita */
 .coluna-outros .servico-carousel-container {
     display: flex;
     align-items: center;
@@ -2339,29 +2337,12 @@ body {
     min-height: 180px;
     width: 100%;
     height: auto;
-    justify-content: flex-end; /* ALINHA O CONTEÚDO À DIREITA */
+    justify-content: flex-end; /* ALINHA O CONJUNTO À DIREITA */
 }
 
-/* Ajustar o track para alinhar à direita */
-.coluna-outros .servico-track {
-    display: inline-flex;
-    gap: 12px;
-    min-width: 100%;
-    padding: 0 4px;
-    height: auto;
-    min-height: fit-content;
-    align-items: stretch;
-    justify-content: flex-end; /* CARDS ALINHADOS À DIREITA */
-}
-
-/* Manter a ordem invertida (já está funcionando) */
-.coluna-outros .servico-track {
-    flex-direction: row-reverse;
-}
-
-/* Ajustar a direção do scroll */
+/* Área de scroll - preparada para alinhamento à direita */
 .coluna-outros .servico-scroll {
-    direction: rtl;
+    flex: 0 1 auto; /* Não expande para ocupar todo espaço */
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
@@ -2371,14 +2352,43 @@ body {
     scrollbar-color: #0056b3 #f1f5f9;
     height: auto;
     min-height: fit-content;
+    max-width: calc(100% - 80px); /* Espaço para as setas */
+    direction: rtl; /* Scroll começa da direita */
 }
 
-/* Corrigir a direção do texto dentro dos cards */
-.coluna-outros .servico-scroll .servico-card {
-    direction: ltr;
+/* Track dos cards */
+.coluna-outros .servico-track {
+    display: inline-flex;
+    gap: 12px;
+    min-width: 100%;
+    padding: 0 4px;
+    height: auto;
+    min-height: fit-content;
+    align-items: stretch;
+    flex-direction: row-reverse; /* Inverte a ordem */
+    justify-content: flex-start; /* Mantém os cards juntos */
 }
 
-/* Ajustar as setas */
+/* Cards individuais */
+.coluna-outros .servico-card {
+    width: 180px;
+    background: white;
+    border: 1px solid #edf2f7;
+    border-radius: 18px;
+    padding: 14px;
+    display: inline-flex;
+    flex-direction: column;
+    white-space: normal;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+    vertical-align: middle;
+    height: auto;
+    min-height: 150px;
+    flex-shrink: 0;
+    direction: ltr; /* Texto normal */
+}
+
+/* Ajuste das setas */
 .coluna-outros .servico-arrow.prev {
     order: 2;
 }
@@ -2387,12 +2397,30 @@ body {
     order: 1;
 }
 
-.coluna-outros .servico-arrow.prev i {
-    transform: scaleX(-1);
+.coluna-outros .servico-arrow.prev i,
+.coluna-outros .servico-arrow.next i {
+    transform: scaleX(-1); /* Inverte os ícones */
 }
 
-.coluna-outros .servico-arrow.next i {
-    transform: scaleX(-1);
+/* Garantir que o primeiro card (1° na fila) fique à direita */
+.coluna-outros .servico-track .servico-card:first-child {
+    margin-right: 0;
+}
+
+.coluna-outros .servico-track .servico-card:last-child {
+    margin-left: 0;
+}
+
+/* Forçar alinhamento à direita em todos os níveis */
+.coluna-outros .proximos-carousel-container {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+}
+
+.coluna-outros .proximos-scroll {
+    display: flex;
+    justify-content: flex-end;
 }
 
 /* Coluna 2: PRÓXIMOS A ATENDER - 25% */
@@ -3165,6 +3193,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
