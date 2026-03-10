@@ -2366,7 +2366,7 @@ body {
     min-height: 180px;
     width: 100%;
     height: auto;
-    justify-content: flex-end; /* CARDS À DIREITA */
+    justify-content: space-between; /* MUDA para space-between */
 }
 
 /* Container principal da fileira de serviço */
@@ -2393,7 +2393,7 @@ body {
 .coluna-outros .fila-servico-header h4 {
     text-align: left;
     margin-left: 0;
-    margin-right: auto; /* Empurra o conteúdo para a esquerda */
+    margin-right: auto;
 }
 
 /* O badge (contador) pode ficar à direita */
@@ -2405,7 +2405,7 @@ body {
 
 /* Área de scroll - OCUPA TODO ESPAÇO */
 .coluna-outros .servico-scroll {
-    flex: 1 1 auto;
+    flex: 1 1 auto; /* EXPANDE PARA OCUPAR ESPAÇO */
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
@@ -2416,7 +2416,7 @@ body {
     height: auto;
     min-height: fit-content;
     max-width: none;
-    width: 100%;
+    width: 100%; /* LARGURA TOTAL */
     direction: ltr;
 }
 
@@ -2431,7 +2431,7 @@ body {
     min-height: fit-content;
     align-items: stretch;
     flex-direction: row;
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 /* Cards individuais */
@@ -2453,21 +2453,41 @@ body {
     direction: ltr;
 }
 
+/* SETAS - POSICIONAMENTO CORRETO */
+.coluna-outros .servico-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #0056b3;
+    color: #0056b3;
+    cursor: pointer;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
+    z-index: 10;
+}
 
-/* Ajuste das setas */
-/* Seta "next" (chevron-right) vai para a ESQUERDA */
+/* Seta "next" (chevron-right) na ESQUERDA */
 .coluna-outros .servico-arrow.next {
-    order: 1;
+    order: 0; /* Primeira na ordem */
+    margin-right: auto; /* Empurra para a esquerda */
 }
 
-/* Seta "prev" (chevron-left) vai para a DIREITA */
+/* Seta "prev" (chevron-left) na DIREITA */
 .coluna-outros .servico-arrow.prev {
-    order: 2;
+    order: 2; /* Última na ordem */
+    margin-left: auto; /* Empurra para a direita */
 }
 
+/* Ícones normais */
 .coluna-outros .servico-arrow.next i,
 .coluna-outros .servico-arrow.prev i {
-    transform: none; /* SETAS NORMAIS */
+    transform: none;
 }
 
 /* Garantir que o primeiro card (1° na fila) fique à direita */
@@ -2479,7 +2499,7 @@ body {
     margin-left: 0;
 }
 
-/* Forçar alinhamento à direita em todos os níveis */
+/* Containers auxiliares */
 .coluna-outros .proximos-carousel-container {
     display: flex;
     justify-content: flex-end;
@@ -3235,6 +3255,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
