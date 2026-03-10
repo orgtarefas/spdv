@@ -1,4 +1,46 @@
-/* index.css - Estilo para Loja de Clientes */
+/* ============================================
+   INDEX.CSS - LOJA DE CLIENTES
+   ESTRUTURA DO ARQUIVO EM 6 PARTES
+   ============================================
+   
+   PARTE 1/6 - RESET, HEADER E ESTRUTURA BASE
+   - Reset completo
+   - Header (logo, busca, usuário)
+   - Estrutura base do container
+   
+   PARTE 2/6 - CATEGORIAS, PRODUTOS E CARROSSÉIS
+   - Seção de categorias
+   - Cards de produtos
+   - Swiper/carrosséis
+   
+   PARTE 3/6 - MODAIS (Login, Cadastro, Consulta Rápida)
+   - Modal de Login
+   - Modal de Cadastro
+   - Modal de Consulta Rápida
+   - Resultados de busca
+   
+   PARTE 4/6 - MODAL DE PRODUTO, FOOTER E LOADING STATES
+   - Modal de detalhe do produto
+   - Footer (contatos, endereço, chat)
+   - Loading overlay
+   - Message alert
+   
+   PARTE 5/6 - MENU DE PERFIL E ATENDIMENTO AGENDADO (ESTRUTURA BASE)
+   - Menu de perfil (3 pontinhos)
+   - Dropdown de perfil
+   - Seção de agendamento (estrutura principal)
+   - Layout das 3 colunas
+   
+   PARTE 6/6 - COLUNAS 1, 2, 3 (DETALHADAS) E RESPONSIVIDADE
+   - Coluna 1 - Em Atendimento
+   - Coluna 2 - Próximos a Atender
+   - Coluna 3 - Outros na Fila (simplificada)
+   - Footer das colunas
+   - Minha Senha
+   - Modal de Agendamento
+   - Responsividade
+   
+   ============================================ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 /* ====================================
@@ -3250,3 +3292,4 @@ body {
     50% { transform: scale(1.05); }
     100% { transform: scale(1); }
 }
+
