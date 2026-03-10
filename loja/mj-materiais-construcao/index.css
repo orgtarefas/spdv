@@ -2520,14 +2520,14 @@ body {
 }
 
 .item-fila-vertical .senha-numero {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     font-weight: 800;
     color: #0056b3;
     background: #f0f7ff;
-    padding: 4px 14px;
+    padding: 6px 16px;
     border-radius: 40px;
     display: inline-block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     border: 1px solid #cce4ff;
 }
 
@@ -3067,6 +3067,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
