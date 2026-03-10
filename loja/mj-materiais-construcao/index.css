@@ -2538,19 +2538,10 @@ body {
 }
 
 /* ============================================
-   COLUNA 3 - OUTROS NA FILA (DUAS FILEIRAS HORIZONTAIS)
+   COLUNA 3 - CARDS HORIZONTAIS COM MESMO VISUAL DA COLUNA 2
    ============================================ */
 
-/* Container da coluna 3 */
-.coluna-proximos .coluna-content {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    overflow: hidden;
-}
-
-/* Cada fileira representa UM SERVIÇO */
+/* Container da fileira de serviço */
 .fila-servico {
     background: #fafcff;
     border-radius: 18px;
@@ -2561,6 +2552,11 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.fila-servico:last-child {
+    margin-bottom: 0;
 }
 
 /* Cabeçalho do serviço */
@@ -2603,7 +2599,7 @@ body {
     flex-shrink: 0;
 }
 
-/* Container do carrossel horizontal - ITENS LADO A LADO */
+/* Container do carrossel - ITENS HORIZONTAIS */
 .servico-carousel-container {
     display: flex;
     align-items: center;
@@ -2611,6 +2607,178 @@ body {
     flex: 1;
     min-height: 0;
     width: 100%;
+}
+
+/* SETAS FIXAS E VISÍVEIS */
+.servico-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #0056b3;
+    color: #0056b3;
+    cursor: pointer;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    font-size: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
+    z-index: 10;
+}
+
+.servico-arrow:hover:not(:disabled) {
+    background: #0056b3;
+    color: white;
+    transform: scale(1.1);
+}
+
+.servico-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: #cbd5e1;
+    color: #94a3b8;
+}
+
+/* Área de scroll HORIZONTAL */
+.servico-scroll {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scroll-behavior: smooth;
+    padding: 4px 0 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #0056b3 #f1f5f9;
+    height: 100%;
+}
+
+.servico-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.servico-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 8px;
+}
+
+.servico-scroll::-webkit-scrollbar-thumb {
+    background: #0056b3;
+    border-radius: 8px;
+}
+
+/* TRACK HORIZONTAL - ITENS LADO A LADO */
+.servico-track {
+    display: inline-flex;
+    gap: 12px;
+    min-width: 100%;
+    padding: 0 4px;
+    height: 100%;
+    align-items: center;
+}
+
+/* CARDS - MESMO VISUAL DA COLUNA 2 */
+.servico-card {
+    width: 180px;
+    background: white;
+    border: 1px solid #edf2f7;
+    border-radius: 18px;
+    padding: 14px;
+    display: inline-flex;
+    flex-direction: column;
+    white-space: normal;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+    vertical-align: middle;
+    height: 150px;
+    flex-shrink: 0;
+}
+
+.servico-card:hover {
+    transform: translateY(-4px);
+    border-color: #0056b3;
+    box-shadow: 0 12px 20px -10px rgba(0, 86, 179, 0.15);
+}
+
+/* TAG DO SERVIÇO - IGUAL COLUNA 2 */
+.servico-card .servico-tag-small {
+    background: #eef2f6;
+    color: #2c3e50;
+    padding: 4px 10px;
+    border-radius: 30px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 8px;
+    border: 1px solid #dde3e9;
+    align-self: flex-start;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* NÚMERO DA SENHA - IGUAL COLUNA 2 */
+.servico-card .senha-numero-small {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #0056b3;
+    background: #f0f7ff;
+    padding: 4px 12px;
+    border-radius: 40px;
+    display: inline-block;
+    margin-bottom: 8px;
+    border: 1px solid #cce4ff;
+    align-self: flex-start;
+}
+
+/* NOME DO CLIENTE - IGUAL COLUNA 2 */
+.servico-card .senha-cliente-small {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.3;
+    flex: 1;
+}
+
+/* POSIÇÃO NA FILA - IGUAL COLUNA 2 */
+.servico-card .senha-posicao-small {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 30px;
+    display: inline-block;
+    align-self: flex-start;
+    background: #e9ecef;
+    color: #495057;
+    border: 1px solid #d0d7de;
+    font-weight: 600;
+}
+
+/* DOTS DE PAGINAÇÃO */
+.servico-page-dots {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    justify-content: center;
+}
+
+.servico-page-dots .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.servico-page-dots .dot.active {
+    background: #0056b3;
+    width: 16px;
+    border-radius: 8px;
 }
 
 /* SETAS FIXAS - SEMPRE VISÍVEIS */
@@ -3052,3 +3220,4 @@ body {
         height: 140px;
     }
 }
+
