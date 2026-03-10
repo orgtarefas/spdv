@@ -2323,9 +2323,38 @@ body {
     max-height: 600px;
 }
 
-/* Coluna 1 */
-.coluna-outros {
-    width: 100%;
+/* Coluna 1: OUTROS NA FILA - 50% */
+.agendamento-coluna.coluna-outros {
+    flex: 2;
+    min-width: 0;
+    max-width: 50%;
+}
+
+/* Coluna 2: PRÓXIMOS A ATENDER - 25% */
+.agendamento-coluna.coluna-proximos {
+    flex: 1;
+    min-width: 0;
+    max-width: 25%;
+}
+
+/* Coluna 3: EM ATENDIMENTO - 25% */
+.agendamento-coluna.coluna-chamando {
+    flex: 1;
+    min-width: 0;
+    max-width: 25%;
+}
+
+/* Estilo base das colunas - TODAS IGUAIS */
+.agendamento-coluna {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 22px;
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
+    border: 1px solid #edf2f7;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    height: 100%;
 }
 
 /* Container do carrossel - alinhar tudo à direita */
@@ -2418,33 +2447,6 @@ body {
 .coluna-outros .proximos-scroll {
     display: flex;
     justify-content: flex-end;
-}
-
-/* Coluna 2: PRÓXIMOS A ATENDER - 25% */
-.agendamento-coluna.coluna-proximos {
-    flex: 1;
-    min-width: 0;
-    max-width: 25%;
-}
-
-/* Coluna 3: EM ATENDIMENTO - 25% */
-.agendamento-coluna.coluna-chamando {
-    flex: 1;
-    min-width: 0;
-    max-width: 25%;
-}
-
-/* Estilo base das colunas - TODAS IGUAIS */
-.agendamento-coluna {
-    display: flex;
-    flex-direction: column;
-    background: white;
-    border-radius: 22px;
-    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.02);
-    border: 1px solid #edf2f7;
-    overflow: hidden;
-    transition: all 0.2s ease;
-    height: 100%;
 }
 
 .agendamento-coluna:hover {
@@ -3190,6 +3192,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
