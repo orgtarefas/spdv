@@ -2365,7 +2365,7 @@ body {
 /* Headers das colunas - TODOS COM MESMA ALTURA */
 .agendamento-coluna .coluna-header {
     flex-shrink: 0;
-    padding: 16px 18px;
+    padding: 10px 10px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -3100,6 +3100,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
