@@ -704,15 +704,18 @@ function renderizarPainelAgendamento() {
                 `;
                 
                 // cards para cada agendamento deste serviço
-                servico.itens.forEach((item, idx) => {
-                    const posicao = idx + 1;
+                const itensInvertidos = [...servico.itens].reverse();
+                
+                itensInvertidos.forEach((item, idx) => {
+                    // A posição ainda deve ser baseada na ordem original
+                    const posicaoOriginal = servico.itens.findIndex(i => i.senha === item.senha) + 1;
                     
                     html += `
                         <div class="servico-card">
                             <div class="servico-tag-small" title="${item.servico_nome}">${item.servico_nome}</div>
                             <div class="senha-numero-small">${item.senha}</div>
                             <div class="senha-cliente-small">${item.cliente_nome}</div>
-                            <span class="senha-posicao-small">${posicao}° na fila</span>
+                            <span class="senha-posicao-small">${posicaoOriginal}° na fila</span>
                         </div>
                     `;
                 });
