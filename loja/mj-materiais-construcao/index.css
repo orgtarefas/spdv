@@ -2323,26 +2323,29 @@ body {
     max-height: 600px;
 }
 
-/* Coluna 1: EM ATENDIMENTO - 1/4 */
+/* Coluna 1: EM ATENDIMENTO - NA DIREITA 1/4 */
 .agendamento-coluna.coluna-chamando {
     flex: 1;
     min-width: 0;
     max-width: 25%;
 }
 
-/* Coluna 2: PRÓXIMOS A ATENDER - 1/4 */
+/* Coluna 2: PRÓXIMOS A ATENDER - NO MEIO (1/4 = 25%) */
 .agendamento-coluna.coluna-fila {
-    flex: 1;
+    flex: 1;  /* Mantém 25% */
     min-width: 0;
     max-width: 25%;
+    order: 2; /* Segunda na ordem visual */
 }
 
-/* Coluna 3: OUTROS NA FILA - 2/4 (50%) */
+/* Coluna OUTROS NA FILA À ESQUERDA (2/4 = 50%) */
 .agendamento-coluna.coluna-proximos {
-    flex: 2;
+    flex: 2;  /* Mantém 50% */
     min-width: 0;
     max-width: 50%;
+    order: 1; /* Primeira na ordem visual */
 }
+
 
 /* Estilo base das colunas - TODAS IGUAIS */
 .agendamento-coluna {
@@ -3100,6 +3103,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
