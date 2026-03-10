@@ -2389,6 +2389,19 @@ body {
     width: 100%;
 }
 
+/* Garantir que o título do serviço fique à esquerda */
+.coluna-outros .fila-servico-header h4 {
+    text-align: left;
+    margin-left: 0;
+    margin-right: auto; /* Empurra o conteúdo para a esquerda */
+}
+
+/* O badge (contador) pode ficar à direita */
+.coluna-outros .fila-servico-header .servico-count {
+    margin-left: auto;
+    margin-right: 0;
+}
+
 
 /* Área de scroll - ocupar todo espaço disponível */
 .coluna-outros .servico-scroll {
@@ -3217,6 +3230,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
