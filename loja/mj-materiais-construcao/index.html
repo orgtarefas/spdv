@@ -140,6 +140,10 @@
         <!-- ============================================ -->
         <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
             <div class="agendamento-header">
+                <div class="agendamento-status" id="agendamentoStatus">
+                    <span class="status-indicator online"></span>
+                    <span>Modo Automático</span>  <!-- Texto alterado -->
+                </div>    
                 <h2><i class="fas fa-clock"></i> Atendimento Agendado</h2>
                 <button class="btn-agendar" id="btnAbrirAgendamento">
                     <i class="fas fa-calendar-plus"></i> Agendar
@@ -253,14 +257,6 @@
                         <span class="minha-senha-numero" id="minhaSenhaNumero">---</span>
                         <span class="minha-senha-status" id="minhaSenhaStatus">---</span>
                     </div>
-                </div>
-            </div>
-
-            <!-- Indicador de status em tempo real -->
-            <div class="agendamento-footer-info">
-                <div class="agendamento-status" id="agendamentoStatus">
-                    <span class="status-indicator online"></span>
-                    <span>Atendimento em tempo real • Atualização automática</span>
                 </div>
             </div>
 
@@ -654,6 +650,7 @@
     </script>
 </body>
 </html>
+
 
 
 
