@@ -2330,6 +2330,40 @@ body {
     max-width: 50%;
 }
 
+/* Inverter a ordem dos cards no carrossel da coluna OUTROS NA FILA */
+.coluna-outros .servico-track {
+    flex-direction: row-reverse;  /* Inverte a ordem dos cards */
+    justify-content: flex-start;
+}
+
+/* Ajustar a direção do scroll para começar no final */
+.coluna-outros .servico-scroll {
+    direction: rtl;  /* Inverte a direção do scroll */
+}
+
+/* Corrigir a direção do texto dentro dos cards */
+.coluna-outros .servico-scroll .servico-card {
+    direction: ltr;  /* Mantém o texto normal */
+}
+
+/* Ajustar as setas para corresponder à nova direção */
+.coluna-outros .servico-arrow.prev {
+    order: 2;  /* A seta "prev" vai para a direita */
+}
+
+.coluna-outros .servico-arrow.next {
+    order: 1;  /* A seta "next" vai para a esquerda */
+}
+
+/* Opcional: inverter os ícones das setas para fazer sentido visual */
+.coluna-outros .servico-arrow.prev i {
+    transform: scaleX(-1);  /* Inverte o ícone da seta */
+}
+
+.coluna-outros .servico-arrow.next i {
+    transform: scaleX(-1);  /* Inverte o ícone da seta */
+}
+
 /* Coluna 2: PRÓXIMOS A ATENDER - 25% */
 .agendamento-coluna.coluna-proximos {
     flex: 1;
@@ -3100,6 +3134,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
