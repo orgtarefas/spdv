@@ -681,7 +681,7 @@ function renderizarPainelAgendamento() {
                 html += `
                     <div class="fila-servico">
                         <div class="fila-servico-header">
-                            <i class="fas fa-cut"></i>
+                            <i class="fas fa-concierge-bell"></i>
                             <h4 title="${servico.nome}">${servico.nome}</h4>
                             <span class="servico-count">${servico.itens.length}</span>
                         </div>
@@ -743,7 +743,7 @@ function renderizarPainelAgendamento() {
                 placeholders += `
                     <div class="fila-servico">
                         <div class="fila-servico-header">
-                            <i class="fas fa-cut"></i>
+                            <i class="fas fa-concierge-bell"></i>
                             <h4>Aguardando...</h4>
                             <span class="servico-count">0</span>
                         </div>
@@ -3344,6 +3344,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
