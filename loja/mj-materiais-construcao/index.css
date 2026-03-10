@@ -2204,6 +2204,7 @@ body {
 
 /* ============================================
    ATENDIMENTO AGENDADO - VERSÃO PROFISSIONAL
+   CORRIGIDA - TODAS AS COLUNAS COM MESMA ALTURA
    ============================================ */
 
 .agendamento-section {
@@ -2285,14 +2286,17 @@ body {
 }
 
 /* ============================================
-   LAYOUT DAS 3 COLUNAS - DIVISÃO PROFISSIONAL
+   LAYOUT DAS 3 COLUNAS - TODAS COM MESMA ALTURA
    ============================================ */
 
 .agendamento-colunas {
     display: flex;
     gap: 20px;
     margin: 20px 0 15px;
-    min-height: 400px;
+    /* Altura fixa para todas as colunas */
+    height: 450px;
+    min-height: 450px;
+    max-height: 450px;
 }
 
 /* Coluna 1: EM ATENDIMENTO - 1/4 da largura (25%) */
@@ -2316,7 +2320,7 @@ body {
     max-width: 50%;
 }
 
-/* Estilo base para todas as colunas */
+/* Estilo base para todas as colunas - MESMA ALTURA */
 .agendamento-coluna {
     display: flex;
     flex-direction: column;
@@ -2326,7 +2330,10 @@ body {
     border: 1px solid #edf2f7;
     overflow: hidden;
     transition: all 0.2s ease;
+    /* Garantir altura consistente */
     height: 100%;
+    min-height: 100%;
+    max-height: 100%;
 }
 
 .agendamento-coluna:hover {
@@ -2334,7 +2341,7 @@ body {
     border-color: rgba(0, 86, 179, 0.2);
 }
 
-/* Headers das Colunas - TODOS IGUAIS, apenas cores diferenciadas */
+/* Headers das Colunas - TODOS IGUAIS (exceto cor) */
 .agendamento-coluna .coluna-header {
     flex-shrink: 0;
     padding: 16px 18px;
@@ -2343,6 +2350,10 @@ body {
     gap: 12px;
     border-bottom: 1px solid #edf2f7;
     font-family: 'Inter', sans-serif;
+    /* Altura fixa do header */
+    height: 70px;
+    min-height: 70px;
+    max-height: 70px;
 }
 
 /* Header da coluna EM ATENDIMENTO */
@@ -2407,7 +2418,7 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Área de conteúdo com scroll */
+/* Área de conteúdo com scroll - ALTURA FLEXÍVEL DENTRO DO LIMITE */
 .agendamento-coluna .coluna-content {
     flex: 1;
     overflow-y: auto;
@@ -2415,6 +2426,8 @@ body {
     background: #ffffff;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 #f1f5f9;
+    /* Ocupa o espaço restante após header e footer */
+    min-height: 0;
 }
 
 .agendamento-coluna .coluna-content::-webkit-scrollbar {
@@ -2567,6 +2580,8 @@ body {
     align-items: center;
     gap: 8px;
     padding: 16px 16px 16px 8px;
+    /* Ocupa todo o espaço do content */
+    height: 100%;
     min-height: 0;
 }
 
@@ -2579,6 +2594,7 @@ body {
     padding: 4px 0 10px;
     scrollbar-width: thin;
     scrollbar-color: #ff6b00 #f1f5f9;
+    height: 100%;
 }
 
 .proximos-scroll::-webkit-scrollbar {
@@ -2600,20 +2616,25 @@ body {
     gap: 16px;
     min-width: 100%;
     padding: 0 4px;
+    height: 100%;
+    align-items: center;
 }
 
-/* Cards do carrossel */
+/* Cards do carrossel - altura ajustada */
 .proximo-card {
     width: 200px;
     background: white;
     border: 1px solid #edf2f7;
     border-radius: 20px;
     padding: 18px 16px;
-    display: inline-block;
+    display: inline-flex;
+    flex-direction: column;
     white-space: normal;
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.03);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    vertical-align: top;
+    vertical-align: middle;
+    height: auto;
+    min-height: 180px;
 }
 
 .proximo-card:hover {
@@ -2632,6 +2653,7 @@ body {
     display: inline-block;
     margin-bottom: 14px;
     border: 1px solid #d4e6ff;
+    align-self: flex-start;
 }
 
 .proximo-card .senha-numero {
@@ -2644,6 +2666,7 @@ body {
     display: inline-block;
     margin-bottom: 12px;
     border: 1px solid #ffe0cc;
+    align-self: flex-start;
 }
 
 .proximo-card .senha-cliente {
@@ -2654,6 +2677,7 @@ body {
     word-break: break-word;
     white-space: normal;
     line-height: 1.4;
+    flex: 1;
 }
 
 .proximo-card .senha-posicao {
@@ -2665,6 +2689,8 @@ body {
     font-size: 0.75rem;
     font-weight: 600;
     border: 1px solid #d0d7de;
+    align-self: flex-start;
+    margin-top: auto;
 }
 
 /* Placeholder para quando não há dados */
@@ -2674,9 +2700,13 @@ body {
     border-radius: 20px;
     padding: 18px 16px;
     border: 1px dashed #cbd5e1;
-    display: inline-block;
-    vertical-align: top;
+    display: inline-flex;
+    flex-direction: column;
+    vertical-align: middle;
     opacity: 0.7;
+    min-height: 180px;
+    align-items: center;
+    justify-content: center;
 }
 
 .proximo-card-placeholder .senha-numero {
@@ -2747,8 +2777,10 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    /* Altura fixa do footer */
     height: 48px;
-    font-weight: 500;
+    min-height: 48px;
+    max-height: 48px;
 }
 
 .agendamento-coluna.coluna-chamando .coluna-footer {
@@ -2895,7 +2927,7 @@ body {
 
 .empty-agendamento {
     height: 100%;
-    min-height: 200px;
+    min-height: 280px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -3010,387 +3042,4 @@ body {
 .btn-confirmar-agendamento:hover {
     transform: translateY(-3px);
     box-shadow: 0 18px 35px -8px rgba(0, 86, 179, 0.5);
-}
-
-/* ============================================
-   RESPONSIVIDADE GERAL
-   ============================================ */
-@media (max-width: 1200px) {
-    .footer-content {
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-    }
-}
-
-@media (max-width: 1100px) {
-    .agendamento-colunas {
-        flex-wrap: wrap;
-        gap: 18px;
-    }
-    
-    .agendamento-coluna.coluna-chamando,
-    .agendamento-coluna.coluna-fila,
-    .agendamento-coluna.coluna-proximos {
-        flex: 1 1 100%;
-        max-width: 100%;
-    }
-    
-    .agendamento-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-    
-    .btn-agendar {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
-@media (max-width: 1024px) {
-    .header-top {
-        grid-template-columns: 1fr 1.5fr 1fr;
-        gap: 1rem;
-    }
-    
-    .produto-detalhe {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 300px;
-    }
-    
-    .produto-info-detalhe h2 {
-        font-size: 1.5rem;
-    }
-    
-    .produto-preco {
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 900px) {
-    .footer-content {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-        align-items: center;
-    }
-    
-    .footer-contacts,
-    .footer-address,
-    .footer-chat {
-        text-align: center;
-        align-items: center;
-        width: 100%;
-    }
-    
-    .footer-address {
-        text-align: center;
-    }
-    
-    .address-item {
-        justify-content: center;
-    }
-    
-    .address-content {
-        align-items: center;
-    }
-    
-    .address-text {
-        align-items: center;
-    }
-    
-    .footer-chat {
-        align-items: center;
-    }
-    
-    .chat-container {
-        justify-content: center;
-    }
-}
-
-@media (max-width: 768px) {
-    .main-header {
-        padding: 0.8rem 1rem;
-    }
-    
-    .header-top {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-    
-    .header-left {
-        justify-content: center;
-    }
-    
-    .logo-img {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .logo-text h1 {
-        font-size: 1rem;
-    }
-    
-    .logo-text .subtitle {
-        font-size: 0.65rem;
-    }
-    
-    .header-center {
-        width: 100%;
-    }
-    
-    .header-center .search-wrapper {
-        max-width: 100%;
-    }
-    
-    .header-right {
-        align-items: center;
-    }
-    
-    .user-info {
-        justify-content: center;
-    }
-    
-    .header-info {
-        text-align: center;
-    }
-    
-    .categories-section,
-    .featured-products {
-        padding: 1.5rem 1rem;
-    }
-    
-    .categories-carousel-container,
-    .carousel-container {
-        padding: 0 35px;
-    }
-    
-    .modal-content {
-        width: 95%;
-        max-height: 95vh;
-    }
-    
-    .modal-header {
-        padding: 1.2rem 1.5rem;
-    }
-    
-    .modal-header h3 {
-        font-size: 1.1rem;
-    }
-    
-    .modal-body {
-        padding: 1.5rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 250px;
-    }
-    
-    .main-footer {
-        padding: 1rem 1rem 0;
-    }
-    
-    .footer-content {
-        padding: 0;
-    }
-    
-    .contact-item {
-        justify-content: center;
-    }
-    
-    .profile-menu-dropdown {
-        min-width: 200px;
-        right: -10px;
-    }
-    
-    .profile-menu-btn {
-        padding: 6px 10px;
-        width: 36px;
-        height: 36px;
-    }
-}
-
-@media (max-width: 600px) {
-    .agendamento-section {
-        margin: 20px 15px;
-        padding: 20px 15px;
-    }
-    
-    .agendamento-header h2 {
-        font-size: 1.4rem;
-    }
-    
-    .minha-senha-card {
-        width: 100%;
-        justify-content: center;
-        padding: 16px 20px;
-    }
-    
-    .minha-senha-info {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
-    
-    .proximo-card {
-        width: 170px;
-        padding: 14px;
-    }
-    
-    .proximo-card-placeholder {
-        width: 170px;
-    }
-}
-
-@media (max-width: 480px) {
-    .logo-img {
-        width: 50px;
-        height: 50px;
-    }
-    
-    .logo-text h1 {
-        font-size: 0.9rem;
-    }
-    
-    .user-info {
-        padding: 0.3rem 0.8rem;
-    }
-    
-    #userName {
-        font-size: 0.75rem;
-    }
-    
-    .btn-login, .btn-logout {
-        padding: 0.2rem 0.6rem;
-        font-size: 0.7rem;
-    }
-    
-    .header-center input {
-        font-size: 0.8rem;
-    }
-    
-    .header-center .btn-cart-header {
-        padding: 0.4rem 1rem;
-        font-size: 0.8rem;
-    }
-    
-    .header-center .cart-badge {
-        top: -6px;
-        right: -6px;
-        min-width: 16px;
-        height: 16px;
-        font-size: 0.6rem;
-    }
-    
-    .categories-section,
-    .featured-products {
-        padding: 1rem 0.8rem;
-    }
-    
-    .product-image {
-        height: 120px;
-    }
-    
-    .current-price {
-        font-size: 0.9rem;
-    }
-    
-    .produto-imagem-grande {
-        height: 200px;
-    }
-    
-    .produto-info-detalhe h2 {
-        font-size: 1.2rem;
-    }
-    
-    .produto-preco {
-        font-size: 1.5rem;
-    }
-    
-    .produto-codigo,
-    .produto-categoria,
-    .produto-descricao {
-        font-size: 0.85rem;
-    }
-    
-    .btn-add-cart-large {
-        padding: 0.8rem;
-        font-size: 1rem;
-    }
-    
-    .rua-numero {
-        font-size: 0.75rem;
-    }
-    
-    .cidade-uf-cep {
-        font-size: 0.65rem;
-    }
-    
-    .contact-value,
-    .address-text {
-        font-size: 0.75rem;
-    }
-    
-    .contact-label,
-    .address-label {
-        font-size: 0.7rem;
-    }
-    
-    .chat-icon-large {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .chat-icon-large img {
-        width: 22px;
-        height: 22px;
-    }
-    
-    .chat-button {
-        padding: 0.4rem 1rem;
-        font-size: 0.85rem;
-    }
-    
-    .footer-copyright p {
-        font-size: 0.6rem;
-    }
-}
-
-/* ====================================
-   AJUSTES ESPECÍFICOS POR NAVEGADOR
-   ==================================== */
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-    html {
-        -webkit-text-size-adjust: 100%;
-    }
-    
-    body {
-        -webkit-font-smoothing: antialiased;
-    }
-}
-
-@-moz-document url-prefix() {
-    html {
-        font-size: 16px;
-        scrollbar-width: thin;
-    }
-}
-
-@supports (-ms-ime-align: auto) {
-    html {
-        zoom: 1;
-    }
-    
-    .container {
-        display: block;
-    }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
 }
