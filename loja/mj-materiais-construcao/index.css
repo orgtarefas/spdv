@@ -2242,17 +2242,17 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding: 0 8px;
+    margin-bottom: 5px;
+    padding: 0 5px;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
 }
 
 /* Container para o título e status (lado esquerdo) */
 .agendamento-header-left {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 10px;
     flex-wrap: wrap;
 }
 
@@ -2260,18 +2260,18 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: 1.2rem;
+    font-weight: 550;
     color: #1e293b;
     margin: 0;
 }
 
 .agendamento-header h2 i {
     color: #0056b3;
-    font-size: 1.9rem;
+    font-size: 1.7rem;
     background: rgba(0, 86, 179, 0.08);
-    padding: 8px;
-    border-radius: 12px;
+    padding: 7px;
+    border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 86, 179, 0.1);
 }
 
@@ -3100,6 +3100,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
