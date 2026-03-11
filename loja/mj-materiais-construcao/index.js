@@ -3664,19 +3664,14 @@ window.carregarPrimeiroHorarioDisponivel = async function(event) {
     console.log('🎯 [INÍCIO] carregarPrimeiroHorarioDisponivel');
     console.log('⏰ Timestamp:', new Date().toISOString());
     
-    // Pegar o select e o valor diretamente do evento
-    const servicoSelect = event ? event.target : document.getElementById('senhaRapidaServico');
+    // IMPORTANTE: Pegar o valor DIRETAMENTE do evento, não do select
+    const servicoId = event?.target?.value;
+    const servicoSelect = event?.target;
     const horarioInput = document.getElementById('senhaRapidaHorario');
     const dataHoje = new Date().toISOString().split('T')[0];
     
-    const servicoId = servicoSelect?.value;
-    
-    console.log('📌 Elementos DOM:', {
-        servicoSelect: servicoSelect ? 'encontrado' : 'não encontrado',
-        horarioInput: horarioInput ? 'encontrado' : 'não encontrado',
-        servicoValue: servicoId,
-        dataHoje
-    });
+    console.log('📌 Serviço selecionado (do evento):', servicoId);
+    console.log('📌 Select:', servicoSelect);
     
     if (!servicoId) {
         console.log('⏳ Nenhum serviço selecionado');
@@ -3699,16 +3694,14 @@ window.carregarPrimeiroHorarioDisponivel = async function(event) {
     horarioInput.disabled = true;
     
     try {
-        console.log('📞 Chamando carregarHorariosCliente...');
+        // Passar o servicoId diretamente, sem depender do select
         const horariosDisponiveis = await carregarHorariosCliente(dataHoje, servicoId);
         
         console.log('📦 RESPOSTA de carregarHorariosCliente:', horariosDisponiveis);
         
         if (horariosDisponiveis && Array.isArray(horariosDisponiveis) && horariosDisponiveis.length > 0) {
-            // Pegar o primeiro horário disponível (mais cedo)
             const primeiroHorario = horariosDisponiveis[0];
             console.log(`✅ Primeiro horário disponível: ${primeiroHorario}`);
-            console.log('📋 Todos horários:', horariosDisponiveis);
             
             horarioInput.value = primeiroHorario;
             horarioInput.disabled = false;
@@ -3722,8 +3715,6 @@ window.carregarPrimeiroHorarioDisponivel = async function(event) {
         horarioInput.value = 'Erro ao carregar';
         horarioInput.disabled = true;
     }
-    
-    console.log('🏁 [FIM] carregarPrimeiroHorarioDisponivel');
 };
 
 // ============================================
@@ -3991,6 +3982,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
