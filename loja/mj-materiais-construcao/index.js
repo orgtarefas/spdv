@@ -3288,8 +3288,8 @@ function configurarEventos() {
         window.location.href = 'carrinho.html';
     });
     
-    // 🔥 NOVO: Botão Nova Senha Hoje
-    document.getElementById('btnNovaSenhaHoje')?.addEventListener('click', abrirModalNovaSenhaHoje);
+    // Botão Nova Senha Hoje
+    document.getElementById('btnNovaSenhaHoje')?.addEventListener('click', window.abrirModalNovaSenhaHoje);
     
     // Eventos de login
     document.getElementById('btnConfirmarLogin')?.addEventListener('click', fazerLoginCliente);
@@ -3734,6 +3734,224 @@ window.goToServicoPage = function(servicoId, pageIndex) {
 };
 
 // ============================================
+// FUNÇÕES PARA NOVA SENHA HOJE (GLOBAIS)
+// ============================================
+
+// Tornar a função global para ser chamada pelo onchange do select
+window.carregarPrimeiroHorarioDisponivel = async function() {
+    console.log('🔍 carregarPrimeiroHorarioDisponivel chamado');
+    
+    const servicoSelect = document.getElementById('senhaRapidaServico');
+    const horarioInput = document.getElementById('senhaRapidaHorario');
+    const dataHoje = new Date().toISOString().split('T')[0];
+    
+    if (!servicoSelect?.value) {
+        console.log('⏳ Nenhum serviço selecionado');
+        if (horarioInput) {
+            horarioInput.value = '';
+            horarioInput.placeholder = 'Selecione um serviço primeiro';
+        }
+        return;
+    }
+    
+    if (!horarioInput) {
+        console.error('❌ Campo de horário não encontrado');
+        return;
+    }
+    
+    console.log(`🔍 Buscando primeiro horário disponível para serviço: ${servicoSelect.value}`);
+    
+    horarioInput.value = 'Carregando...';
+    horarioInput.disabled = true;
+    
+    try {
+        // Usar a função existente para carregar horários
+        const horariosDisponiveis = await carregarHorariosCliente(dataHoje, servicoSelect.value);
+        
+        if (horariosDisponiveis && horariosDisponiveis.length > 0) {
+            // Pegar o primeiro horário disponível (mais cedo)
+            horarioInput.value = horariosDisponiveis[0];
+            horarioInput.disabled = false;
+            console.log(`✅ Primeiro horário disponível: ${horariosDisponiveis[0]}`);
+        } else {
+            horarioInput.value = 'Nenhum horário disponível';
+            horarioInput.disabled = true;
+        }
+    } catch (error) {
+        console.error('❌ Erro ao carregar horário:', error);
+        horarioInput.value = 'Erro ao carregar';
+        horarioInput.disabled = true;
+    }
+};
+
+// Tornar a função de abrir modal global também
+window.abrirModalNovaSenhaHoje = async function() {
+    if (!usuarioLogado || !dadosUsuario) {
+        mostrarMensagem('Faça login para gerar uma senha', 'warning');
+        abrirModal('loginModal');
+        return;
+    }
+    
+    console.log('⚡ Abrindo modal Nova Senha Hoje');
+    
+    const modal = document.getElementById('novaSenhaHojeModal');
+    if (!modal) {
+        console.error('❌ Modal de nova senha não encontrado');
+        mostrarMensagem('Erro ao abrir nova senha', 'error');
+        return;
+    }
+    
+    // Limpar formulário
+    const form = document.querySelector('.senha-rapida-form');
+    if (form) {
+        const selects = form.querySelectorAll('select');
+        selects.forEach(s => {
+            s.value = '';
+            s.disabled = false;
+        });
+        
+        const horarioInput = document.getElementById('senhaRapidaHorario');
+        if (horarioInput) {
+            horarioInput.value = '';
+            horarioInput.placeholder = 'Selecione um serviço primeiro';
+            horarioInput.disabled = true;
+        }
+    }
+    
+    // Data atual (hoje)
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const dataHoje = `${ano}-${mes}-${dia}`;
+    
+    // Armazenar data no modal
+    const dataInput = document.getElementById('senhaRapidaData');
+    if (dataInput) {
+        dataInput.value = dataHoje;
+    }
+    
+    // Remover campo de cliente existente se houver
+    let clienteField = document.getElementById('senhaRapidaClienteField');
+    if (clienteField) {
+        clienteField.remove();
+    }
+    
+    // Se for funcionário/admin, mostrar campo de seleção de cliente
+    const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+    const tipo = dadosUsuario.tipo;
+    
+    const isFuncionario = (tipo === 'admin' || tipo === 'funcionario' || 
+                          perfil === 'admin' || perfil === 'gerente' || 
+                          perfil === 'supervisor' || perfil === 'vendedor');
+    
+    if (isFuncionario) {
+        // Criar campo de seleção de cliente
+        const formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+        formGroup.id = 'senhaRapidaClienteField';
+        formGroup.innerHTML = `
+            <label><i class="fas fa-user"></i> Cliente</label>
+            <select id="senhaRapidaCliente" class="form-select">
+                <option value="">Selecionar cliente...</option>
+            </select>
+            <small>Funcionário pode gerar senha para clientes</small>
+        `;
+        
+        // Inserir antes do serviço
+        const servicoGroup = document.querySelector('#senhaRapidaServico')?.closest('.form-group');
+        if (servicoGroup) {
+            servicoGroup.parentNode.insertBefore(formGroup, servicoGroup);
+        }
+        
+        // Carregar lista de clientes
+        await window.carregarClientesParaSelectRapido();
+    }
+    
+    // Carregar serviços
+    await window.carregarServicosRapido();
+    
+    modal.classList.add('active');
+};
+
+// Função para carregar serviços no modal rápido
+window.carregarServicosRapido = async function() {
+    const select = document.getElementById('senhaRapidaServico');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Carregando serviços...</option>';
+    select.disabled = true;
+    
+    try {
+        const servicosRef = collection(
+            db, 
+            'configuracoes', 
+            'servico_agendamento',
+            lojaIdAtual
+        );
+        
+        const snapshot = await getDocs(servicosRef);
+        
+        let servicosEncontrados = [];
+        snapshot.forEach(doc => {
+            servicosEncontrados.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        if (servicosEncontrados.length === 0) {
+            select.innerHTML = '<option value="">📋 Nenhum serviço cadastrado</option>';
+            select.disabled = true;
+            return;
+        }
+        
+        select.innerHTML = '<option value="">Selecione um serviço...</option>';
+        
+        servicosEncontrados.forEach(servico => {
+            if (servico.nome) {
+                select.innerHTML += `<option value="${servico.id}" data-config='${JSON.stringify(servico)}'>⏱️ ${servico.nome}</option>`;
+            }
+        });
+        
+        select.disabled = false;
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar serviços:', error);
+        select.innerHTML = '<option value="">❌ Erro ao carregar serviços</option>';
+        select.disabled = true;
+    }
+};
+
+// Função para carregar clientes no modal rápido
+window.carregarClientesParaSelectRapido = async function() {
+    const select = document.getElementById('senhaRapidaCliente');
+    if (!select) return;
+    
+    try {
+        select.innerHTML = '<option value="">Carregando clientes...</option>';
+        
+        const clientesRef = window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('clientes');
+        
+        const snapshot = await clientesRef.get();
+        
+        select.innerHTML = '<option value="">Selecione um cliente...</option>';
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            select.innerHTML += `<option value="${doc.id}">${data.nome} (${data.email})</option>`;
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar clientes:', error);
+        select.innerHTML = '<option value="">Erro ao carregar clientes</option>';
+    }
+};
+
+// ============================================
 // INICIALIZAÇÃO
 // ============================================
 (async function() {
@@ -3801,6 +4019,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
