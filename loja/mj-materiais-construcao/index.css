@@ -2416,7 +2416,7 @@ body {
     height: auto;
     min-height: fit-content;
     max-width: none;
-    width: 100%; /* LARGURA TOTAL */
+    width: 100%;
     direction: ltr;
 }
 
@@ -2732,13 +2732,13 @@ body {
     border-radius: 18px;
     padding: 10px;
     border: 1px solid #edf2f7;
-    height: calc(50% - 8px); /* AJUSTA MARGEM */
-    min-height: 240px; /* AUMENTA ALTURA MÍNIMA */
+    min-height: 240px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     margin-bottom: 10px;
     width: 100%;
+    flex: 1;
 }
 
 
@@ -2830,6 +2830,7 @@ body {
     display: inline-flex;
     gap: 12px;
     min-width: 100%;
+    width: 100%;
     padding: 0 4px;
     height: auto; /* MUDA DE height: 100% PARA auto */
     min-height: fit-content; /* ADICIONA min-height */
@@ -2910,6 +2911,7 @@ body {
     scrollbar-color: #0056b3 #f1f5f9;
     height: 100%;
     min-height: 0;
+    width: 100%;
 }
 
 .servico-scroll::-webkit-scrollbar {
@@ -3281,6 +3283,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
