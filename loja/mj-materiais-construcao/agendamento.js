@@ -1475,7 +1475,7 @@ async function reconstruirListaAgendamentosAdmin() {
                 // Converter o mapa em array e ordenar por data/hora
                 const agendamentosArray = Object.entries(agendamentosMap || {})
                     .sort((a, b) => {
-                        const dataA = a[1].data_hora_agendada?.toDate?.() || new Date(a[1].data hora_agendada);
+                        const dataA = a[1].data_hora_agendada?.toDate?.() || new Date(a[1].data_hora_agendada);
                         const dataB = b[1].data_hora_agendada?.toDate?.() || new Date(b[1].data_hora_agendada);
                         return dataA - dataB;
                     });
@@ -2028,7 +2028,7 @@ function configurarCheckboxesAtendimento() {
                 const agendamento = agendamentosAtivos.find(a => a.id === id);
                 if (agendamento) {
                     // ✅ CORRETO: Passar o objeto completo
-                    await atualizarStatusAgendamento(agendamento, 'Concluido');
+                    await atualizarStatusAgendamentoAdmin(agendamento, 'Concluido');
                 }
             }
             mostrarMensagem(`${selecionados.length} atendimento(s) concluído(s)!`, 'success');
