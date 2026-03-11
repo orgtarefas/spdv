@@ -3734,7 +3734,9 @@ window.carregarPrimeiroHorarioDisponivel = async function() {
     console.log('🏁 [FIM] carregarPrimeiroHorarioDisponivel');
 };
 
-// Tornar a função de abrir modal global também
+// ============================================
+// ABRIR MODAL NOVA SENHA HOJE (MODIFICADO)
+// ============================================
 window.abrirModalNovaSenhaHoje = async function() {
     if (!usuarioLogado || !dadosUsuario) {
         mostrarMensagem('Faça login para gerar uma senha', 'warning');
@@ -3821,13 +3823,30 @@ window.abrirModalNovaSenhaHoje = async function() {
     // Carregar serviços
     await window.carregarServicosRapido();
     
+    // 🔥 GARANTIR QUE O EVENT LISTENER ESTÁ FUNCIONANDO
+    const servicoSelect = document.getElementById('senhaRapidaServico');
+    if (servicoSelect) {
+        // Remover listener antigo para não duplicar
+        servicoSelect.removeEventListener('change', window.carregarPrimeiroHorarioDisponivel);
+        // Adicionar novo listener
+        servicoSelect.addEventListener('change', window.carregarPrimeiroHorarioDisponivel);
+        console.log('✅ Event listener adicionado ao select de serviços');
+    }
+    
     modal.classList.add('active');
 };
 
-// Função para carregar serviços no modal rápido
+// ============================================
+// CARREGAR SERVIÇOS PARA NOVA SENHA RÁPIDA (CORRIGIDO)
+// ============================================
 window.carregarServicosRapido = async function() {
+    console.log('🚀 carregarServicosRapido');
+    
     const select = document.getElementById('senhaRapidaServico');
-    if (!select) return;
+    if (!select) {
+        console.error('❌ Select de serviço não encontrado');
+        return;
+    }
     
     select.innerHTML = '<option value="">Carregando serviços...</option>';
     select.disabled = true;
@@ -3844,11 +3863,14 @@ window.carregarServicosRapido = async function() {
         
         let servicosEncontrados = [];
         snapshot.forEach(doc => {
+            const data = doc.data();
             servicosEncontrados.push({
                 id: doc.id,
-                ...doc.data()
+                ...data
             });
         });
+        
+        console.log('📋 Serviços encontrados:', servicosEncontrados);
         
         if (servicosEncontrados.length === 0) {
             select.innerHTML = '<option value="">📋 Nenhum serviço cadastrado</option>';
@@ -3860,11 +3882,14 @@ window.carregarServicosRapido = async function() {
         
         servicosEncontrados.forEach(servico => {
             if (servico.nome) {
-                select.innerHTML += `<option value="${servico.id}" data-config='${JSON.stringify(servico)}'>⏱️ ${servico.nome}</option>`;
+                // 🔥 GARANTIR QUE O data-config SEJA STRING VÁLIDA
+                const configString = JSON.stringify(servico).replace(/'/g, "&apos;");
+                select.innerHTML += `<option value="${servico.id}" data-config='${configString}'>⏱️ ${servico.nome}</option>`;
             }
         });
         
         select.disabled = false;
+        console.log(`✅ ${servicosEncontrados.length} serviços carregados no modal rápido`);
         
     } catch (error) {
         console.error('❌ Erro ao carregar serviços:', error);
@@ -3974,6 +3999,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
