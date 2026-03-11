@@ -3293,42 +3293,47 @@ body {
     }
 }
 
+/* Modal Nova Senha Hoje */
+.senha-rapida-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
 
+#senhaRapidaHorario {
+    background: #f0f7ff;
+    border: 2px solid #cce4ff;
+    color: #0056b3;
+    font-weight: 700;
+    font-size: 1.2rem;
+    text-align: center;
+    padding: 12px;
+    border-radius: 12px;
+}
 
+.btn-confirmar-senha {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #00a86b, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 10px;
+}
 
+.btn-confirmar-senha:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 168, 107, 0.3);
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+.btn-confirmar-senha i {
+    font-size: 1.2rem;
+}
