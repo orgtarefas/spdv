@@ -1059,19 +1059,6 @@ function configurarAbasDias() {
 }
 
 // ============================================
-// VALIDAR AGENDAMENTO FUTURO - ADAPTADO
-// ============================================
-window.validarAgendamentoFuturo = async function(agendamento) {
-    try {
-        await atualizarStatusAgendamentoAdmin(agendamento, 'Verificado');
-        mostrarMensagem('Agendamento validado com sucesso!', 'success');
-    } catch (error) {
-        console.error('❌ Erro ao validar:', error);
-        mostrarMensagem('Erro ao validar agendamento', 'error');
-    }
-};
-
-// ============================================
 // CONFIGURAR ESPELHAMENTO (FORA DO BOTÃO, VISÍVEL APENAS NA SEGUNDA)
 // ============================================
 function configurarEspelhamentoAutomatico() {
