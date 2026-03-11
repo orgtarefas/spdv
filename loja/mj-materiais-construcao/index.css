@@ -3374,3 +3374,457 @@ body {
     font-size: 1.2rem;
 }
 
+/* ============================================
+   MODAIS DE AGENDAMENTO - ESTILO MODERNO
+   ============================================ */
+
+/* Container do formulário */
+.agendamento-rapido-form,
+.senha-rapida-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 8px 0;
+}
+
+/* Grupos de formulário */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 0;
+    position: relative;
+}
+
+.form-group.half {
+    width: calc(50% - 6px);
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+/* Labels modernos */
+.form-group label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-left: 4px;
+}
+
+.form-group label i {
+    color: #0056b3;
+    font-size: 0.95rem;
+    width: 20px;
+    text-align: center;
+}
+
+/* Select personalizado */
+.form-select {
+    width: 100%;
+    padding: 14px 16px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230056b3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 20px;
+    padding-right: 48px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.form-select:hover {
+    border-color: #0056b3;
+    background-color: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.08);
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: #0056b3;
+    box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.15);
+    background-color: white;
+}
+
+.form-select:disabled {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #64748b;
+    cursor: not-allowed;
+    opacity: 0.7;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Input de data personalizado */
+.form-input[type="date"] {
+    width: 100%;
+    padding: 14px 16px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    appearance: none;
+    min-height: 54px;
+}
+
+.form-input[type="date"]:hover:not(:disabled) {
+    border-color: #0056b3;
+    background-color: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.08);
+}
+
+.form-input[type="date"]:focus {
+    outline: none;
+    border-color: #0056b3;
+    box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.15);
+}
+
+.form-input[type="date"]:disabled {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #64748b;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Personalizando o calendário nativo */
+.form-input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.5;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.form-input[type="date"]:hover::-webkit-calendar-picker-indicator {
+    opacity: 1;
+}
+
+.form-input[type="date"]:disabled::-webkit-calendar-picker-indicator {
+    opacity: 0.2;
+    cursor: not-allowed;
+}
+
+/* Estilo específico para o select de cliente (destaque) */
+#clienteSelect {
+    background-color: #f8fafc;
+    border-left: 4px solid #0056b3;
+    font-weight: 500;
+}
+
+#clienteSelect option {
+    padding: 12px;
+    font-weight: normal;
+}
+
+/* Estilo para opções desabilitadas (LOTADO) */
+.form-select option:disabled {
+    color: #dc2626;
+    background-color: #fef2f2;
+    font-weight: 600;
+}
+
+/* Badge de horário no select */
+.form-select option[data-primeiro-horario] {
+    position: relative;
+}
+
+/* Estilo para o input de horário (campo readonly) */
+#senhaRapidaHorario {
+    background: linear-gradient(145deg, #f0f7ff, #e6f0ff);
+    border: 2px solid #0056b3;
+    color: #0056b3;
+    font-weight: 700;
+    font-size: 1.3rem;
+    text-align: center;
+    padding: 16px;
+    border-radius: 20px;
+    cursor: default;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.15);
+    transition: all 0.3s ease;
+}
+
+#senhaRapidaHorario:not(:disabled) {
+    animation: gentlePulse 2s infinite;
+}
+
+#senhaRapidaHorario:disabled {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #64748b;
+    font-size: 1rem;
+    box-shadow: none;
+}
+
+@keyframes gentlePulse {
+    0% { box-shadow: 0 4px 12px rgba(0, 86, 179, 0.15); }
+    50% { box-shadow: 0 6px 18px rgba(0, 86, 179, 0.25); }
+    100% { box-shadow: 0 4px 12px rgba(0, 86, 179, 0.15); }
+}
+
+/* Botão confirmar agendamento */
+.btn-confirmar-agendamento {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #0056b3, #00a86b);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(0, 86, 179, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-confirmar-agendamento::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.btn-confirmar-agendamento:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 30px -8px rgba(0, 86, 179, 0.4);
+}
+
+.btn-confirmar-agendamento:hover::before {
+    left: 100%;
+}
+
+.btn-confirmar-agendamento:active {
+    transform: translateY(0);
+}
+
+.btn-confirmar-agendamento i {
+    font-size: 1.3rem;
+    transition: transform 0.3s ease;
+}
+
+.btn-confirmar-agendamento:hover i {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+/* Botão confirmar senha rápida */
+.btn-confirmar-senha {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #00a86b, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(0, 168, 107, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-confirmar-senha::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s ease;
+}
+
+.btn-confirmar-senha:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 30px -8px rgba(0, 168, 107, 0.4);
+}
+
+.btn-confirmar-senha:hover::before {
+    left: 100%;
+}
+
+.btn-confirmar-senha:hover i {
+    animation: zap 1s infinite;
+}
+
+@keyframes zap {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+/* Efeito de brilho nos campos */
+.form-group {
+    position: relative;
+}
+
+.form-group::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #0056b3, #00a86b);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+    border-radius: 2px;
+    opacity: 0;
+}
+
+.form-group:focus-within::after {
+    width: 80%;
+    opacity: 1;
+}
+
+/* Tooltip para campos desabilitados */
+.form-select:disabled,
+.form-input:disabled {
+    position: relative;
+}
+
+.form-select:disabled:hover::after,
+.form-input:disabled:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    margin-bottom: 8px;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+}
+
+/* Animação de entrada para os modais */
+.modal.active .form-group {
+    animation: slideUpFade 0.4s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.modal.active .form-group:nth-child(1) { animation-delay: 0.1s; }
+.modal.active .form-group:nth-child(2) { animation-delay: 0.15s; }
+.modal.active .form-group:nth-child(3) { animation-delay: 0.2s; }
+.modal.active .form-group:nth-child(4) { animation-delay: 0.25s; }
+.modal.active .form-group:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes slideUpFade {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade para mobile */
+@media (max-width: 600px) {
+    .form-row {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .form-group.half {
+        width: 100%;
+    }
+    
+    .form-select,
+    .form-input[type="date"] {
+        padding: 12px 14px;
+        font-size: 1rem;
+    }
+    
+    .btn-confirmar-agendamento,
+    .btn-confirmar-senha {
+        padding: 14px;
+        font-size: 1rem;
+    }
+    
+    #senhaRapidaHorario {
+        font-size: 1.1rem;
+        padding: 14px;
+    }
+}
+
+/* Ajustes para o container do modal */
+.modal-content.modal-small {
+    max-width: 450px;
+}
+
+/* Efeito de foco melhorado */
+.form-select:focus,
+.form-input:focus {
+    transform: scale(1.02);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estilo para opções selecionadas */
+.form-select option:checked {
+    background: linear-gradient(135deg, #0056b3, #00a86b);
+    color: white;
+}
+
+/* Badge de informação para cliente select */
+#clienteSelect + small {
+    display: block;
+    color: #64748b;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    padding-left: 8px;
+}
+
+#clienteSelect + small i {
+    color: #00a86b;
+    margin-right: 4px;
+}
+
+/* Placeholder mais elegante */
+.form-select option[value=""] {
+    color: #94a3b8;
+    font-style: italic;
+}
