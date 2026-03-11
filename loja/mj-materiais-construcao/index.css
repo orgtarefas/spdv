@@ -2237,6 +2237,42 @@ body {
     box-shadow: 0 25px 50px -12px rgba(0, 86, 179, 0.2);
 }
 
+/* Container para os botões de ação */
+.agendamento-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Botão Nova Senha Hoje */
+.btn-senha-rapida {
+    background: linear-gradient(145deg, #00a86b, #007755);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 60px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s ease;
+    box-shadow: 0 10px 20px -8px rgba(0, 168, 107, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    white-space: nowrap;
+}
+
+.btn-senha-rapida:hover {
+    background: linear-gradient(145deg, #00c853, #008f5f);
+    transform: translateY(-3px);
+    box-shadow: 0 18px 30px -8px rgba(0, 168, 107, 0.5);
+}
+
+.btn-senha-rapida i {
+    font-size: 1.1rem;
+}
+
 /* Cabeçalho do Agendamento */
 .agendamento-header {
     display: flex;
@@ -3337,3 +3373,4 @@ body {
 .btn-confirmar-senha i {
     font-size: 1.2rem;
 }
+
