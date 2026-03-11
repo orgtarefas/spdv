@@ -828,25 +828,6 @@ async function salvarConfigFuncionamento() {
 }
 
 // ============================================
-// GERAR SENHA BASEADA NO SERVIÇO (cópia da função do index.js)
-// ============================================
-function gerarSenha(numero, servicoId, servicosConfig = {}) {
-    let prefixo = 'S';
-    
-    if (servicosConfig[servicoId] && servicosConfig[servicoId].abreviacao) {
-        prefixo = servicosConfig[servicoId].abreviacao;
-    } else {
-        const nomePartes = servicoId.split('_');
-        if (nomePartes.length > 0) {
-            prefixo = nomePartes[0].substring(0, 3).toUpperCase();
-        }
-    }
-    
-    const numeroFormatado = numero.toString().padStart(2, '0');
-    return `${prefixo}${numeroFormatado}`;
-}
-
-// ============================================
 // FUNÇÕES DE CONFIGURAÇÃO DOS DIAS E ESPELHAMENTO
 // ============================================
 
