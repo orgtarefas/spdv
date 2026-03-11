@@ -2827,7 +2827,7 @@ body {
 
 /* TRACK HORIZONTAL - ITENS LADO A LADO */
 .servico-track {
-    display: inline-flex;
+    display: flex;
     gap: 12px;
     min-width: 100%;
     width: 100%;
@@ -3011,7 +3011,8 @@ body {
 
 /* Placeholder para serviços sem agendamentos */
 .servico-card-placeholder {
-    width: 160px;
+    width: 100%;
+    max-width: 100%;
     background: #f8fafc;
     border: 1px dashed #cbd5e1;
     border-radius: 18px;
@@ -3283,6 +3284,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
