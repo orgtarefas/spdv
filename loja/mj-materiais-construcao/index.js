@@ -1313,6 +1313,32 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                     
                     const diaId = diasMap[diaSemana];
                     console.log('📅 Dia da semana:', diaId);
+
+                    const diasAtivos = configServico.diasAtivos || [];
+                    console.log('📅 Dias ativos do serviço:', diasAtivos);
+                    
+                    if (!diasAtivos.includes(diaId)) {
+                        console.log('🔒 Serviço não disponível neste dia');
+                        if (horarioSelect) {
+                            horarioSelect.innerHTML = `<option value="">🔒 Serviço não disponível neste dia</option>`;
+                            horarioSelect.disabled = true;
+                        }
+                        return [];
+                    }
+                    
+                    // 🔥 IMPORTANTE: Pegar a configuração do dia
+                    const configDia = configServico.configuracoesPorDia?.[diaId];
+                    console.log('⚙️ Configuração do dia:', configDia);
+                    
+                    if (!configDia || !configDia.ativo) {
+                        console.log('🔒 Sem atendimento neste dia');
+                        if (horarioSelect) {
+                            horarioSelect.innerHTML = `<option value="">🔒 Sem atendimento neste dia</option>`;
+                            horarioSelect.disabled = true;
+                        }
+                        return [];
+                    }
+
                     
                     if (dados.funcionamento && dados.funcionamento[diaId]) {
                         const horarioLoja = dados.funcionamento[diaId];
@@ -3967,6 +3993,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
