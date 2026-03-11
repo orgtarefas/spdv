@@ -1200,6 +1200,7 @@ async function carregarServicosCliente() {
 // CARREGAR HORÁRIOS PARA CLIENTE (COM LOGS DETALHADOS)
 // ============================================
 async function carregarHorariosCliente(dataSelecionada = null, servicoId = null) {
+    console.log('🔍 DEBUG - carregarHorariosCliente chamada com:', { dataSelecionada, servicoId });
     console.log('🚀 [INÍCIO] carregarHorariosCliente');
     console.log('📌 Parâmetros recebidos:', { dataSelecionada, servicoId });
     
@@ -1594,6 +1595,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             horarioSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
             horarioSelect.disabled = true;
         }
+        console.log('🔍 DEBUG - horarios a retornar:', horariosDisponiveis.map(h => h.horario));
         return [];
     }
 }
@@ -3973,6 +3975,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
