@@ -276,7 +276,7 @@ async function carregarConfiguracoesServicos() {
 }
 
 // ============================================
-// PROCESSAR FILA AUTOMATICAMENTE (CHAMAR A CADA ATUALIZAÇÃO)
+// PROCESSAR FILA AUTOMATICAMENTE (CORRIGIDA)
 // ============================================
 function processarFilaAutomaticamente() {
     if (!agendamentosAtivos || agendamentosAtivos.length === 0) return;
@@ -295,13 +295,11 @@ function processarFilaAutomaticamente() {
     
     // Processar cada serviço
     Object.entries(agendamentosPorServico).forEach(([servicoId, agendamentos]) => {
-        // Ordenar por horário (do mais antigo para o mais novo)
-        const ordenados = agendamentos.sort((a, b) => a.timestamp - b.timestamp);
-        
-        // Separar por status
-        const emAtendimento = ordenados.filter(a => a.status === 'Em atendimento');
-        const proximoAtender = ordenados.filter(a => a.status === 'Próximo a atender');
-        const filaNormal = ordenados.filter(a => 
+        // NÃO ORDENAR! Manter a ordem original (mais antigo primeiro)
+        // Apenas garantir que 'Em atendimento' esteja no início
+        const emAtendimento = agendamentos.filter(a => a.status === 'Em atendimento');
+        const proximoAtender = agendamentos.filter(a => a.status === 'Próximo a atender');
+        const filaNormal = agendamentos.filter(a => 
             a.status !== 'Em atendimento' && 
             a.status !== 'Próximo a atender' &&
             ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
@@ -313,20 +311,20 @@ function processarFilaAutomaticamente() {
             filaNormal: filaNormal.length
         });
         
-        // REGRA 1: Se não tem ninguém em atendimento, o primeiro da fila normal vai para atendimento
+        // REGRA 1: Se não tem ninguém em atendimento, o PRIMEIRO da fila normal vai para atendimento
         if (emAtendimento.length === 0) {
             if (proximoAtender.length > 0) {
                 // Se tem próximo, ele vai para atendimento
                 console.log(`➡️ Promovendo próximo a atender para atendimento no serviço ${servicoId}`);
                 atualizarStatusAgendamento(proximoAtender[0], 'Em atendimento');
             } else if (filaNormal.length > 0) {
-                // Se não tem próximo, o primeiro da fila normal vai para atendimento
+                // Se não tem próximo, o PRIMEIRO da fila normal (mais antigo) vai para atendimento
                 console.log(`➡️ Promovendo primeiro da fila para atendimento no serviço ${servicoId}`);
                 atualizarStatusAgendamento(filaNormal[0], 'Em atendimento');
             }
         }
         
-        // REGRA 2: Se tem alguém em atendimento, o próximo da fila normal vira "Próximo a atender"
+        // REGRA 2: Se tem alguém em atendimento e não tem próximo, o PRIMEIRO da fila normal vira "Próximo a atender"
         if (emAtendimento.length > 0 && proximoAtender.length === 0 && filaNormal.length > 0) {
             console.log(`➡️ Promovendo primeiro da fila para próximo a atender no serviço ${servicoId}`);
             atualizarStatusAgendamento(filaNormal[0], 'Próximo a atender');
@@ -335,7 +333,7 @@ function processarFilaAutomaticamente() {
 }
 
 // ============================================
-// RECONSTRUIR LISTA DE AGENDAMENTOS (MODIFICADA)
+// RECONSTRUIR LISTA DE AGENDAMENTOS (CORRIGIDA)
 // ============================================
 function reconstruirListaAgendamentos(dadosDoDia) {
     try {
@@ -358,8 +356,20 @@ function reconstruirListaAgendamentos(dadosDoDia) {
         Object.entries(dadosDoDia).forEach(([servicoId, agendamentosMap]) => {
             console.log(`  🔧 Serviço: ${servicoId}`);
             
-            // Iterar sobre cada agendamento DENTRO do serviço
-            Object.entries(agendamentosMap || {}).forEach(([agendamentoId, dados]) => {
+            // Converter o MAP para array e ordenar por data_hora_agendada (CRESCENTE)
+            const agendamentosArray = Object.entries(agendamentosMap || {})
+                .map(([agendamentoId, dados]) => ({ agendamentoId, ...dados }))
+                .sort((a, b) => {
+                    // Ordenar do mais antigo para o mais novo
+                    const timeA = a.data_hora_agendada?.toDate?.()?.getTime() || new Date(a.data_hora_agendada).getTime();
+                    const timeB = b.data_hora_agendada?.toDate?.()?.getTime() || new Date(b.data_hora_agendada).getTime();
+                    return timeA - timeB; // CRESCENTE (mais antigo primeiro)
+                });
+            
+            // Processar cada agendamento na ordem correta
+            agendamentosArray.forEach((dados) => {
+                const agendamentoId = dados.agendamentoId;
+                
                 console.log(`    📝 ${agendamentoId}:`, dados);
                 
                 if (dados && dados.data_hora_agendada) {
@@ -427,8 +437,7 @@ function reconstruirListaAgendamentos(dadosDoDia) {
             });
         });
         
-        // ORDENAR POR TIMESTAMP (GARANTIR ORDEM CORRETA)
-        agendamentosAtivos.sort((a, b) => a.timestamp - b.timestamp);
+        // NÃO ORDENAR GLOBALMENTE! A ordem já está correta por serviço
         
         console.log(`✅ Total agendamentos hoje: ${agendamentosAtivos.length}`);
         console.log('📋 Status antes do processamento:', agendamentosAtivos.map(a => `${a.senha}: ${a.status}`));
@@ -3199,6 +3208,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
