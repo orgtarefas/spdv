@@ -1518,6 +1518,36 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
 }
 
 // ============================================
+// CARREGAR CLIENTES PARA SELECT RÁPIDO (funcionários)
+// ============================================
+async function carregarClientesParaSelectRapido() {
+    const select = document.getElementById('senhaRapidaCliente');
+    if (!select) return;
+    
+    try {
+        select.innerHTML = '<option value="">Carregando clientes...</option>';
+        
+        const clientesRef = window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('clientes');
+        
+        const snapshot = await clientesRef.get();
+        
+        select.innerHTML = '<option value="">Selecione um cliente...</option>';
+        
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            select.innerHTML += `<option value="${doc.id}">${data.nome} (${data.email})</option>`;
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar clientes:', error);
+        select.innerHTML = '<option value="">Erro ao carregar clientes</option>';
+    }
+}
+
+// ============================================
 // ABRIR MODAL NOVA SENHA HOJE
 // ============================================
 async function abrirModalNovaSenhaHoje() {
@@ -3771,6 +3801,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
