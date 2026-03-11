@@ -4017,8 +4017,14 @@ window.verProdutoDetalhe = verProdutoDetalhe;
 window.adicionarAoCarrinho = adicionarAoCarrinho;
 window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
+// FUNÇÕES PARA NOVA SENHA HOJE
+window.carregarPrimeiroHorarioDisponivel = carregarPrimeiroHorarioDisponivel;
+window.abrirModalNovaSenhaHoje = abrirModalNovaSenhaHoje;
+window.carregarServicosRapido = carregarServicosRapido;
+window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
