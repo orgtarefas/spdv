@@ -3658,23 +3658,21 @@ window.goToServicoPage = function(servicoId, pageIndex) {
 };
 
 // ============================================
-// CARREGAR PRIMEIRO HORÁRIO DISPONÍVEL (CORRIGIDO)
+// CARREGAR PRIMEIRO HORÁRIO DISPONÍVEL (VERSÃO SIMPLES)
 // ============================================
 window.carregarPrimeiroHorarioDisponivel = async function(event) {
-    console.log('🎯 [INÍCIO] carregarPrimeiroHorarioDisponivel');
-    console.log('⏰ Timestamp:', new Date().toISOString());
+    console.log('🎯 carregarPrimeiroHorarioDisponivel chamado');
     
-    // IMPORTANTE: Pegar o valor DIRETAMENTE do evento, não do select
-    const servicoId = event?.target?.value;
-    const servicoSelect = event?.target;
+    // Pegar o serviço selecionado
+    const servicoSelect = document.getElementById('senhaRapidaServico');
     const horarioInput = document.getElementById('senhaRapidaHorario');
     const dataHoje = new Date().toISOString().split('T')[0];
     
-    console.log('📌 Serviço selecionado (do evento):', servicoId);
-    console.log('📌 Select:', servicoSelect);
+    const servicoId = servicoSelect?.value;
+    
+    console.log('📌 Serviço selecionado:', servicoId);
     
     if (!servicoId) {
-        console.log('⏳ Nenhum serviço selecionado');
         if (horarioInput) {
             horarioInput.value = '';
             horarioInput.placeholder = 'Selecione um serviço primeiro';
@@ -3683,35 +3681,28 @@ window.carregarPrimeiroHorarioDisponivel = async function(event) {
         return;
     }
     
-    if (!horarioInput) {
-        console.error('❌ Campo de horário não encontrado');
-        return;
-    }
-    
-    console.log(`🔍 Buscando primeiro horário disponível para serviço: ${servicoId}`);
-    
+    // Mostrar carregando
     horarioInput.value = 'Carregando...';
     horarioInput.disabled = true;
     
     try {
-        // Passar o servicoId diretamente, sem depender do select
+        // Chamar a MESMA função que o modal de agendamento usa
         const horariosDisponiveis = await carregarHorariosCliente(dataHoje, servicoId);
         
-        console.log('📦 RESPOSTA de carregarHorariosCliente:', horariosDisponiveis);
+        console.log('📅 Horários recebidos:', horariosDisponiveis);
         
-        if (horariosDisponiveis && Array.isArray(horariosDisponiveis) && horariosDisponiveis.length > 0) {
-            const primeiroHorario = horariosDisponiveis[0];
-            console.log(`✅ Primeiro horário disponível: ${primeiroHorario}`);
-            
-            horarioInput.value = primeiroHorario;
+        if (horariosDisponiveis && horariosDisponiveis.length > 0) {
+            // Pegar o primeiro horário
+            horarioInput.value = horariosDisponiveis[0];
             horarioInput.disabled = false;
+            console.log('✅ Primeiro horário:', horariosDisponiveis[0]);
         } else {
-            console.log('❌ Nenhum horário disponível');
             horarioInput.value = 'Nenhum horário disponível';
             horarioInput.disabled = true;
+            console.log('❌ Nenhum horário disponível');
         }
     } catch (error) {
-        console.error('❌ Erro ao carregar horário:', error);
+        console.error('❌ Erro:', error);
         horarioInput.value = 'Erro ao carregar';
         horarioInput.disabled = true;
     }
@@ -3982,6 +3973,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
