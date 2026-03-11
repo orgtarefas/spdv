@@ -2835,7 +2835,32 @@ body {
     align-items: stretch; /* MUDA PARA stretch PARA QUE TODOS OS CARDS TENHAM A MESMA ALTURA */
 }
 
+/* ============================================
+   PLACEHOLDER - LARGURA TOTAL FIXA
+   ============================================ */
 
+/* Quando não há cards (estado vazio) */
+.coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-track {
+    width: 100% !important;
+    justify-content: center !important;
+}
+
+.coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-card-placeholder {
+    width: 100% !important;
+    max-width: none;
+    height: 140px;
+}
+
+/* Garantir que o scroll ocupe toda largura no estado vazio */
+.coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-scroll {
+    width: 100%;
+}
+
+/* Quando houver cards, volta ao normal */
+.coluna-outros .fila-servico:has(.servico-card) .servico-track {
+    width: max-content;
+    justify-content: flex-end;
+}
 
 /* SETAS FIXAS - SEMPRE VISÍVEIS */
 .servico-arrow {
@@ -3255,6 +3280,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
