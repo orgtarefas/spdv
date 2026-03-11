@@ -1213,7 +1213,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             horarioSelect.innerHTML = '<option value="">Selecione data e serviço</option>';
             horarioSelect.disabled = true;
         }
-        return;
+        return [];
     }
     
     console.log(`🔍 Buscando horários para serviço: ${servicoId}, data: ${dataSelecionada}`);
@@ -1301,7 +1301,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                                 horarioSelect.innerHTML = `<option value="">🔒 Loja fechada neste dia</option>`;
                                 horarioSelect.disabled = true;
                             }
-                            return;
+                            return [];
                         }
                     }
                 }
@@ -1355,7 +1355,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                 horarioSelect.innerHTML = `<option value="">🔒 Serviço não disponível neste dia</option>`;
                 horarioSelect.disabled = true;
             }
-            return;
+            return [];
         }
         
         const configDia = configServico.configuracoesPorDia?.[diaId];
@@ -1364,7 +1364,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                 horarioSelect.innerHTML = `<option value="">🔒 Sem atendimento neste dia</option>`;
                 horarioSelect.disabled = true;
             }
-            return;
+            return [];
         }
         
         // ============================================
@@ -1403,7 +1403,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                 horarioSelect.innerHTML = `<option value="">⏰ Fora do horário de funcionamento</option>`;
                 horarioSelect.disabled = true;
             }
-            return;
+            return [];
         }
         
         // ============================================
@@ -4029,6 +4029,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
