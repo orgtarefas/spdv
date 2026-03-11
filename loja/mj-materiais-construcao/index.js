@@ -141,7 +141,7 @@ function toggleAgendamentoContainer(mostrar) {
 }
 
 // ============================================
-// ATUALIZAR STATUS AGENDAMENTO - VERSÃO SUPER SIMPLES
+// ATUALIZAR STATUS AGENDAMENTO (MODIFICADA)
 // ============================================
 async function atualizarStatusAgendamento(agendamento, novoStatus) {
     try {
@@ -174,7 +174,17 @@ async function atualizarStatusAgendamento(agendamento, novoStatus) {
         
         console.log(`✅ Status atualizado para ${novoStatus}`);
         
-        // O onSnapshot vai detectar a mudança automaticamente
+        // Atualizar localmente
+        const index = agendamentosAtivos.findIndex(a => a.id === agendamento.id);
+        if (index !== -1) {
+            agendamentosAtivos[index].status = novoStatus;
+        }
+        
+        // 🔥 Reprocessar a fila após atualização
+        setTimeout(() => {
+            processarFilaAutomaticamente();
+        }, 500);
+        
         return true;
         
     } catch (error) {
@@ -266,7 +276,66 @@ async function carregarConfiguracoesServicos() {
 }
 
 // ============================================
-// RECONSTRUIR LISTA DE AGENDAMENTOS
+// PROCESSAR FILA AUTOMATICAMENTE (CHAMAR A CADA ATUALIZAÇÃO)
+// ============================================
+function processarFilaAutomaticamente() {
+    if (!agendamentosAtivos || agendamentosAtivos.length === 0) return;
+    
+    console.log('🔄 Processando fila automaticamente...');
+    
+    // Agrupar por serviço
+    const agendamentosPorServico = {};
+    
+    agendamentosAtivos.forEach(ag => {
+        if (!agendamentosPorServico[ag.servico_id]) {
+            agendamentosPorServico[ag.servico_id] = [];
+        }
+        agendamentosPorServico[ag.servico_id].push(ag);
+    });
+    
+    // Processar cada serviço
+    Object.entries(agendamentosPorServico).forEach(([servicoId, agendamentos]) => {
+        // Ordenar por horário (do mais antigo para o mais novo)
+        const ordenados = agendamentos.sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Separar por status
+        const emAtendimento = ordenados.filter(a => a.status === 'Em atendimento');
+        const proximoAtender = ordenados.filter(a => a.status === 'Próximo a atender');
+        const filaNormal = ordenados.filter(a => 
+            a.status !== 'Em atendimento' && 
+            a.status !== 'Próximo a atender' &&
+            ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
+        );
+        
+        console.log(`📊 Serviço ${servicoId}:`, {
+            emAtendimento: emAtendimento.length,
+            proximoAtender: proximoAtender.length,
+            filaNormal: filaNormal.length
+        });
+        
+        // REGRA 1: Se não tem ninguém em atendimento, o primeiro da fila normal vai para atendimento
+        if (emAtendimento.length === 0) {
+            if (proximoAtender.length > 0) {
+                // Se tem próximo, ele vai para atendimento
+                console.log(`➡️ Promovendo próximo a atender para atendimento no serviço ${servicoId}`);
+                atualizarStatusAgendamento(proximoAtender[0], 'Em atendimento');
+            } else if (filaNormal.length > 0) {
+                // Se não tem próximo, o primeiro da fila normal vai para atendimento
+                console.log(`➡️ Promovendo primeiro da fila para atendimento no serviço ${servicoId}`);
+                atualizarStatusAgendamento(filaNormal[0], 'Em atendimento');
+            }
+        }
+        
+        // REGRA 2: Se tem alguém em atendimento, o próximo da fila normal vira "Próximo a atender"
+        if (emAtendimento.length > 0 && proximoAtender.length === 0 && filaNormal.length > 0) {
+            console.log(`➡️ Promovendo primeiro da fila para próximo a atender no serviço ${servicoId}`);
+            atualizarStatusAgendamento(filaNormal[0], 'Próximo a atender');
+        }
+    });
+}
+
+// ============================================
+// RECONSTRUIR LISTA DE AGENDAMENTOS (MODIFICADA)
 // ============================================
 function reconstruirListaAgendamentos(dadosDoDia) {
     try {
@@ -325,16 +394,15 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                                 agendamento_id: agendamentoId,
                                 cliente_email: dados.cliente_email,
                                 cliente_nome: dados.cliente_nome,
-                                status: dados.status_agendamento, // 🔥 PRESERVA O STATUS ORIGINAL
+                                status: dados.status_agendamento,
                                 data_hora: dataHoraAgendada,
                                 horario: dataHoraAgendada.toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                // 🔥 Usar o número do agendamento_id, não reordenar
                                 senha: gerarSenha(numero, servicoId, servicosConfig),
                                 timestamp: dataHoraAgendada.getTime(),
-                                numero_original: numero // Guardar para referência
+                                numero_original: numero
                             });
                         }
                     } else {
@@ -359,12 +427,16 @@ function reconstruirListaAgendamentos(dadosDoDia) {
             });
         });
         
-        // 🔥 NÃO REORDENAR MAIS! Manter a ordem original do Firestore
-        // Apenas garantir que Em atendimento apareça primeiro (já que é único)
+        // ORDENAR POR TIMESTAMP (GARANTIR ORDEM CORRETA)
+        agendamentosAtivos.sort((a, b) => a.timestamp - b.timestamp);
         
         console.log(`✅ Total agendamentos hoje: ${agendamentosAtivos.length}`);
-        console.log('📋 Status preservados:', agendamentosAtivos.map(a => `${a.senha}: ${a.status}`));
+        console.log('📋 Status antes do processamento:', agendamentosAtivos.map(a => `${a.senha}: ${a.status}`));
         
+        // 🔥 PROCESSAR FILA AUTOMATICAMENTE
+        processarFilaAutomaticamente();
+        
+        // Renderizar o painel
         renderizarPainelAgendamento();
         
     } catch (error) {
@@ -3127,6 +3199,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
