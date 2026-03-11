@@ -2738,6 +2738,7 @@ body {
     flex-direction: column;
     overflow: hidden;
     margin-bottom: 10px;
+    width: 100%;
 }
 
 
@@ -3280,6 +3281,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
