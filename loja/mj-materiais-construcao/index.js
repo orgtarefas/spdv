@@ -1484,14 +1484,15 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             horariosFiltrados.filter(h => !horariosDisponiveis.includes(h)).map(h => h.horario));
         
         // ============================================
-        // 10. PREENCHER SELECT COM HORÁRIOS DISPONÍVEIS
+        // 10. PREENCHER SELECT COM HORÁRIOS DISPONÍVEIS (se existir)
         // ============================================
         if (horariosDisponiveis.length === 0) {
             if (horarioSelect) {
                 horarioSelect.innerHTML = '<option value="">⏰ Nenhum horário disponível</option>';
                 horarioSelect.disabled = true;
             }
-            return;
+            // 🔥 IMPORTANTE: Retornar array vazio mesmo sem select
+            return [];
         }
         
         if (horarioSelect) {
@@ -1503,9 +1504,9 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         }
         
         console.log(`✅ ${horariosDisponiveis.length} horários disponíveis`);
+        console.log('📅 Horários para retornar:', horariosDisponiveis.map(h => h.horario));
         
-        // Retornar os horários disponíveis (para uso na função de nova senha)
-        console.log('✅ Retornando horários:', horariosDisponiveis.map(h => h.horario));
+        // 🔥 IMPORTANTE: Retornar os horários disponíveis (sempre!)
         return horariosDisponiveis.map(h => h.horario);
         
     } catch (error) {
@@ -4028,6 +4029,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
