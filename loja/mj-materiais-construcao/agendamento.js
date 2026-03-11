@@ -628,6 +628,32 @@ async function carregarConfiguracoesLoja() {
     }
 }
 
+// ============================================
+// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS
+// ============================================
+async function carregarConfiguracoesServicos() {
+    try {
+        const servicosRef = collection(
+            db, 
+            'configuracoes', 
+            'servico_agendamento',
+            lojaIdAtual
+        );
+        
+        const snapshot = await getDocs(servicosRef);
+        
+        servicosConfig = {};
+        snapshot.forEach(doc => {
+            servicosConfig[doc.id] = doc.data();
+        });
+        
+        console.log('📋 Configurações dos serviços carregadas:', servicosConfig);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar configurações:', error);
+        servicosConfig = {};
+    }
+}
 
 
 // ============================================
@@ -825,6 +851,25 @@ async function salvarConfigFuncionamento() {
     } finally {
         esconderLoading();
     }
+}
+
+// ============================================
+// GERAR SENHA BASEADA NO SERVIÇO (cópia da função do index.js)
+// ============================================
+function gerarSenha(numero, servicoId, servicosConfig = {}) {
+    let prefixo = 'S';
+    
+    if (servicosConfig[servicoId] && servicosConfig[servicoId].abreviacao) {
+        prefixo = servicosConfig[servicoId].abreviacao;
+    } else {
+        const nomePartes = servicoId.split('_');
+        if (nomePartes.length > 0) {
+            prefixo = nomePartes[0].substring(0, 3).toUpperCase();
+        }
+    }
+    
+    const numeroFormatado = numero.toString().padStart(2, '0');
+    return `${prefixo}${numeroFormatado}`;
 }
 
 // ============================================
@@ -1057,6 +1102,34 @@ function configurarAbasDias() {
     
     console.log('✅ Abas de dias configuradas');
 }
+
+// ============================================
+// VALIDAR AGENDAMENTO FUTURO - ADAPTADO
+// ============================================
+window.validarAgendamentoFuturo = async function(agendamento) {
+    try {
+        await atualizarStatusAgendamentoAdmin(agendamento, 'Verificado');
+        mostrarMensagem('Agendamento validado com sucesso!', 'success');
+    } catch (error) {
+        console.error('❌ Erro ao validar:', error);
+        mostrarMensagem('Erro ao validar agendamento', 'error');
+    }
+};
+
+// ============================================
+// CANCELAR AGENDAMENTO FUTURO - ADAPTADO
+// ============================================
+window.cancelarAgendamentoFuturo = async function(agendamento) {
+    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+    
+    try {
+        await atualizarStatusAgendamentoAdmin(agendamento, 'Cancelado');
+        mostrarMensagem('Agendamento cancelado!', 'success');
+    } catch (error) {
+        console.error('❌ Erro ao cancelar:', error);
+        mostrarMensagem('Erro ao cancelar agendamento', 'error');
+    }
+};
 
 // ============================================
 // CONFIGURAR ESPELHAMENTO (FORA DO BOTÃO, VISÍVEL APENAS NA SEGUNDA)
@@ -1371,7 +1444,12 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS
+// VARIÁVEL GLOBAL PARA CONFIGURAÇÕES DOS SERVIÇOS (adicione no topo do arquivo)
+// ============================================
+let servicosConfig = {};
+
+// ============================================
+// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS (adicione esta função)
 // ============================================
 async function carregarConfiguracoesServicos() {
     try {
@@ -1384,7 +1462,6 @@ async function carregarConfiguracoesServicos() {
         
         const snapshot = await getDocs(servicosRef);
         
-        // 🔥 CORRIGIDO: usar a variável global, não redeclarar
         servicosConfig = {};
         snapshot.forEach(doc => {
             servicosConfig[doc.id] = doc.data();
@@ -1475,7 +1552,7 @@ async function reconstruirListaAgendamentosAdmin() {
                 // Converter o mapa em array e ordenar por data/hora
                 const agendamentosArray = Object.entries(agendamentosMap || {})
                     .sort((a, b) => {
-                        const dataA = a[1].data_hora_agendada?.toDate?.() || new Date(a[1].data_hora_agendada);
+                        const dataA = a[1].data_hora_agendada?.toDate?.() || new Date(a[1].data hora_agendada);
                         const dataB = b[1].data_hora_agendada?.toDate?.() || new Date(b[1].data_hora_agendada);
                         return dataA - dataB;
                     });
@@ -1793,7 +1870,7 @@ function renderizarPainelFila() {
 }
 
 // ============================================
-// RENDERIZAR AGENDAMENTOS FUTUROS (CORRIGIDO)
+// RENDERIZAR AGENDAMENTOS FUTUROS (NOVA ESTRUTURA)
 // ============================================
 function renderizarAgendamentosFuturos() {
     const grid = document.getElementById('futurosGrid');
@@ -1843,28 +1920,25 @@ function renderizarAgendamentosFuturos() {
             const statusClass = ag.validado ? 'validado' : 'pendente';
             const statusText = ag.validado ? 'Verificado' : ag.status;
             
-            // CORREÇÃO: Usar aspas simples no onclick e escapar corretamente
-            const agJson = JSON.stringify(ag).replace(/'/g, "\\'");
-            
             html += `
                 <div class="futuro-card ${statusClass}" 
                      data-email="${ag.cliente_email}" 
-                     data-agendamento-id="${ag.id}">
+                     data-agendamento='${JSON.stringify(ag).replace(/'/g, "&apos;")}'>
                     <div class="futuro-horario">${ag.horario}</div>
                     <div class="futuro-info">
                         <strong>${ag.cliente_nome}</strong>
-                        <span>${ag.servico_nome || ag.servico}</span>
+                        <span>${ag.servico}</span>
                     </div>
                     <div class="futuro-status">
                         <span class="badge-${statusClass}">${statusText}</span>
                     </div>
                     <div class="futuro-acoes">
                         ${!ag.validado ? `
-                            <button class="btn-validar" onclick='validarAgendamentoFuturo(${agJson})'>
+                            <button class="btn-validar" onclick="validarAgendamentoFuturo(${JSON.stringify(ag).replace(/'/g, "&apos;")})">
                                 <i class="fas fa-check"></i> Validar
                             </button>
                         ` : ''}
-                        <button class="btn-cancelar" onclick='cancelarAgendamentoFuturo(${agJson})'>
+                        <button class="btn-cancelar" onclick="cancelarAgendamentoFuturo(${JSON.stringify(ag).replace(/'/g, "&apos;")})">
                             <i class="fas fa-ban"></i> Cancelar
                         </button>
                     </div>
@@ -1880,46 +1954,6 @@ function renderizarAgendamentosFuturos() {
     
     grid.innerHTML = html;
 }
-
-// ============================================
-// VALIDAR AGENDAMENTO FUTURO (CORRIGIDO)
-// ============================================
-window.validarAgendamentoFuturo = function(agendamento) {
-    if (!agendamento || !agendamento.id) {
-        console.error('❌ Agendamento inválido');
-        return;
-    }
-    
-    // Encontrar o agendamento na lista global
-    const ag = agendamentosFuturos.find(a => a.id === agendamento.id);
-    if (ag) {
-        atualizarStatusAgendamentoAdmin(ag, 'Verificado');
-    } else {
-        mostrarMensagem('Agendamento não encontrado', 'error');
-    }
-};
-
-// ============================================
-// CANCELAR AGENDAMENTO FUTURO (CORRIGIDO)
-// ============================================
-window.cancelarAgendamentoFuturo = function(agendamento) {
-    if (!agendamento || !agendamento.id) {
-        console.error('❌ Agendamento inválido');
-        return;
-    }
-    
-    if (!confirm(`Tem certeza que deseja cancelar o agendamento de ${agendamento.cliente_nome || 'cliente'}?`)) {
-        return;
-    }
-    
-    // Encontrar o agendamento na lista global
-    const ag = agendamentosFuturos.find(a => a.id === agendamento.id);
-    if (ag) {
-        atualizarStatusAgendamentoAdmin(ag, 'Cancelado');
-    } else {
-        mostrarMensagem('Agendamento não encontrado', 'error');
-    }
-};
 
 // ============================================
 // ENVIAR NOTIFICAÇÃO WHATSAPP (CORRIGIDO)
@@ -2028,7 +2062,7 @@ function configurarCheckboxesAtendimento() {
                 const agendamento = agendamentosAtivos.find(a => a.id === id);
                 if (agendamento) {
                     // ✅ CORRETO: Passar o objeto completo
-                    await atualizarStatusAgendamentoAdmin(agendamento, 'Concluido');
+                    await atualizarStatusAgendamento(agendamento, 'Concluido');
                 }
             }
             mostrarMensagem(`${selecionados.length} atendimento(s) concluído(s)!`, 'success');
