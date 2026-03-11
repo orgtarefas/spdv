@@ -1072,21 +1072,6 @@ window.validarAgendamentoFuturo = async function(agendamento) {
 };
 
 // ============================================
-// CANCELAR AGENDAMENTO FUTURO - ADAPTADO
-// ============================================
-window.cancelarAgendamentoFuturo = async function(agendamento) {
-    if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
-    
-    try {
-        await atualizarStatusAgendamentoAdmin(agendamento, 'Cancelado');
-        mostrarMensagem('Agendamento cancelado!', 'success');
-    } catch (error) {
-        console.error('❌ Erro ao cancelar:', error);
-        mostrarMensagem('Erro ao cancelar agendamento', 'error');
-    }
-};
-
-// ============================================
 // CONFIGURAR ESPELHAMENTO (FORA DO BOTÃO, VISÍVEL APENAS NA SEGUNDA)
 // ============================================
 function configurarEspelhamentoAutomatico() {
@@ -1821,7 +1806,7 @@ function renderizarPainelFila() {
 }
 
 // ============================================
-// RENDERIZAR AGENDAMENTOS FUTUROS (NOVA ESTRUTURA)
+// RENDERIZAR AGENDAMENTOS FUTUROS (CORRIGIDO)
 // ============================================
 function renderizarAgendamentosFuturos() {
     const grid = document.getElementById('futurosGrid');
@@ -1871,25 +1856,28 @@ function renderizarAgendamentosFuturos() {
             const statusClass = ag.validado ? 'validado' : 'pendente';
             const statusText = ag.validado ? 'Verificado' : ag.status;
             
+            // CORREÇÃO: Usar aspas simples no onclick e escapar corretamente
+            const agJson = JSON.stringify(ag).replace(/'/g, "\\'");
+            
             html += `
                 <div class="futuro-card ${statusClass}" 
                      data-email="${ag.cliente_email}" 
-                     data-agendamento='${JSON.stringify(ag).replace(/'/g, "&apos;")}'>
+                     data-agendamento-id="${ag.id}">
                     <div class="futuro-horario">${ag.horario}</div>
                     <div class="futuro-info">
                         <strong>${ag.cliente_nome}</strong>
-                        <span>${ag.servico}</span>
+                        <span>${ag.servico_nome || ag.servico}</span>
                     </div>
                     <div class="futuro-status">
                         <span class="badge-${statusClass}">${statusText}</span>
                     </div>
                     <div class="futuro-acoes">
                         ${!ag.validado ? `
-                            <button class="btn-validar" onclick="validarAgendamentoFuturo(${JSON.stringify(ag).replace(/'/g, "&apos;")})">
+                            <button class="btn-validar" onclick='validarAgendamentoFuturo(${agJson})'>
                                 <i class="fas fa-check"></i> Validar
                             </button>
                         ` : ''}
-                        <button class="btn-cancelar" onclick="cancelarAgendamentoFuturo(${JSON.stringify(ag).replace(/'/g, "&apos;")})">
+                        <button class="btn-cancelar" onclick='cancelarAgendamentoFuturo(${agJson})'>
                             <i class="fas fa-ban"></i> Cancelar
                         </button>
                     </div>
@@ -1905,6 +1893,46 @@ function renderizarAgendamentosFuturos() {
     
     grid.innerHTML = html;
 }
+
+// ============================================
+// VALIDAR AGENDAMENTO FUTURO (CORRIGIDO)
+// ============================================
+window.validarAgendamentoFuturo = function(agendamento) {
+    if (!agendamento || !agendamento.id) {
+        console.error('❌ Agendamento inválido');
+        return;
+    }
+    
+    // Encontrar o agendamento na lista global
+    const ag = agendamentosFuturos.find(a => a.id === agendamento.id);
+    if (ag) {
+        atualizarStatusAgendamentoAdmin(ag, 'Verificado');
+    } else {
+        mostrarMensagem('Agendamento não encontrado', 'error');
+    }
+};
+
+// ============================================
+// CANCELAR AGENDAMENTO FUTURO (CORRIGIDO)
+// ============================================
+window.cancelarAgendamentoFuturo = function(agendamento) {
+    if (!agendamento || !agendamento.id) {
+        console.error('❌ Agendamento inválido');
+        return;
+    }
+    
+    if (!confirm(`Tem certeza que deseja cancelar o agendamento de ${agendamento.cliente_nome || 'cliente'}?`)) {
+        return;
+    }
+    
+    // Encontrar o agendamento na lista global
+    const ag = agendamentosFuturos.find(a => a.id === agendamento.id);
+    if (ag) {
+        atualizarStatusAgendamentoAdmin(ag, 'Cancelado');
+    } else {
+        mostrarMensagem('Agendamento não encontrado', 'error');
+    }
+};
 
 // ============================================
 // ENVIAR NOTIFICAÇÃO WHATSAPP (CORRIGIDO)
