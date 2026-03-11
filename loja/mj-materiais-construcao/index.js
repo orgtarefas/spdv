@@ -1197,18 +1197,28 @@ async function carregarServicosCliente() {
 }
 
 // ============================================
-// CARREGAR HORÁRIOS PARA CLIENTE (COM VERIFICAÇÃO DE DISPONIBILIDADE)
+// CARREGAR HORÁRIOS PARA CLIENTE (COM LOGS DETALHADOS)
 // ============================================
 async function carregarHorariosCliente(dataSelecionada = null, servicoId = null) {
+    console.log('🚀 [INÍCIO] carregarHorariosCliente');
+    console.log('📌 Parâmetros recebidos:', { dataSelecionada, servicoId });
+    
     const dataInput = document.getElementById('agendamentoData');
     const horarioSelect = document.getElementById('agendamentoHorario');
     const servicoSelect = document.getElementById('servicoSelect');
     
     // Se os parâmetros não foram passados, pegar dos inputs
-    if (!dataSelecionada) dataSelecionada = dataInput?.value;
-    if (!servicoId) servicoId = servicoSelect?.value;
+    if (!dataSelecionada) {
+        dataSelecionada = dataInput?.value;
+        console.log('📌 Usando data do input:', dataSelecionada);
+    }
+    if (!servicoId) {
+        servicoId = servicoSelect?.value;
+        console.log('📌 Usando serviço do input:', servicoId);
+    }
     
     if (!dataSelecionada || !servicoId) {
+        console.log('❌ Data ou serviço não informados');
         if (horarioSelect) {
             horarioSelect.innerHTML = '<option value="">Selecione data e serviço</option>';
             horarioSelect.disabled = true;
@@ -1227,9 +1237,12 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         // ============================================
         // 1. BUSCAR AGENDAMENTOS JÁ EXISTENTES PARA ESTA DATA
         // ============================================
+        console.log('📥 Buscando agendamentos existentes no Firestore...');
         const [ano, mes, dia] = dataSelecionada.split('-');
         const mesAno = `${mes}_${ano}`;
         const dataFormatada = `${dia}_${mes}_${ano}`;
+        
+        console.log('📅 Data formatada:', { ano, mes, dia, mesAno, dataFormatada });
         
         let agendamentosExistentes = [];
         
@@ -1246,10 +1259,21 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             
             if (docSnap.exists()) {
                 const dados = docSnap.data();
+                console.log('📦 Documento encontrado:', dados);
+                
                 // Pegar agendamentos deste serviço específico
                 if (dados[servicoId]) {
                     agendamentosExistentes = Object.values(dados[servicoId]);
+                    console.log(`📊 ${agendamentosExistentes.length} agendamentos existentes para este serviço`);
+                    console.log('📋 Horários já agendados:', agendamentosExistentes.map(ag => {
+                        const data = ag.data_hora_agendada?.toDate?.() || new Date(ag.data_hora_agendada);
+                        return `${data.getHours()}:${data.getMinutes()}`;
+                    }));
+                } else {
+                    console.log('📭 Nenhum agendamento para este serviço nesta data');
                 }
+            } else {
+                console.log('📭 Nenhum documento encontrado para esta data');
             }
         } catch (e) {
             console.warn('⚠️ Erro ao buscar agendamentos existentes:', e);
@@ -1258,6 +1282,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         // ============================================
         // 2. CARREGAR HORÁRIO DE FUNCIONAMENTO DA LOJA
         // ============================================
+        console.log('🏪 Buscando horário de funcionamento da loja...');
         let lojaAbertura = "00:00";
         let lojaFechamento = "23:59";
         
@@ -1270,6 +1295,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                 
                 if (lojaDoc.exists) {
                     const dados = lojaDoc.data();
+                    console.log('📋 Dados da loja:', dados);
                     
                     const dataObj = new Date(dataSelecionada + 'T12:00:00');
                     const diaSemana = dataObj.getDay();
@@ -1285,25 +1311,34 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                     };
                     
                     const diaId = diasMap[diaSemana];
+                    console.log('📅 Dia da semana:', diaId);
                     
                     if (dados.funcionamento && dados.funcionamento[diaId]) {
                         const horarioLoja = dados.funcionamento[diaId];
+                        console.log('⏰ Horário da loja (bruto):', horarioLoja);
                         
                         if (horarioLoja && horarioLoja.trim() !== '') {
                             const match = horarioLoja.match(/(\d{2}:\d{2})h às (\d{2}:\d{2})h/);
                             if (match) {
                                 lojaAbertura = match[1];
                                 lojaFechamento = match[2];
-                                console.log(`🏪 Loja abre: ${lojaAbertura}, fecha: ${lojaFechamento}`);
+                                console.log(`✅ Loja abre: ${lojaAbertura}, fecha: ${lojaFechamento}`);
+                            } else {
+                                console.log('⚠️ Formato de horário não reconhecido');
                             }
                         } else {
+                            console.log('🔒 Loja fechada neste dia');
                             if (horarioSelect) {
                                 horarioSelect.innerHTML = `<option value="">🔒 Loja fechada neste dia</option>`;
                                 horarioSelect.disabled = true;
                             }
                             return [];
                         }
+                    } else {
+                        console.log('⚠️ Horário de funcionamento não encontrado para este dia');
                     }
+                } else {
+                    console.log('⚠️ Documento da loja não encontrado');
                 }
             }
         } catch (e) {
@@ -1313,14 +1348,16 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         // ============================================
         // 3. CARREGAR CONFIGURAÇÃO DO SERVIÇO
         // ============================================
+        console.log('⚙️ Carregando configuração do serviço...');
         let configServico;
         let selectedOption;
         
         if (servicoSelect) {
             selectedOption = servicoSelect.selectedOptions[0];
+            console.log('📌 Opção selecionada:', selectedOption);
             configServico = JSON.parse(selectedOption?.dataset.config || '{}');
         } else {
-            // Se veio da função sem select, buscar configuração do serviço
+            console.log('📌 Buscando configuração direta do Firestore');
             const configRef = doc(
                 db,
                 'configuracoes',
@@ -1332,7 +1369,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             configServico = configDoc.exists() ? configDoc.data() : {};
         }
         
-        console.log('📋 Configuração do serviço:', configServico);
+        console.log('📋 Configuração do serviço carregada:', configServico);
         
         const dataObj = new Date(dataSelecionada + 'T12:00:00');
         const diaSemana = dataObj.getDay();
@@ -1348,9 +1385,13 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         };
         
         const diaId = diasMap[diaSemana];
+        console.log('📅 Dia da semana para serviço:', diaId);
         
         const diasAtivos = configServico.diasAtivos || [];
+        console.log('📅 Dias ativos do serviço:', diasAtivos);
+        
         if (!diasAtivos.includes(diaId)) {
+            console.log('🔒 Serviço não disponível neste dia');
             if (horarioSelect) {
                 horarioSelect.innerHTML = `<option value="">🔒 Serviço não disponível neste dia</option>`;
                 horarioSelect.disabled = true;
@@ -1359,7 +1400,10 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         }
         
         const configDia = configServico.configuracoesPorDia?.[diaId];
+        console.log('⚙️ Configuração do dia:', configDia);
+        
         if (!configDia || !configDia.ativo) {
+            console.log('🔒 Sem atendimento neste dia');
             if (horarioSelect) {
                 horarioSelect.innerHTML = `<option value="">🔒 Sem atendimento neste dia</option>`;
                 horarioSelect.disabled = true;
@@ -1375,8 +1419,10 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             return h * 60 + m;
         }
         
+        console.log('⏰ Convertendo horários para minutos...');
         const minutosLojaAbertura = timeToMinutes(lojaAbertura);
         const minutosLojaFechamento = timeToMinutes(lojaFechamento);
+        console.log(`🏪 Loja em minutos: ${minutosLojaAbertura} - ${minutosLojaFechamento}`);
         
         // ============================================
         // 5. GERAR HORÁRIOS BASEADO NA CONFIGURAÇÃO
@@ -1386,19 +1432,26 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         const duracao = configDia.duracao || 30;
         const intervaloEntre = configDia.intervaloEntre || 0;
         
+        console.log('⚙️ Configuração de horários:', {
+            inicio: configDia.inicio,
+            fim: configDia.fim,
+            duracao,
+            intervaloEntre
+        });
+        
         let minutosInicioServico = hInicio * 60 + mInicio;
         const minutosFimServico = hFim * 60 + mFim;
+        
+        console.log(`⏰ Serviço em minutos: ${minutosInicioServico} - ${minutosFimServico}`);
         
         let minutosInicio = Math.max(minutosInicioServico, minutosLojaAbertura);
         let minutosFim = Math.min(minutosFimServico, minutosLojaFechamento);
         
-        console.log(`⏰ Interseção de horários:`, {
-            servico: `${configDia.inicio} às ${configDia.fim}`,
-            loja: `${lojaAbertura} às ${lojaFechamento}`,
-            resultado: `${Math.floor(minutosInicio/60)}:${(minutosInicio%60).toString().padStart(2,'0')} às ${Math.floor(minutosFim/60)}:${(minutosFim%60).toString().padStart(2,'0')}`
-        });
+        console.log(`⏰ Interseção de horários: ${minutosInicio} - ${minutosFim}`);
+        console.log(`⏰ Convertido: ${Math.floor(minutosInicio/60)}:${(minutosInicio%60).toString().padStart(2,'0')} às ${Math.floor(minutosFim/60)}:${(minutosFim%60).toString().padStart(2,'0')}`);
         
         if (minutosInicio >= minutosFim) {
+            console.log('⏰ Fora do horário de funcionamento');
             if (horarioSelect) {
                 horarioSelect.innerHTML = `<option value="">⏰ Fora do horário de funcionamento</option>`;
                 horarioSelect.disabled = true;
@@ -1409,6 +1462,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         // ============================================
         // 6. GERAR TODOS OS HORÁRIOS POSSÍVEIS
         // ============================================
+        console.log('⏰ Gerando todos os horários possíveis...');
         const todosHorarios = [];
         let minutosAtual = minutosInicio;
         
@@ -1425,11 +1479,16 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             minutosAtual += duracao + intervaloEntre;
         }
         
+        console.log(`📅 Total de horários gerados: ${todosHorarios.length}`);
+        console.log('📅 Todos horários:', todosHorarios.map(h => h.horario));
+        
         // ============================================
         // 7. FILTRAR INTERVALO DE ALMOÇO
         // ============================================
         let horariosFiltrados = todosHorarios;
         if (configDia.intervaloInicio && configDia.intervaloFim) {
+            console.log(`🍽️ Filtrando intervalo de almoço: ${configDia.intervaloInicio} às ${configDia.intervaloFim}`);
+            
             const [hIntInicio, mIntInicio] = configDia.intervaloInicio.split(':').map(Number);
             const [hIntFim, mIntFim] = configDia.intervaloFim.split(':').map(Number);
             
@@ -1440,7 +1499,8 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                 h.minutos < minutosIntInicio || h.minutos >= minutosIntFim
             );
             
-            console.log(`🍽️ Removendo intervalo de almoço: ${configDia.intervaloInicio} às ${configDia.intervaloFim}`);
+            console.log(`📅 Após filtro de almoço: ${horariosFiltrados.length} horários`);
+            console.log('📅 Horários após almoço:', horariosFiltrados.map(h => h.horario));
         }
         
         // ============================================
@@ -1451,18 +1511,31 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         const horaAtual = agora.getHours();
         const minAtual = agora.getMinutes();
         
+        console.log(`⏰ Data atual: ${hoje}, Hora atual: ${horaAtual}:${minAtual}`);
+        console.log(`📅 Data selecionada: ${dataSelecionada}, é hoje? ${dataSelecionada === hoje}`);
+        
         if (dataSelecionada === hoje) {
+            console.log('⏰ Removendo horários que já passaram...');
+            const antes = horariosFiltrados.length;
             horariosFiltrados = horariosFiltrados.filter(h => {
                 const [hHora, hMin] = h.horario.split(':').map(Number);
-                return (hHora > horaAtual) || (hHora === horaAtual && hMin > minAtual);
+                const manter = (hHora > horaAtual) || (hHora === horaAtual && hMin > minAtual);
+                if (!manter) {
+                    console.log(`❌ Removendo horário passado: ${h.horario}`);
+                }
+                return manter;
             });
             
-            console.log(`⏰ Hoje - removendo horários passados. Restam: ${horariosFiltrados.length}`);
+            console.log(`⏰ Horários removidos: ${antes - horariosFiltrados.length}`);
+            console.log(`📅 Restam: ${horariosFiltrados.length} horários`);
         }
         
         // ============================================
         // 9. 🔥 REMOVER HORÁRIOS JÁ AGENDADOS (INDISPONÍVEIS)
         // ============================================
+        console.log('🔍 Verificando horários já agendados...');
+        console.log('📋 Agendamentos existentes:', agendamentosExistentes.length);
+        
         const horariosDisponiveis = horariosFiltrados.filter(horarioObj => {
             // Verificar se já existe algum agendamento neste horário
             const agendado = agendamentosExistentes.some(ag => {
@@ -1473,7 +1546,11 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
                 const minAg = dataHoraAg.getMinutes().toString().padStart(2, '0');
                 const horarioAg = `${horaAg}:${minAg}`;
                 
-                return horarioAg === horarioObj.horario;
+                const conflito = horarioAg === horarioObj.horario;
+                if (conflito) {
+                    console.log(`⚠️ Horário ${horarioObj.horario} já agendado`);
+                }
+                return conflito;
             });
             
             return !agendado; // Retorna true se NÃO estiver agendado
@@ -1487,15 +1564,16 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         // 10. PREENCHER SELECT COM HORÁRIOS DISPONÍVEIS (se existir)
         // ============================================
         if (horariosDisponiveis.length === 0) {
+            console.log('❌ Nenhum horário disponível');
             if (horarioSelect) {
                 horarioSelect.innerHTML = '<option value="">⏰ Nenhum horário disponível</option>';
                 horarioSelect.disabled = true;
             }
-            // 🔥 IMPORTANTE: Retornar array vazio mesmo sem select
             return [];
         }
         
         if (horarioSelect) {
+            console.log('📝 Preenchendo select com horários disponíveis');
             horarioSelect.innerHTML = '<option value="">Selecione um horário</option>';
             horariosDisponiveis.forEach(h => {
                 horarioSelect.innerHTML += `<option value="${h.horario}">${h.horario}</option>`;
@@ -1503,14 +1581,15 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
             horarioSelect.disabled = false;
         }
         
+        const horariosRetorno = horariosDisponiveis.map(h => h.horario);
         console.log(`✅ ${horariosDisponiveis.length} horários disponíveis`);
-        console.log('📅 Horários para retornar:', horariosDisponiveis.map(h => h.horario));
+        console.log('📤 Retornando horários:', horariosRetorno);
         
-        // 🔥 IMPORTANTE: Retornar os horários disponíveis (sempre!)
-        return horariosDisponiveis.map(h => h.horario);
+        return horariosRetorno;
         
     } catch (error) {
         console.error('❌ Erro ao carregar horários:', error);
+        console.error('📋 Stack trace:', error.stack);
         if (horarioSelect) {
             horarioSelect.innerHTML = '<option value="">Erro ao carregar horários</option>';
             horarioSelect.disabled = true;
@@ -4029,6 +4108,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
