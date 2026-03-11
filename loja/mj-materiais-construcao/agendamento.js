@@ -628,32 +628,6 @@ async function carregarConfiguracoesLoja() {
     }
 }
 
-// ============================================
-// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS
-// ============================================
-async function carregarConfiguracoesServicos() {
-    try {
-        const servicosRef = collection(
-            db, 
-            'configuracoes', 
-            'servico_agendamento',
-            lojaIdAtual
-        );
-        
-        const snapshot = await getDocs(servicosRef);
-        
-        servicosConfig = {};
-        snapshot.forEach(doc => {
-            servicosConfig[doc.id] = doc.data();
-        });
-        
-        console.log('📋 Configurações dos serviços carregadas:', servicosConfig);
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar configurações:', error);
-        servicosConfig = {};
-    }
-}
 
 
 // ============================================
@@ -1444,12 +1418,7 @@ function iniciarEscutaAgendamentos() {
 }
 
 // ============================================
-// VARIÁVEL GLOBAL PARA CONFIGURAÇÕES DOS SERVIÇOS (adicione no topo do arquivo)
-// ============================================
-let servicosConfig = {};
-
-// ============================================
-// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS (adicione esta função)
+// CARREGAR CONFIGURAÇÕES DOS SERVIÇOS
 // ============================================
 async function carregarConfiguracoesServicos() {
     try {
@@ -1462,6 +1431,7 @@ async function carregarConfiguracoesServicos() {
         
         const snapshot = await getDocs(servicosRef);
         
+        // 🔥 CORRIGIDO: usar a variável global, não redeclarar
         servicosConfig = {};
         snapshot.forEach(doc => {
             servicosConfig[doc.id] = doc.data();
