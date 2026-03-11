@@ -749,29 +749,31 @@ function renderizarPainelAgendamento() {
             // Atualizar dots do carrossel geral
             atualizarDotsScroll(servicosOrdenados.length);
         } else {
-            // Apenas UM placeholder quando não há dados
-            let placeholders = `
-                <div class="fila-servico">
-                    <div class="fila-servico-header">
-                        <i class="fas fa-star"></i>
-                        <h4>Aguardando...</h4>
-                        <span class="servico-count">0</span>
-                    </div>
-                    <div class="servico-carousel-container">
-                        <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
-                        <div class="servico-scroll">
-                            <div class="servico-track">
-                                <div class="servico-card-placeholder">
-                                    <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
-                                    <div class="placeholder-text">Sem agendamentos</div>
+            // Placeholders quando não há dados
+            let placeholders = '';
+            for (let i = 0; i < 2; i++) {
+                placeholders += `
+                    <div class="fila-servico">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-star"></i>
+                            <h4>Aguardando...</h4>
+                            <span class="servico-count">0</span>
+                        </div>
+                        <div class="servico-carousel-container">
+                            <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
+                            <div class="servico-scroll">
+                                <div class="servico-track">
+                                    <div class="servico-card-placeholder">
+                                        <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
+                                        <div class="placeholder-text">Sem agendamentos</div>
+                                    </div>
                                 </div>
                             </div>
+                            <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
                         </div>
-                        <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
                     </div>
-                </div>
-            `;
-            
+                `;
+            }
             proximosTrack.innerHTML = placeholders;
             atualizarDotsScroll(0);
         }
@@ -3125,6 +3127,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
