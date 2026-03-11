@@ -2838,29 +2838,21 @@ body {
    PLACEHOLDER - LARGURA TOTAL FIXA
    ============================================ */
 
-/* Quando não há cards (estado vazio) */
+/* Quando não há cards (estado vazio) - SOBRESCREVER alinhamento */
 .coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-track {
     display: flex;
     width: 100% !important;
     min-width: 100%;
-    justify-content: center; /* Centraliza o placeholder */
+    justify-content: center !important; /* SOBRESCREVE o flex-end */
 }
 
+/* Placeholder ocupa toda largura */
 .coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-card-placeholder {
     width: 100% !important;
     max-width: none;
     height: 140px;
-    background: #f8fafc;
-    border: 1px dashed #cbd5e1;
-    border-radius: 18px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.6;
-    flex-shrink: 0;
 }
+
 
 /* Garantir que o container do carrossel também ocupe toda largura */
 .coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-carousel-container {
@@ -2872,16 +2864,14 @@ body {
     display: flex !important;
 }
 
-/* Forçar o scroll a ocupar toda largura */
+/* Garantir que o scroll ocupe toda largura */
 .coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-scroll {
     flex: 1 1 auto;
     width: 100% !important;
-    min-width: 100%;
 }
 
 /* Quando houver cards, volta ao normal */
 .coluna-outros .fila-servico:has(.servico-card) .servico-track {
-    width: max-content;
     justify-content: flex-end;
 }
 
@@ -3302,6 +3292,7 @@ body {
         height: 140px;
     }
 }
+
 
 
 
