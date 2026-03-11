@@ -1347,70 +1347,62 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         }
         
         // ============================================
-        // 3. CARREGAR CONFIGURAÇÃO DO SERVIÇO
+        // 3. CARREGAR CONFIGURAÇÃO DO SERVIÇO (VERSÃO CORRIGIDA)
         // ============================================
         console.log('⚙️ Carregando configuração do serviço...');
-        let configServico;
-        let selectedOption;
+        let configServico = {};
         
-        if (servicoSelect) {
-            selectedOption = servicoSelect.selectedOptions[0];
-            console.log('📌 Opção selecionada:', selectedOption);
-            configServico = JSON.parse(selectedOption?.dataset.config || '{}');
-        } else {
-            console.log('📌 Buscando configuração direta do Firestore');
-            const configRef = doc(
-                db,
-                'configuracoes',
-                'servico_agendamento',
-                lojaIdAtual,
-                servicoId
-            );
-            const configDoc = await getDoc(configRef);
-            configServico = configDoc.exists() ? configDoc.data() : {};
+        // PRIORIDADE 1: Se temos um servicoId (recebido como parâmetro)
+        if (servicoId) {
+            console.log('📌 Buscando configuração para serviço ID:', servicoId);
+            
+            try {
+                const configRef = doc(
+                    db,
+                    'configuracoes',
+                    'servico_agendamento',
+                    lojaIdAtual,
+                    servicoId
+                );
+                
+                const configDoc = await getDoc(configRef);
+                
+                if (configDoc.exists()) {
+                    configServico = configDoc.data();
+                    console.log('📋 Configuração carregada do Firestore:', configServico);
+                } else {
+                    console.log('❌ Documento de configuração não encontrado no Firestore');
+                }
+            } catch (error) {
+                console.error('❌ Erro ao buscar configuração no Firestore:', error);
+            }
+        } 
+        // PRIORIDADE 2: Fallback para o select (caso não tenha servicoId)
+        else if (servicoSelect && servicoSelect.selectedOptions && servicoSelect.selectedOptions.length > 0) {
+            const selectedOption = servicoSelect.selectedOptions[0];
+            console.log('📌 Opção selecionada no select (fallback):', selectedOption);
+            
+            if (selectedOption && selectedOption.dataset && selectedOption.dataset.config) {
+                try {
+                    configServico = JSON.parse(selectedOption.dataset.config);
+                    console.log('📋 Configuração carregada do dataset (fallback):', configServico);
+                } catch (e) {
+                    console.error('❌ Erro ao parsear dataset.config:', e);
+                }
+            }
         }
         
-        console.log('📋 Configuração do serviço carregada:', configServico);
-        
-        const dataObj = new Date(dataSelecionada + 'T12:00:00');
-        const diaSemana = dataObj.getDay();
-        
-        const diasMap = {
-            0: 'domingo',
-            1: 'segunda',
-            2: 'terca',
-            3: 'quarta',
-            4: 'quinta',
-            5: 'sexta',
-            6: 'sabado'
-        };
-        
-        const diaId = diasMap[diaSemana];
-        console.log('📅 Dia da semana para serviço:', diaId);
-        
-        const diasAtivos = configServico.diasAtivos || [];
-        console.log('📅 Dias ativos do serviço:', diasAtivos);
-        
-        if (!diasAtivos.includes(diaId)) {
-            console.log('🔒 Serviço não disponível neste dia');
+        // Se ainda não tem configuração, retorna erro
+        if (!configServico || Object.keys(configServico).length === 0) {
+            console.log('❌ Não foi possível carregar configuração do serviço');
             if (horarioSelect) {
-                horarioSelect.innerHTML = `<option value="">🔒 Serviço não disponível neste dia</option>`;
+                horarioSelect.innerHTML = '<option value="">❌ Erro ao carregar configuração</option>';
                 horarioSelect.disabled = true;
             }
             return [];
         }
         
-        const configDia = configServico.configuracoesPorDia?.[diaId];
-        console.log('⚙️ Configuração do dia:', configDia);
-        
-        if (!configDia || !configDia.ativo) {
-            console.log('🔒 Sem atendimento neste dia');
-            if (horarioSelect) {
-                horarioSelect.innerHTML = `<option value="">🔒 Sem atendimento neste dia</option>`;
-                horarioSelect.disabled = true;
-            }
-            return [];
-        }
+        console.log('📋 Configuração final do serviço:', configServico);
         
         // ============================================
         // 4. CONVERTER STRINGS PARA MINUTOS
@@ -3975,6 +3967,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
