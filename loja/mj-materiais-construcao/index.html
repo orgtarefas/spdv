@@ -142,12 +142,17 @@
             <div class="agendamento-header">
                 <div class="agendamento-status" id="agendamentoStatus">
                     <span class="status-indicator online"></span>
-                    <span>Modo Automático</span>  <!-- Texto alterado -->
+                    <span>Modo Automático</span>
                 </div>    
                 <h2><i class="fas fa-clock"></i> Atendimento Agendado</h2>
-                <button class="btn-agendar" id="btnAbrirAgendamento">
-                    <i class="fas fa-calendar-plus"></i> Agendar
-                </button>
+                <div class="agendamento-actions">
+                    <button class="btn-agendar" id="btnAbrirAgendamento">
+                        <i class="fas fa-calendar-plus"></i> Agendar
+                    </button>
+                    <button class="btn-senha-rapida" id="btnNovaSenhaHoje">
+                        <i class="fas fa-bolt"></i> Nova Senha Hoje
+                    </button>
+                </div>
             </div>
             
             <!-- Container com 3 colunas de tamanhos diferentes -->
@@ -651,6 +656,7 @@
     </script>
 </body>
 </html>
+
 
 
 
