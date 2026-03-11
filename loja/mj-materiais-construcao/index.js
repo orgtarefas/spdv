@@ -3658,24 +3658,27 @@ window.goToServicoPage = function(servicoId, pageIndex) {
 };
 
 // ============================================
-// CARREGAR PRIMEIRO HORÁRIO DISPONÍVEL (COM LOGS)
+// CARREGAR PRIMEIRO HORÁRIO DISPONÍVEL (CORRIGIDO)
 // ============================================
-window.carregarPrimeiroHorarioDisponivel = async function() {
+window.carregarPrimeiroHorarioDisponivel = async function(event) {
     console.log('🎯 [INÍCIO] carregarPrimeiroHorarioDisponivel');
     console.log('⏰ Timestamp:', new Date().toISOString());
     
-    const servicoSelect = document.getElementById('senhaRapidaServico');
+    // Pegar o select e o valor diretamente do evento
+    const servicoSelect = event ? event.target : document.getElementById('senhaRapidaServico');
     const horarioInput = document.getElementById('senhaRapidaHorario');
     const dataHoje = new Date().toISOString().split('T')[0];
+    
+    const servicoId = servicoSelect?.value;
     
     console.log('📌 Elementos DOM:', {
         servicoSelect: servicoSelect ? 'encontrado' : 'não encontrado',
         horarioInput: horarioInput ? 'encontrado' : 'não encontrado',
-        servicoValue: servicoSelect?.value,
+        servicoValue: servicoId,
         dataHoje
     });
     
-    if (!servicoSelect?.value) {
+    if (!servicoId) {
         console.log('⏳ Nenhum serviço selecionado');
         if (horarioInput) {
             horarioInput.value = '';
@@ -3690,20 +3693,16 @@ window.carregarPrimeiroHorarioDisponivel = async function() {
         return;
     }
     
-    console.log(`🔍 Buscando primeiro horário disponível para serviço: ${servicoSelect.value}`);
+    console.log(`🔍 Buscando primeiro horário disponível para serviço: ${servicoId}`);
     
     horarioInput.value = 'Carregando...';
     horarioInput.disabled = true;
     
     try {
         console.log('📞 Chamando carregarHorariosCliente...');
-        const horariosDisponiveis = await carregarHorariosCliente(dataHoje, servicoSelect.value);
+        const horariosDisponiveis = await carregarHorariosCliente(dataHoje, servicoId);
         
-        console.log('📦 RESPOSTA de carregarHorariosCliente:');
-        console.log('📋 Valor:', horariosDisponiveis);
-        console.log('📋 Tipo:', typeof horariosDisponiveis);
-        console.log('📋 É array?', Array.isArray(horariosDisponiveis));
-        console.log('📋 Length:', horariosDisponiveis?.length);
+        console.log('📦 RESPOSTA de carregarHorariosCliente:', horariosDisponiveis);
         
         if (horariosDisponiveis && Array.isArray(horariosDisponiveis) && horariosDisponiveis.length > 0) {
             // Pegar o primeiro horário disponível (mais cedo)
@@ -3714,19 +3713,12 @@ window.carregarPrimeiroHorarioDisponivel = async function() {
             horarioInput.value = primeiroHorario;
             horarioInput.disabled = false;
         } else {
-            console.log('❌ Nenhum horário disponível ou retorno inválido');
-            console.log('📋 Detalhes do retorno:', {
-                existe: !!horariosDisponiveis,
-                tipo: typeof horariosDisponiveis,
-                isArray: Array.isArray(horariosDisponiveis),
-                length: horariosDisponiveis?.length
-            });
+            console.log('❌ Nenhum horário disponível');
             horarioInput.value = 'Nenhum horário disponível';
             horarioInput.disabled = true;
         }
     } catch (error) {
         console.error('❌ Erro ao carregar horário:', error);
-        console.error('📋 Stack trace:', error.stack);
         horarioInput.value = 'Erro ao carregar';
         horarioInput.disabled = true;
     }
@@ -3999,6 +3991,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
