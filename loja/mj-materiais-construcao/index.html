@@ -271,6 +271,39 @@
                     </div>
                 </div>
             </div>
+            <!-- Modal de Nova Senha Hoje -->
+            <div id="novaSenhaHojeModal" class="modal" style="display: none;">
+                <div class="modal-content modal-small">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-bolt"></i> Nova Senha Hoje</h3>
+                        <button class="modal-close" onclick="fecharModal('novaSenhaHojeModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="senha-rapida-form">
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar"></i> Data</label>
+                                <input type="date" id="senhaRapidaData" class="form-input" disabled>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-star"></i> Serviço</label>
+                                <select id="senhaRapidaServico" class="form-select" onchange="carregarPrimeiroHorarioDisponivel()">
+                                    <option value="">Selecione um serviço...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-clock"></i> Primeiro Horário Disponível</label>
+                                <input type="text" id="senhaRapidaHorario" class="form-input" readonly placeholder="Selecione um serviço primeiro">
+                            </div>
+                            
+                            <button class="btn-confirmar-senha" id="btnConfirmarSenhaHoje">
+                                <i class="fas fa-bolt"></i> Gerar Senha
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- ============================================ -->
@@ -618,6 +651,7 @@
     </script>
 </body>
 </html>
+
 
 
 
