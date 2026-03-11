@@ -1505,6 +1505,7 @@ async function carregarHorariosCliente(dataSelecionada = null, servicoId = null)
         console.log(`✅ ${horariosDisponiveis.length} horários disponíveis`);
         
         // Retornar os horários disponíveis (para uso na função de nova senha)
+        console.log('✅ Retornando horários:', horariosDisponiveis.map(h => h.horario));
         return horariosDisponiveis.map(h => h.horario);
         
     } catch (error) {
@@ -3734,10 +3735,8 @@ window.goToServicoPage = function(servicoId, pageIndex) {
 };
 
 // ============================================
-// FUNÇÕES PARA NOVA SENHA HOJE (GLOBAIS)
+// CARREGAR PRIMEIRO HORÁRIO DISPONÍVEL (CORRIGIDO)
 // ============================================
-
-// Tornar a função global para ser chamada pelo onchange do select
 window.carregarPrimeiroHorarioDisponivel = async function() {
     console.log('🔍 carregarPrimeiroHorarioDisponivel chamado');
     
@@ -3750,6 +3749,7 @@ window.carregarPrimeiroHorarioDisponivel = async function() {
         if (horarioInput) {
             horarioInput.value = '';
             horarioInput.placeholder = 'Selecione um serviço primeiro';
+            horarioInput.disabled = true;
         }
         return;
     }
@@ -3768,12 +3768,16 @@ window.carregarPrimeiroHorarioDisponivel = async function() {
         // Usar a função existente para carregar horários
         const horariosDisponiveis = await carregarHorariosCliente(dataHoje, servicoSelect.value);
         
+        console.log('📅 Horários recebidos:', horariosDisponiveis);
+        
         if (horariosDisponiveis && horariosDisponiveis.length > 0) {
             // Pegar o primeiro horário disponível (mais cedo)
-            horarioInput.value = horariosDisponiveis[0];
+            const primeiroHorario = horariosDisponiveis[0];
+            horarioInput.value = primeiroHorario;
             horarioInput.disabled = false;
-            console.log(`✅ Primeiro horário disponível: ${horariosDisponiveis[0]}`);
+            console.log(`✅ Primeiro horário disponível: ${primeiroHorario}`);
         } else {
+            console.log('❌ Nenhum horário disponível');
             horarioInput.value = 'Nenhum horário disponível';
             horarioInput.disabled = true;
         }
@@ -4024,6 +4028,7 @@ window.carregarServicosRapido = carregarServicosRapido;
 window.carregarClientesParaSelectRapido = carregarClientesParaSelectRapido;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
