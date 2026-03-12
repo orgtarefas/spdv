@@ -2718,6 +2718,56 @@ body {
    COLUNA 3 - CARDS HORIZONTAIS COM MESMO VISUAL DA COLUNA 2
    ============================================ */
 
+/* ============================================
+   ESTILOS PARA OS CARDS DA COLUNA 3
+   ============================================ */
+
+/* NÚMERO DA SENHA */
+.servico-card .senha-numero {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0056b3;
+    background: #f0f7ff;
+    padding: 6px 16px;
+    border-radius: 40px;
+    display: inline-block;
+    margin-bottom: 10px;
+    border: 1px solid #cce4ff;
+    align-self: flex-start;
+    position: relative;
+    z-index: 3;
+}
+
+/* NOME DO CLIENTE */
+.servico-card .senha-cliente {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 3;
+}
+
+/* POSIÇÃO NA FILA */
+.servico-card .senha-posicao {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 30px;
+    display: inline-block;
+    align-self: flex-start;
+    background: #e9ecef;
+    color: #495057;
+    border: 1px solid #d0d7de;
+    font-weight: 600;
+    margin-top: auto;
+    position: relative;
+    z-index: 3;
+}
+
 /* Esconde a tag de serviço APENAS nos cards da coluna 3 */
 .coluna-proximos .servico-card .servico-tag-small {
     display: none !important;
@@ -4112,4 +4162,5 @@ body {
     order: 0;
     margin-right: auto;
 }
+
 
