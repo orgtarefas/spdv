@@ -283,7 +283,7 @@ function adicionarBotaoControleCarrossel() {
     const btn = document.createElement('button');
     btn.id = 'btnControleCarrossel';
     btn.className = 'btn-controle-carrossel';
-    btn.innerHTML = '<i class="fas fa-play"></i> Auto';
+    btn.innerHTML = '<i class="fas fa-play"></i> Navegar Entre Senhas';
     btn.title = 'Ativar/desativar rolagem automática';
     
     btn.addEventListener('click', (e) => {
@@ -292,10 +292,10 @@ function adicionarBotaoControleCarrossel() {
         
         // Atualizar ícone
         if (carrosselAutomaticoAtivo) {
-            btn.innerHTML = '<i class="fas fa-pause"></i> Auto';
+            btn.innerHTML = '<i class="fas fa-pause"></i> Navegar Entre Senhas';
             btn.classList.add('ativo');
         } else {
-            btn.innerHTML = '<i class="fas fa-play"></i> Auto';
+            btn.innerHTML = '<i class="fas fa-play"></i> Navegar Entre Senhas';
             btn.classList.remove('ativo');
         }
     });
@@ -4277,6 +4277,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
