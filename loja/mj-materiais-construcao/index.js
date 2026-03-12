@@ -50,6 +50,7 @@ let agendamentosFuturos = [];
 let unsubscribeAgendamentos = null;
 let dadosAgendamentoHoje = null;
 let servicosConfig = {}; // Mapa de id do serviço -> configuração
+let modoAutomatico = true; // true = automático, false = manual
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
@@ -137,6 +138,149 @@ function toggleAgendamentoContainer(mostrar) {
     if (container) {
         container.style.display = mostrar ? 'block' : 'none';
         console.log(`📅 Container de agendamento ${mostrar ? 'exibido' : 'ocultado'}`);
+    }
+}
+
+// ============================================
+// FUNÇÃO PARA ALTERNAR MODO (será chamada quando clicar no status)
+// ============================================
+function alternarModoOperacao() {
+    modoAutomatico = !modoAutomatico;
+    
+    const statusElement = document.getElementById('agendamentoStatus');
+    const indicator = statusElement?.querySelector('.status-indicator');
+    const text = statusElement?.querySelector('span:last-child');
+    
+    if (statusElement) {
+        if (modoAutomatico) {
+            indicator?.classList.remove('manual');
+            indicator?.classList.add('online');
+            text.textContent = 'Modo Automático';
+            statusElement.title = 'Clique para alternar para modo manual';
+        } else {
+            indicator?.classList.remove('online');
+            indicator?.classList.add('manual');
+            text.textContent = 'Modo Manual';
+            statusElement.title = 'Clique para alternar para modo automático';
+        }
+    }
+    
+    console.log(`🔄 Modo de operação alterado para: ${modoAutomatico ? 'AUTOMÁTICO' : 'MANUAL'}`);
+}
+
+// ============================================
+// PROCESSAR NOVA SENHA (chamada quando uma senha é criada)
+// ============================================
+async function processarNovaSenha(servicoId, novaSenha) {
+    try {
+        console.log(`🆕 Processando nova senha para serviço: ${servicoId}`);
+        
+        // Buscar agendamentos deste serviço que estão ativos hoje
+        const agendamentosServico = agendamentosAtivos.filter(a => a.servico_id === servicoId);
+        
+        // Verificar status atuais
+        const temEmAtendimento = agendamentosServico.some(a => a.status === 'Em atendimento');
+        const temProximoAtender = agendamentosServico.some(a => a.status === 'Próximo a atender');
+        
+        let statusFinal = 'Na fila'; // Padrão
+        
+        // Lógica automática
+        if (modoAutomatico) {
+            if (!temEmAtendimento) {
+                // Se não tem ninguém em atendimento, vai direto para Em atendimento
+                statusFinal = 'Em atendimento';
+                console.log(`  ➡️ Sem Em atendimento, nova senha vai para EM ATENDIMENTO`);
+            } else if (!temProximoAtender) {
+                // Se tem Em atendimento mas não tem Próximo, vai para Próximo a atender
+                statusFinal = 'Próximo a atender';
+                console.log(`  ➡️ Com Em atendimento mas sem Próximo, nova senha vai para PRÓXIMO A ATENDER`);
+            } else {
+                // Se já tem ambos, vai para Na fila
+                statusFinal = 'Na fila';
+                console.log(`  ➡️ Fila cheia, nova senha vai para NA FILA`);
+            }
+        } else {
+            // Modo manual: sempre vai para Na fila
+            statusFinal = 'Na fila';
+            console.log(`  ➡️ Modo manual, nova senha vai para NA FILA`);
+        }
+        
+        // Atualizar o status da nova senha no Firestore
+        await atualizarStatusAgendamento(novaSenha, statusFinal);
+        
+        return statusFinal;
+        
+    } catch (error) {
+        console.error('❌ Erro ao processar nova senha:', error);
+        return 'Na fila'; // Fallback seguro
+    }
+}
+
+// ============================================
+// VERIFICAR E AVANÇAR FILA AUTOMATICAMENTE (chamado quando um status muda)
+// ============================================
+async function verificarEAvancarFila() {
+    if (!modoAutomatico) {
+        console.log('⏸️ Modo manual - não avançando automaticamente');
+        return;
+    }
+    
+    console.log('🔄 Verificando fila para avanço automático...');
+    
+    try {
+        // Agrupar por serviço
+        const agendamentosPorServico = {};
+        
+        agendamentosAtivos.forEach(ag => {
+            if (!agendamentosPorServico[ag.servico_id]) {
+                agendamentosPorServico[ag.servico_id] = [];
+            }
+            agendamentosPorServico[ag.servico_id].push(ag);
+        });
+        
+        // Processar cada serviço
+        for (const [servicoId, agendamentos] of Object.entries(agendamentosPorServico)) {
+            console.log(`\n🔧 Verificando serviço: ${servicoId}`);
+            
+            // Ordenar por timestamp (mais antigo primeiro)
+            const ordenados = agendamentos.sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Identificar status atuais
+            const emAtendimento = ordenados.find(a => a.status === 'Em atendimento');
+            const proximoAtender = ordenados.find(a => a.status === 'Próximo a atender');
+            const fila = ordenados.filter(a => 
+                a.status !== 'Em atendimento' && 
+                a.status !== 'Próximo a atender' &&
+                ['Na fila', 'Verificado'].includes(a.status)
+            );
+            
+            console.log(`  📊 Status: EmAtendimento=${!!emAtendimento}, Proximo=${!!proximoAtender}, Fila=${fila.length}`);
+            
+            // REGRA 1: Se não tem Em atendimento mas tem Próximo a atender
+            if (!emAtendimento && proximoAtender) {
+                console.log(`  ➡️ Avançando ${proximoAtender.cliente_nome} para Em atendimento`);
+                await atualizarStatusAgendamento(proximoAtender, 'Em atendimento');
+                continue;
+            }
+            
+            // REGRA 2: Se não tem Em atendimento nem Próximo, mas tem fila
+            if (!emAtendimento && !proximoAtender && fila.length > 0) {
+                const primeiroDaFila = fila[0];
+                console.log(`  ➡️ Avançando ${primeiroDaFila.cliente_nome} para Em atendimento (diretamente da fila)`);
+                await atualizarStatusAgendamento(primeiroDaFila, 'Em atendimento');
+                continue;
+            }
+            
+            // REGRA 3: Se tem Em atendimento mas não tem Próximo, e tem fila
+            if (emAtendimento && !proximoAtender && fila.length > 0) {
+                const primeiroDaFila = fila[0];
+                console.log(`  ➡️ Avançando ${primeiroDaFila.cliente_nome} para Próximo a atender`);
+                await atualizarStatusAgendamento(primeiroDaFila, 'Próximo a atender');
+            }
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao avançar fila:', error);
     }
 }
 
@@ -3843,7 +3987,8 @@ function configurarEventos() {
     if (senhaRapidaServico) {
         senhaRapidaServico.addEventListener('change', carregarPrimeiroHorarioDisponivel);
     }
-        
+    
+    document.getElementById('agendamentoStatus')?.addEventListener('click', alternarModoOperacao);    
     console.log("✅ Eventos configurados");
 }
 
@@ -3984,6 +4129,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
