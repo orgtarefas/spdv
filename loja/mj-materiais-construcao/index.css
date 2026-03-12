@@ -3120,84 +3120,6 @@ body {
     color: #64748b;
 }
 
-/* ============================================
-   MINHA SENHA
-   ============================================ */
-
-.minha-senha-container {
-    margin: 20px 0 0;
-}
-
-.minha-senha-card {
-    background: linear-gradient(145deg, #1a2634, #0f1620);
-    border-radius: 80px;
-    padding: 16px 28px;
-    align-items: center;
-    gap: 20px;
-    color: white;
-    box-shadow: 0 15px 30px -8px rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    animation: slideInFade 0.4s ease-out;
-}
-
-@keyframes slideInFade {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-.minha-senha-card i {
-    font-size: 2.2rem;
-    opacity: 0.9;
-    color: #ffb347;
-}
-
-.minha-senha-info {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    flex-wrap: wrap;
-}
-
-.minha-senha-label {
-    font-weight: 500;
-    opacity: 0.8;
-    font-size: 0.95rem;
-}
-
-.minha-senha-numero {
-    font-size: 2rem;
-    font-weight: 800;
-    background: rgba(255, 255, 255, 0.15);
-    padding: 6px 24px;
-    border-radius: 50px;
-    letter-spacing: 1.5px;
-}
-
-.minha-senha-status {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 6px 20px;
-    border-radius: 40px;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-.minha-senha-status.chamando {
-    background: #ff6b00;
-    animation: pulse-gentle 1.5s infinite;
-}
-
-@keyframes pulse-gentle {
-    0% { opacity: 1; }
-    50% { opacity: 0.8; }
-    100% { opacity: 1; }
-}
 
 /* ============================================
    STATUS EM TEMPO REAL
@@ -3828,3 +3750,4 @@ body {
     color: #94a3b8;
     font-style: italic;
 }
+
