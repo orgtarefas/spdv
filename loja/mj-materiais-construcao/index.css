@@ -2906,22 +2906,6 @@ body {
     color: #94a3b8;
 }
 
-
-.servico-scroll::-webkit-scrollbar {
-    height: 4px;
-}
-
-.servico-scroll::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 8px;
-}
-
-.servico-scroll::-webkit-scrollbar-thumb {
-    background: #0056b3;
-    border-radius: 8px;
-}
-
-/* CARDS DA COLUNA 3 - MESMO VISUAL DA COLUNA 2 */
 .servico-card {
     width: 180px !important;
     min-width: 180px !important;
@@ -2942,12 +2926,50 @@ body {
     display: flex;
     flex-direction: column;
     
-    /* 🔥 EFEITO 3D FLIP */
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform-style: preserve-3d;
-    perspective: 1000px;
+    /* 🔥 EFEITO PROFISSIONAL - CORRIGIDO */
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    position: relative;
+    overflow: hidden;
 }
+
+/* Efeito de entrada dos cards */
+@keyframes cardAppear {
+    0% {
+        opacity: 0;
+        transform: translateX(30px) scale(0.9);
+    }
+    40% {
+        opacity: 1;
+        transform: translateX(-5px) scale(1.02);
+    }
+    70% {
+        transform: translateX(2px) scale(0.99);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.servico-card {
+    animation: cardAppear 0.5s ease-out forwards;
+}
+
+.servico-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.servico-scroll::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 8px;
+}
+
+.servico-scroll::-webkit-scrollbar-thumb {
+    background: #0056b3;
+    border-radius: 8px;
+}
+
 
 /* Efeito de entrada dos cards (quando aparecem) */
 @keyframes cardEntrance {
@@ -2961,50 +2983,193 @@ body {
     }
 }
 
-.servico-card {
-    animation: cardEntrance 0.5s ease-out forwards;
-}
 
+/* Efeito hover - levitação com sombra */
 .servico-card:hover {
-    transform: translateY(-8px) rotateY(2deg) rotateX(2deg) scale(1.02);
+    transform: translateY(-6px) scale(1.02);
     box-shadow: 
         0 20px 25px -5px rgba(0, 86, 179, 0.2),
         0 10px 10px -5px rgba(0, 86, 179, 0.1),
-        0 0 0 1px rgba(0, 86, 179, 0.3) inset;
+        0 0 0 2px rgba(0, 86, 179, 0.2) inset;
     border-color: #0056b3;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Efeito de brilho no hover */
-.servico-card::after {
+.servico-card::before {
     content: '';
     position: absolute;
     top: 0;
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-    transition: left 0.5s ease;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: left 0.6s ease;
     pointer-events: none;
-    border-radius: 16px;
+    z-index: 2;
 }
 
-.servico-card:hover::after {
+
+
+.servico-card:hover::before {
     left: 100%;
 }
 
-/* Efeito quando o card entra no scroll */
-.servico-card.in-view {
-    animation: pulseGlow 2s infinite;
+/* Efeito de borda sutil */
+.servico-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(135deg, #0056b3, #00a86b, #0056b3);
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 1;
 }
 
-@keyframes pulseGlow {
-    0%, 100% {
-        box-shadow: 0 4px 6px -1px rgba(0, 86, 179, 0.1);
-    }
-    50% {
-        box-shadow: 0 10px 15px -3px rgba(0, 86, 179, 0.3);
-    }
+.servico-card:hover::after {
+    opacity: 1;
+    animation: rotateGradient 3s linear infinite;
+}
+
+@keyframes rotateGradient {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+}
+
+/* Efeito de máscara no scroll (opcional) */
+.servico-scroll {
+    -webkit-mask-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        black 5%,
+        black 95%,
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        90deg,
+        transparent 0%,
+        black 5%,
+        black 95%,
+        transparent 100%
+    );
+}
+
+/* Delay progressivo para cada card */
+.servico-track .servico-card:nth-child(1) { animation-delay: 0.05s; }
+.servico-track .servico-card:nth-child(2) { animation-delay: 0.1s; }
+.servico-track .servico-card:nth-child(3) { animation-delay: 0.15s; }
+.servico-track .servico-card:nth-child(4) { animation-delay: 0.2s; }
+.servico-track .servico-card:nth-child(5) { animation-delay: 0.25s; }
+.servico-track .servico-card:nth-child(6) { animation-delay: 0.3s; }
+.servico-track .servico-card:nth-child(7) { animation-delay: 0.35s; }
+.servico-track .servico-card:nth-child(8) { animation-delay: 0.4s; }
+
+/* TAG DO SERVIÇO */
+.servico-card .servico-tag-small {
+    background: #eef2f6;
+    color: #2c3e50;
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 10px;
+    border: 1px solid #dde3e9;
+    align-self: flex-start;
+    max-width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    position: relative;
+    z-index: 3;
+}
+
+/* NÚMERO DA SENHA */
+.servico-card .senha-numero-small {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0056b3;
+    background: #f0f7ff;
+    padding: 6px 16px;
+    border-radius: 40px;
+    display: inline-block;
+    margin-bottom: 10px;
+    border: 1px solid #cce4ff;
+    align-self: flex-start;
+    position: relative;
+    z-index: 3;
+}
+
+/* NOME DO CLIENTE */
+.servico-card .senha-cliente-small {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 8px;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 3;
+}
+
+/* POSIÇÃO NA FILA */
+.servico-card .senha-posicao-small {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 30px;
+    display: inline-block;
+    align-self: flex-start;
+    background: #e9ecef;
+    color: #495057;
+    border: 1px solid #d0d7de;
+    font-weight: 600;
+    margin-top: auto;
+    position: relative;
+    z-index: 3;
+}
+
+/* Placeholder */
+.servico-card-placeholder {
+    width: 100%;
+    max-width: 100%;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 18px;
+    padding: 14px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    height: 140px;
+    flex-shrink: 0;
+}
+
+.servico-card-placeholder .placeholder-icon {
+    font-size: 1.5rem;
+    color: #94a3b8;
+    margin-bottom: 8px;
+}
+
+.servico-card-placeholder .placeholder-text {
+    font-size: 0.75rem;
+    color: #94a3b8;
 }
 
 /* TAG DO SERVIÇO - IGUAL COLUNA 2 */
@@ -3960,3 +4125,4 @@ body {
     order: 0;
     margin-right: auto;
 }
+
