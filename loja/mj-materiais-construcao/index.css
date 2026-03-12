@@ -2505,17 +2505,21 @@ body {
     z-index: 10;
 }
 
-/* Seta "next" (chevron-right) na ESQUERDA */
-.coluna-outros .servico-arrow.next {
-    order: 0; /* Primeira na ordem */
-    margin-right: auto; /* Empurra para a esquerda */
+
+/* Seta esquerda (prev) - DEVE FICAR NA ESQUERDA */
+.servico-arrow.prev {
+    order: 0; /* Primeira */
+    margin-right: 4px;
+    margin-left: 0;
 }
 
-/* Garantir que a seta direita fique grudada nos cards */
-.coluna-outros .servico-arrow.prev {
-    order: 2;
-    margin-left: 0; /* REMOVE o margin-left: auto */
+/* Seta direita (next) - DEVE FICAR NA DIREITA */
+.servico-arrow.next {
+    order: 2; /* Última */
+    margin-left: 4px;
+    margin-right: 0;
 }
+
 
 /* Ícones normais */
 .coluna-outros .servico-arrow.next i,
@@ -2819,15 +2823,16 @@ body {
     flex-shrink: 0;
 }
 
-/* Container do carrossel - ITENS HORIZONTAIS */
+/* Container do carrossel */
 .servico-carousel-container {
     display: flex;
     align-items: center;
     gap: 8px;
     flex: 1;
-    min-height: 180px; /* ALTURA FIXA MAIOR */
+    min-height: 180px;
     width: 100%;
     height: auto;
+    justify-content: space-between; /* MUDA PARA space-between */
 }
 
 /* Área de scroll HORIZONTAL */
@@ -2865,10 +2870,12 @@ body {
     min-width: 100%;
     width: 100%;
     padding: 0 4px;
-    height: auto; /* MUDA DE height: 100% PARA auto */
-    min-height: fit-content; /* ADICIONA min-height */
-    align-items: stretch; /* MUDA PARA stretch PARA QUE TODOS OS CARDS TENHAM A MESMA ALTURA */
+    align-items: stretch;
+    flex-direction: row;
+    justify-content: flex-start; /* MUDA DE flex-end PARA flex-start */
+    direction: ltr;
 }
+
 
 /* ============================================
    PLACEHOLDER - LARGURA TOTAL FIXA
@@ -2949,6 +2956,7 @@ body {
 /* Área de scroll horizontal */
 .servico-scroll {
     flex: 1;
+    order: 1; /* Meio */
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
@@ -2956,9 +2964,8 @@ body {
     padding: 4px 0 8px;
     scrollbar-width: thin;
     scrollbar-color: #0056b3 #f1f5f9;
-    height: 100%;
-    min-height: 0;
-    width: 100%;
+    height: auto;
+    min-height: fit-content;
 }
 
 .servico-scroll::-webkit-scrollbar {
@@ -3750,4 +3757,5 @@ body {
     color: #94a3b8;
     font-style: italic;
 }
+
 
