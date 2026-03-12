@@ -3727,7 +3727,6 @@ body {
     padding: 10px 15px;
     background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
     border-bottom: 1px solid #e9ecef;
-    position: relative;
 }
 
 /* Badge existente */
@@ -3743,23 +3742,21 @@ body {
 
 /* Botão carrossel - ESTILO PROFISSIONAL */
 .btn-carrossel-outros {
+    order: 1;
     width: 32px;
     height: 32px;
     border-radius: 50%;
     background: white;
-    border: none;
+    border: 2px solid #0056b3;
     color: #0056b3;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.9rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-left: 5px;
-    padding: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    position: relative;
-    overflow: hidden;
+    transition: all 0.3s ease;
+    margin-left: 0;
+    margin-right: auto;
 }
 
 /* Efeito de onda no hover */
@@ -3812,10 +3809,7 @@ body {
     border-color: #0056b3;
 }
 
-/* Tooltip personalizado (legenda ao passar mouse) */
-.btn-carrossel-outros {
-    position: relative;
-}
+
 
 .btn-carrossel-outros::after {
     content: attr(title);
@@ -3889,20 +3883,15 @@ body {
     border-bottom: 2px solid transparent;
 }
 
-/* Ajuste no badge para ficar ao lado do botão */
-.coluna-outros .coluna-badge {
-    margin-left: auto;
-    order: 1;
-}
-
-.btn-carrossel-outros {
-    order: 2;
-}
 
 /* Título fica à esquerda */
 .coluna-outros .coluna-header h3 {
     order: 0;
-    margin-right: auto;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #1e293b;
 }
 
 
