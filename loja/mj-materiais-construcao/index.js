@@ -549,16 +549,16 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO - VERSÃO CORRIGIDA
+// RENDERIZAR PAINEL DE AGENDAMENTO - CORREÇÃO DOS BADGES
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
     
     console.log('📅 Renderizando painel de agendamento...');
-    console.log('Agendamentos ativos:', agendamentosAtivos);
+    console.log('Agendamentos ativos (HOJE):', agendamentosAtivos);
     
     // ============================================
-    // ORGANIZAR POR STATUS
+    // ORGANIZAR POR STATUS (APENAS AGENDAMENTOS DE HOJE)
     // ============================================
     
     // 1. EM ATENDIMENTO
@@ -567,33 +567,49 @@ function renderizarPainelAgendamento() {
     // 2. PRÓXIMOS A ATENDER
     const proximosAtender = agendamentosAtivos.filter(a => a.status === 'Próximo a atender');
     
-    // 3. OUTROS NA FILA (APENAS Na fila e Verificado - PENDENTE NÃO ENTRA!)
+    // 3. OUTROS NA FILA (Apenas Na fila e Verificado)
     const outrosNaFila = agendamentosAtivos.filter(a => 
         a.status !== 'Em atendimento' && 
         a.status !== 'Próximo a atender' &&
-        ['Na fila', 'Verificado'].includes(a.status) // 🔥 REMOVIDO 'Pendente'
+        ['Na fila', 'Verificado'].includes(a.status)
     );
     
-    console.log('📊 Organização:', {
+    console.log('📊 Organização HOJE:', {
         emAtendimento: emAtendimento.length,
         proximosAtender: proximosAtender.length,
-        outrosNaFila: outrosNaFila.length
+        outrosNaFila: outrosNaFila.length,
+        total: agendamentosAtivos.length
     });
     
     // ============================================
-    // ATUALIZAR BADGES E CONTADORES
+    // ATUALIZAR BADGES E CONTADORES (TODOS BASEADOS EM HOJE)
     // ============================================
     
-    const totalFila = proximosAtender.length + outrosNaFila.length;
+    // Badge da coluna "OUTROS NA FILA" (agora à esquerda)
+    const totalOutrosBadge = document.getElementById('totalOutrosBadge');
+    if (totalOutrosBadge) {
+        totalOutrosBadge.textContent = outrosNaFila.length;
+        console.log(`🏷️ Badge "OUTROS NA FILA" atualizado: ${outrosNaFila.length}`);
+    }
     
+    // Badge da coluna "PRÓXIMOS A ATENDER" (no meio)
     const totalFilaBadge = document.getElementById('totalFilaBadge');
-    if (totalFilaBadge) totalFilaBadge.textContent = totalFila;
+    if (totalFilaBadge) {
+        totalFilaBadge.textContent = proximosAtender.length;
+        console.log(`🏷️ Badge "PRÓXIMOS A ATENDER" atualizado: ${proximosAtender.length}`);
+    }
     
+    // Texto no footer da coluna do meio
     const totalFilaTexto = document.getElementById('totalFilaTexto');
-    if (totalFilaTexto) totalFilaTexto.textContent = totalFila;
+    if (totalFilaTexto) {
+        totalFilaTexto.textContent = proximosAtender.length;
+    }
     
+    // Tempo médio de espera (baseado apenas em agendamentos de hoje)
     const tempoMedioEspera = document.getElementById('tempoMedioEspera');
-    if (tempoMedioEspera) tempoMedioEspera.textContent = calcularTempoMedioEspera();
+    if (tempoMedioEspera) {
+        tempoMedioEspera.textContent = calcularTempoMedioEspera(proximosAtender.length, outrosNaFila.length);
+    }
     
     // ============================================
     // COLUNA 1: EM ATENDIMENTO
@@ -663,7 +679,7 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // COLUNA 3: OUTROS NA FILA - VERSÃO CORRIGIDA
+    // COLUNA 3: OUTROS NA FILA
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
@@ -695,7 +711,7 @@ function renderizarPainelAgendamento() {
                 const servico = agendamentosPorServico[servicoId];
                 const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
                 
-                // 🔥 ORDENAR OS ITENS POR TIMESTAMP (DO MAIS ANTIGO PARA O MAIS NOVO)
+                // ORDENAR OS ITENS POR TIMESTAMP (DO MAIS ANTIGO PARA O MAIS NOVO)
                 const itensOrdenados = [...servico.itens].sort((a, b) => a.timestamp - b.timestamp);
                 
                 html += `
@@ -715,12 +731,11 @@ function renderizarPainelAgendamento() {
                                 <div class="servico-track">
                 `;
                 
-                // 🔥 CORREÇÃO: REVERTER A ORDEM PARA EXIBIR DO MAIS NOVO (ESQUERDA) PARA O MAIS ANTIGO (DIREITA)
+                // REVERTER A ORDEM PARA EXIBIR DO MAIS NOVO (ESQUERDA) PARA O MAIS ANTIGO (DIREITA)
                 const itensParaExibir = [...itensOrdenados].reverse();
                 
                 itensParaExibir.forEach((item, idx) => {
                     // Calcular posição na fila (1 = primeiro, 2 = segundo, etc)
-                    // Como invertemos, o primeiro item na exibição é o último na fila real
                     const posicaoReal = itensOrdenados.length - idx;
                     
                     html += `
@@ -745,7 +760,7 @@ function renderizarPainelAgendamento() {
                         <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
                 `;
                 
-                // Gerar dots baseado na quantidade de páginas (considerando 2 cards por página)
+                // Gerar dots
                 const totalPages = Math.ceil(itensOrdenados.length / 2);
                 for (let i = 0; i < totalPages; i++) {
                     html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
@@ -759,8 +774,6 @@ function renderizarPainelAgendamento() {
             
             proximosTrack.innerHTML = html;
             
-            // Atualizar dots do carrossel geral
-            atualizarDotsScroll(servicosOrdenados.length);
         } else {
             // Placeholders quando não há dados
             let placeholders = '';
@@ -788,9 +801,21 @@ function renderizarPainelAgendamento() {
                 `;
             }
             proximosTrack.innerHTML = placeholders;
-            atualizarDotsScroll(0);
         }
     }
+}
+
+// ============================================
+// CALCULAR TEMPO MÉDIO DE ESPERA (APENAS HOJE)
+// ============================================
+function calcularTempoMedioEspera(qtdProximos, qtdOutros) {
+    // Estimativa: 15 minutos por atendimento
+    const tempoPorAtendimento = 15;
+    
+    // Total de pessoas na fila (próximos + outros) de HOJE
+    const totalNaFila = qtdProximos + qtdOutros;
+    
+    return totalNaFila * tempoPorAtendimento;
 }
 
 // ============================================
@@ -3838,6 +3863,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
