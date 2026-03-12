@@ -3170,6 +3170,21 @@ body {
 }
 
 /* ============================================
+   INDICADOR DE MODO MANUAL
+   ============================================ */
+.status-indicator.manual {
+    background: #ff6b00;
+    box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+    animation: pulse-orange 2s infinite;
+}
+
+@keyframes pulse-orange {
+    0% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.7); }
+    70% { box-shadow: 0 0 0 6px rgba(255, 107, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0); }
+}
+
+/* ============================================
    ESTADOS VAZIOS
    ============================================ */
 
@@ -3757,5 +3772,6 @@ body {
     color: #94a3b8;
     font-style: italic;
 }
+
 
 
