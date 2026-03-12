@@ -1116,7 +1116,7 @@ function renderizarPainelAgendamento() {
                         btnCarrossel.classList.add('ativo');
                         btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
                         btnCarrossel.title = 'Rolagem automática (ligada)';
-                        iniciarCarrosselAutomatico(4000);
+                        iniciarCarrosselAutomatico(6000);
                     } else {
                         btnCarrossel.classList.remove('ativo');
                         btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
@@ -1125,18 +1125,17 @@ function renderizarPainelAgendamento() {
                     }
                 });
                 
-                // 🔥 INSERIR ANTES DO BADGE
+                // Inserir após o badge
                 const badge = colunaHeader.querySelector('.coluna-badge');
                 if (badge) {
-                    // Insere o botão antes do badge
-                    badge.parentNode.insertBefore(btnCarrossel, badge);
+                    badge.insertAdjacentElement('afterend', btnCarrossel);
                 } else {
                     colunaHeader.appendChild(btnCarrossel);
                 }
             }
         }
     }, 100);
-        
+    
     // Atualizar dots e configurar scroll após renderizar
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
@@ -1150,7 +1149,7 @@ function renderizarPainelAgendamento() {
         
         // 🔥 CONFIGURAR PAUSA E INICIAR CARROSSEL
         configurarPausaAoInteragir();
-        iniciarCarrosselAutomatico(4000);
+        iniciarCarrosselAutomatico(6000);
         
     }, 200);
 }
@@ -4278,26 +4277,3 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
