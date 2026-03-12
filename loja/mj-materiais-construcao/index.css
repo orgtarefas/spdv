@@ -2752,25 +2752,26 @@ body {
     width: 100%;
     max-width: 100%;
     position: relative;
+    box-sizing: border-box; /* 🔥 GARANTIR QUE NÃO EXTRAPOLA */
 }
 
+/* Área de scroll - OCUPA O ESPAÇO RESTANTE */
 .servico-scroll {
-    flex: 1;
+    flex: 1 1 auto; /* CRESCE PARA OCUPAR ESPAÇO */
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
     scroll-behavior: smooth;
     padding: 4px 0 8px;
     
-    /* 🔥 CORREÇÃO: Limitar largura */
-    max-width: calc(100% - 80px); /* 80px = espaço para as duas setas */
+    /* 🔥 LARGURA MÁXIMA CONTROLADA */
+    max-width: calc(100% - 88px); /* 36px seta esquerda + 36px seta direita + 16px gap = 88px */
     width: 100%;
     
-    /* Scrollbar personalizada */
+    /* Scrollbar */
     scrollbar-width: thin;
     scrollbar-color: #0056b3 #f1f5f9;
     
-    /* 🔥 GARANTIR QUE O CONTEÚDO NÃO EXTRAPOLA */
     box-sizing: border-box;
 }
 
@@ -2797,7 +2798,7 @@ body {
     padding: 0 4px;
     align-items: stretch;
     flex-direction: row;
-    justify-content: flex-start; /* MUDA DE flex-end PARA flex-start */
+    justify-content: flex-start;
     direction: ltr;
 }
 
@@ -2832,11 +2833,11 @@ body {
     justify-content: flex-end;
 }
 
-/* Setas - SEMPRE VISÍVEIS */
+/* SETAS - TAMANHO FIXO E SEMPRE VISÍVEIS */
 .servico-arrow {
     width: 36px;
+    min-width: 36px; /* NÃO ENCOLHE */
     height: 36px;
-    min-width: 36px; /* Não encolhe */
     border-radius: 50%;
     background: white;
     border: 2px solid #0056b3;
@@ -2851,6 +2852,9 @@ body {
     z-index: 10;
     opacity: 1 !important;
     visibility: visible !important;
+    /* 🔥 POSIÇÃO FIXA - NÃO MUDA */
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .servico-arrow:hover:not(:disabled) {
@@ -2884,16 +2888,15 @@ body {
 
 /* CARDS DA COLUNA 3 - MESMO VISUAL DA COLUNA 2 */
 .servico-card {
-    width: 180px; /* Largura fixa */
-    min-width: 180px; /* Não encolhe */
-    max-width: 180px; /* Não expande */
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
     
     background: white;
     border: 1px solid #edf2f7;
     border-radius: 18px;
     padding: 14px;
     
-    /* 🔥 GARANTIR QUE NÃO QUEBRA LINHA */
     white-space: normal;
     flex-shrink: 0;
     
@@ -3678,6 +3681,7 @@ body {
     color: #94a3b8;
     font-style: italic;
 }
+
 
 
 
