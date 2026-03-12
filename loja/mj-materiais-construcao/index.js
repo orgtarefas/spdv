@@ -147,41 +147,35 @@ function toggleAgendamentoContainer(mostrar) {
 // ============================================
 // INICIAR CARROSSEL AUTOMÁTICO
 // ============================================
-function iniciarCarrosselAutomatico() {
-    // Parar qualquer intervalo anterior
+function iniciarCarrosselAutomatico(intervalo = 5000) {
     pararCarrosselAutomatico();
     
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático...');
+    console.log(`🎠 Iniciando carrossel automático (intervalo: ${intervalo}ms)...`);
     
     carrosselAutomaticoInterval = setInterval(() => {
-        // Para cada serviço que tem scroll
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-            
-            // Se não tem scroll ou está no fim, volta para o início
             if (maxScroll <= 0) return;
             
-            // Posição atual
+            const cardWidth = 192;
             const currentScroll = scrollEl.scrollLeft;
             
-            // Se chegou no fim, volta suavemente para o início
-            if (currentScroll >= maxScroll - 10) {
-                scrollEl.scrollTo({
-                    left: 0,
-                    behavior: 'smooth'
-                });
-            } else {
-                // Senão, avança 200px (um card + gap)
-                scrollEl.scrollBy({
-                    left: 200,
-                    behavior: 'smooth'
-                });
+            let nextScroll = currentScroll + cardWidth;
+            
+            if (nextScroll > maxScroll) {
+                nextScroll = 0;
             }
+            
+            scrollEl.scrollTo({
+                left: nextScroll,
+                behavior: 'smooth'
+            });
         });
-    }, 3000); // A cada 3 segundos
+    }, intervalo);
 }
+
 
 // ============================================
 // PARAR CARROSSEL AUTOMÁTICO
@@ -195,30 +189,45 @@ function pararCarrosselAutomatico() {
 }
 
 // ============================================
-// ALTERNAR CARROSSEL AUTOMÁTICO (com clique)
+// ALTERNAR CARROSSEL AUTOMÁTICO
 // ============================================
 function alternarCarrosselAutomatico() {
     carrosselAutomaticoAtivo = !carrosselAutomaticoAtivo;
     
+    const btn = document.getElementById('btnCarrosselOutros');
+    
     if (carrosselAutomaticoAtivo) {
-        iniciarCarrosselAutomatico();
-        mostrarMensagem('🎠 Carrossel automático ativado', 'success', 2000);
+        iniciarCarrosselAutomaticoSuave();
+        mostrarMensagem('🎠 Rolagem automática ativada (5 segundos por card)', 'success', 2000);
+        
+        if (btn) {
+            btn.classList.add('ativo');
+            btn.innerHTML = '<i class="fas fa-play"></i>';
+            btn.title = 'Rolagem automática (ligada)';
+        }
     } else {
         pararCarrosselAutomatico();
-        mostrarMensagem('⏸️ Carrossel automático desativado', 'info', 2000);
+        mostrarMensagem('⏸️ Rolagem automática desativada', 'info', 2000);
+        
+        if (btn) {
+            btn.classList.remove('ativo');
+            btn.innerHTML = '<i class="fas fa-pause"></i>';
+            btn.title = 'Rolagem automática (desligada)';
+        }
     }
 }
 
 // ============================================
-// VERSÃO MAIS SUAVE - AVANÇA CARD POR CARD
+// 🔥 CARROSSEL AUTOMÁTICO MAIS LENTO E SUAVE
 // ============================================
 function iniciarCarrosselAutomaticoSuave() {
     pararCarrosselAutomatico();
     
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático suave...');
+    console.log('🎠 Iniciando carrossel automático SUAVE (mais lento)...');
     
+    // Opção 1: Scroll suave com movimento por card a cada 5 segundos
     carrosselAutomaticoInterval = setInterval(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
@@ -235,12 +244,38 @@ function iniciarCarrosselAutomaticoSuave() {
                 nextScroll = 0;
             }
             
+            // Usar behavior 'smooth' para animação suave
             scrollEl.scrollTo({
                 left: nextScroll,
                 behavior: 'smooth'
             });
         });
-    }, 2500); // A cada 2.5 segundos
+    }, 5000); // 🔥 AUMENTADO PARA 5 SEGUNDOS (mais lento)
+    
+    // Opção 2: Alternativa - rolagem contínua muito lenta (descomente se preferir)
+    /*
+    let lastScrollTime = Date.now();
+    
+    carrosselAutomaticoInterval = setInterval(() => {
+        document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+            const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+            if (maxScroll <= 0) return;
+            
+            // Mover 0.5px a cada frame (30fps = 15px/segundo)
+            const currentScroll = scrollEl.scrollLeft;
+            const velocidade = 15; // pixels por segundo
+            const delta = velocidade * (1/30); // ~0.5px por frame
+            
+            let nextScroll = currentScroll + delta;
+            
+            if (nextScroll > maxScroll) {
+                nextScroll = 0;
+            }
+            
+            scrollEl.scrollLeft = nextScroll;
+        });
+    }, 33); // ~30fps
+    */
 }
 
 // ============================================
@@ -860,7 +895,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// PRIMEIRO DA FILA (MAIS ANTIGO) À DIREITA
+// RENDERIZAR PAINEL AGENDAMENTO - VERSÃO CORRIGIDA
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -1086,51 +1121,66 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // 🔥 ADICIONAR BOTÃO DE CARROSSEL NO HEADER
+    // 🔥 CORREÇÃO 1: BOTÃO DE CARROSSEL POSICIONADO ANTES DA BADGE
     // ============================================
     setTimeout(() => {
         const colunaOutros = document.querySelector('.coluna-outros');
         if (colunaOutros) {
             const colunaHeader = colunaOutros.querySelector('.coluna-header');
-            if (colunaHeader && !document.getElementById('btnCarrosselOutros')) {
-                
-                // Criar botão
-                const btnCarrossel = document.createElement('button');
-                btnCarrossel.id = 'btnCarrosselOutros';
-                btnCarrossel.className = 'btn-carrossel-outros ativo';
-                btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
-                btnCarrossel.title = 'Rolagem automática (ligada)';
-                
-                // Status
-                let ativo = true;
-                
-                // Evento de clique
-                btnCarrossel.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    ativo = !ativo;
-                    carrosselAutomaticoAtivo = ativo;
-                    
-                    if (ativo) {
-                        btnCarrossel.classList.add('ativo');
-                        btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
-                        btnCarrossel.title = 'Rolagem automática (ligada)';
-                        iniciarCarrosselAutomatico(6000);
-                    } else {
-                        btnCarrossel.classList.remove('ativo');
-                        btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
-                        btnCarrossel.title = 'Rolagem automática (desligada)';
-                        pararCarrosselAutomatico();
-                    }
-                });
-                
-                // Inserir após o badge
+            if (colunaHeader) {
+                // Encontrar elementos existentes
+                const icon = colunaHeader.querySelector('i:first-child');
+                const title = colunaHeader.querySelector('h3');
                 const badge = colunaHeader.querySelector('.coluna-badge');
-                if (badge) {
-                    badge.insertAdjacentElement('afterend', btnCarrossel);
-                } else {
+                
+                // Verificar se já existe botão
+                let btnCarrossel = document.getElementById('btnCarrosselOutros');
+                
+                if (!btnCarrossel) {
+                    // Criar botão
+                    btnCarrossel = document.createElement('button');
+                    btnCarrossel.id = 'btnCarrosselOutros';
+                    btnCarrossel.className = 'btn-carrossel-outros ativo';
+                    btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
+                    btnCarrossel.title = 'Rolagem automática (ligada)';
+                    
+                    // Limpar o header e reconstruir na ordem correta
+                    colunaHeader.innerHTML = '';
+                    
+                    // Reconstruir na ordem: ícone, título, BOTÃO, badge
+                    if (icon) colunaHeader.appendChild(icon.cloneNode(true));
+                    if (title) colunaHeader.appendChild(title.cloneNode(true));
                     colunaHeader.appendChild(btnCarrossel);
+                    if (badge) colunaHeader.appendChild(badge.cloneNode(true));
+                    
+                    // Re-adicionar evento de clique
+                    let ativo = true;
+                    
+                    btnCarrossel.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        ativo = !ativo;
+                        carrosselAutomaticoAtivo = ativo;
+                        
+                        if (ativo) {
+                            btnCarrossel.classList.add('ativo');
+                            btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
+                            btnCarrossel.title = 'Rolagem automática (ligada)';
+                            iniciarCarrosselAutomaticoSuave(); // Usar a versão mais suave
+                        } else {
+                            btnCarrossel.classList.remove('ativo');
+                            btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
+                            btnCarrossel.title = 'Rolagem automática (desligada)';
+                            pararCarrosselAutomatico();
+                        }
+                    });
+                } else {
+                    // Se já existe, garantir que está na posição correta
+                    // Mover o botão para antes da badge
+                    if (badge && btnCarrossel.nextSibling !== badge) {
+                        colunaHeader.insertBefore(btnCarrossel, badge);
+                    }
                 }
             }
         }
@@ -1147,9 +1197,9 @@ function renderizarPainelAgendamento() {
             });
         });
         
-        // 🔥 CONFIGURAR PAUSA E INICIAR CARROSSEL
+        // 🔥 CONFIGURAR PAUSA E INICIAR CARROSSEL (MAIS SUAVE)
         configurarPausaAoInteragir();
-        iniciarCarrosselAutomatico(6000);
+        iniciarCarrosselAutomaticoSuave(); // Usar a versão mais suave
         
     }, 200);
 }
@@ -4277,3 +4327,4 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
