@@ -791,52 +791,6 @@ function renderizarPainelAgendamento() {
             atualizarDotsScroll(0);
         }
     }
-    
-    // ============================================
-    // MINHA SENHA
-    // ============================================
-    const minhaSenhaContainer = document.getElementById('minhaSenhaContainer');
-    if (minhaSenhaContainer && usuarioLogado && dadosUsuario) {
-        // 🔥 CORREÇÃO: Incluir apenas os status que realmente aparecem na fila
-        const meuAgendamento = agendamentosAtivos.find(a => 
-            a.cliente_email === dadosUsuario.email && 
-            ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado'].includes(a.status) // 🔥 REMOVIDO 'Pendente'
-        );
-        
-        if (meuAgendamento) {
-            let statusTexto = '';
-            let statusClass = '';
-            
-            switch(meuAgendamento.status) {
-                case 'Em atendimento':
-                    statusTexto = 'SUA VEZ!';
-                    statusClass = 'chamando';
-                    break;
-                case 'Próximo a atender':
-                    statusTexto = 'Você é o próximo!';
-                    statusClass = 'proximo';
-                    break;
-                default:
-                    statusTexto = 'Aguardando';
-                    statusClass = '';
-            }
-            
-            const senhaNumeroEl = document.getElementById('minhaSenhaNumero');
-            if (senhaNumeroEl) senhaNumeroEl.textContent = meuAgendamento.senha || '---';
-            
-            const senhaStatusEl = document.getElementById('minhaSenhaStatus');
-            if (senhaStatusEl) {
-                senhaStatusEl.textContent = `${meuAgendamento.servico_nome} - ${statusTexto}`;
-                senhaStatusEl.className = `minha-senha-status ${statusClass}`;
-            }
-            
-            minhaSenhaContainer.style.display = 'block';
-        } else {
-            minhaSenhaContainer.style.display = 'none';
-        }
-    } else if (minhaSenhaContainer) {
-        minhaSenhaContainer.style.display = 'none';
-    }
 }
 
 // ============================================
@@ -3884,6 +3838,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
