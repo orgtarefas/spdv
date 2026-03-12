@@ -926,16 +926,14 @@ function renderizarPainelAgendamento() {
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
-            
-            // 🔥 CHAMAR A NOVA FUNÇÃO AQUI
             configurarScrollServico(servicoId);
             
-            // Listener para scroll (já existia)
             scrollEl.addEventListener('scroll', function() {
                 atualizarDotsServico(servicoId);
             });
         });
     }, 200);
+    
 }
 
 // ============================================
@@ -3923,12 +3921,13 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 // ============================================
 // FUNÇÕES AUXILIARES PARA SCROLL DA COLUNA 3 - PARTE DE AGENDAMENTO
 // ============================================
-
-// Função para scroll horizontal dos serviços
 window.scrollServico = function(servicoId, amount) {
     const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
     if (scrollEl) {
-        scrollEl.scrollBy({ left: amount, behavior: 'smooth' });
+        scrollEl.scrollBy({ 
+            left: amount, 
+            behavior: 'smooth' 
+        });
     }
 };
 
@@ -3939,28 +3938,26 @@ function configurarScrollServico(servicoId) {
     const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
     if (!scrollEl) return;
     
-    const prevBtn = scrollEl.closest('.servico-carousel-container')?.querySelector('.prev');
-    const nextBtn = scrollEl.closest('.servico-carousel-container')?.querySelector('.next');
+    const container = scrollEl.closest('.servico-carousel-container');
+    if (!container) return;
+    
+    const prevBtn = container.querySelector('.prev');
+    const nextBtn = container.querySelector('.next');
     
     if (!prevBtn || !nextBtn) return;
     
-    // Função para atualizar estado das setas
+    // 🔥 GARANTIR QUE AS SETAS ESTÃO VISÍVEIS
+    prevBtn.style.display = 'flex';
+    nextBtn.style.display = 'flex';
+    
     function atualizarSetas() {
         const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
         
         // Desabilitar seta esquerda se no início
-        if (scrollEl.scrollLeft <= 5) {
-            prevBtn.disabled = true;
-        } else {
-            prevBtn.disabled = false;
-        }
+        prevBtn.disabled = scrollEl.scrollLeft <= 5;
         
         // Desabilitar seta direita se no fim
-        if (scrollEl.scrollLeft >= maxScroll - 5) {
-            nextBtn.disabled = true;
-        } else {
-            nextBtn.disabled = false;
-        }
+        nextBtn.disabled = scrollEl.scrollLeft >= maxScroll - 5;
     }
     
     // Atualizar ao scrollar
@@ -3968,6 +3965,9 @@ function configurarScrollServico(servicoId) {
     
     // Atualizar inicialmente
     setTimeout(atualizarSetas, 100);
+    
+    // 🔥 FORÇAR ATUALIZAÇÃO QUANDO A JANELA REDIMENSIONAR
+    window.addEventListener('resize', atualizarSetas);
 }
 
 // Função para ir para uma página específica do serviço
@@ -4059,6 +4059,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
