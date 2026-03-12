@@ -488,6 +488,40 @@ body {
     overflow: hidden;
 }
 
+/* ============================================
+   BOTÃO CONTROLE CARROSSEL AUTOMÁTICO
+   ============================================ */
+.btn-controle-carrossel {
+    background: white;
+    border: 2px solid #0056b3;
+    color: #0056b3;
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s;
+    margin-left: 10px;
+}
+
+.btn-controle-carrossel:hover {
+    background: #0056b3;
+    color: white;
+}
+
+.btn-controle-carrossel.ativo {
+    background: #00a86b;
+    border-color: #00a86b;
+    color: white;
+}
+
+.btn-controle-carrossel i {
+    font-size: 0.7rem;
+}
+
 .product-card {
     background: white;
     border-radius: 16px;
@@ -3680,6 +3714,7 @@ body {
     color: #94a3b8;
     font-style: italic;
 }
+
 
 
 
