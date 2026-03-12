@@ -197,12 +197,12 @@ function alternarCarrosselAutomatico() {
     const btn = document.getElementById('btnCarrosselOutros');
     
     if (carrosselAutomaticoAtivo) {
-        iniciarCarrosselAutomaticoSuave();
+        iniciarCarrosselSenhasAutomatico();
         mostrarMensagem('🎠 Rolagem automática ativada (5 segundos por card)', 'success', 2000);
         
         if (btn) {
             btn.classList.add('ativo');
-            btn.innerHTML = '<i class="fas fa-pause"></i>'; // 🔥 PAUSE quando está ATIVO (rodando)
+            btn.innerHTML = '<i class="fas fa-pause"></i>'; // PAUSE quando está ATIVO (rodando)
             btn.title = 'Rolagem automática (ligada)';
         }
     } else {
@@ -211,7 +211,7 @@ function alternarCarrosselAutomatico() {
         
         if (btn) {
             btn.classList.remove('ativo');
-            btn.innerHTML = '<i class="fas fa-play"></i>'; // 🔥 PLAY quando está INATIVO (parado)
+            btn.innerHTML = '<i class="fas fa-play"></i>'; // PLAY quando está INATIVO (parado)
             btn.title = 'Rolagem automática (desligada)';
         }
     }
@@ -1196,11 +1196,72 @@ function renderizarPainelAgendamento() {
             });
         });
         
-        // 🔥 CONFIGURAR PAUSA E INICIAR CARROSSEL (MAIS SUAVE)
+        // 🔥 CONFIGURAR PAUSA E INICIAR CARROSSEL
         configurarPausaAoInteragir();
-        iniciarCarrosselAutomaticoSuave(); // Usar a versão mais suave
+        
+        // 🔥 INICIAR CARROSSEL AUTOMÁTICO SE ESTIVER ATIVO
+        if (carrosselAutomaticoAtivo) {
+            iniciarCarrosselSenhasAutomatico();
+        }
         
     }, 200);
+}
+
+// ============================================
+// INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS
+// ============================================
+function iniciarCarrosselSenhasAutomatico() {
+    // Verificar se o carrossel está ativo
+    if (!carrosselAutomaticoAtivo) return;
+    
+    console.log('🎠 Iniciando carrossel automático das senhas...');
+    
+    // Parar qualquer intervalo anterior
+    if (carrosselAutomaticoInterval) {
+        clearInterval(carrosselAutomaticoInterval);
+    }
+    
+    // Iniciar novo intervalo
+    carrosselAutomaticoInterval = setInterval(() => {
+        document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+            const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+            if (maxScroll <= 0) return;
+            
+            const cardWidth = 192; // 180px + 12px gap
+            const currentScroll = scrollEl.scrollLeft;
+            
+            // Calcular próximo card
+            let nextScroll = currentScroll + cardWidth;
+            
+            // Se passou do fim, volta para o início
+            if (nextScroll > maxScroll) {
+                nextScroll = 0;
+            }
+            
+            // Usar behavior 'smooth' para animação suave
+            scrollEl.scrollTo({
+                left: nextScroll,
+                behavior: 'smooth'
+            });
+        });
+    }, 5000); // 5 segundos por card
+}
+
+// ============================================
+// VERIFICAR E INICIAR CARROSSEL APÓS RENDERIZAÇÃO
+// ============================================
+function verificarEIniciarCarrossel() {
+    // Verificar se existem elementos .servico-scroll
+    const temScroll = document.querySelectorAll('.servico-scroll').length > 0;
+    
+    if (temScroll && carrosselAutomaticoAtivo) {
+        console.log('🎠 Elementos encontrados, iniciando carrossel...');
+        iniciarCarrosselSenhasAutomatico();
+    } else {
+        console.log('⏳ Aguardando elementos do carrossel...');
+        // Tentar novamente após 1 segundo
+        setTimeout(verificarEIniciarCarrossel, 1000);
+    }
 }
 
 // ============================================
@@ -4199,7 +4260,7 @@ window.scrollServico = function(servicoId, amount) {
 };
 
 // ============================================
-// 🔥 NOVA FUNÇÃO: Configurar scroll e setas (COLOQUE AQUI)
+// 🔥 NOVA FUNÇÃO: Configurar scroll e setas
 // ============================================
 function configurarScrollServico(servicoId) {
     const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
@@ -4258,6 +4319,8 @@ window.goToServicoPage = function(servicoId, pageIndex) {
     }
 };
 
+
+
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
@@ -4297,6 +4360,11 @@ window.goToServicoPage = function(servicoId, pageIndex) {
         if (agendamentoHabilitado) {
             await carregarConfiguracoesServicos();
             iniciarEscutaAgendamentos();
+            
+            // 🔥 INICIAR VERIFICAÇÃO DO CARROSSEL
+            setTimeout(() => {
+                verificarEIniciarCarrossel();
+            }, 1000);
         }
         
         // Configurar eventos
@@ -4326,6 +4394,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
