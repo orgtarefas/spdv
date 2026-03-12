@@ -51,6 +51,9 @@ let unsubscribeAgendamentos = null;
 let dadosAgendamentoHoje = null;
 let servicosConfig = {}; // Mapa de id do serviço -> configuração
 let modoAutomatico = true; // true = automático, false = manual
+let carrosselAutomaticoInterval = null;
+let carrosselAutomaticoAtivo = true; // Começa ativo
+
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
@@ -140,6 +143,166 @@ function toggleAgendamentoContainer(mostrar) {
         console.log(`📅 Container de agendamento ${mostrar ? 'exibido' : 'ocultado'}`);
     }
 }
+
+// ============================================
+// INICIAR CARROSSEL AUTOMÁTICO
+// ============================================
+function iniciarCarrosselAutomatico() {
+    // Parar qualquer intervalo anterior
+    pararCarrosselAutomatico();
+    
+    if (!carrosselAutomaticoAtivo) return;
+    
+    console.log('🎠 Iniciando carrossel automático...');
+    
+    carrosselAutomaticoInterval = setInterval(() => {
+        // Para cada serviço que tem scroll
+        document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+            const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+            
+            // Se não tem scroll ou está no fim, volta para o início
+            if (maxScroll <= 0) return;
+            
+            // Posição atual
+            const currentScroll = scrollEl.scrollLeft;
+            
+            // Se chegou no fim, volta suavemente para o início
+            if (currentScroll >= maxScroll - 10) {
+                scrollEl.scrollTo({
+                    left: 0,
+                    behavior: 'smooth'
+                });
+            } else {
+                // Senão, avança 200px (um card + gap)
+                scrollEl.scrollBy({
+                    left: 200,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    }, 3000); // A cada 3 segundos
+}
+
+// ============================================
+// PARAR CARROSSEL AUTOMÁTICO
+// ============================================
+function pararCarrosselAutomatico() {
+    if (carrosselAutomaticoInterval) {
+        clearInterval(carrosselAutomaticoInterval);
+        carrosselAutomaticoInterval = null;
+        console.log('⏸️ Carrossel automático parado');
+    }
+}
+
+// ============================================
+// ALTERNAR CARROSSEL AUTOMÁTICO (com clique)
+// ============================================
+function alternarCarrosselAutomatico() {
+    carrosselAutomaticoAtivo = !carrosselAutomaticoAtivo;
+    
+    if (carrosselAutomaticoAtivo) {
+        iniciarCarrosselAutomatico();
+        mostrarMensagem('🎠 Carrossel automático ativado', 'success', 2000);
+    } else {
+        pararCarrosselAutomatico();
+        mostrarMensagem('⏸️ Carrossel automático desativado', 'info', 2000);
+    }
+}
+
+// ============================================
+// VERSÃO MAIS SUAVE - AVANÇA CARD POR CARD
+// ============================================
+function iniciarCarrosselAutomaticoSuave() {
+    pararCarrosselAutomatico();
+    
+    if (!carrosselAutomaticoAtivo) return;
+    
+    console.log('🎠 Iniciando carrossel automático suave...');
+    
+    carrosselAutomaticoInterval = setInterval(() => {
+        document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+            const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+            if (maxScroll <= 0) return;
+            
+            const cardWidth = 192; // 180px + 12px gap
+            const currentScroll = scrollEl.scrollLeft;
+            
+            // Calcular próximo card
+            let nextScroll = currentScroll + cardWidth;
+            
+            // Se passou do fim, volta para o início
+            if (nextScroll > maxScroll) {
+                nextScroll = 0;
+            }
+            
+            scrollEl.scrollTo({
+                left: nextScroll,
+                behavior: 'smooth'
+            });
+        });
+    }, 2500); // A cada 2.5 segundos
+}
+
+// ============================================
+// PAUSAR QUANDO USUÁRIO INTERAGE
+// ============================================
+function configurarPausaAoInteragir() {
+    document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+        // Pausar quando usuário começar a scrollar
+        scrollEl.addEventListener('wheel', () => {
+            pararCarrosselAutomatico();
+        });
+        
+        scrollEl.addEventListener('touchstart', () => {
+            pararCarrosselAutomatico();
+        });
+        
+        scrollEl.addEventListener('mousedown', () => {
+            pararCarrosselAutomatico();
+        });
+    });
+    
+    // Também pausar quando clicar nas setas
+    document.querySelectorAll('.servico-arrow').forEach(arrow => {
+        arrow.addEventListener('click', () => {
+            pararCarrosselAutomatico();
+        });
+    });
+}
+
+// ============================================
+// BOTÃO PARA CONTROLAR CARROSSEL (opcional)
+// ============================================
+function adicionarBotaoControleCarrossel() {
+    // Verificar se já existe
+    if (document.getElementById('btnControleCarrossel')) return;
+    
+    const header = document.querySelector('.agendamento-header');
+    if (!header) return;
+    
+    const btn = document.createElement('button');
+    btn.id = 'btnControleCarrossel';
+    btn.className = 'btn-controle-carrossel';
+    btn.innerHTML = '<i class="fas fa-play"></i> Auto';
+    btn.title = 'Ativar/desativar rolagem automática';
+    
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        alternarCarrosselAutomatico();
+        
+        // Atualizar ícone
+        if (carrosselAutomaticoAtivo) {
+            btn.innerHTML = '<i class="fas fa-pause"></i> Auto';
+            btn.classList.add('ativo');
+        } else {
+            btn.innerHTML = '<i class="fas fa-play"></i> Auto';
+            btn.classList.remove('ativo');
+        }
+    });
+    
+    header.appendChild(btn);
+}
+
 
 // ============================================
 // FUNÇÃO PARA ALTERNAR MODO (será chamada quando clicar no status)
@@ -932,7 +1095,15 @@ function renderizarPainelAgendamento() {
                 atualizarDotsServico(servicoId);
             });
         });
+        
+        // Iniciar carrossel automático
+        configurarPausaAoInteragir();
+        iniciarCarrosselAutomaticoSuave();
+        adicionarBotaoControleCarrossel();
+        
     }, 200);
+
+    
     
 }
 
@@ -4059,6 +4230,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
