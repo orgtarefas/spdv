@@ -940,7 +940,7 @@ function inicializarCarrosselAgendamento() {
 }
 
 // ============================================
-// ABRIR MODAL NOVA SENHA HOJE
+// ABRIR MODAL NOVA SENHA HOJE - VERSÃO CORRIGIDA
 // ============================================
 async function abrirModalNovaSenhaHoje() {
     if (!usuarioLogado || !dadosUsuario) {
@@ -955,6 +955,52 @@ async function abrirModalNovaSenhaHoje() {
     if (!modal) {
         console.error('❌ Modal novaSenhaHojeModal não encontrado');
         return;
+    }
+    
+    // Verificar se é funcionário/admin
+    const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+    const tipo = dadosUsuario.tipo;
+    const isFuncionario = (tipo === 'admin' || tipo === 'funcionario' || 
+                          perfil === 'admin' || perfil === 'gerente' || 
+                          perfil === 'supervisor' || perfil === 'vendedor');
+    
+    console.log('👤 Perfil do usuário:', perfil, 'isFuncionario:', isFuncionario);
+    
+    // 🔥 USAR A MESMA FUNÇÃO EXISTENTE - Verificar se já existe campo de seleção de cliente
+    let clienteField = document.getElementById('clienteSelectField');
+    
+    if (isFuncionario) {
+        // Se não existir, criar campo de seleção de cliente (usando a mesma estrutura)
+        if (!clienteField) {
+            const form = document.querySelector('#novaSenhaHojeModal .senha-rapida-form');
+            if (form) {
+                clienteField = document.createElement('div');
+                clienteField.className = 'form-group';
+                clienteField.id = 'clienteSelectField';
+                clienteField.innerHTML = `
+                    <label><i class="fas fa-user"></i> Cliente</label>
+                    <select id="clienteSelect" class="form-select">
+                        <option value="">Selecionar cliente...</option>
+                    </select>
+                    <small><i class="fas fa-info-circle"></i> Funcionário pode gerar senha para clientes</small>
+                `;
+                
+                // Inserir antes do campo de serviço
+                const servicoGroup = document.getElementById('senhaRapidaServico')?.closest('.form-group');
+                if (servicoGroup) {
+                    form.insertBefore(clienteField, servicoGroup);
+                }
+            }
+        }
+        
+        // 🔥 USAR A FUNÇÃO EXISTENTE para carregar clientes
+        await carregarClientesParaSelect();
+        
+    } else {
+        // Se for cliente, remover campo se existir
+        if (clienteField) {
+            clienteField.remove();
+        }
     }
     
     // Limpar formulário
@@ -987,6 +1033,194 @@ async function abrirModalNovaSenhaHoje() {
     
     modal.classList.add('active');
 }
+
+// ============================================
+// CONFIRMAR NOVA SENHA HOJE - VERSÃO CORRIGIDA
+// ============================================
+document.getElementById('btnConfirmarSenhaHoje')?.addEventListener('click', async function() {
+    try {
+        // ============================================
+        // 1. VALIDAÇÕES
+        // ============================================
+        const servicoSelect = document.getElementById('senhaRapidaServico');
+        const horarioInput = document.getElementById('senhaRapidaHorario');
+        const dataInput = document.getElementById('senhaRapidaData');
+        
+        const servico = servicoSelect?.value;
+        const servicoText = servicoSelect?.selectedOptions[0]?.text.split(' - ')[0] || servico;
+        const horario = horarioInput?.value;
+        const data = dataInput?.value;
+        
+        if (!servico) {
+            mostrarMensagem('Selecione um serviço', 'warning');
+            return;
+        }
+        
+        if (!horario || horario === 'Selecione um serviço primeiro' || horario === 'Sem horários disponíveis hoje') {
+            mostrarMensagem('Horário não disponível', 'warning');
+            return;
+        }
+        
+        if (!usuarioLogado || !dadosUsuario) {
+            mostrarMensagem('Faça login para gerar senha', 'warning');
+            fecharModal('novaSenhaHojeModal');
+            abrirModal('loginModal');
+            return;
+        }
+        
+        mostrarLoading('Gerando senha...');
+        
+        // ============================================
+        // 2. VERIFICAR SE É FUNCIONÁRIO E SELECIONOU CLIENTE
+        // ============================================
+        const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+        const tipo = dadosUsuario.tipo;
+        const isFuncionario = (tipo === 'admin' || tipo === 'funcionario' || 
+                              perfil === 'admin' || perfil === 'gerente' || 
+                              perfil === 'supervisor' || perfil === 'vendedor');
+        
+        let clienteEmail = dadosUsuario.email;
+        let clienteNome = dadosUsuario.nome;
+        let clienteTelefone = dadosUsuario.telefone || '';
+        
+        // Se for funcionário, verificar se selecionou outro cliente
+        if (isFuncionario) {
+            const clienteSelect = document.getElementById('clienteSelect');
+            if (clienteSelect && clienteSelect.value) {
+                const selectedOption = clienteSelect.selectedOptions[0];
+                clienteEmail = clienteSelect.value;
+                
+                // Se não for o próprio funcionário, buscar dados completos
+                if (clienteEmail !== dadosUsuario.email) {
+                    try {
+                        const clienteDoc = await window.loginDb
+                            .collection('usuarios')
+                            .doc(lojaIdAtual)
+                            .collection('clientes')
+                            .doc(clienteEmail)
+                            .get();
+                        
+                        if (clienteDoc.exists) {
+                            const clienteData = clienteDoc.data();
+                            clienteNome = clienteData.nome || clienteEmail;
+                            clienteTelefone = clienteData.telefone || '';
+                        } else {
+                            // Usar dados da option como fallback
+                            clienteNome = selectedOption.dataset.nome || clienteEmail;
+                            clienteTelefone = selectedOption.dataset.telefone || '';
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Erro ao buscar dados do cliente:', e);
+                        // Usar dados da option
+                        clienteNome = selectedOption.dataset.nome || clienteEmail;
+                        clienteTelefone = selectedOption.dataset.telefone || '';
+                    }
+                }
+                
+                console.log(`📋 Gerando senha para cliente: ${clienteNome} (${clienteEmail})`);
+            }
+        }
+        
+        // ============================================
+        // 3. DADOS DO AGENDAMENTO
+        // ============================================
+        const selectedOption = servicoSelect.selectedOptions[0];
+        const configServico = JSON.parse(selectedOption.dataset.config || '{}');
+        const nomeServico = configServico.nome || servicoText;
+        
+        // Extrair data para criar os segmentos
+        const [ano, mes, dia] = data.split('-');
+        const mesAno = `${mes}_${ano}`;
+        const dataFormatada = `${dia}_${mes}_${ano}`;
+        
+        // Criar data/hora agendada
+        const dataHoraAgendada = new Date(`${data}T${horario}:00-03:00`);
+        
+        // ============================================
+        // 4. SALVAR NO FIREBASE
+        // ============================================
+        const diaDocRef = doc(
+            db,
+            'agendamentos',
+            lojaIdAtual,
+            mesAno,
+            dataFormatada
+        );
+        
+        // Buscar documento existente ou criar novo
+        const docSnap = await getDoc(diaDocRef);
+        
+        let dadosAtuais = {};
+        let proximoNumero = 1;
+        
+        if (docSnap.exists()) {
+            dadosAtuais = docSnap.data();
+            
+            // Verificar quantos agendamentos já existem para este serviço
+            if (dadosAtuais[servico]) {
+                proximoNumero = Object.keys(dadosAtuais[servico]).length + 1;
+            }
+        }
+        
+        const agendamentoId = `agendamento_${proximoNumero}`;
+        
+        // Dados do agendamento
+        const novoAgendamento = {
+            cliente_email: clienteEmail,
+            cliente_nome: clienteNome,
+            cliente_telefone: clienteTelefone,
+            criado_por: isFuncionario ? dadosUsuario.email : clienteEmail, // Quem criou
+            criado_por_nome: isFuncionario ? dadosUsuario.nome : clienteNome,
+            criado_em: serverTimestamp(),
+            data_hora_agendada: dataHoraAgendada,
+            status_agendamento: "Verificado" // JÁ VERIFICADO PARA SENHA RÁPIDA
+        };
+        
+        // Criar estrutura aninhada para atualização
+        const dadosParaSalvar = {
+            ...dadosAtuais
+        };
+        
+        if (!dadosParaSalvar[servico]) {
+            dadosParaSalvar[servico] = {};
+        }
+        
+        dadosParaSalvar[servico][agendamentoId] = novoAgendamento;
+        
+        // Salvar no Firestore
+        await setDoc(diaDocRef, dadosParaSalvar, { merge: true });
+        
+        console.log(`✅ Senha rápida ${agendamentoId} gerada para ${horario}`);
+        
+        // ============================================
+        // 5. MENSAGEM DE SUCESSO
+        // ============================================
+        if (isFuncionario && clienteEmail !== dadosUsuario.email) {
+            mostrarMensagem(`✅ Senha gerada para ${clienteNome} (${nomeServico} às ${horario})!`, 'success');
+        } else {
+            mostrarMensagem(`✅ Senha gerada para ${nomeServico} às ${horario}!`, 'success');
+        }
+        
+        fecharModal('novaSenhaHojeModal');
+        
+        // Limpar campo de cliente se existir
+        const clienteSelect = document.getElementById('clienteSelect');
+        if (clienteSelect) {
+            clienteSelect.value = '';
+        }
+        
+        // Mostrar informação sobre a posição na fila
+        setTimeout(() => {
+            mostrarMensagem('🔔 Acompanhe sua posição na fila acima', 'info', 4000);
+        }, 1000);
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar senha rápida:', error);
+        mostrarMensagem('Erro ao gerar senha: ' + error.message, 'error');
+    } finally {
+        esconderLoading();
+    }
+});
 
 // ============================================
 // CARREGAR SERVIÇOS COM PRIMEIRO HORÁRIO DISPONÍVEL
@@ -3650,6 +3884,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
