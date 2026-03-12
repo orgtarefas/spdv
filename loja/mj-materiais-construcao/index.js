@@ -189,7 +189,7 @@ function pararCarrosselAutomatico() {
 }
 
 // ============================================
-// ALTERNAR CARROSSEL AUTOMÁTICO
+// ALTERNAR CARROSSEL AUTOMÁTICO (CORRIGIDO)
 // ============================================
 function alternarCarrosselAutomatico() {
     carrosselAutomaticoAtivo = !carrosselAutomaticoAtivo;
@@ -202,7 +202,7 @@ function alternarCarrosselAutomatico() {
         
         if (btn) {
             btn.classList.add('ativo');
-            btn.innerHTML = '<i class="fas fa-play"></i>';
+            btn.innerHTML = '<i class="fas fa-pause"></i>'; // 🔥 PAUSE quando está ATIVO (rodando)
             btn.title = 'Rolagem automática (ligada)';
         }
     } else {
@@ -211,7 +211,7 @@ function alternarCarrosselAutomatico() {
         
         if (btn) {
             btn.classList.remove('ativo');
-            btn.innerHTML = '<i class="fas fa-pause"></i>';
+            btn.innerHTML = '<i class="fas fa-play"></i>'; // 🔥 PLAY quando está INATIVO (parado)
             btn.title = 'Rolagem automática (desligada)';
         }
     }
@@ -4327,4 +4327,5 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
