@@ -2971,19 +2971,6 @@ body {
 }
 
 
-/* Efeito de entrada dos cards (quando aparecem) */
-@keyframes cardEntrance {
-    from {
-        opacity: 0;
-        transform: translateX(50px) rotateY(-15deg) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0) rotateY(0) scale(1);
-    }
-}
-
-
 /* Efeito hover - levitação com sombra */
 .servico-card:hover {
     transform: translateY(-6px) scale(1.02);
@@ -4125,4 +4112,5 @@ body {
     order: 0;
     margin-right: auto;
 }
+
 
