@@ -1085,6 +1085,57 @@ function renderizarPainelAgendamento() {
         }
     }
     
+    // ============================================
+    // 🔥 ADICIONAR BOTÃO DE CARROSSEL NO HEADER
+    // ============================================
+    setTimeout(() => {
+        const colunaOutros = document.querySelector('.coluna-outros');
+        if (colunaOutros) {
+            const colunaHeader = colunaOutros.querySelector('.coluna-header');
+            if (colunaHeader && !document.getElementById('btnCarrosselOutros')) {
+                
+                // Criar botão
+                const btnCarrossel = document.createElement('button');
+                btnCarrossel.id = 'btnCarrosselOutros';
+                btnCarrossel.className = 'btn-carrossel-outros ativo';
+                btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
+                btnCarrossel.title = 'Rolagem automática (ligada)';
+                
+                // Status
+                let ativo = true;
+                
+                // Evento de clique
+                btnCarrossel.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    ativo = !ativo;
+                    carrosselAutomaticoAtivo = ativo;
+                    
+                    if (ativo) {
+                        btnCarrossel.classList.add('ativo');
+                        btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
+                        btnCarrossel.title = 'Rolagem automática (ligada)';
+                        iniciarCarrosselAutomatico(6000);
+                    } else {
+                        btnCarrossel.classList.remove('ativo');
+                        btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
+                        btnCarrossel.title = 'Rolagem automática (desligada)';
+                        pararCarrosselAutomatico();
+                    }
+                });
+                
+                // Inserir após o badge
+                const badge = colunaHeader.querySelector('.coluna-badge');
+                if (badge) {
+                    badge.insertAdjacentElement('afterend', btnCarrossel);
+                } else {
+                    colunaHeader.appendChild(btnCarrossel);
+                }
+            }
+        }
+    }, 100);
+    
     // Atualizar dots e configurar scroll após renderizar
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
@@ -1096,15 +1147,11 @@ function renderizarPainelAgendamento() {
             });
         });
         
-        // Iniciar carrossel automático
+        // 🔥 CONFIGURAR PAUSA E INICIAR CARROSSEL
         configurarPausaAoInteragir();
-        iniciarCarrosselAutomaticoSuave();
-        adicionarBotaoControleCarrossel();
+        iniciarCarrosselAutomatico(6000);
         
     }, 200);
-
-    
-    
 }
 
 // ============================================
@@ -4230,6 +4277,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
