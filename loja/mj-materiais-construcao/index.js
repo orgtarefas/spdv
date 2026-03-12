@@ -266,7 +266,7 @@ async function carregarConfiguracoesServicos() {
 }
 
 // ============================================
-// RECONSTRUIR LISTA DE AGENDAMENTOS
+// RECONSTRUIR LISTA DE AGENDAMENTOS - VERSÃO CORRIGIDA
 // ============================================
 function reconstruirListaAgendamentos(dadosDoDia) {
     try {
@@ -289,32 +289,43 @@ function reconstruirListaAgendamentos(dadosDoDia) {
         Object.entries(dadosDoDia).forEach(([servicoId, agendamentosMap]) => {
             console.log(`  🔧 Serviço: ${servicoId}`);
             
-            // Iterar sobre cada agendamento DENTRO do serviço
-            Object.entries(agendamentosMap || {}).forEach(([agendamentoId, dados]) => {
+            // Converter o mapa em array e ordenar por data_hora_agendada (do mais antigo para o mais novo)
+            const agendamentosArray = Object.entries(agendamentosMap || {})
+                .map(([agendamentoId, dados]) => {
+                    const dataHoraAgendada = dados.data_hora_agendada?.toDate?.() || 
+                                            new Date(dados.data_hora_agendada);
+                    return {
+                        agendamentoId,
+                        dados,
+                        dataHoraAgendada,
+                        timestamp: dataHoraAgendada.getTime()
+                    };
+                })
+                .sort((a, b) => a.timestamp - b.timestamp); // ORDEM CRESCENTE (mais antigo primeiro)
+            
+            console.log(`    📝 Total agendamentos para ${servicoId}: ${agendamentosArray.length}`);
+            
+            // Processar cada agendamento na ordem correta
+            agendamentosArray.forEach(({agendamentoId, dados, dataHoraAgendada, timestamp}, index) => {
                 console.log(`    📝 ${agendamentoId}:`, dados);
                 
                 if (dados && dados.data_hora_agendada) {
-                    const dataHoraAgendada = dados.data_hora_agendada?.toDate?.() || 
-                                            new Date(dados.data_hora_agendada);
-                    
                     // Verificar se é hoje
                     const dataAgendadaDate = new Date(dataHoraAgendada);
                     dataAgendadaDate.setHours(0, 0, 0, 0);
                     
-                    // Extrair número do agendamento_id (ex: "agendamento_1" -> 1)
-                    const numeroMatch = agendamentoId.match(/\d+$/);
-                    const numero = numeroMatch ? parseInt(numeroMatch[0]) : 1;
+                    // O número da senha deve ser baseado na posição ORIGINAL no array
+                    const numero = index + 1;
                     
                     if (dataAgendadaDate.getTime() === hoje.getTime()) {
                         // Agendamento de HOJE
                         
-                        // SÓ adicionar se o status for um dos que devem aparecer na fila
+                        // 🔥 STATUS QUE APARECEM NA FILA: Em atendimento, Próximo a atender, Na fila, Verificado
                         const statusFila = [
                             'Em atendimento',
                             'Próximo a atender',
                             'Na fila',
-                            'Verificado',
-                            'Pendente'
+                            'Verificado'
                         ];
                         
                         if (statusFila.includes(dados.status_agendamento)) {
@@ -325,17 +336,18 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                                 agendamento_id: agendamentoId,
                                 cliente_email: dados.cliente_email,
                                 cliente_nome: dados.cliente_nome,
-                                status: dados.status_agendamento, // 🔥 PRESERVA O STATUS ORIGINAL
+                                status: dados.status_agendamento,
                                 data_hora: dataHoraAgendada,
                                 horario: dataHoraAgendada.toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 }),
-                                // 🔥 Usar o número do agendamento_id, não reordenar
                                 senha: gerarSenha(numero, servicoId, servicosConfig),
-                                timestamp: dataHoraAgendada.getTime(),
-                                numero_original: numero // Guardar para referência
+                                timestamp: timestamp,
+                                numero_original: numero
                             });
+                        } else {
+                            console.log(`    ⏳ Agendamento ${agendamentoId} com status "${dados.status_agendamento}" não entra na fila`);
                         }
                     } else {
                         // Agendamento futuro (outro dia)
@@ -359,11 +371,8 @@ function reconstruirListaAgendamentos(dadosDoDia) {
             });
         });
         
-        // 🔥 NÃO REORDENAR MAIS! Manter a ordem original do Firestore
-        // Apenas garantir que Em atendimento apareça primeiro (já que é único)
-        
         console.log(`✅ Total agendamentos hoje: ${agendamentosAtivos.length}`);
-        console.log('📋 Status preservados:', agendamentosAtivos.map(a => `${a.senha}: ${a.status}`));
+        console.log('📋 Status na fila:', agendamentosAtivos.map(a => `${a.senha}: ${a.status}`));
         
         renderizarPainelAgendamento();
         
@@ -558,11 +567,11 @@ function renderizarPainelAgendamento() {
     // 2. PRÓXIMOS A ATENDER
     const proximosAtender = agendamentosAtivos.filter(a => a.status === 'Próximo a atender');
     
-    // 3. OUTROS NA FILA (Na fila, Verificado, Pendente)
+    // 3. OUTROS NA FILA (APENAS Na fila e Verificado - PENDENTE NÃO ENTRA!)
     const outrosNaFila = agendamentosAtivos.filter(a => 
         a.status !== 'Em atendimento' && 
         a.status !== 'Próximo a atender' &&
-        ['Na fila', 'Verificado', 'Pendente'].includes(a.status)
+        ['Na fila', 'Verificado'].includes(a.status) // 🔥 REMOVIDO 'Pendente'
     );
     
     console.log('📊 Organização:', {
@@ -674,28 +683,31 @@ function renderizarPainelAgendamento() {
             
             let html = '';
             
-            // 🔥 CORREÇÃO: Ordenar os serviços por nome para ter ordem fixa
+            // Ordenar os serviços por nome
             const servicosOrdenados = Object.keys(agendamentosPorServico).sort((a, b) => {
                 const nomeA = agendamentosPorServico[a].nome.toLowerCase();
                 const nomeB = agendamentosPorServico[b].nome.toLowerCase();
                 return nomeA.localeCompare(nomeB);
             });
             
-            // Criar uma fileira para cada serviço (agora em ordem alfabética)
+            // Criar uma fileira para cada serviço
             servicosOrdenados.forEach(servicoId => {
                 const servico = agendamentosPorServico[servicoId];
                 const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
+                
+                // 🔥 ORDENAR OS ITENS POR TIMESTAMP (DO MAIS ANTIGO PARA O MAIS NOVO)
+                const itensOrdenados = [...servico.itens].sort((a, b) => a.timestamp - b.timestamp);
                 
                 html += `
                     <div class="fila-servico">
                         <div class="fila-servico-header">
                             <i class="fas fa-star"></i>
                             <h4 title="${servico.nome}">${servico.nome}</h4>
-                            <span class="servico-count">${servico.itens.length}</span>
+                            <span class="servico-count">${itensOrdenados.length}</span>
                         </div>
                         
                         <div class="servico-carousel-container">
-                            <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${servico.itens.length <= 2 ? 'disabled' : ''}>
+                            <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
                                 <i class="fas fa-chevron-left"></i>
                             </button>
                             
@@ -703,19 +715,20 @@ function renderizarPainelAgendamento() {
                                 <div class="servico-track">
                 `;
                 
-                // cards para cada agendamento deste serviço
-                const itensInvertidos = [...servico.itens].reverse();
+                // 🔥 CORREÇÃO: REVERTER A ORDEM PARA EXIBIR DO MAIS NOVO (ESQUERDA) PARA O MAIS ANTIGO (DIREITA)
+                const itensParaExibir = [...itensOrdenados].reverse();
                 
-                itensInvertidos.forEach((item, idx) => {
-                    // A posição ainda deve ser baseada na ordem original
-                    const posicaoOriginal = servico.itens.findIndex(i => i.senha === item.senha) + 1;
+                itensParaExibir.forEach((item, idx) => {
+                    // Calcular posição na fila (1 = primeiro, 2 = segundo, etc)
+                    // Como invertemos, o primeiro item na exibição é o último na fila real
+                    const posicaoReal = itensOrdenados.length - idx;
                     
                     html += `
                         <div class="servico-card">
                             <div class="servico-tag-small" title="${item.servico_nome}">${item.servico_nome}</div>
                             <div class="senha-numero-small">${item.senha}</div>
                             <div class="senha-cliente-small">${item.cliente_nome}</div>
-                            <span class="senha-posicao-small">${posicaoOriginal}° na fila</span>
+                            <span class="senha-posicao-small">${posicaoReal}° na fila</span>
                         </div>
                     `;
                 });
@@ -724,7 +737,7 @@ function renderizarPainelAgendamento() {
                                 </div>
                             </div>
                             
-                            <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${servico.itens.length <= 2 ? 'disabled' : ''}>
+                            <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
@@ -733,7 +746,7 @@ function renderizarPainelAgendamento() {
                 `;
                 
                 // Gerar dots baseado na quantidade de páginas (considerando 2 cards por página)
-                const totalPages = Math.ceil(servico.itens.length / 2);
+                const totalPages = Math.ceil(itensOrdenados.length / 2);
                 for (let i = 0; i < totalPages; i++) {
                     html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
                 }
@@ -784,9 +797,10 @@ function renderizarPainelAgendamento() {
     // ============================================
     const minhaSenhaContainer = document.getElementById('minhaSenhaContainer');
     if (minhaSenhaContainer && usuarioLogado && dadosUsuario) {
+        // 🔥 CORREÇÃO: Incluir apenas os status que realmente aparecem na fila
         const meuAgendamento = agendamentosAtivos.find(a => 
             a.cliente_email === dadosUsuario.email && 
-            ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado', 'Pendente'].includes(a.status)
+            ['Em atendimento', 'Próximo a atender', 'Na fila', 'Verificado'].includes(a.status) // 🔥 REMOVIDO 'Pendente'
         );
         
         if (meuAgendamento) {
@@ -3636,6 +3650,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
