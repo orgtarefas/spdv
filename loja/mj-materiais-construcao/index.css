@@ -3715,6 +3715,195 @@ body {
     font-style: italic;
 }
 
+/* ============================================
+   BOTÃO CARROSSEL PROFISSIONAL - OUTROS NA FILA
+   ============================================ */
+
+/* Container do header para alinhamento */
+.coluna-outros .coluna-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 15px;
+    background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
+    border-bottom: 1px solid #e9ecef;
+    position: relative;
+}
+
+/* Badge existente */
+.coluna-outros .coluna-badge {
+    background: linear-gradient(135deg, #0056b3, #0077be);
+    color: white;
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 30px;
+    box-shadow: 0 2px 5px rgba(0, 86, 179, 0.2);
+}
+
+/* Botão carrossel - ESTILO PROFISSIONAL */
+.btn-carrossel-outros {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    border: none;
+    color: #0056b3;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 5px;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Efeito de onda no hover */
+.btn-carrossel-outros::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 86, 179, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+}
+
+.btn-carrossel-outros:hover::before {
+    width: 100%;
+    height: 100%;
+}
+
+.btn-carrossel-outros:hover {
+    background: #f0f7ff;
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2);
+}
+
+/* Estado ATIVO (play - rolando) */
+.btn-carrossel-outros.ativo {
+    background: linear-gradient(145deg, #0056b3, #0077be);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.3);
+}
+
+.btn-carrossel-outros.ativo:hover {
+    background: linear-gradient(145deg, #0066cc, #0088dd);
+    box-shadow: 0 6px 16px rgba(0, 86, 179, 0.4);
+}
+
+/* Estado INATIVO (pause - parado) */
+.btn-carrossel-outros:not(.ativo) {
+    background: white;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.btn-carrossel-outros:not(.ativo):hover {
+    background: #f8f9fa;
+    color: #0056b3;
+    border-color: #0056b3;
+}
+
+/* Tooltip personalizado (legenda ao passar mouse) */
+.btn-carrossel-outros {
+    position: relative;
+}
+
+.btn-carrossel-outros::after {
+    content: attr(title);
+    position: absolute;
+    bottom: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    letter-spacing: 0.3px;
+}
+
+.btn-carrossel-outros:hover::after {
+    opacity: 1;
+    visibility: visible;
+    bottom: -40px;
+}
+
+/* Animação suave no ícone quando ativo */
+.btn-carrossel-outros.ativo i {
+    animation: pulseIcon 2s ease-in-out infinite;
+}
+
+@keyframes pulseIcon {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .btn-carrossel-outros {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+    
+    .btn-carrossel-outros::after {
+        font-size: 0.65rem;
+        padding: 3px 8px;
+        bottom: -30px;
+    }
+}
+
+/* Efeito de brilho quando clica */
+.btn-carrossel-outros:active {
+    transform: scale(0.95);
+}
+
+/* Opcional: borda sutil no header */
+.coluna-outros .coluna-header {
+    border-bottom: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box,
+                linear-gradient(90deg, #0056b3, #00a86b) border-box;
+    border-bottom: 2px solid transparent;
+}
+
+/* Ajuste no badge para ficar ao lado do botão */
+.coluna-outros .coluna-badge {
+    margin-left: auto;
+    order: 1;
+}
+
+.btn-carrossel-outros {
+    order: 2;
+}
+
+/* Título fica à esquerda */
+.coluna-outros .coluna-header h3 {
+    order: 0;
+    margin-right: auto;
+}
 
 
 
