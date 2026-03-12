@@ -1060,12 +1060,6 @@ function renderizarPainelAgendamento() {
                     const posicaoReal = itensOrdenados.length - idx;
                     
                     html += `
-                        <div class="servico-card">
-                            <div class="servico-tag-small" title="${item.servico_nome}">${item.servico_nome}</div>
-                            <div class="senha-numero-small">${item.senha}</div>
-                            <div class="senha-cliente-small">${item.cliente_nome}</div>
-                            <span class="senha-posicao-small">${posicaoReal}° na fila</span>
-                        </div>
                     `;
                 });
                 
@@ -4327,5 +4321,6 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
