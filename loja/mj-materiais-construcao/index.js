@@ -922,15 +922,20 @@ function renderizarPainelAgendamento() {
         }
     }
     
-    // Atualizar dots após renderizar
+    // Atualizar dots e configurar scroll após renderizar
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+            const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
+            
+            // 🔥 CHAMAR A NOVA FUNÇÃO AQUI
+            configurarScrollServico(servicoId);
+            
+            // Listener para scroll (já existia)
             scrollEl.addEventListener('scroll', function() {
-                const servicoId = this.id.replace('servico-', '').replace('-scroll', '');
                 atualizarDotsServico(servicoId);
             });
         });
-    }, 100);
+    }, 200);
 }
 
 // ============================================
@@ -3916,7 +3921,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 }
 
 // ============================================
-// FUNÇÕES AUXILIARES PARA SCROLL DA COLUNA 3 -  PARTE DE AGENDAMENTO
+// FUNÇÕES AUXILIARES PARA SCROLL DA COLUNA 3 - PARTE DE AGENDAMENTO
 // ============================================
 
 // Função para scroll horizontal dos serviços
@@ -3926,6 +3931,44 @@ window.scrollServico = function(servicoId, amount) {
         scrollEl.scrollBy({ left: amount, behavior: 'smooth' });
     }
 };
+
+// ============================================
+// 🔥 NOVA FUNÇÃO: Configurar scroll e setas (COLOQUE AQUI)
+// ============================================
+function configurarScrollServico(servicoId) {
+    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
+    if (!scrollEl) return;
+    
+    const prevBtn = scrollEl.closest('.servico-carousel-container')?.querySelector('.prev');
+    const nextBtn = scrollEl.closest('.servico-carousel-container')?.querySelector('.next');
+    
+    if (!prevBtn || !nextBtn) return;
+    
+    // Função para atualizar estado das setas
+    function atualizarSetas() {
+        const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+        
+        // Desabilitar seta esquerda se no início
+        if (scrollEl.scrollLeft <= 5) {
+            prevBtn.disabled = true;
+        } else {
+            prevBtn.disabled = false;
+        }
+        
+        // Desabilitar seta direita se no fim
+        if (scrollEl.scrollLeft >= maxScroll - 5) {
+            nextBtn.disabled = true;
+        } else {
+            nextBtn.disabled = false;
+        }
+    }
+    
+    // Atualizar ao scrollar
+    scrollEl.addEventListener('scroll', atualizarSetas);
+    
+    // Atualizar inicialmente
+    setTimeout(atualizarSetas, 100);
+}
 
 // Função para ir para uma página específica do serviço
 window.goToServicoPage = function(servicoId, pageIndex) {
@@ -4016,6 +4059,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
