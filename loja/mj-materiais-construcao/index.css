@@ -2947,10 +2947,6 @@ body {
     }
 }
 
-.servico-card {
-    padding: 10px 10px 10px 10px;
-}
-
 .servico-scroll::-webkit-scrollbar {
     height: 4px;
 }
@@ -4071,6 +4067,7 @@ body {
     order: 0;
     margin-right: auto;
 }
+
 
 
 
