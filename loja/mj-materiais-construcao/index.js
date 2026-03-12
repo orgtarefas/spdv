@@ -549,7 +549,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL DE AGENDAMENTO - CORREÇÃO DOS BADGES
+// PRIMEIRO DA FILA (MAIS ANTIGO) À DIREITA
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -558,61 +558,36 @@ function renderizarPainelAgendamento() {
     console.log('Agendamentos ativos (HOJE):', agendamentosAtivos);
     
     // ============================================
-    // ORGANIZAR POR STATUS (APENAS AGENDAMENTOS DE HOJE)
+    // ORGANIZAR POR STATUS
     // ============================================
-    
-    // 1. EM ATENDIMENTO
     const emAtendimento = agendamentosAtivos.filter(a => a.status === 'Em atendimento');
-    
-    // 2. PRÓXIMOS A ATENDER
     const proximosAtender = agendamentosAtivos.filter(a => a.status === 'Próximo a atender');
-    
-    // 3. OUTROS NA FILA (Apenas Na fila e Verificado)
     const outrosNaFila = agendamentosAtivos.filter(a => 
         a.status !== 'Em atendimento' && 
         a.status !== 'Próximo a atender' &&
         ['Na fila', 'Verificado'].includes(a.status)
     );
     
-    console.log('📊 Organização HOJE:', {
-        emAtendimento: emAtendimento.length,
-        proximosAtender: proximosAtender.length,
-        outrosNaFila: outrosNaFila.length,
-        total: agendamentosAtivos.length
+    // ============================================
+    // ATUALIZAR BADGES
+    // ============================================
+    const totalOutrosBadge = document.getElementById('totalOutrosBadge');
+    if (totalOutrosBadge) totalOutrosBadge.textContent = outrosNaFila.length;
+    
+    const totalFilaBadge = document.getElementById('totalFilaBadge');
+    if (totalFilaBadge) totalFilaBadge.textContent = proximosAtender.length;
+    
+    const totalFilaTexto = document.getElementById('totalFilaTexto');
+    if (totalFilaTexto) totalFilaTexto.textContent = proximosAtender.length + outrosNaFila.length;
+    
+    // Tempo médio
+    calcularTempoMedioEsperaReal().then(tempoEstimado => {
+        const tempoMedioEspera = document.getElementById('tempoMedioEspera');
+        if (tempoMedioEspera) tempoMedioEspera.textContent = tempoEstimado;
     });
     
     // ============================================
-    // ATUALIZAR BADGES E CONTADORES (TODOS BASEADOS EM HOJE)
-    // ============================================
-    
-    // Badge da coluna "OUTROS NA FILA" (agora à esquerda)
-    const totalOutrosBadge = document.getElementById('totalOutrosBadge');
-    if (totalOutrosBadge) {
-        totalOutrosBadge.textContent = outrosNaFila.length;
-        console.log(`🏷️ Badge "OUTROS NA FILA" atualizado: ${outrosNaFila.length}`);
-    }
-    
-    // Badge da coluna "PRÓXIMOS A ATENDER" (no meio)
-    const totalFilaBadge = document.getElementById('totalFilaBadge');
-    if (totalFilaBadge) {
-        totalFilaBadge.textContent = proximosAtender.length;
-        console.log(`🏷️ Badge "PRÓXIMOS A ATENDER" atualizado: ${proximosAtender.length}`);
-    }
-    
-    // Texto no footer da coluna do meio
-    const totalFilaTexto = document.getElementById('totalFilaTexto');
-    if (totalFilaTexto) {
-        totalFilaTexto.textContent = proximosAtender.length;
-    }
-    
-    // Tempo médio de espera (baseado apenas em agendamentos de hoje)
-    const tempoMedioEspera = document.getElementById('tempoMedioEspera');
-    if (tempoMedioEspera) {
-        tempoMedioEspera.textContent = calcularTempoMedioEspera(proximosAtender.length, outrosNaFila.length);
-    }
-    
-    // ============================================
-    // COLUNA 1: EM ATENDIMENTO
+    // COLUNA 1: EM ATENDIMENTO (DIREITA)
     // ============================================
     const chamandoEl = document.getElementById('chamandoAgoraCard');
     if (chamandoEl) {
@@ -633,8 +608,7 @@ function renderizarPainelAgendamento() {
             if (ultimoChamadoHora) {
                 const agora = new Date();
                 ultimoChamadoHora.textContent = agora.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                    hour: '2-digit', minute: '2-digit' 
                 });
             }
         } else {
@@ -650,7 +624,7 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // COLUNA 2: PRÓXIMOS A ATENDER
+    // COLUNA 2: PRÓXIMOS A ATENDER (MEIO)
     // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
@@ -679,7 +653,8 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // COLUNA 3: OUTROS NA FILA
+    // COLUNA 3: OUTROS NA FILA (ESQUERDA) 
+    // PRIMEIRO DA FILA (MAIS ANTIGO) À DIREITA
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
@@ -699,19 +674,18 @@ function renderizarPainelAgendamento() {
             
             let html = '';
             
-            // Ordenar os serviços por nome
+            // Ordenar serviços por nome
             const servicosOrdenados = Object.keys(agendamentosPorServico).sort((a, b) => {
                 const nomeA = agendamentosPorServico[a].nome.toLowerCase();
                 const nomeB = agendamentosPorServico[b].nome.toLowerCase();
                 return nomeA.localeCompare(nomeB);
             });
             
-            // Criar uma fileira para cada serviço
             servicosOrdenados.forEach(servicoId => {
                 const servico = agendamentosPorServico[servicoId];
                 const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
                 
-                // ORDENAR OS ITENS POR TIMESTAMP (DO MAIS ANTIGO PARA O MAIS NOVO)
+                // ORDENAR POR TIMESTAMP (MAIS ANTIGO PRIMEIRO)
                 const itensOrdenados = [...servico.itens].sort((a, b) => a.timestamp - b.timestamp);
                 
                 html += `
@@ -731,11 +705,12 @@ function renderizarPainelAgendamento() {
                                 <div class="servico-track">
                 `;
                 
-                // REVERTER A ORDEM PARA EXIBIR DO MAIS NOVO (ESQUERDA) PARA O MAIS ANTIGO (DIREITA)
+                // 🔥 CORREÇÃO: INVERTER PARA EXIBIR
+                // MAIS ANTIGO (1° da fila) à DIREITA
+                // MAIS NOVO (último) à ESQUERDA
                 const itensParaExibir = [...itensOrdenados].reverse();
                 
                 itensParaExibir.forEach((item, idx) => {
-                    // Calcular posição na fila (1 = primeiro, 2 = segundo, etc)
                     const posicaoReal = itensOrdenados.length - idx;
                     
                     html += `
@@ -760,7 +735,6 @@ function renderizarPainelAgendamento() {
                         <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
                 `;
                 
-                // Gerar dots
                 const totalPages = Math.ceil(itensOrdenados.length / 2);
                 for (let i = 0; i < totalPages; i++) {
                     html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
@@ -775,76 +749,223 @@ function renderizarPainelAgendamento() {
             proximosTrack.innerHTML = html;
             
         } else {
-            // Placeholders quando não há dados
-            let placeholders = '';
-            for (let i = 0; i < 2; i++) {
-                placeholders += `
-                    <div class="fila-servico">
-                        <div class="fila-servico-header">
-                            <i class="fas fa-star"></i>
-                            <h4>Aguardando...</h4>
-                            <span class="servico-count">0</span>
-                        </div>
-                        <div class="servico-carousel-container">
-                            <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
-                            <div class="servico-scroll">
-                                <div class="servico-track">
-                                    <div class="servico-card-placeholder">
-                                        <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
-                                        <div class="placeholder-text">Sem agendamentos</div>
-                                    </div>
+            // Placeholders
+            proximosTrack.innerHTML = `
+                <div class="fila-servico">
+                    <div class="fila-servico-header">
+                        <i class="fas fa-star"></i>
+                        <h4>Aguardando...</h4>
+                        <span class="servico-count">0</span>
+                    </div>
+                    <div class="servico-carousel-container">
+                        <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
+                        <div class="servico-scroll">
+                            <div class="servico-track">
+                                <div class="servico-card-placeholder">
+                                    <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
+                                    <div class="placeholder-text">Sem agendamentos</div>
                                 </div>
                             </div>
-                            <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
                         </div>
+                        <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
                     </div>
-                `;
-            }
-            proximosTrack.innerHTML = placeholders;
+                </div>
+            `;
         }
     }
+    
+    // Atualizar dots após renderizar
+    setTimeout(() => {
+        document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+            scrollEl.addEventListener('scroll', function() {
+                const servicoId = this.id.replace('servico-', '').replace('-scroll', '');
+                atualizarDotsServico(servicoId);
+            });
+        });
+    }, 100);
 }
 
 // ============================================
-// CALCULAR TEMPO MÉDIO DE ESPERA (APENAS HOJE)
+// FINALIZAR ATENDIMENTO (chamar quando o atendimento terminar)
 // ============================================
-function calcularTempoMedioEspera(qtdProximos, qtdOutros) {
-    // Estimativa: 15 minutos por atendimento
-    const tempoPorAtendimento = 15;
-    
-    // Total de pessoas na fila (próximos + outros) de HOJE
-    const totalNaFila = qtdProximos + qtdOutros;
-    
-    return totalNaFila * tempoPorAtendimento;
-}
-
-// ============================================
-// CALCULAR TEMPO MÉDIO DE ESPERA (ESTIMATIVA)
-// ============================================
-function calcularTempoMedioEspera() {
-    // Em uma implementação real, você usaria a duração dos serviços
-    // Por enquanto, vamos usar um valor fixo ou baseado na quantidade
-    
-    const emAtendimento = agendamentosAtivos.some(a => a.status === 'Em atendimento');
-    const proximoAtender = agendamentosAtivos.some(a => a.status === 'Próximo a atender');
-    const naFila = agendamentosAtivos.filter(a => a.status === 'Na fila' || a.status === 'Verificado');
-    
-    if (!emAtendimento && !proximoAtender && naFila.length === 0) {
-        return 0;
+async function finalizarAtendimento(agendamento) {
+    try {
+        const agora = new Date();
+        
+        // Extrair componentes
+        const servicoId = agendamento.servico_id;
+        const agendamentoId = agendamento.agendamento_id;
+        
+        // Mês e ano
+        const hoje = new Date();
+        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+        const anoAtual = hoje.getFullYear();
+        const mesAnoAtual = `${mesAtual}_${anoAtual}`;
+        const diaAtual = String(hoje.getDate()).padStart(2, '0');
+        const dataFormatada = `${diaAtual}_${mesAtual}_${anoAtual}`;
+        
+        // Referência para o documento do dia
+        const diaDocRef = doc(
+            db,
+            'agendamentos',
+            lojaIdAtual,
+            mesAnoAtual,
+            dataFormatada
+        );
+        
+        // Calcular tempo de atendimento (se tiver registro de início)
+        let tempoAtendimento = null;
+        if (agendamento.inicio_atendimento) {
+            const inicio = new Date(agendamento.inicio_atendimento);
+            tempoAtendimento = Math.round((agendamento.fim_atendimento - inicio) / (1000 * 60));
+        }
+        
+        await updateDoc(diaDocRef, {
+            [`${servicoId}.${agendamentoId}.status_agendamento`]: 'Finalizado',
+            [`${servicoId}.${agendamentoId}.fim_atendimento`]: agora,
+            [`${servicoId}.${agendamentoId}.tempo_atendimento`]: tempoAtendimento
+        });
+        
+        console.log(`✅ Atendimento finalizado, tempo: ${tempoAtendimento} min`);
+        
+    } catch (error) {
+        console.error('❌ Erro ao finalizar atendimento:', error);
     }
-    
-    // Estimativa: 15 minutos por atendimento
-    const tempoPorAtendimento = 15;
-    
-    // Quem está na frente
-    let pessoasNaFrente = 0;
-    
-    if (emAtendimento) pessoasNaFrente += 1;
-    if (proximoAtender) pessoasNaFrente += 1;
-    pessoasNaFrente += naFila.length;
-    
-    return pessoasNaFrente * tempoPorAtendimento;
 }
+
+// ============================================
+// ATUALIZAR DOTS DO SERVIÇO
+// ============================================
+function atualizarDotsServico(servicoId) {
+    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
+    if (!scrollEl) return;
+    
+    const scrollLeft = scrollEl.scrollLeft;
+    const cardWidth = 192; // 180px card + 12px gap
+    const pageIndex = Math.round(scrollLeft / cardWidth);
+    
+    const dots = document.querySelectorAll(`#servico-${servicoId}-dots .dot`);
+    dots.forEach((dot, idx) => {
+        if (idx === pageIndex) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
+}
+
+// ============================================
+// CALCULAR TEMPO MÉDIO DE ESPERA (BASEADO EM ATENDIMENTOS REAIS)
+// ============================================
+async function calcularTempoMedioEsperaReal() {
+    try {
+        // Se não há ninguém na fila, retorna 0
+        const totalNaFila = agendamentosAtivos.filter(a => 
+            ['Na fila', 'Verificado', 'Próximo a atender'].includes(a.status)
+        ).length;
+        
+        if (totalNaFila === 0) {
+            return 0;
+        }
+        
+        // Buscar últimos atendimentos finalizados para calcular média
+        const hoje = new Date();
+        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+        const anoAtual = hoje.getFullYear();
+        const mesAnoAtual = `${mesAtual}_${anoAtual}`;
+        
+        // Buscar últimos 3 meses de agendamentos para ter uma amostra maior
+        const meses = [];
+        for (let i = 0; i < 3; i++) {
+            const data = new Date(anoAtual, hoje.getMonth() - i, 1);
+            const mes = String(data.getMonth() + 1).padStart(2, '0');
+            const ano = data.getFullYear();
+            meses.push(`${mes}_${ano}`);
+        }
+        
+        let temposAtendimento = [];
+        let totalAtendimentos = 0;
+        let tempoTotal = 0;
+        
+        // Buscar agendamentos finalizados dos últimos meses
+        for (const mesAno of meses) {
+            // Referência para a coleção de dias do mês
+            const diasRef = collection(db, 'agendamentos', lojaIdAtual, mesAno);
+            const diasSnapshot = await getDocs(diasRef);
+            
+            diasSnapshot.forEach(diaDoc => {
+                const diaData = diaDoc.data();
+                
+                // Percorrer serviços e agendamentos
+                Object.values(diaData).forEach(servicoMap => {
+                    Object.values(servicoMap).forEach(agendamento => {
+                        // Verificar se o agendamento foi finalizado (status que indicam conclusão)
+                        if (agendamento.status === 'Finalizado' || 
+                            agendamento.status === 'Atendido' ||
+                            agendamento.status === 'Concluído') {
+                            
+                            // Se tiver registro de tempo de atendimento
+                            if (agendamento.tempo_atendimento) {
+                                temposAtendimento.push(agendamento.tempo_atendimento);
+                                tempoTotal += agendamento.tempo_atendimento;
+                                totalAtendimentos++;
+                            } 
+                            // Se tiver horário de início e fim, calcular
+                            else if (agendamento.inicio_atendimento && agendamento.fim_atendimento) {
+                                const inicio = agendamento.inicio_atendimento?.toDate?.() || new Date(agendamento.inicio_atendimento);
+                                const fim = agendamento.fim_atendimento?.toDate?.() || new Date(agendamento.fim_atendimento);
+                                
+                                if (inicio && fim && fim > inicio) {
+                                    const tempoMinutos = Math.round((fim - inicio) / (1000 * 60));
+                                    temposAtendimento.push(tempoMinutos);
+                                    tempoTotal += tempoMinutos;
+                                    totalAtendimentos++;
+                                }
+                            }
+                        }
+                    });
+                });
+            });
+        }
+        
+        // Se não temos dados históricos, usar média padrão de 15 minutos
+        if (totalAtendimentos === 0) {
+            console.log('📊 Sem dados históricos, usando média padrão de 15 min');
+            return totalNaFila * 15;
+        }
+        
+        // Calcular média dos últimos atendimentos
+        const mediaMinutos = Math.round(tempoTotal / totalAtendimentos);
+        
+        // Calcular tempo estimado baseado na posição na fila
+        // Quem está na frente: Próximos a atender + Outros na fila
+        const posicaoNaFila = agendamentosAtivos.filter(a => 
+            a.status === 'Próximo a atender' || 
+            (a.status !== 'Em atendimento' && ['Na fila', 'Verificado'].includes(a.status))
+        ).length;
+        
+        // Se tem alguém em atendimento, adicionar 1
+        const temAlguemAtendendo = agendamentosAtivos.some(a => a.status === 'Em atendimento');
+        const pessoasNaFrente = posicaoNaFila + (temAlguemAtendendo ? 1 : 0);
+        
+        const tempoEstimado = pessoasNaFrente * mediaMinutos;
+        
+        console.log(`📊 Média real de atendimento: ${mediaMinutos} min (baseado em ${totalAtendimentos} atendimentos)`);
+        console.log(`⏱️ Tempo estimado: ${pessoasNaFrente} pessoas × ${mediaMinutos} min = ${tempoEstimado} min`);
+        
+        return tempoEstimado;
+        
+    } catch (error) {
+        console.error('❌ Erro ao calcular tempo médio real:', error);
+        // Fallback: cálculo simples baseado em 15 minutos
+        const totalNaFila = agendamentosAtivos.filter(a => 
+            ['Na fila', 'Verificado', 'Próximo a atender'].includes(a.status)
+        ).length;
+        return totalNaFila * 15;
+    }
+}
+
+
 
 // ============================================
 // FUNÇÃO PARA ATUALIZAR DOTS DO SCROLL
@@ -3863,6 +3984,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
