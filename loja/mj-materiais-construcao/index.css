@@ -4167,31 +4167,32 @@ body {
    TÍTULO ATENDIMENTO - SEM ÍCONE, MAIÚSCULO, NEGRITO
    ============================================ */
 .titulo-atendimento {
-    font-size: 2rem;           /* Fonte maior */
-    font-weight: 800;           /* Negrito */
-    text-transform: uppercase;  /* Maiúsculo */
-    color: #1e293b;             /* Cor escura */
-    margin: 0;                  /* Remove margens padrão */
-    letter-spacing: 1px;        /* Espaçamento entre letras */
-    line-height: 1.2;           /* Altura da linha */
-}
-
-/* Opcional: Se quiser um efeito sutil */
-.titulo-atendimento {
+    font-size: 2rem;              /* Fonte maior */
+    font-weight: 800;              /* Negrito */
+    text-transform: uppercase;     /* Maiúsculo */
+    color: #1e293b;                /* Cor escura */
+    margin: 0;                     /* Remove margens padrão */
+    letter-spacing: 1px;           /* Espaçamento entre letras */
+    line-height: 1.2;              /* Altura da linha */
     position: relative;
-    display: inline-block;
-    padding-bottom: 8px;
+    display: inline-block;         /* Faz o elemento ter o tamanho exato do texto */
+    padding-bottom: 12px;          /* Espaço para o traço */
 }
 
-/* Linha decorativa abaixo (opcional) */
+/* Traço no tamanho exato do texto */
 .titulo-atendimento::after {
     content: '';
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 60px;
-    height: 3px;
+    width: 100%;                   /* 100% do elemento pai (que é o texto) */
+    height: 4px;                   /* Altura do traço */
     background: linear-gradient(90deg, #0056b3, #00a86b);
-    border-radius: 3px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
 }
 
+/* Opcional: Efeito de brilho no hover */
+.titulo-atendimento:hover::after {
+    box-shadow: 0 0 10px rgba(0, 86, 179, 0.5);
+}
