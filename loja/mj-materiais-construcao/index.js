@@ -1118,7 +1118,7 @@ function renderizarPainelAgendamento() {
             `;
         }
     }
-    
+        
     // ============================================
     // 🔥 CORREÇÃO 1: BOTÃO DE CARROSSEL POSICIONADO ANTES DA BADGE
     // ============================================
@@ -4326,6 +4326,7 @@ window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
 
 console.log("✅ index.js carregado com sucesso!");
+
 
 
 
