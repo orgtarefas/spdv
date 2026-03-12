@@ -1,3 +1,4 @@
+
 /* index.css - Estilo para Loja de Clientes */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -2394,11 +2395,9 @@ body {
 }
 
 .coluna-outros {
-    width: 50% !important;
-    min-width: 50% !important;
+    width: 50% !important; /* Largura fixa da coluna */
     max-width: 50% !important;
-    flex: 0 0 50% !important; /* 🔥 IMPEDE QUALQUER FLEXÃO */
-    box-sizing: border-box;
+    min-width: 50% !important;
 }
 
 /* Coluna 2: PRÓXIMOS A ATENDER - 25% */
@@ -3729,16 +3728,11 @@ body {
     padding: 10px 15px;
     background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
     border-bottom: 1px solid #e9ecef;
-    width: 100%;
-    box-sizing: border-box;
-    /* 🔥 GARANTIR QUE NÃO EXTRAPOLA */
-    overflow: hidden;
-    white-space: nowrap;
+    position: relative;
 }
 
 /* Badge existente */
 .coluna-outros .coluna-badge {
-    order: 2;
     background: linear-gradient(135deg, #0056b3, #0077be);
     color: white;
     font-weight: 600;
@@ -3746,60 +3740,27 @@ body {
     padding: 4px 10px;
     border-radius: 30px;
     box-shadow: 0 2px 5px rgba(0, 86, 179, 0.2);
-    
-    /* 🔥 NÃO PERMITIR FLEXÃO */
-    flex-shrink: 0;
-    white-space: nowrap;
-    
-    /* Forçar à direita */
-    margin-left: auto;
 }
-
-/* Container do carrossel - não pode expandir */
-.coluna-outros .servico-carousel-container {
-    width: 100%;
-    max-width: 100%;
-    overflow: hidden;
-    box-sizing: border-box;
-}
-
-/* Área de scroll - tamanho controlado */
-.coluna-outros .servico-scroll {
-    max-width: calc(100% - 88px); /* Mantém espaço para setas */
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-
 
 /* Botão carrossel - ESTILO PROFISSIONAL */
 .btn-carrossel-outros {
-    order: 1;
-    width: 32px !important;
-    min-width: 32px !important;
-    max-width: 32px !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    max-height: 32px !important;
-    
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: white;
-    border: 2px solid #0056b3;
+    border: none;
     color: #0056b3;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.9rem;
-    transition: all 0.3s ease;
-    
-    /* 🔥 NÃO PERMITIR FLEXÃO */
-    flex-shrink: 0 !important;
-    flex-grow: 0 !important;
-    
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 5px;
     padding: 0;
-    margin: 0;
-    box-sizing: border-box;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
 }
 
 /* Efeito de onda no hover */
@@ -3852,7 +3813,10 @@ body {
     border-color: #0056b3;
 }
 
-
+/* Tooltip personalizado (legenda ao passar mouse) */
+.btn-carrossel-outros {
+    position: relative;
+}
 
 .btn-carrossel-outros::after {
     content: attr(title);
@@ -3926,23 +3890,18 @@ body {
     border-bottom: 2px solid transparent;
 }
 
+/* Ajuste no badge para ficar ao lado do botão */
+.coluna-outros .coluna-badge {
+    margin-left: auto;
+    order: 1;
+}
+
+.btn-carrossel-outros {
+    order: 2;
+}
 
 /* Título fica à esquerda */
 .coluna-outros .coluna-header h3 {
     order: 0;
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #1e293b;
-    /* 🔥 NÃO DEIXAR CRESCER */
-    flex-shrink: 0;
-    white-space: nowrap;
+    margin-right: auto;
 }
-
-
-
-
-
-
-
