@@ -2393,17 +2393,6 @@ body {
     height: 100%;
 }
 
-/* Ajuste no container do carrossel */
-.coluna-outros .servico-carousel-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    min-height: 180px;
-    width: 100%;
-    height: auto;
-    justify-content: space-between;
-}
 
 /* Container principal da fileira de serviço */
 .coluna-outros .fila-servico {
@@ -2437,74 +2426,6 @@ body {
     margin-left: auto;
     margin-right: 0;
 }
-
-
-/* Área de scroll - OCUPA TODO ESPAÇO */
-.coluna-outros .servico-scroll {
-    flex: 1 1 auto; /* EXPANDE PARA OCUPAR ESPAÇO */
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    scroll-behavior: smooth;
-    padding: 4px 0 8px;
-    scrollbar-width: thin;
-    scrollbar-color: #0056b3 #f1f5f9;
-    height: auto;
-    min-height: fit-content;
-    max-width: none;
-    width: 100%;
-    direction: ltr;
-}
-
-/* Track dos cards - CARDS À DIREITA */
-.coluna-outros .servico-track {
-    display: flex;
-    gap: 12px;
-    min-width: 100%;
-    width: 100%;
-    padding: 0 4px;
-    align-items: stretch;
-    flex-direction: row;
-    justify-content: flex-end;
-}
-
-/* Cards individuais */
-.coluna-outros .servico-card {
-    width: 180px;
-    background: white;
-    border: 1px solid #edf2f7;
-    border-radius: 18px;
-    padding: 14px;
-    flex-direction: column;
-    white-space: normal;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
-    transition: all 0.2s ease;
-    vertical-align: middle;
-    height: auto;
-    min-height: 150px;
-    flex-shrink: 0;
-    direction: ltr;
-}
-
-/* SETAS - POSICIONAMENTO CORRETO */
-.coluna-outros .servico-arrow {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: white;
-    border: 2px solid #0056b3;
-    color: #0056b3;
-    cursor: pointer;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    flex-shrink: 0;
-    font-size: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
-    z-index: 10;
-}
-
 
 /* Seta esquerda (prev) - DEVE FICAR NA ESQUERDA */
 .servico-arrow.prev {
@@ -2823,19 +2744,16 @@ body {
     flex-shrink: 0;
 }
 
-/* Container do carrossel */
+/* Container principal do carrossel */
 .servico-carousel-container {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
-    min-height: 180px;
     width: 100%;
-    height: auto;
-    justify-content: space-between; /* MUDA PARA space-between */
+    max-width: 100%;
+    position: relative;
 }
 
-/* Área de scroll HORIZONTAL */
 .servico-scroll {
     flex: 1;
     overflow-x: auto;
@@ -2843,10 +2761,17 @@ body {
     white-space: nowrap;
     scroll-behavior: smooth;
     padding: 4px 0 8px;
+    
+    /* 🔥 CORREÇÃO: Limitar largura */
+    max-width: calc(100% - 80px); /* 80px = espaço para as duas setas */
+    width: 100%;
+    
+    /* Scrollbar personalizada */
     scrollbar-width: thin;
     scrollbar-color: #0056b3 #f1f5f9;
-    height: auto; /* MUDA DE height: 100% PARA auto */
-    min-height: fit-content; /* ADICIONA min-height */
+    
+    /* 🔥 GARANTIR QUE O CONTEÚDO NÃO EXTRAPOLA */
+    box-sizing: border-box;
 }
 
 .servico-scroll::-webkit-scrollbar {
@@ -2897,20 +2822,9 @@ body {
 }
 
 
-/* Garantir que o container do carrossel também ocupe toda largura */
-.coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-carousel-container {
-    width: 100%;
-}
-
 /* Ajuste nas setas para estado vazio */
 .coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-arrow {
     display: flex !important;
-}
-
-/* Garantir que o scroll ocupe toda largura */
-.coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-scroll {
-    flex: 1 1 auto;
-    width: 100% !important;
 }
 
 /* Quando houver cards, volta ao normal */
@@ -2918,25 +2832,25 @@ body {
     justify-content: flex-end;
 }
 
-/* SETAS FIXAS - SEMPRE VISÍVEIS */
+/* Setas - SEMPRE VISÍVEIS */
 .servico-arrow {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px; /* Não encolhe */
     border-radius: 50%;
     background: white;
     border: 2px solid #0056b3;
     color: #0056b3;
     cursor: pointer;
-    display: flex !important; /* FORÇA VISIBILIDADE */
+    display: flex !important;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
-    flex-shrink: 0;
     font-size: 1rem;
     box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
     z-index: 10;
-    opacity: 1 !important; /* FORÇA OPACIDADE */
-    visibility: visible !important; /* FORÇA VISIBILIDADE */
+    opacity: 1 !important;
+    visibility: visible !important;
 }
 
 .servico-arrow:hover:not(:disabled) {
@@ -2953,20 +2867,6 @@ body {
     color: #94a3b8;
 }
 
-/* Área de scroll horizontal */
-.servico-scroll {
-    flex: 1;
-    order: 1; /* Meio */
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    scroll-behavior: smooth;
-    padding: 4px 0 8px;
-    scrollbar-width: thin;
-    scrollbar-color: #0056b3 #f1f5f9;
-    height: auto;
-    min-height: fit-content;
-}
 
 .servico-scroll::-webkit-scrollbar {
     height: 4px;
@@ -2984,20 +2884,26 @@ body {
 
 /* CARDS DA COLUNA 3 - MESMO VISUAL DA COLUNA 2 */
 .servico-card {
-    width: 180px;
+    width: 180px; /* Largura fixa */
+    min-width: 180px; /* Não encolhe */
+    max-width: 180px; /* Não expande */
+    
     background: white;
     border: 1px solid #edf2f7;
     border-radius: 18px;
     padding: 14px;
-    flex-direction: column;
+    
+    /* 🔥 GARANTIR QUE NÃO QUEBRA LINHA */
     white-space: normal;
+    flex-shrink: 0;
+    
+    display: flex;
+    flex-direction: column;
+    
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
     transition: all 0.2s ease;
-    vertical-align: middle;
-    height: auto; /* MUDA DE height: 150px PARA auto */
-    min-height: 150px; /* ADICIONA min-height PARA GARANTIR TAMANHO MÍNIMO */
-    flex-shrink: 0;
 }
+
 
 .servico-card:hover {
     transform: translateY(-4px);
@@ -3772,6 +3678,7 @@ body {
     color: #94a3b8;
     font-style: italic;
 }
+
 
 
 
