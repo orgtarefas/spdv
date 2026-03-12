@@ -2718,11 +2718,6 @@ body {
    COLUNA 3 - CARDS HORIZONTAIS COM MESMO VISUAL DA COLUNA 2
    ============================================ */
 
-/* Esconde a tag de serviço APENAS nos cards da coluna 3 */
-.coluna-proximos .servico-card .servico-tag-small {
-    display: none !important;
-}
-
 /* Container da fileira de serviço */
 .fila-servico {
     background: #fafcff;
@@ -2953,7 +2948,7 @@ body {
 }
 
 .servico-card {
-    animation: cardAppear 0.5s ease-out forwards;
+    padding: 10px 10px 10px 10px;
 }
 
 .servico-scroll::-webkit-scrollbar {
@@ -3067,25 +3062,6 @@ body {
 .servico-track .servico-card:nth-child(7) { animation-delay: 0.35s; }
 .servico-track .servico-card:nth-child(8) { animation-delay: 0.4s; }
 
-/* TAG DO SERVIÇO */
-.servico-card .servico-tag-small {
-    background: #eef2f6;
-    color: #2c3e50;
-    padding: 6px 12px;
-    border-radius: 30px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: inline-block;
-    margin-bottom: 10px;
-    border: 1px solid #dde3e9;
-    align-self: flex-start;
-    max-width: 100%;
-    white-space: normal;
-    word-break: break-word;
-    position: relative;
-    z-index: 3;
-}
-
 /* NÚMERO DA SENHA */
 .servico-card .senha-numero-small {
     font-size: 1.6rem;
@@ -3157,23 +3133,6 @@ body {
 .servico-card-placeholder .placeholder-text {
     font-size: 0.75rem;
     color: #94a3b8;
-}
-
-/* TAG DO SERVIÇO - IGUAL COLUNA 2 */
-.servico-card .servico-tag-small {
-    background: #eef2f6;
-    color: #2c3e50;
-    padding: 6px 12px; /* AUMENTA O PADDING */
-    border-radius: 30px;
-    font-size: 0.75rem; /* AUMENTA O FONTE */
-    font-weight: 600;
-    display: inline-block;
-    margin-bottom: 10px;
-    border: 1px solid #dde3e9;
-    align-self: flex-start;
-    max-width: 100%;
-    white-space: normal; /* PERMITE QUEBRA DE LINHA */
-    word-break: break-word;
 }
 
 /* NÚMERO DA SENHA - IGUAL COLUNA 2 */
@@ -4112,5 +4071,6 @@ body {
     order: 0;
     margin-right: auto;
 }
+
 
 
