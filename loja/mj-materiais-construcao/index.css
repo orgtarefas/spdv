@@ -2359,11 +2359,10 @@ body {
     max-height: 600px;
 }
 
-/* Coluna 1: OUTROS NA FILA - 50% */
-.agendamento-coluna.coluna-outros {
-    flex: 2;
-    min-width: 0;
-    max-width: 50%;
+.coluna-outros {
+    width: 50% !important; /* Largura fixa da coluna */
+    max-width: 50% !important;
+    min-width: 50% !important;
 }
 
 /* Coluna 2: PRÓXIMOS A ATENDER - 25% */
@@ -2458,16 +2457,21 @@ body {
 }
 
 /* Containers auxiliares */
-.coluna-outros .proximos-carousel-container {
-    display: flex;
-    justify-content: flex-end;
+.proximos-carousel-container {
     width: 100%;
+    height: 220px; /* Altura fixa */
+    overflow: visible;
 }
 
-.coluna-outros .proximos-scroll {
-    display: flex;
-    justify-content: flex-end;
+.proximos-scroll {
     width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.proximos-track {
+    width: 100%;
+    height: 100%;
 }
 
 .agendamento-coluna:hover {
@@ -2744,36 +2748,48 @@ body {
     flex-shrink: 0;
 }
 
-/* Container principal do carrossel */
+/* Container principal do carrossel - LARGURA FIXA */
 .servico-carousel-container {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: 100%;
+    width: 100%; /* Relativo ao pai, mas o pai tem largura fixa */
     max-width: 100%;
-    position: relative;
-    box-sizing: border-box; /* 🔥 GARANTIR QUE NÃO EXTRAPOLA */
+    background: transparent;
+    /* 🔥 ALTURA FIXA PARA GARANTIR ESPAÇO */
+    min-height: 220px;
+    height: auto;
 }
 
-/* Área de scroll - OCUPA O ESPAÇO RESTANTE */
+
+/* Container do scroll - TAMANHO FIXO TAMBÉM */
 .servico-scroll {
-    flex: 1 1 auto; /* CRESCE PARA OCUPAR ESPAÇO */
+    /* 🔥 LARGURA FIXA - 100% menos o espaço das setas */
+    width: calc(100% - 88px) !important; /* 36px + 36px + 16px gap */
+    max-width: calc(100% - 88px) !important;
+    min-width: calc(100% - 88px) !important;
+    
+    /* Altura fixa */
+    height: 200px !important;
+    max-height: 200px !important;
+    min-height: 200px !important;
+    
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
     scroll-behavior: smooth;
-    padding: 4px 0 8px;
-    
-    /* 🔥 LARGURA MÁXIMA CONTROLADA */
-    max-width: calc(100% - 88px); /* 36px seta esquerda + 36px seta direita + 16px gap = 88px */
-    width: 100%;
+    padding: 8px 0;
     
     /* Scrollbar */
     scrollbar-width: thin;
-    scrollbar-color: #0056b3 #f1f5f9;
+    scrollbar-color: #0056b3 #e2e8f0;
     
+    /* 🔥 GARANTIR QUE NÃO MUDA */
     box-sizing: border-box;
+    flex-shrink: 1;
+    flex-grow: 0;
 }
+
 
 .servico-scroll::-webkit-scrollbar {
     height: 4px;
@@ -2789,17 +2805,13 @@ body {
     border-radius: 8px;
 }
 
-/* TRACK HORIZONTAL - ITENS LADO A LADO */
+/* Track dos cards - ALTURA FIXA */
 .servico-track {
-    display: flex;
+    display: inline-flex;
     gap: 12px;
-    min-width: 100%;
-    width: 100%;
     padding: 0 4px;
-    align-items: stretch;
-    flex-direction: row;
-    justify-content: flex-start;
-    direction: ltr;
+    height: 100%;
+    align-items: center;
 }
 
 
@@ -2807,13 +2819,6 @@ body {
    PLACEHOLDER - LARGURA TOTAL FIXA
    ============================================ */
 
-/* Quando não há cards (estado vazio) - SOBRESCREVER alinhamento */
-.coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-track {
-    display: flex;
-    width: 100% !important;
-    min-width: 100%;
-    justify-content: center !important; /* SOBRESCREVE o flex-end */
-}
 
 /* Placeholder ocupa toda largura */
 .coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-card-placeholder {
@@ -2823,38 +2828,33 @@ body {
 }
 
 
-/* Ajuste nas setas para estado vazio */
-.coluna-outros .fila-servico:has(.servico-card-placeholder) .servico-arrow {
-    display: flex !important;
-}
-
-/* Quando houver cards, volta ao normal */
-.coluna-outros .fila-servico:has(.servico-card) .servico-track {
-    justify-content: flex-end;
-}
-
-/* SETAS - TAMANHO FIXO E SEMPRE VISÍVEIS */
+/* SETAS - TOTALMENTE FIXAS */
 .servico-arrow {
-    width: 36px;
-    min-width: 36px; /* NÃO ENCOLHE */
-    height: 36px;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    
     border-radius: 50%;
-    background: white;
-    border: 2px solid #0056b3;
-    color: #0056b3;
-    cursor: pointer;
+    background: white !important;
+    border: 2px solid #0056b3 !important;
+    color: #0056b3 !important;
+    cursor: pointer !important;
     display: flex !important;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s;
     font-size: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 86, 179, 0.2);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
     z-index: 10;
-    opacity: 1 !important;
-    visibility: visible !important;
-    /* 🔥 POSIÇÃO FIXA - NÃO MUDA */
-    flex-shrink: 0;
-    flex-grow: 0;
+    
+    /* 🔥 IMPEDIR QUALQUER ALTERAÇÃO DE TAMANHO */
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    
+    pointer-events: auto !important;
+    transition: all 0.2s;
 }
 
 .servico-arrow:hover:not(:disabled) {
@@ -2888,23 +2888,26 @@ body {
 
 /* CARDS DA COLUNA 3 - MESMO VISUAL DA COLUNA 2 */
 .servico-card {
-    width: 180px;
-    min-width: 180px;
-    max-width: 180px;
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    
+    height: 160px !important;
+    min-height: 160px !important;
+    max-height: 160px !important;
     
     background: white;
-    border: 1px solid #edf2f7;
-    border-radius: 18px;
-    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
     
-    white-space: normal;
-    flex-shrink: 0;
+    /* 🔥 IMPEDIR QUALQUER FLEXÃO */
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
     
     display: flex;
     flex-direction: column;
-    
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
-    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 
@@ -3176,10 +3179,6 @@ body {
         text-align: center;
     }
     
-    .servico-card {
-        width: 160px;
-        height: 140px;
-    }
 }
 
 /* Modal Nova Senha Hoje */
@@ -3681,6 +3680,7 @@ body {
     color: #94a3b8;
     font-style: italic;
 }
+
 
 
 
