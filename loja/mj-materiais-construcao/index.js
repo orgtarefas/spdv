@@ -184,12 +184,12 @@ function pararCarrosselAutomatico() {
     if (carrosselAutomaticoInterval) {
         clearInterval(carrosselAutomaticoInterval);
         carrosselAutomaticoInterval = null;
-        console.log('⏸️ Carrossel automático parado');
+        console.log('⏸️ Carrossel parado');
     }
 }
 
 // ============================================
-// ALTERNAR CARROSSEL AUTOMÁTICO (CORRIGIDO)
+// ALTERNAR CARROSSEL AUTOMÁTICO
 // ============================================
 function alternarCarrosselAutomatico() {
     carrosselAutomaticoAtivo = !carrosselAutomaticoAtivo;
@@ -198,20 +198,18 @@ function alternarCarrosselAutomatico() {
     
     if (carrosselAutomaticoAtivo) {
         iniciarCarrosselSenhasAutomatico();
-        mostrarMensagem('🎠 Rolagem automática ativada (5 segundos por card)', 'success', 2000);
         
         if (btn) {
             btn.classList.add('ativo');
-            btn.innerHTML = '<i class="fas fa-pause"></i>'; // PAUSE quando está ATIVO (rodando)
+            btn.innerHTML = '<i class="fas fa-pause"></i>';
             btn.title = 'Rolagem automática (ligada)';
         }
     } else {
         pararCarrosselAutomatico();
-        mostrarMensagem('⏸️ Rolagem automática desativada', 'info', 2000);
         
         if (btn) {
             btn.classList.remove('ativo');
-            btn.innerHTML = '<i class="fas fa-play"></i>'; // PLAY quando está INATIVO (parado)
+            btn.innerHTML = '<i class="fas fa-play"></i>';
             btn.title = 'Rolagem automática (desligada)';
         }
     }
@@ -283,59 +281,78 @@ function iniciarCarrosselAutomaticoSuave() {
 // ============================================
 function configurarPausaAoInteragir() {
     document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
-        // Pausar quando usuário começar a scrollar
         scrollEl.addEventListener('wheel', () => {
-            pararCarrosselAutomatico();
+            if (carrosselAutomaticoAtivo) {
+                alternarCarrosselAutomatico();
+            }
         });
         
         scrollEl.addEventListener('touchstart', () => {
-            pararCarrosselAutomatico();
+            if (carrosselAutomaticoAtivo) {
+                alternarCarrosselAutomatico();
+            }
         });
         
         scrollEl.addEventListener('mousedown', () => {
-            pararCarrosselAutomatico();
+            if (carrosselAutomaticoAtivo) {
+                alternarCarrosselAutomatico();
+            }
         });
     });
     
-    // Também pausar quando clicar nas setas
     document.querySelectorAll('.servico-arrow').forEach(arrow => {
         arrow.addEventListener('click', () => {
-            pararCarrosselAutomatico();
+            if (carrosselAutomaticoAtivo) {
+                alternarCarrosselAutomatico();
+            }
         });
     });
 }
 
 // ============================================
-// BOTÃO PARA CONTROLAR CARROSSEL (opcional)
+// CRIAR BOTÃO PLAY NO HEADER "OUTROS NA FILA"
 // ============================================
-function adicionarBotaoControleCarrossel() {
-    // Verificar se já existe
-    if (document.getElementById('btnControleCarrossel')) return;
-    
-    const header = document.querySelector('.agendamento-header');
-    if (!header) return;
-    
-    const btn = document.createElement('button');
-    btn.id = 'btnControleCarrossel';
-    btn.className = 'btn-controle-carrossel';
-    btn.innerHTML = '<i class="fas fa-play"></i> Navegar Entre Senhas';
-    btn.title = 'Ativar/desativar rolagem automática';
-    
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        alternarCarrosselAutomatico();
+function criarBotaoPlayNoHeader() {
+    setTimeout(() => {
+        const colunaOutros = document.querySelector('.coluna-outros');
+        if (!colunaOutros) return;
         
-        // Atualizar ícone
-        if (carrosselAutomaticoAtivo) {
-            btn.innerHTML = '<i class="fas fa-pause"></i> Navegar Entre Senhas';
-            btn.classList.add('ativo');
-        } else {
-            btn.innerHTML = '<i class="fas fa-play"></i> Navegar Entre Senhas';
-            btn.classList.remove('ativo');
-        }
-    });
-    
-    header.appendChild(btn);
+        const colunaHeader = colunaOutros.querySelector('.coluna-header');
+        if (!colunaHeader) return;
+        
+        // Verificar se já existe
+        if (document.getElementById('btnCarrosselOutros')) return;
+        
+        // Encontrar elementos
+        const icon = colunaHeader.querySelector('i:first-child');
+        const title = colunaHeader.querySelector('h3');
+        const badge = colunaHeader.querySelector('.coluna-badge');
+        
+        // Criar botão
+        const btnCarrossel = document.createElement('button');
+        btnCarrossel.id = 'btnCarrosselOutros';
+        btnCarrossel.className = 'btn-carrossel-outros ativo';
+        btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
+        btnCarrossel.title = 'Rolagem automática (ligada)';
+        
+        // Limpar header
+        colunaHeader.innerHTML = '';
+        
+        // Reconstruir na ordem correta
+        if (icon) colunaHeader.appendChild(icon.cloneNode(true));
+        if (title) colunaHeader.appendChild(title.cloneNode(true));
+        colunaHeader.appendChild(btnCarrossel);
+        if (badge) colunaHeader.appendChild(badge.cloneNode(true));
+        
+        // Adicionar evento
+        btnCarrossel.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            alternarCarrosselAutomatico();
+        });
+        
+        console.log('✅ Botão play criado no header');
+    }, 500);
 }
 
 
@@ -1154,11 +1171,15 @@ function renderizarPainelAgendamento() {
             });
         });
         
+        // 🔥 CONFIGURAR PAUSA E CRIAR BOTÃO PLAY
         configurarPausaAoInteragir();
+        criarBotaoPlayNoHeader();
         
+        // 🔥 INICIAR CARROSSEL SE ESTIVER ATIVO
         if (carrosselAutomaticoAtivo) {
             iniciarCarrosselSenhasAutomatico();
         }
+        
     }, 200);
 }
 
@@ -1166,40 +1187,34 @@ function renderizarPainelAgendamento() {
 // INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS
 // ============================================
 function iniciarCarrosselSenhasAutomatico() {
-    // Verificar se o carrossel está ativo
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático das senhas...');
+    console.log('🎠 Iniciando carrossel automático...');
     
-    // Parar qualquer intervalo anterior
     if (carrosselAutomaticoInterval) {
         clearInterval(carrosselAutomaticoInterval);
     }
     
-    // Iniciar novo intervalo
     carrosselAutomaticoInterval = setInterval(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
             if (maxScroll <= 0) return;
             
-            const cardWidth = 192; // 180px + 12px gap
+            const cardWidth = 192;
             const currentScroll = scrollEl.scrollLeft;
             
-            // Calcular próximo card
             let nextScroll = currentScroll + cardWidth;
             
-            // Se passou do fim, volta para o início
             if (nextScroll > maxScroll) {
                 nextScroll = 0;
             }
             
-            // Usar behavior 'smooth' para animação suave
             scrollEl.scrollTo({
                 left: nextScroll,
                 behavior: 'smooth'
             });
         });
-    }, 5000); // 5 segundos por card
+    }, 5000); // 5 segundos
 }
 
 // ============================================
@@ -4204,6 +4219,7 @@ function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
 // ============================================
 // FUNÇÕES AUXILIARES PARA SCROLL DA COLUNA 3 - PARTE DE AGENDAMENTO
 // ============================================
+// Função global para scroll dos serviços
 window.scrollServico = function(servicoId, amount) {
     const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
     if (scrollEl) {
@@ -4214,53 +4230,16 @@ window.scrollServico = function(servicoId, amount) {
     }
 };
 
-// ============================================
-// 🔥 NOVA FUNÇÃO: Configurar scroll e setas
-// ============================================
-function configurarScrollServico(servicoId) {
-    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
-    if (!scrollEl) return;
-    
-    const container = scrollEl.closest('.servico-carousel-container');
-    if (!container) return;
-    
-    const prevBtn = container.querySelector('.prev');
-    const nextBtn = container.querySelector('.next');
-    
-    if (!prevBtn || !nextBtn) return;
-    
-    // 🔥 GARANTIR QUE AS SETAS ESTÃO VISÍVEIS
-    prevBtn.style.display = 'flex';
-    nextBtn.style.display = 'flex';
-    
-    function atualizarSetas() {
-        const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-        
-        // Desabilitar seta esquerda se no início
-        prevBtn.disabled = scrollEl.scrollLeft <= 5;
-        
-        // Desabilitar seta direita se no fim
-        nextBtn.disabled = scrollEl.scrollLeft >= maxScroll - 5;
-    }
-    
-    // Atualizar ao scrollar
-    scrollEl.addEventListener('scroll', atualizarSetas);
-    
-    // Atualizar inicialmente
-    setTimeout(atualizarSetas, 100);
-    
-    // 🔥 FORÇAR ATUALIZAÇÃO QUANDO A JANELA REDIMENSIONAR
-    window.addEventListener('resize', atualizarSetas);
-}
-
-// Função para ir para uma página específica do serviço
+// Função para ir para uma página específica
 window.goToServicoPage = function(servicoId, pageIndex) {
     const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
     if (scrollEl) {
-        // Assumindo que cada card tem 180px + gap 12px = 192px por card
-        // 2 cards por página = 384px
+        // Cada card tem 180px + gap 12px = 192px, 2 cards por página = 384px
         const scrollAmount = pageIndex * 384;
-        scrollEl.scrollTo({ left: scrollAmount, behavior: 'smooth' });
+        scrollEl.scrollTo({ 
+            left: scrollAmount, 
+            behavior: 'smooth' 
+        });
         
         // Atualizar dots
         const dots = document.querySelectorAll(`#servico-${servicoId}-dots .dot`);
@@ -4274,6 +4253,48 @@ window.goToServicoPage = function(servicoId, pageIndex) {
     }
 };
 
+// Configurar scroll do serviço
+function configurarScrollServico(servicoId) {
+    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
+    if (!scrollEl) return;
+    
+    const container = scrollEl.closest('.servico-carousel-container');
+    if (!container) return;
+    
+    const prevBtn = container.querySelector('.prev');
+    const nextBtn = container.querySelector('.next');
+    
+    if (!prevBtn || !nextBtn) return;
+    
+    function atualizarSetas() {
+        const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+        
+        prevBtn.disabled = scrollEl.scrollLeft <= 5;
+        nextBtn.disabled = scrollEl.scrollLeft >= maxScroll - 5;
+    }
+    
+    scrollEl.addEventListener('scroll', atualizarSetas);
+    setTimeout(atualizarSetas, 100);
+}
+
+// Atualizar dots do serviço
+function atualizarDotsServico(servicoId) {
+    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
+    if (!scrollEl) return;
+    
+    const scrollLeft = scrollEl.scrollLeft;
+    const cardWidth = 192; // 180px card + 12px gap
+    const pageIndex = Math.round(scrollLeft / cardWidth);
+    
+    const dots = document.querySelectorAll(`#servico-${servicoId}-dots .dot`);
+    dots.forEach((dot, idx) => {
+        if (idx === pageIndex) {
+            dot.classList.add('active');
+        } else {
+            dot.classList.remove('active');
+        }
+    });
+}
 
 
 // ============================================
