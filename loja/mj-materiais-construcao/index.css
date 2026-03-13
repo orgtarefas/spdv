@@ -2724,6 +2724,10 @@ body {
     overflow-y: auto;
 }
 
+.item-fila-vertical urgente {
+    padding: 10px;
+}
+
 /* Cards da coluna 1 */
 .card-chamando-item {
     background: linear-gradient(145deg, #ff6b00, #ff8c40);
