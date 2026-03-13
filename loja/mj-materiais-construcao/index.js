@@ -1017,84 +1017,140 @@ function renderizarPainelAgendamento() {
                 }
                 agendamentosPorServico[item.servico_id].itens.push(item);
             });
+    
+            // Converter para array de serviços
+            const servicosArray = Object.entries(agendamentosPorServico).map(([id, dados]) => ({
+                id,
+                nome: dados.nome,
+                itens: dados.itens.sort((a, b) => a.timestamp - b.timestamp) // mais antigo primeiro
+            })).sort((a, b) => a.nome.localeCompare(b.nome));
+    
+            // Paginação: 2 serviços por página
+            const servicosPorPagina = 2;
+            const totalPaginas = Math.ceil(servicosArray.length / servicosPorPagina);
             
-            let html = '';
-            
-            // Ordenar serviços por nome
-            const servicosOrdenados = Object.keys(agendamentosPorServico).sort((a, b) => {
-                const nomeA = agendamentosPorServico[a].nome.toLowerCase();
-                const nomeB = agendamentosPorServico[b].nome.toLowerCase();
-                return nomeA.localeCompare(nomeB);
-            });
-            
-            servicosOrdenados.forEach(servicoId => {
-                const servico = agendamentosPorServico[servicoId];
-                const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
-                
-                // ORDENAR POR TIMESTAMP (MAIS ANTIGO PRIMEIRO)
-                const itensOrdenados = [...servico.itens].sort((a, b) => a.timestamp - b.timestamp);
-                
-                html += `
-                    <div class="fila-servico">
-                        <div class="fila-servico-header">
-                            <i class="fas fa-star"></i>
-                            <h4 title="${servico.nome}">${servico.nome}</h4>
-                            <span class="servico-count">${itensOrdenados.length}</span>
-                        </div>
-                        
-                        <div class="servico-carousel-container">
-                            <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            
-                            <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
-                                <div class="servico-track">
-                `;
-                
-                // 🔥 CORREÇÃO: INVERTER PARA EXIBIR
-                // MAIS ANTIGO (1° da fila) à DIREITA
-                // MAIS NOVO (último) à ESQUERDA
-                const itensParaExibir = [...itensOrdenados].reverse();
-                
-                itensParaExibir.forEach((item, idx) => {
-                    const posicaoReal = itensOrdenados.length - idx;
+            let html = `
+                <div class="servicos-paginados">
+                    <div class="servicos-pages" id="servicosPages">
+            `;
+    
+            for (let pagina = 0; pagina < totalPaginas; pagina++) {
+                const inicio = pagina * servicosPorPagina;
+                const fim = inicio + servicosPorPagina;
+                const servicosPagina = servicosArray.slice(inicio, fim);
+    
+                html += `<div class="servicos-page ${pagina === 0 ? 'active' : ''}" data-page="${pagina}">`;
+    
+                servicosPagina.forEach(servico => {
+                    const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
+                    const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo (último)
                     
+                    // Não inverter! Vamos usar a ordem natural e depois alinhar à direita no CSS
+                    const itensParaExibir = itensOrdenados;
+    
                     html += `
-                        <div class="servico-card">
-                            <div class="senha-numero">${item.senha}</div>
-                            <div class="senha-cliente">${item.cliente_nome}</div>
-                            <span class="senha-posicao">${posicaoReal}° na fila</span>
+                        <div class="fila-servico">
+                            <div class="fila-servico-header">
+                                <i class="fas fa-star"></i>
+                                <h4 title="${servico.nome}">${servico.nome}</h4>
+                                <span class="servico-count">${itensOrdenados.length}</span>
+                            </div>
+                            
+                            <div class="servico-carousel-container">
+                                <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                
+                                <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
+                                    <div class="servico-track" style="justify-content: flex-end;">
+                    `;
+    
+                    // Manter ordem natural: index 0 = mais antigo
+                    itensParaExibir.forEach((item, idx) => {
+                        const posicaoReal = idx + 1; // 1° na fila, 2°, etc.
+                        html += `
+                            <div class="servico-card" data-posicao="${posicaoReal}">
+                                <div class="senha-numero">${item.senha}</div>
+                                <div class="senha-cliente">${item.cliente_nome}</div>
+                                <span class="senha-posicao">${posicaoReal}° na fila</span>
+                            </div>
+                        `;
+                    });
+    
+                    html += `
+                                    </div>
+                                </div>
+                                
+                                <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
+                    `;
+    
+                    const totalPages = Math.ceil(itensOrdenados.length / 2);
+                    for (let i = 0; i < totalPages; i++) {
+                        html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
+                    }
+    
+                    html += `
+                            </div>
                         </div>
                     `;
                 });
-                
-                html += `
-                                </div>
-                            </div>
-                            
-                            <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
-                        </div>
-                        
-                        <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
-                `;
-                
-                const totalPages = Math.ceil(itensOrdenados.length / 2);
-                for (let i = 0; i < totalPages; i++) {
-                    html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
-                }
-                
-                html += `
-                        </div>
+    
+                html += `</div>`; // fecha .servicos-page
+            }
+    
+            html += `
                     </div>
-                `;
-            });
-            
+                    
+                    ${totalPaginas > 1 ? `
+                    <div class="servicos-paginacao">
+                        <button class="pagina-arrow prev" id="paginaPrev" ${totalPaginas <= 1 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="pagina-indicador" id="paginaAtual">1/${totalPaginas}</span>
+                        <button class="pagina-arrow next" id="paginaNext" ${totalPaginas <= 1 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+    
             proximosTrack.innerHTML = html;
-            
+    
+            // Controle de páginas de serviços
+            if (totalPaginas > 1) {
+                let paginaCorrente = 0;
+                const pages = document.querySelectorAll('.servicos-page');
+                const prevBtn = document.getElementById('paginaPrev');
+                const nextBtn = document.getElementById('paginaNext');
+                const indicador = document.getElementById('paginaAtual');
+    
+                function mostrarPagina(index) {
+                    pages.forEach((page, i) => {
+                        page.classList.toggle('active', i === index);
+                    });
+                    paginaCorrente = index;
+                    if (indicador) indicador.textContent = `${index + 1}/${totalPaginas}`;
+                    if (prevBtn) prevBtn.disabled = index === 0;
+                    if (nextBtn) nextBtn.disabled = index === totalPaginas - 1;
+                }
+    
+                prevBtn?.addEventListener('click', () => {
+                    if (paginaCorrente > 0) mostrarPagina(paginaCorrente - 1);
+                });
+    
+                nextBtn?.addEventListener('click', () => {
+                    if (paginaCorrente < totalPaginas - 1) mostrarPagina(paginaCorrente + 1);
+                });
+            }
+    
         } else {
-            // Placeholders
+            // Placeholder
             proximosTrack.innerHTML = `
                 <div class="fila-servico">
                     <div class="fila-servico-header">
@@ -1105,7 +1161,7 @@ function renderizarPainelAgendamento() {
                     <div class="servico-carousel-container">
                         <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
                         <div class="servico-scroll">
-                            <div class="servico-track">
+                            <div class="servico-track" style="justify-content: flex-end;">
                                 <div class="servico-card-placeholder">
                                     <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
                                     <div class="placeholder-text">Sem agendamentos</div>
