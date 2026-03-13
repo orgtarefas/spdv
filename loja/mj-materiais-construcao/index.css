@@ -2531,9 +2531,12 @@ body {
     margin-bottom: 0 !important;
 }
 
-/* Garantir que o track alinhe à direita */
+/* ============================================
+   GARANTIR ORDEM CORRETA DOS CARDS
+   ============================================ */
 .coluna-outros .servico-track.cards-alinhados-direita {
     display: inline-flex !important;
+    flex-direction: row !important;
     gap: 12px !important;
     padding: 0 4px !important;
     height: 100% !important;
@@ -2541,7 +2544,11 @@ body {
     justify-content: flex-end !important;
     width: max-content !important;
     min-width: 100% !important;
-    float: right !important;
+}
+
+/* Manter a ordem visual: mais novo à esquerda, mais antigo à direita */
+.coluna-outros .servico-card {
+    order: 0 !important; /* Respeita a ordem do HTML */
 }
 
 /* Ajuste para o scroll */
