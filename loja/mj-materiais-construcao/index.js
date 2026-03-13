@@ -1000,8 +1000,7 @@ function renderizarPainelAgendamento() {
     
     // ============================================
     // COLUNA 3: OUTROS NA FILA (ESQUERDA) 
-    // SERVIÇOS VERTICAIS (UM EMBAIXO DO OUTRO)
-    // CARDS ALINHADOS À DIREITA
+    // CARDS HORIZONTAIS COM PRIMEIRO À DIREITA
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
@@ -1023,7 +1022,7 @@ function renderizarPainelAgendamento() {
             const servicosArray = Object.entries(agendamentosPorServico).map(([id, dados]) => ({
                 id,
                 nome: dados.nome,
-                itens: dados.itens.sort((a, b) => a.timestamp - b.timestamp) // mais antigo primeiro
+                itens: dados.itens.sort((a, b) => a.timestamp - b.timestamp) // mais antigo primeiro (index 0)
             })).sort((a, b) => a.nome.localeCompare(b.nome));
     
             let html = '';
@@ -1031,7 +1030,11 @@ function renderizarPainelAgendamento() {
             // Para cada serviço, criar um bloco fila-servico
             servicosArray.forEach(servico => {
                 const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
-                const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo
+                const itensOrdenados = servico.itens; // [mais antigo, segundo, terceiro, ...]
+                
+                // 🔥 CORREÇÃO: Inverter a ordem para renderização
+                // Mais antigo (index 0) deve ser o último no HTML para aparecer à direita
+                const itensParaRenderizar = [...itensOrdenados].reverse(); // [mais novo, ..., segundo, mais antigo]
                 
                 html += `
                     <div class="fila-servico">
@@ -1050,9 +1053,11 @@ function renderizarPainelAgendamento() {
                                 <div class="servico-track cards-alinhados-direita">
                 `;
     
-                // Manter ordem natural (mais antigo primeiro)
-                itensOrdenados.forEach((item, idx) => {
-                    const posicaoReal = idx + 1; // 1° na fila, 2°, etc.
+                // Renderizar na ordem INVERSA: mais novo primeiro, mais antigo por último
+                itensParaRenderizar.forEach((item, idx) => {
+                    // Calcular posição real na fila (do mais antigo para o mais novo)
+                    const posicaoReal = itensOrdenados.length - idx;
+                    
                     html += `
                         <div class="servico-card" data-posicao="${posicaoReal}">
                             <div class="senha-numero">${item.senha}</div>
