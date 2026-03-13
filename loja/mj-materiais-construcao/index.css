@@ -2400,6 +2400,98 @@ body {
     min-width: 50% !important;
 }
 
+/* Container da página de serviços */
+.servicos-page {
+    display: none;
+    width: 100% !important;
+    height: 100% !important;
+    gap: 12px;
+    grid-template-columns: 1fr 1fr !important;
+}
+
+.servicos-page.active {
+    display: grid !important;
+}
+
+/* Cada fila-servico deve ocupar toda largura da célula da grid */
+.fila-servico {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important; /* Permite que o conteúdo respeite o width */
+    
+    background: #fafcff;
+    border-radius: 18px;
+    padding: 10px;
+    border: 1px solid #edf2f7;
+    
+    display: flex !important;
+    flex-direction: column !important;
+    
+    /* Altura fixa ou automática */
+    height: auto !important;
+    min-height: 240px !important;
+    
+    /* IMPORTANTE: Não deixar encolher abaixo do necessário */
+    flex: 1 1 auto !important;
+}
+
+/* Container do carrossel dentro do fila-servico */
+.fila-servico .servico-carousel-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    flex: 1 !important; /* Ocupa espaço restante */
+    min-height: 180px !important;
+}
+
+/* Área de scroll - ocupar todo espaço disponível */
+.fila-servico .servico-scroll {
+    flex: 1 1 auto !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    
+    /* IMPORTANTE: largura automática para não quebrar */
+    width: auto !important;
+    min-width: 50px !important; /* Mínimo para não sumir */
+}
+
+/* Track dos cards - alinhamento à direita FORÇADO */
+.fila-servico .servico-track.cards-alinhados-direita {
+    display: inline-flex !important;
+    gap: 12px !important;
+    padding: 0 4px !important;
+    height: 100% !important;
+    align-items: center !important;
+    
+    /* ALINHAMENTO À DIREITA - VERSÃO FORÇADA */
+    justify-content: flex-end !important;
+    float: right !important;
+    margin-left: auto !important;
+    margin-right: 0 !important;
+    
+    /* Largura baseada no conteúdo */
+    width: max-content !important;
+    min-width: 100% !important;
+}
+
+/* Garantir que o último elemento não tenha margem extra */
+.fila-servico .servico-track.cards-alinhados-direita .servico-card:last-child {
+    margin-right: 0 !important;
+}
+
+.fila-servico .servico-track.cards-alinhados-direita .servico-card:first-child {
+    margin-left: auto !important;
+}
+
+/* Setas mantêm tamanho fixo */
+.fila-servico .servico-arrow {
+    flex-shrink: 0 !important;
+    width: 36px !important;
+    min-width: 36px !important;
+}
+
 /* Coluna 2: PRÓXIMOS A ATENDER - 25% */
 .agendamento-coluna.coluna-proximos {
     flex: 1;
