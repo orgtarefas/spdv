@@ -4285,26 +4285,6 @@ function configurarScrollServico(servicoId) {
     setTimeout(atualizarSetas, 100);
 }
 
-// Atualizar dots do serviço
-function atualizarDotsServico(servicoId) {
-    const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
-    if (!scrollEl) return;
-    
-    const scrollLeft = scrollEl.scrollLeft;
-    const cardWidth = 192; // 180px card + 12px gap
-    const pageIndex = Math.round(scrollLeft / cardWidth);
-    
-    const dots = document.querySelectorAll(`#servico-${servicoId}-dots .dot`);
-    dots.forEach((dot, idx) => {
-        if (idx === pageIndex) {
-            dot.classList.add('active');
-        } else {
-            dot.classList.remove('active');
-        }
-    });
-}
-
-
 // ============================================
 // INICIALIZAÇÃO
 // ============================================
