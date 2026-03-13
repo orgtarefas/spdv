@@ -895,7 +895,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL AGENDAMENTO - VERSÃO CORRIGIDA
+// RENDERIZAR PAINEL AGENDAMENTO - VERSÃO CORRIGIDA (ORDEM FIXA)
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -904,15 +904,57 @@ function renderizarPainelAgendamento() {
     console.log('Agendamentos ativos (HOJE):', agendamentosAtivos);
     
     // ============================================
-    // ORGANIZAR POR STATUS
+    // 1. ORDENAR POR SERVIÇO (FIXO) E DEPOIS POR TIMESTAMP
     // ============================================
-    const emAtendimento = agendamentosAtivos.filter(a => a.status === 'Em atendimento');
-    const proximosAtender = agendamentosAtivos.filter(a => a.status === 'Próximo a atender');
-    const outrosNaFila = agendamentosAtivos.filter(a => 
-        a.status !== 'Em atendimento' && 
-        a.status !== 'Próximo a atender' &&
-        ['Na fila', 'Verificado'].includes(a.status)
-    );
+    
+    // Agrupar por serviço
+    const agendamentosPorServico = {};
+    
+    agendamentosAtivos.forEach(item => {
+        if (!agendamentosPorServico[item.servico_id]) {
+            agendamentosPorServico[item.servico_id] = {
+                nome: item.servico_nome || item.servico_id,
+                itens: []
+            };
+        }
+        agendamentosPorServico[item.servico_id].itens.push(item);
+    });
+    
+    // 🔥 ORDEM FIXA: ordenar serviços por nome (alfabética)
+    const servicosOrdenados = Object.keys(agendamentosPorServico).sort((a, b) => {
+        const nomeA = agendamentosPorServico[a].nome.toLowerCase();
+        const nomeB = agendamentosPorServico[b].nome.toLowerCase();
+        return nomeA.localeCompare(nomeB);
+    });
+    
+    // Arrays para cada status na ORDEM FIXA dos serviços
+    let emAtendimento = [];
+    let proximosAtender = [];
+    let outrosNaFila = [];
+    
+    // Para cada serviço na ordem fixa, adicionar seus agendamentos
+    servicosOrdenados.forEach(servicoId => {
+        const servico = agendamentosPorServico[servicoId];
+        
+        // Ordenar itens deste serviço por timestamp (mais antigo primeiro)
+        const itensOrdenados = servico.itens.sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Separar por status
+        itensOrdenados.forEach(item => {
+            if (item.status === 'Em atendimento') {
+                emAtendimento.push(item);
+            } else if (item.status === 'Próximo a atender') {
+                proximosAtender.push(item);
+            } else if (['Na fila', 'Verificado'].includes(item.status)) {
+                outrosNaFila.push(item);
+            }
+        });
+    });
+    
+    console.log('📊 Ordem fixa dos serviços:', servicosOrdenados);
+    console.log('👥 Em atendimento:', emAtendimento);
+    console.log('⏳ Próximos:', proximosAtender);
+    console.log('📋 Outros na fila:', outrosNaFila);
     
     // ============================================
     // ATUALIZAR BADGES
@@ -970,7 +1012,7 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // COLUNA 2: PRÓXIMOS A ATENDER (MEIO)
+    // COLUNA 2: PRÓXIMOS A ATENDER (MEIO) - ORDEM FIXA
     // ============================================
     const proximosEl = document.getElementById('proximosFilaCard');
     if (proximosEl) {
@@ -999,109 +1041,84 @@ function renderizarPainelAgendamento() {
     }
     
     // ============================================
-    // COLUNA 3: OUTROS NA FILA (ESQUERDA) 
-    // CARDS HORIZONTAIS COM PRIMEIRO À DIREITA
+    // COLUNA 3: OUTROS NA FILA (ESQUERDA) - ORDEM FIXA
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
         if (outrosNaFila.length > 0) {
-            // Agrupar por serviço
-            const agendamentosPorServico = {};
-            
-            outrosNaFila.forEach(item => {
-                if (!agendamentosPorServico[item.servico_id]) {
-                    agendamentosPorServico[item.servico_id] = {
-                        nome: item.servico_nome,
-                        itens: []
-                    };
-                }
-                agendamentosPorServico[item.servico_id].itens.push(item);
-            });
-    
-            // Converter para array de serviços e ordenar por nome
-            const servicosArray = Object.entries(agendamentosPorServico).map(([id, dados]) => ({
-                id,
-                nome: dados.nome,
-                itens: dados.itens.sort((a, b) => a.timestamp - b.timestamp) // mais antigo primeiro (index 0)
-            })).sort((a, b) => a.nome.localeCompare(b.nome));
-    
             let html = '';
-    
-            // Para cada serviço, criar um bloco fila-servico
-            servicosArray.forEach(servico => {
-                const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
-                const itensOrdenados = servico.itens; // [mais antigo, segundo, terceiro, ...]
+            
+            // Usar a mesma ordem fixa dos serviços
+            servicosOrdenados.forEach(servicoId => {
+                const servico = agendamentosPorServico[servicoId];
                 
-                // 🔥 CORREÇÃO: Inverter a ordem para renderização
-                // Mais antigo (index 0) deve ser o último no HTML para aparecer à direita
-                const itensParaRenderizar = [...itensOrdenados].reverse(); // [mais novo, ..., segundo, mais antigo]
+                // Filtrar apenas os itens que estão na fila (outros)
+                const itensFila = servico.itens.filter(item => 
+                    ['Na fila', 'Verificado'].includes(item.status)
+                );
                 
-                html += `
-                    <div class="fila-servico">
-                        <div class="fila-servico-header">
-                            <i class="fas fa-star"></i>
-                            <h4 title="${servico.nome}">${servico.nome}</h4>
-                            <span class="servico-count">${itensOrdenados.length}</span>
-                        </div>
-                        
-                        <div class="servico-carousel-container">
-                            <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            
-                            <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
-                                <div class="servico-track cards-alinhados-direita">
-                `;
-    
-                // Renderizar na ordem INVERSA: mais novo primeiro, mais antigo por último
-                itensParaRenderizar.forEach((item, idx) => {
-                    // Calcular posição real na fila (do mais antigo para o mais novo)
-                    const posicaoReal = itensOrdenados.length - idx;
+                if (itensFila.length > 0) {
+                    const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
                     
                     html += `
-                        <div class="servico-card" data-posicao="${posicaoReal}">
-                            <div class="senha-numero">${item.senha}</div>
-                            <div class="senha-cliente">${item.cliente_nome}</div>
-                            <span class="senha-posicao">${posicaoReal}° na fila</span>
-                        </div>
-                    `;
-                });
-    
-                html += `
-                                </div>
+                        <div class="fila-servico">
+                            <div class="fila-servico-header">
+                                <i class="fas fa-star"></i>
+                                <h4 title="${servico.nome}">${servico.nome}</h4>
+                                <span class="servico-count">${itensFila.length}</span>
                             </div>
                             
-                            <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
+                            <div class="servico-carousel-container">
+                                <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${itensFila.length <= 2 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                
+                                <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
+                                    <div class="servico-track cards-alinhados-direita">
+                    `;
+                    
+                    // Ordem inversa para o carrossel (mais antigo à direita)
+                    const itensParaExibir = [...itensFila].reverse();
+                    
+                    itensParaExibir.forEach((item, idx) => {
+                        const posicaoReal = itensFila.length - idx;
+                        html += `
+                            <div class="servico-card" data-posicao="${posicaoReal}">
+                                <div class="senha-numero">${item.senha}</div>
+                                <div class="senha-cliente">${item.cliente_nome}</div>
+                                <span class="senha-posicao">${posicaoReal}° na fila</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                                    </div>
+                                </div>
+                                
+                                <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${itensFila.length <= 2 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
+                    `;
+                    
+                    const totalPages = Math.ceil(itensFila.length / 2);
+                    for (let i = 0; i < totalPages; i++) {
+                        html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
+                    }
+                    
+                    html += `
+                            </div>
                         </div>
-                        
-                        <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
-                `;
-    
-                const totalPages = Math.ceil(itensOrdenados.length / 2);
-                for (let i = 0; i < totalPages; i++) {
-                    html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
+                    `;
                 }
-    
-                html += `
-                        </div>
-                    </div>
-                `;
             });
-    
+            
             proximosTrack.innerHTML = html;
-    
-            // Configurar scroll e dots para cada serviço
-            setTimeout(() => {
-                servicosArray.forEach(servico => {
-                    const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
-                    configurarScrollServico(servicoIdSafe);
-                });
-            }, 200);
-    
+            
         } else {
-            // Placeholder quando não há agendamentos
+            // Placeholders
             proximosTrack.innerHTML = `
                 <div class="fila-servico">
                     <div class="fila-servico-header">
@@ -1110,97 +1127,23 @@ function renderizarPainelAgendamento() {
                         <span class="servico-count">0</span>
                     </div>
                     <div class="servico-carousel-container">
-                        <button class="servico-arrow prev" disabled>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
+                        <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
                         <div class="servico-scroll">
                             <div class="servico-track cards-alinhados-direita">
                                 <div class="servico-card-placeholder">
-                                    <div class="placeholder-icon">
-                                        <i class="fas fa-clock"></i>
-                                    </div>
-                                    <div class="placeholder-text">
-                                        Sem agendamentos
-                                    </div>
+                                    <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
+                                    <div class="placeholder-text">Sem agendamentos</div>
                                 </div>
                             </div>
                         </div>
-                        <button class="servico-arrow next" disabled>
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+                        <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
                     </div>
                 </div>
             `;
         }
     }
-            
-    // ============================================
-    // 🔥 CORREÇÃO 1: BOTÃO DE CARROSSEL POSICIONADO ANTES DA BADGE
-    // ============================================
-    setTimeout(() => {
-        const colunaOutros = document.querySelector('.coluna-outros');
-        if (colunaOutros) {
-            const colunaHeader = colunaOutros.querySelector('.coluna-header');
-            if (colunaHeader) {
-                // Encontrar elementos existentes
-                const icon = colunaHeader.querySelector('i:first-child');
-                const title = colunaHeader.querySelector('h3');
-                const badge = colunaHeader.querySelector('.coluna-badge');
-                
-                // Verificar se já existe botão
-                let btnCarrossel = document.getElementById('btnCarrosselOutros');
-                
-                if (!btnCarrossel) {
-                    // Criar botão
-                    btnCarrossel = document.createElement('button');
-                    btnCarrossel.id = 'btnCarrosselOutros';
-                    btnCarrossel.className = 'btn-carrossel-outros ativo';
-                    btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
-                    btnCarrossel.title = 'Rolagem automática (ligada)';
-                    
-                    // Limpar o header e reconstruir na ordem correta
-                    colunaHeader.innerHTML = '';
-                    
-                    // Reconstruir na ordem: ícone, título, BOTÃO, badge
-                    if (icon) colunaHeader.appendChild(icon.cloneNode(true));
-                    if (title) colunaHeader.appendChild(title.cloneNode(true));
-                    colunaHeader.appendChild(btnCarrossel);
-                    if (badge) colunaHeader.appendChild(badge.cloneNode(true));
-                    
-                    // Re-adicionar evento de clique
-                    let ativo = true;
-                    
-                    btnCarrossel.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        
-                        ativo = !ativo;
-                        carrosselAutomaticoAtivo = ativo;
-                        
-                        if (ativo) {
-                            btnCarrossel.classList.add('ativo');
-                            btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
-                            btnCarrossel.title = 'Rolagem automática (ligada)';
-                            iniciarCarrosselAutomaticoSuave(); // Usar a versão mais suave
-                        } else {
-                            btnCarrossel.classList.remove('ativo');
-                            btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
-                            btnCarrossel.title = 'Rolagem automática (desligada)';
-                            pararCarrosselAutomatico();
-                        }
-                    });
-                } else {
-                    // Se já existe, garantir que está na posição correta
-                    // Mover o botão para antes da badge
-                    if (badge && btnCarrossel.nextSibling !== badge) {
-                        colunaHeader.insertBefore(btnCarrossel, badge);
-                    }
-                }
-            }
-        }
-    }, 100);
     
-    // Atualizar dots e configurar scroll após renderizar
+    // Configurar scroll e dots
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
@@ -1211,14 +1154,11 @@ function renderizarPainelAgendamento() {
             });
         });
         
-        // 🔥 CONFIGURAR PAUSA E INICIAR CARROSSEL
         configurarPausaAoInteragir();
         
-        // 🔥 INICIAR CARROSSEL AUTOMÁTICO SE ESTIVER ATIVO
         if (carrosselAutomaticoAtivo) {
             iniciarCarrosselSenhasAutomatico();
         }
-        
     }, 200);
 }
 
