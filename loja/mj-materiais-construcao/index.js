@@ -1000,7 +1000,7 @@ function renderizarPainelAgendamento() {
     
     // ============================================
     // COLUNA 3: OUTROS NA FILA (ESQUERDA) 
-    // PRIMEIRO DA FILA (MAIS ANTIGO) À DIREITA
+    // CARDS ALINHADOS À DIREITA, CONTEÚDO INTERNO NORMAL
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
@@ -1045,7 +1045,7 @@ function renderizarPainelAgendamento() {
                     const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
                     const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo (último)
                     
-                    // Não inverter! Vamos usar a ordem natural e depois alinhar à direita no CSS
+                    // Manter ordem natural
                     const itensParaExibir = itensOrdenados;
     
                     html += `
@@ -1062,10 +1062,9 @@ function renderizarPainelAgendamento() {
                                 </button>
                                 
                                 <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
-                                    <div class="servico-track" style="justify-content: flex-end;">
+                                    <div class="servico-track cards-alinhados-direita">
                     `;
     
-                    // Manter ordem natural: index 0 = mais antigo
                     itensParaExibir.forEach((item, idx) => {
                         const posicaoReal = idx + 1; // 1° na fila, 2°, etc.
                         html += `
@@ -1161,7 +1160,7 @@ function renderizarPainelAgendamento() {
                     <div class="servico-carousel-container">
                         <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
                         <div class="servico-scroll">
-                            <div class="servico-track" style="justify-content: flex-end;">
+                            <div class="servico-track cards-alinhados-direita">
                                 <div class="servico-card-placeholder">
                                     <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
                                     <div class="placeholder-text">Sem agendamentos</div>
@@ -1174,7 +1173,7 @@ function renderizarPainelAgendamento() {
             `;
         }
     }
-        
+            
     // ============================================
     // 🔥 CORREÇÃO 1: BOTÃO DE CARROSSEL POSICIONADO ANTES DA BADGE
     // ============================================
