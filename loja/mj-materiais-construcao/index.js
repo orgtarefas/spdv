@@ -1018,7 +1018,7 @@ function renderizarPainelAgendamento() {
                 agendamentosPorServico[item.servico_id].itens.push(item);
             });
     
-            // Converter para array de serviços e ordenar
+            // Converter para array de serviços e ordenar por nome
             const servicosArray = Object.entries(agendamentosPorServico).map(([id, dados]) => ({
                 id,
                 nome: dados.nome,
@@ -1031,7 +1031,7 @@ function renderizarPainelAgendamento() {
             
             let html = `
                 <div class="servicos-paginados">
-                    <div class="servicos-pages" id="servicosPages">
+                    <div class="servicos-pages">
             `;
     
             for (let pagina = 0; pagina < totalPaginas; pagina++) {
@@ -1043,7 +1043,7 @@ function renderizarPainelAgendamento() {
     
                 servicosPagina.forEach(servico => {
                     const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
-                    const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo (último)
+                    const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo
                     
                     html += `
                         <div class="fila-servico">
@@ -1102,24 +1102,28 @@ function renderizarPainelAgendamento() {
     
             html += `
                     </div>
-                    
-                    ${totalPaginas > 1 ? `
+            `;
+    
+            // Adicionar paginação se houver mais de 2 serviços
+            if (totalPaginas > 1) {
+                html += `
                     <div class="servicos-paginacao">
-                        <button class="pagina-arrow prev" id="paginaPrev" ${totalPaginas <= 1 ? 'disabled' : ''}>
+                        <button class="pagina-arrow prev" id="paginaPrev">
                             <i class="fas fa-chevron-left"></i>
                         </button>
                         <span class="pagina-indicador" id="paginaAtual">1/${totalPaginas}</span>
-                        <button class="pagina-arrow next" id="paginaNext" ${totalPaginas <= 1 ? 'disabled' : ''}>
+                        <button class="pagina-arrow next" id="paginaNext">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                    ` : ''}
-                </div>
-            `;
+                `;
+            }
+    
+            html += `</div>`; // fecha .servicos-paginados
     
             proximosTrack.innerHTML = html;
     
-            // Controle de páginas de serviços
+            // Configurar navegação entre páginas
             if (totalPaginas > 1) {
                 let paginaCorrente = 0;
                 const pages = document.querySelectorAll('.servicos-page');
