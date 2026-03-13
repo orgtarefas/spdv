@@ -2083,14 +2083,14 @@ async function salvarCriarAgendamento() {
             return;
         }
         
-        if (abreviacao.length > 10) {
-            mostrarMensagem('Abreviação deve ter no máximo 10 caracteres', 'warning');
+        if (abreviacao.length > 5) {
+            mostrarMensagem('Abreviação deve ter no máximo 5 caracteres', 'warning');
             return;
         }
         
-        // Validar se contém apenas letras e números
-        if (!/^[A-Z0-9]+$/.test(abreviacao)) {
-            mostrarMensagem('Abreviação deve conter apenas letras e números', 'warning');
+        // permitir letras, números e underline
+        if (!/^[A-Z0-9_]+$/.test(abreviacao)) {
+            mostrarMensagem('Abreviação deve conter apenas letras, números e underline (_)', 'warning');
             return;
         }
         
@@ -2133,7 +2133,7 @@ async function salvarCriarAgendamento() {
             .replace(/_+/g, '_')
             .replace(/^_|_$/g, '');
         
-        // 🔥 ESTRUTURA: configuracoes / servico_agendamento / [lojaId] / [servicoId]
+        // configuracoes / servico_agendamento / [lojaId] / [servicoId]
         const configRef = doc(
             db, 
             'configuracoes', 
@@ -2145,7 +2145,7 @@ async function salvarCriarAgendamento() {
         const configData = {
             id: servicoId,
             nome: nomeServico,
-            abreviacao: abreviacao, // 🔥 NOVO: salvar abreviação
+            abreviacao: abreviacao, // salvar abreviação
             descricao: descricao,
             permitirForaDia: permitirForaDia,
             validacao: validacao,
