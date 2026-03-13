@@ -1000,7 +1000,7 @@ function renderizarPainelAgendamento() {
     
     // ============================================
     // COLUNA 3: OUTROS NA FILA (ESQUERDA) 
-    // CARDS ALINHADOS À DIREITA, CONTEÚDO INTERNO NORMAL
+    // PRIMEIRO DA FILA (MAIS ANTIGO) À DIREITA
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
@@ -1018,7 +1018,7 @@ function renderizarPainelAgendamento() {
                 agendamentosPorServico[item.servico_id].itens.push(item);
             });
     
-            // Converter para array de serviços
+            // Converter para array de serviços e ordenar
             const servicosArray = Object.entries(agendamentosPorServico).map(([id, dados]) => ({
                 id,
                 nome: dados.nome,
@@ -1045,9 +1045,6 @@ function renderizarPainelAgendamento() {
                     const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
                     const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo (último)
                     
-                    // Manter ordem natural
-                    const itensParaExibir = itensOrdenados;
-    
                     html += `
                         <div class="fila-servico">
                             <div class="fila-servico-header">
@@ -1065,7 +1062,8 @@ function renderizarPainelAgendamento() {
                                     <div class="servico-track cards-alinhados-direita">
                     `;
     
-                    itensParaExibir.forEach((item, idx) => {
+                    // Manter ordem natural (mais antigo primeiro)
+                    itensOrdenados.forEach((item, idx) => {
                         const posicaoReal = idx + 1; // 1° na fila, 2°, etc.
                         html += `
                             <div class="servico-card" data-posicao="${posicaoReal}">
@@ -1148,26 +1146,48 @@ function renderizarPainelAgendamento() {
                 });
             }
     
+            // Configurar scroll e dots para cada serviço
+            setTimeout(() => {
+                servicosArray.forEach(servico => {
+                    const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
+                    configurarScrollServico(servicoIdSafe);
+                });
+            }, 200);
+    
         } else {
-            // Placeholder
+            // Placeholder quando não há agendamentos
             proximosTrack.innerHTML = `
-                <div class="fila-servico">
-                    <div class="fila-servico-header">
-                        <i class="fas fa-star"></i>
-                        <h4>Aguardando...</h4>
-                        <span class="servico-count">0</span>
-                    </div>
-                    <div class="servico-carousel-container">
-                        <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
-                        <div class="servico-scroll">
-                            <div class="servico-track cards-alinhados-direita">
-                                <div class="servico-card-placeholder">
-                                    <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
-                                    <div class="placeholder-text">Sem agendamentos</div>
+                <div class="servicos-paginados">
+                    <div class="servicos-pages">
+                        <div class="servicos-page active">
+                            <div class="fila-servico">
+                                <div class="fila-servico-header">
+                                    <i class="fas fa-star"></i>
+                                    <h4>Aguardando...</h4>
+                                    <span class="servico-count">0</span>
+                                </div>
+                                <div class="servico-carousel-container">
+                                    <button class="servico-arrow prev" disabled>
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div class="servico-scroll">
+                                        <div class="servico-track cards-alinhados-direita">
+                                            <div class="servico-card-placeholder">
+                                                <div class="placeholder-icon">
+                                                    <i class="fas fa-clock"></i>
+                                                </div>
+                                                <div class="placeholder-text">
+                                                    Sem agendamentos
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="servico-arrow next" disabled>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
                     </div>
                 </div>
             `;
