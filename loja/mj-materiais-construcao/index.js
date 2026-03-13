@@ -1164,19 +1164,27 @@ function renderizarPainelAgendamento() {
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
-            configurarScrollServico(servicoId);
+            if (typeof configurarScrollServico === 'function') {
+                configurarScrollServico(servicoId);
+            }
             
             scrollEl.addEventListener('scroll', function() {
-                atualizarDotsServico(servicoId);
+                if (typeof atualizarDotsServico === 'function') {
+                    atualizarDotsServico(servicoId);
+                }
             });
         });
         
-        // 🔥 CONFIGURAR PAUSA E CRIAR BOTÃO PLAY
-        configurarPausaAoInteragir();
-        criarBotaoPlayNoHeader();
+        // 🔥 CHAMAR AS FUNÇÕES AQUI
+        if (typeof configurarPausaAoInteragir === 'function') {
+            configurarPausaAoInteragir();
+        }
         
-        // 🔥 INICIAR CARROSSEL SE ESTIVER ATIVO
-        if (carrosselAutomaticoAtivo) {
+        if (typeof criarBotaoPlayNoHeader === 'function') {
+            criarBotaoPlayNoHeader();
+        }
+        
+        if (typeof iniciarCarrosselSenhasAutomatico === 'function' && carrosselAutomaticoAtivo) {
             iniciarCarrosselSenhasAutomatico();
         }
         
