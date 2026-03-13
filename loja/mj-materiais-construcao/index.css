@@ -2724,9 +2724,7 @@ body {
     overflow-y: auto;
 }
 
-.item-fila-vertical urgente {
-    padding: 10px;
-}
+
 
 /* Cards da coluna 1 */
 .card-chamando-item {
@@ -2795,6 +2793,7 @@ body {
     border: 1px solid #edf2f7;
     border-radius: 18px;
     padding: 16px;
+    margin-bottom: 10px !important;  /* Espaço entre os cards */
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     flex-shrink: 0;
