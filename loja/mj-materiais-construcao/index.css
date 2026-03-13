@@ -2890,13 +2890,14 @@ body {
     border-radius: 8px;
 }
 
-/* Track dos cards - ALTURA FIXA */
+/* Track flex com direção reversa */
 .servico-track {
     display: inline-flex;
     gap: 12px;
     padding: 0 4px;
     height: 100%;
     align-items: center;
+    flex-direction: row-reverse !important; /* Isso faz o primeiro card (mais antigo) ficar à direita */
 }
 
 
@@ -2969,6 +2970,7 @@ body {
     border: 1px solid #e2e8f0;
     border-radius: 16px;
     padding: 16px;
+   
     
     flex-shrink: 0 !important;
     flex-grow: 0 !important;
@@ -4195,4 +4197,76 @@ body {
 /* Opcional: Efeito de brilho no hover */
 .titulo-atendimento:hover::after {
     box-shadow: 0 0 10px rgba(0, 86, 179, 0.5);
+}
+
+/* ============================================
+   PAGINAÇÃO DE SERVIÇOS - 2 POR PÁGINA
+   ============================================ */
+.servicos-paginados {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.servicos-pages {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.servicos-page {
+    display: none;
+    width: 100%;
+    height: 100%;
+    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+}
+
+.servicos-page.active {
+    display: grid;
+}
+
+.servicos-paginacao {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #edf2f7;
+}
+
+.pagina-arrow {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.pagina-arrow:hover:not(:disabled) {
+    background: #0056b3;
+    color: white;
+    border-color: #0056b3;
+}
+
+.pagina-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.pagina-indicador {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    background: #f1f5f9;
+    padding: 4px 12px;
+    border-radius: 20px;
 }
