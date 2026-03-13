@@ -1000,7 +1000,8 @@ function renderizarPainelAgendamento() {
     
     // ============================================
     // COLUNA 3: OUTROS NA FILA (ESQUERDA) 
-    // PRIMEIRO DA FILA (MAIS ANTIGO) À DIREITA
+    // SERVIÇOS VERTICAIS (UM EMBAIXO DO OUTRO)
+    // CARDS ALINHADOS À DIREITA
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
@@ -1025,130 +1026,66 @@ function renderizarPainelAgendamento() {
                 itens: dados.itens.sort((a, b) => a.timestamp - b.timestamp) // mais antigo primeiro
             })).sort((a, b) => a.nome.localeCompare(b.nome));
     
-            // Paginação: 2 serviços por página
-            const servicosPorPagina = 2;
-            const totalPaginas = Math.ceil(servicosArray.length / servicosPorPagina);
-            
-            let html = `
-                <div class="servicos-paginados">
-                    <div class="servicos-pages">
-            `;
+            let html = '';
     
-            for (let pagina = 0; pagina < totalPaginas; pagina++) {
-                const inicio = pagina * servicosPorPagina;
-                const fim = inicio + servicosPorPagina;
-                const servicosPagina = servicosArray.slice(inicio, fim);
-    
-                html += `<div class="servicos-page ${pagina === 0 ? 'active' : ''}" data-page="${pagina}">`;
-    
-                servicosPagina.forEach(servico => {
-                    const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
-                    const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo
-                    
-                    html += `
-                        <div class="fila-servico">
-                            <div class="fila-servico-header">
-                                <i class="fas fa-star"></i>
-                                <h4 title="${servico.nome}">${servico.nome}</h4>
-                                <span class="servico-count">${itensOrdenados.length}</span>
-                            </div>
+            // Para cada serviço, criar um bloco fila-servico
+            servicosArray.forEach(servico => {
+                const servicoIdSafe = servico.id.replace(/[^a-zA-Z0-9]/g, '_');
+                const itensOrdenados = servico.itens; // do mais antigo (index 0) para o mais novo
+                
+                html += `
+                    <div class="fila-servico">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-star"></i>
+                            <h4 title="${servico.nome}">${servico.nome}</h4>
+                            <span class="servico-count">${itensOrdenados.length}</span>
+                        </div>
+                        
+                        <div class="servico-carousel-container">
+                            <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
                             
-                            <div class="servico-carousel-container">
-                                <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                                
-                                <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
-                                    <div class="servico-track cards-alinhados-direita">
-                    `;
+                            <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
+                                <div class="servico-track cards-alinhados-direita">
+                `;
     
-                    // Manter ordem natural (mais antigo primeiro)
-                    itensOrdenados.forEach((item, idx) => {
-                        const posicaoReal = idx + 1; // 1° na fila, 2°, etc.
-                        html += `
-                            <div class="servico-card" data-posicao="${posicaoReal}">
-                                <div class="senha-numero">${item.senha}</div>
-                                <div class="senha-cliente">${item.cliente_nome}</div>
-                                <span class="senha-posicao">${posicaoReal}° na fila</span>
-                            </div>
-                        `;
-                    });
-    
+                // Manter ordem natural (mais antigo primeiro)
+                itensOrdenados.forEach((item, idx) => {
+                    const posicaoReal = idx + 1; // 1° na fila, 2°, etc.
                     html += `
-                                    </div>
-                                </div>
-                                
-                                <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
-                    `;
-    
-                    const totalPages = Math.ceil(itensOrdenados.length / 2);
-                    for (let i = 0; i < totalPages; i++) {
-                        html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
-                    }
-    
-                    html += `
-                            </div>
+                        <div class="servico-card" data-posicao="${posicaoReal}">
+                            <div class="senha-numero">${item.senha}</div>
+                            <div class="senha-cliente">${item.cliente_nome}</div>
+                            <span class="senha-posicao">${posicaoReal}° na fila</span>
                         </div>
                     `;
                 });
     
-                html += `</div>`; // fecha .servicos-page
-            }
-    
-            html += `
-                    </div>
-            `;
-    
-            // Adicionar paginação se houver mais de 2 serviços
-            if (totalPaginas > 1) {
                 html += `
-                    <div class="servicos-paginacao">
-                        <button class="pagina-arrow prev" id="paginaPrev">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <span class="pagina-indicador" id="paginaAtual">1/${totalPaginas}</span>
-                        <button class="pagina-arrow next" id="paginaNext">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 200)" ${itensOrdenados.length <= 2 ? 'disabled' : ''}>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="servico-page-dots" id="servico-${servicoIdSafe}-dots">
                 `;
-            }
     
-            html += `</div>`; // fecha .servicos-paginados
-    
-            proximosTrack.innerHTML = html;
-    
-            // Configurar navegação entre páginas
-            if (totalPaginas > 1) {
-                let paginaCorrente = 0;
-                const pages = document.querySelectorAll('.servicos-page');
-                const prevBtn = document.getElementById('paginaPrev');
-                const nextBtn = document.getElementById('paginaNext');
-                const indicador = document.getElementById('paginaAtual');
-    
-                function mostrarPagina(index) {
-                    pages.forEach((page, i) => {
-                        page.classList.toggle('active', i === index);
-                    });
-                    paginaCorrente = index;
-                    if (indicador) indicador.textContent = `${index + 1}/${totalPaginas}`;
-                    if (prevBtn) prevBtn.disabled = index === 0;
-                    if (nextBtn) nextBtn.disabled = index === totalPaginas - 1;
+                const totalPages = Math.ceil(itensOrdenados.length / 2);
+                for (let i = 0; i < totalPages; i++) {
+                    html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="goToServicoPage('${servicoIdSafe}', ${i})"></span>`;
                 }
     
-                prevBtn?.addEventListener('click', () => {
-                    if (paginaCorrente > 0) mostrarPagina(paginaCorrente - 1);
-                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
     
-                nextBtn?.addEventListener('click', () => {
-                    if (paginaCorrente < totalPaginas - 1) mostrarPagina(paginaCorrente + 1);
-                });
-            }
+            proximosTrack.innerHTML = html;
     
             // Configurar scroll e dots para cada serviço
             setTimeout(() => {
@@ -1161,37 +1098,31 @@ function renderizarPainelAgendamento() {
         } else {
             // Placeholder quando não há agendamentos
             proximosTrack.innerHTML = `
-                <div class="servicos-paginados">
-                    <div class="servicos-pages">
-                        <div class="servicos-page active">
-                            <div class="fila-servico">
-                                <div class="fila-servico-header">
-                                    <i class="fas fa-star"></i>
-                                    <h4>Aguardando...</h4>
-                                    <span class="servico-count">0</span>
-                                </div>
-                                <div class="servico-carousel-container">
-                                    <button class="servico-arrow prev" disabled>
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <div class="servico-scroll">
-                                        <div class="servico-track cards-alinhados-direita">
-                                            <div class="servico-card-placeholder">
-                                                <div class="placeholder-icon">
-                                                    <i class="fas fa-clock"></i>
-                                                </div>
-                                                <div class="placeholder-text">
-                                                    Sem agendamentos
-                                                </div>
-                                            </div>
-                                        </div>
+                <div class="fila-servico">
+                    <div class="fila-servico-header">
+                        <i class="fas fa-star"></i>
+                        <h4>Aguardando...</h4>
+                        <span class="servico-count">0</span>
+                    </div>
+                    <div class="servico-carousel-container">
+                        <button class="servico-arrow prev" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <div class="servico-scroll">
+                            <div class="servico-track cards-alinhados-direita">
+                                <div class="servico-card-placeholder">
+                                    <div class="placeholder-icon">
+                                        <i class="fas fa-clock"></i>
                                     </div>
-                                    <button class="servico-arrow next" disabled>
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
+                                    <div class="placeholder-text">
+                                        Sem agendamentos
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <button class="servico-arrow next" disabled>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
             `;
