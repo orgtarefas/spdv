@@ -4540,3 +4540,62 @@ body {
     width: max-content;
     min-width: 100%;
 }
+
+/* ============================================
+   CORREÇÃO DEFINITIVA DO SCROLL - OUTROS NA FILA
+   ============================================ */
+
+/* Forçar overflow-x auto em todos os .servico-scroll */
+.servico-scroll {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    
+    /* Garantir que o scroll funcione */
+    scrollbar-width: thin !important;
+    -webkit-overflow-scrolling: touch !important;
+    
+    /* IMPORTANTE: Não limitar a largura */
+    max-width: none !important;
+    width: auto !important;
+    flex: 1 1 auto !important;
+}
+
+/* Garantir que o track seja mais largo que o container */
+.servico-track {
+    display: inline-flex !important;
+    gap: 12px !important;
+    padding: 8px 4px !important;
+    width: max-content !important;
+    min-width: 100% !important;
+}
+
+/* REMOVER qualquer overflow hidden dos pais */
+.servico-carousel-container {
+    overflow: visible !important;
+}
+
+.fila-servico {
+    overflow: visible !important;
+}
+
+.coluna-outros {
+    overflow: visible !important;
+}
+
+/* Scrollbar personalizada (opcional) */
+.servico-scroll::-webkit-scrollbar {
+    height: 6px !important;
+    background: #f1f5f9 !important;
+    border-radius: 10px !important;
+}
+
+.servico-scroll::-webkit-scrollbar-thumb {
+    background: #0056b3 !important;
+    border-radius: 10px !important;
+}
+
+.servico-scroll::-webkit-scrollbar-track {
+    background: #e2e8f0 !important;
+    border-radius: 10px !important;
+}
