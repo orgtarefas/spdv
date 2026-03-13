@@ -4417,168 +4417,126 @@ body {
 }
 
 /* ============================================
-   CORREÇÃO SCROLL HORIZONTAL - OUTROS NA FILA
+   SCROLL INDIVIDUAL POR SERVIÇO
    ============================================ */
 
-/* Garantir que o container do carrossel tenha overflow visível */
-.servico-carousel-container {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
+/* Cada fila-servico tem seu próprio container */
+.fila-servico {
     width: 100% !important;
-    min-height: 200px !important;
-    position: relative !important;
-    overflow: visible !important;
+    background: #fafcff;
+    border-radius: 18px;
+    padding: 12px;
+    border: 1px solid #edf2f7;
+    margin-bottom: 15px;
+    
+    display: flex;
+    flex-direction: column;
+    min-height: 240px;
 }
 
-/* Área de scroll - DEVE TER OVERFLOW AUTO */
-.servico-scroll {
-    flex: 1 1 auto !important;
+/* Container do carrossel dentro de cada serviço */
+.fila-servico .servico-carousel-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    flex: 1;
+    min-height: 180px;
+}
+
+/* ÁREA DE SCROLL - CADA SERVIÇO TEM O SEU */
+.fila-servico .servico-scroll {
+    flex: 1 1 auto;
     overflow-x: auto !important;  /* ← ESSENCIAL */
-    overflow-y: hidden !important;
-    white-space: nowrap !important;
-    scroll-behavior: smooth !important;
+    overflow-y: hidden;
+    white-space: nowrap;
+    scroll-behavior: smooth;
     
-    /* Garantir largura mínima */
-    min-width: 50px !important;
-    width: auto !important;
-    
-    /* Altura fixa para garantir espaço */
-    height: 180px !important;
-    min-height: 180px !important;
-    max-height: 180px !important;
+    /* Altura fixa */
+    height: 180px;
+    min-height: 180px;
     
     /* Scrollbar personalizada */
-    scrollbar-width: thin !important;
-    scrollbar-color: #0056b3 #e2e8f0 !important;
+    scrollbar-width: thin;
+    scrollbar-color: #0056b3 #e2e8f0;
 }
 
 /* Scrollbar para Chrome/Safari */
-.servico-scroll::-webkit-scrollbar {
-    height: 6px !important;
-    background: #f1f5f9 !important;
-    border-radius: 10px !important;
+.fila-servico .servico-scroll::-webkit-scrollbar {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 10px;
 }
 
-.servico-scroll::-webkit-scrollbar-thumb {
-    background: #0056b3 !important;
-    border-radius: 10px !important;
+.fila-servico .servico-scroll::-webkit-scrollbar-thumb {
+    background: #0056b3;
+    border-radius: 10px;
 }
 
-.servico-scroll::-webkit-scrollbar-track {
-    background: #e2e8f0 !important;
-    border-radius: 10px !important;
+.fila-servico .servico-scroll::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 10px;
 }
 
 /* Track dos cards */
-.servico-track {
-    display: inline-flex !important;
-    gap: 12px !important;
-    padding: 8px 4px !important;
-    height: 100% !important;
-    align-items: center !important;
+.fila-servico .servico-track {
+    display: inline-flex;
+    gap: 12px;
+    padding: 8px 4px;
+    height: 100%;
+    align-items: center;
 }
 
 /* Cards com tamanho fixo */
-.servico-card {
-    width: 180px !important;
-    min-width: 180px !important;
-    max-width: 180px !important;
-    height: 160px !important;
-    min-height: 160px !important;
-    max-height: 160px !important;
+.fila-servico .servico-card {
+    width: 180px;
+    min-width: 180px;
+    max-width: 180px;
+    height: 160px;
+    min-height: 160px;
     
-    background: white !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 16px !important;
-    padding: 16px !important;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
     
-    display: inline-flex !important;
-    flex-direction: column !important;
+    display: inline-flex;
+    flex-direction: column;
     
-    flex-shrink: 0 !important;
-    flex-grow: 0 !important;
+    flex-shrink: 0;
 }
 
-/* Setas - garantir que fiquem visíveis */
-.servico-arrow {
-    width: 36px !important;
-    min-width: 36px !important;
-    max-width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    max-height: 36px !important;
-    
-    border-radius: 50% !important;
-    background: white !important;
-    border: 2px solid #0056b3 !important;
-    color: #0056b3 !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 1rem !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
-    
-    flex-shrink: 0 !important;
-    flex-grow: 0 !important;
-    
-    transition: all 0.2s !important;
+/* Setas */
+.fila-servico .servico-arrow {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #0056b3;
+    color: #0056b3;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
 }
 
-.servico-arrow:hover:not(:disabled) {
-    background: #0056b3 !important;
-    color: white !important;
-    transform: scale(1.1) !important;
+.fila-servico .servico-arrow:hover:not(:disabled) {
+    background: #0056b3;
+    color: white;
+    transform: scale(1.1);
 }
 
-.servico-arrow:disabled {
-    opacity: 0.3 !important;
-    cursor: not-allowed !important;
-    border-color: #cbd5e1 !important;
-    color: #94a3b8 !important;
+.fila-servico .servico-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 
-/* Container da fileira de serviço */
-.fila-servico {
-    width: 100% !important;
-    max-width: 100% !important;
-    background: #fafcff !important;
-    border-radius: 18px !important;
-    padding: 12px !important;
-    border: 1px solid #edf2f7 !important;
-    margin-bottom: 15px !important;
-    
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 240px !important;
+/* Alinhamento à direita */
+.fila-servico .servico-track.cards-alinhados-direita {
+    justify-content: flex-end;
+    width: max-content;
+    min-width: 100%;
 }
-
-.fila-servico:last-child {
-    margin-bottom: 0 !important;
-}
-
-/* Garantir que o scroll funcione dentro do fila-servico */
-.fila-servico .servico-carousel-container {
-    flex: 1 !important;
-    min-height: 180px !important;
-}
-
-.fila-servico .servico-scroll {
-    flex: 1 !important;
-}
-
-/* Alinhamento dos cards à direita */
-.servico-track.cards-alinhados-direita {
-    justify-content: flex-end !important;
-    margin-left: auto !important;
-    width: max-content !important;
-    min-width: 100% !important;
-}
-
-/* Debug - bordas para visualizar (opcional, remova se não quiser) */
-/*
-.servico-scroll { border: 2px solid red; }
-.servico-track { border: 2px solid blue; }
-.servico-card { border: 2px solid green; }
-*/
