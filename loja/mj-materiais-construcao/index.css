@@ -2729,7 +2729,7 @@ body {
     background: linear-gradient(145deg, #ff6b00, #ff8c40);
     color: white;
     border-radius: 18px;
-    padding: 16px;
+    padding: 10px;
     box-shadow: 0 12px 20px -10px rgba(255, 107, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
     transition: all 0.2s ease;
@@ -2744,12 +2744,12 @@ body {
 .card-chamando-item .servico-tag {
     background: rgba(255, 255, 255, 0.2);
     color: white;
-    padding: 4px 12px;
+    padding: 4px 10px;
     border-radius: 30px;
     font-size: 0.7rem;
     font-weight: 600;
     display: inline-block;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     border: 1px solid rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(4px);
 }
@@ -2759,7 +2759,7 @@ body {
     font-weight: 800;
     color: white;
     background: rgba(0, 0, 0, 0.1);
-    padding: 4px 16px;
+    padding: 4px 14px;
     border-radius: 40px;
     display: inline-block;
     margin: 8px 0;
