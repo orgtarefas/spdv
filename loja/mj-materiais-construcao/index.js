@@ -53,7 +53,7 @@ let servicosConfig = {}; // Mapa de id do serviço -> configuração
 let modoAutomatico = true; // true = automático, false = manual
 let carrosselAutomaticoInterval = null;
 let carrosselAutomaticoAtivo = true; // Começa ativo
-
+let agendamentosCarregados = false; // Falso para Aguardar carregar os agendamentos reais de hoje
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
@@ -134,14 +134,125 @@ async function verificarAgendamentoHabilitado() {
 }
 
 // ============================================
-// MOSTRAR/ESCONDER CONTAINER DE AGENDAMENTO
+// MOSTRAR/ESCONDER CONTAINER DE AGENDAMENTO COM CONTROLE DE CARREGAMENTO
 // ============================================
 function toggleAgendamentoContainer(mostrar) {
     const container = document.getElementById('agendamentoContainer');
-    if (container) {
-        container.style.display = mostrar ? 'block' : 'none';
-        console.log(`📅 Container de agendamento ${mostrar ? 'exibido' : 'ocultado'}`);
+    if (!container) return;
+    
+    if (mostrar) {
+        // 🔥 Só mostra o container, mas com conteúdo de carregamento
+        container.style.display = 'block';
+        
+        // 🔥 Verifica se já tem dados carregados
+        if (!agendamentosCarregados) {
+            // Mostra skeleton loading
+            mostrarSkeletonAgendamento();
+            console.log('📅 Container exibido com skeleton loading');
+        } else {
+            console.log('📅 Container exibido com dados já carregados');
+        }
+    } else {
+        container.style.display = 'none';
+        console.log(`📅 Container de agendamento ocultado`);
     }
+}
+
+// ============================================
+// MOSTRAR SKELETON LOADING ENQUANTO CARREGA
+// ============================================
+function mostrarSkeletonAgendamento() {
+    const proximosTrack = document.getElementById('proximasSenhasTrack'); // Coluna 1 - Outros na fila
+    const proximosEl = document.getElementById('proximosFilaCard'); // Coluna 2 - Próximos a atender
+    const chamandoEl = document.getElementById('chamandoAgoraCard'); // Coluna 3 - Em atendimento
+    
+    // ============================================
+    // COLUNA 1 (ESQUERDA) - OUTROS NA FILA
+    // ============================================
+    if (proximosTrack) {
+        proximosTrack.innerHTML = `
+            <div class="fila-servico skeleton">
+                <div class="fila-servico-header">
+                    <i class="fas fa-star"></i>
+                    <h4>Carregando serviços...</h4>
+                    <span class="servico-count">—</span>
+                </div>
+                <div class="servico-carousel-container">
+                    <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
+                    <div class="servico-scroll">
+                        <div class="servico-track">
+                            <div class="servico-card skeleton-card">
+                                <div class="skeleton-shimmer"></div>
+                                <div class="skeleton-line" style="width: 60px; height: 30px;"></div>
+                                <div class="skeleton-line" style="width: 100px;"></div>
+                                <div class="skeleton-line" style="width: 80px;"></div>
+                            </div>
+                            <div class="servico-card skeleton-card">
+                                <div class="skeleton-shimmer"></div>
+                                <div class="skeleton-line" style="width: 60px; height: 30px;"></div>
+                                <div class="skeleton-line" style="width: 100px;"></div>
+                                <div class="skeleton-line" style="width: 80px;"></div>
+                            </div>
+                            <div class="servico-card skeleton-card">
+                                <div class="skeleton-shimmer"></div>
+                                <div class="skeleton-line" style="width: 60px; height: 30px;"></div>
+                                <div class="skeleton-line" style="width: 100px;"></div>
+                                <div class="skeleton-line" style="width: 80px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ============================================
+    // COLUNA 2 (MEIO) - PRÓXIMOS A ATENDER
+    // ============================================
+    if (proximosEl) {
+        proximosEl.innerHTML = `
+            <div class="item-fila-vertical skeleton">
+                <div class="skeleton-shimmer"></div>
+                <div class="skeleton-line" style="width: 120px; height: 24px;"></div>
+                <div class="skeleton-line" style="width: 80px; height: 40px;"></div>
+                <div class="skeleton-line" style="width: 150px;"></div>
+            </div>
+            <div class="item-fila-vertical skeleton" style="margin-top: 10px;">
+                <div class="skeleton-shimmer"></div>
+                <div class="skeleton-line" style="width: 120px; height: 24px;"></div>
+                <div class="skeleton-line" style="width: 80px; height: 40px;"></div>
+                <div class="skeleton-line" style="width: 150px;"></div>
+            </div>
+        `;
+    }
+    
+    // ============================================
+    // COLUNA 3 (DIREITA) - EM ATENDIMENTO
+    // ============================================
+    if (chamandoEl) {
+        chamandoEl.innerHTML = `
+            <div class="card-chamando-item skeleton">
+                <div class="skeleton-shimmer"></div>
+                <div class="skeleton-line" style="width: 150px; height: 24px; background: rgba(255,255,255,0.3);"></div>
+                <div class="skeleton-line" style="width: 100px; height: 50px; background: rgba(255,255,255,0.3);"></div>
+                <div class="skeleton-line" style="width: 180px; height: 20px; background: rgba(255,255,255,0.3);"></div>
+            </div>
+        `;
+    }
+    
+    // Atualizar badges com skeleton
+    const totalOutrosBadge = document.getElementById('totalOutrosBadge');
+    const totalFilaBadge = document.getElementById('totalFilaBadge');
+    const totalFilaTexto = document.getElementById('totalFilaTexto');
+    const tempoMedioEspera = document.getElementById('tempoMedioEspera');
+    const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
+    
+    if (totalOutrosBadge) totalOutrosBadge.textContent = '—';
+    if (totalFilaBadge) totalFilaBadge.textContent = '—';
+    if (totalFilaTexto) totalFilaTexto.textContent = '—';
+    if (tempoMedioEspera) tempoMedioEspera.textContent = '—';
+    if (ultimoChamadoHora) ultimoChamadoHora.textContent = '--:--';
 }
 
 // ============================================
@@ -509,12 +620,13 @@ function reconstruirListaAgendamentos(dadosDoDia) {
         });
         
         console.log(`✅ Total agendamentos hoje: ${agendamentosAtivos.length}`);
-        console.log('📋 Status na fila:', agendamentosAtivos.map(a => `${a.senha}: ${a.status}`));
-        
+        agendamentosCarregados = true; // 🔥 Marca como carregado
         renderizarPainelAgendamento();
         
     } catch (error) {
         console.error('❌ Erro ao reconstruir lista:', error);
+        agendamentosCarregados = true; // Mesmo com erro, marca como carregado
+        renderizarPainelAgendamento();
     }
 }
 
