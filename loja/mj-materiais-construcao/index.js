@@ -1189,7 +1189,7 @@ window.irParaPaginaServico = function(servicoId, pageIndex) {
 function iniciarCarrosselSenhasAutomatico() {
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático...');
+    console.log('🎠 Iniciando carrossel automático com lógica direita↔meio↔esquerda...');
     
     // Parar qualquer intervalo existente
     if (carrosselAutomaticoInterval) {
@@ -1197,33 +1197,69 @@ function iniciarCarrosselSenhasAutomatico() {
         carrosselAutomaticoInterval = null;
     }
     
+    // Mapa para controlar a posição e direção de cada serviço
+    const estadoCarrossel = new Map();
+    
     carrosselAutomaticoInterval = setInterval(() => {
-        // Verificar se o carrossel ainda deve estar ativo
         if (!carrosselAutomaticoAtivo) {
             pararCarrosselAutomatico();
             return;
         }
         
-        // Pegar todos os scrolls ativos
-        const scrollElements = document.querySelectorAll('.servico-scroll');
-        
-        if (scrollElements.length === 0) return;
-        
-        scrollElements.forEach(scrollEl => {
+        document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-            
-            // Só prosseguir se houver scroll disponível
             if (maxScroll <= 5) return;
             
             const cardWidth = 192; // Largura do card + gap
             const currentScroll = scrollEl.scrollLeft;
             
-            // Calcular próximo scroll (avançar 1 card)
-            let nextScroll = currentScroll + cardWidth;
+            // Extrair servicoId para controle de estado
+            const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
             
-            // Se chegou ao fim, voltar ao início
-            if (nextScroll > maxScroll - 5) {
-                nextScroll = 0;
+            // Inicializar estado se não existir
+            if (!estadoCarrossel.has(servicoId)) {
+                estadoCarrossel.set(servicoId, {
+                    posicao: 'direita', // Começa na direita
+                    ultimoScroll: currentScroll
+                });
+            }
+            
+            const estado = estadoCarrossel.get(servicoId);
+            let nextScroll;
+            
+            // Lógica baseada na posição atual
+            switch(estado.posicao) {
+                case 'direita':
+                    // Está na direita, vai para o MEIO
+                    nextScroll = Math.floor(maxScroll / 2);
+                    estado.posicao = 'meio_direita';
+                    console.log(`  ➡️ ${servicoId}: direita → meio`);
+                    break;
+                    
+                case 'meio_direita':
+                    // Estava no meio vindo da direita, vai para ESQUERDA
+                    nextScroll = 0;
+                    estado.posicao = 'esquerda';
+                    console.log(`  ⬅️ ${servicoId}: meio → esquerda`);
+                    break;
+                    
+                case 'esquerda':
+                    // Está na esquerda, vai para o MEIO
+                    nextScroll = Math.floor(maxScroll / 2);
+                    estado.posicao = 'meio_esquerda';
+                    console.log(`  ➡️ ${servicoId}: esquerda → meio`);
+                    break;
+                    
+                case 'meio_esquerda':
+                    // Estava no meio vindo da esquerda, volta para DIREITA
+                    nextScroll = maxScroll;
+                    estado.posicao = 'direita';
+                    console.log(`  ➡️ ${servicoId}: meio → direita`);
+                    break;
+                    
+                default:
+                    nextScroll = maxScroll;
+                    estado.posicao = 'direita';
             }
             
             // Aplicar scroll suave
@@ -1231,9 +1267,6 @@ function iniciarCarrosselSenhasAutomatico() {
                 left: nextScroll,
                 behavior: 'smooth'
             });
-            
-            // Extrair servicoId do ID do elemento
-            const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
             
             // Atualizar estado após o scroll
             setTimeout(() => {
@@ -1247,19 +1280,15 @@ function iniciarCarrosselSenhasAutomatico() {
 // VERIFICAR E INICIAR CARROSSEL APÓS RENDERIZAÇÃO
 // ============================================
 function verificarEIniciarCarrossel() {
-    // Verificar se existem elementos .servico-scroll
     const temScroll = document.querySelectorAll('.servico-scroll').length > 0;
     
     if (temScroll && carrosselAutomaticoAtivo) {
         console.log('🎠 Elementos encontrados, iniciando carrossel...');
-        
-        // Pequeno delay para garantir que tudo esteja renderizado
         setTimeout(() => {
             iniciarCarrosselSenhasAutomatico();
         }, 500);
     } else {
         console.log('⏳ Aguardando elementos do carrossel...');
-        // Tentar novamente após 1 segundo (máximo 10 tentativas)
         let tentativas = 0;
         const maxTentativas = 10;
         
@@ -1274,7 +1303,7 @@ function verificarEIniciarCarrossel() {
                     iniciarCarrosselSenhasAutomatico();
                 }, 500);
             } else if (tentativas >= maxTentativas) {
-                console.log('⏹️ Máximo de tentativas atingido, parando verificação');
+                console.log('⏹️ Máximo de tentativas atingido');
                 clearInterval(intervalo);
             }
         }, 1000);
