@@ -882,11 +882,11 @@ function renderizarPainelAgendamento() {
                                     <div class="servico-track">
                     `;
                     
-                    // Ordem inversa para o carrossel (mais antigo à direita)
-                    const itensParaExibir = [...itensFila].reverse();
-                    
-                    itensParaExibir.forEach((item, idx) => {
-                        const posicaoReal = itensFila.length - idx;
+                    // Manter ordem original (mais antigo primeiro) e exibir da esquerda para a direita
+                    // Mas como o container tem alinhamento à direita, o primeiro card (mais antigo) 
+                    // aparecerá no final (direita)
+                    itensFila.forEach((item, idx) => {
+                        const posicaoReal = idx + 1; // 1° na fila, 2° na fila, etc.
                         html += `
                             <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${servicoIdSafe}">
                                 <div class="senha-numero">${item.senha}</div>
