@@ -1189,7 +1189,7 @@ window.irParaPaginaServico = function(servicoId, pageIndex) {
 function iniciarCarrosselSenhasAutomatico() {
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático com lógica direita↔meio↔esquerda...');
+    console.log('🎠 Iniciando carrossel automático - INÍCIO NA DIREITA (1° da fila)');
     
     // Parar qualquer intervalo existente
     if (carrosselAutomaticoInterval) {
@@ -1200,80 +1200,99 @@ function iniciarCarrosselSenhasAutomatico() {
     // Mapa para controlar a posição e direção de cada serviço
     const estadoCarrossel = new Map();
     
-    carrosselAutomaticoInterval = setInterval(() => {
-        if (!carrosselAutomaticoAtivo) {
-            pararCarrosselAutomatico();
-            return;
-        }
-        
+    // Primeiro, garantir que todos os scrolls comecem na DIREITA
+    setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-            if (maxScroll <= 5) return;
-            
-            const cardWidth = 192; // Largura do card + gap
-            const currentScroll = scrollEl.scrollLeft;
-            
-            // Extrair servicoId para controle de estado
-            const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
-            
-            // Inicializar estado se não existir
-            if (!estadoCarrossel.has(servicoId)) {
+            if (maxScroll > 0) {
+                scrollEl.scrollTo({
+                    left: maxScroll, // Começa na DIREITA (mostrando o 1° da fila)
+                    behavior: 'auto' // Sem animação inicial
+                });
+                
+                // Inicializar estado
+                const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
                 estadoCarrossel.set(servicoId, {
                     posicao: 'direita', // Começa na direita
-                    ultimoScroll: currentScroll
+                    maxScroll: maxScroll
                 });
             }
-            
-            const estado = estadoCarrossel.get(servicoId);
-            let nextScroll;
-            
-            // Lógica baseada na posição atual
-            switch(estado.posicao) {
-                case 'direita':
-                    // Está na direita, vai para o MEIO
-                    nextScroll = Math.floor(maxScroll / 2);
-                    estado.posicao = 'meio_direita';
-                    console.log(`  ➡️ ${servicoId}: direita → meio`);
-                    break;
-                    
-                case 'meio_direita':
-                    // Estava no meio vindo da direita, vai para ESQUERDA
-                    nextScroll = 0;
-                    estado.posicao = 'esquerda';
-                    console.log(`  ⬅️ ${servicoId}: meio → esquerda`);
-                    break;
-                    
-                case 'esquerda':
-                    // Está na esquerda, vai para o MEIO
-                    nextScroll = Math.floor(maxScroll / 2);
-                    estado.posicao = 'meio_esquerda';
-                    console.log(`  ➡️ ${servicoId}: esquerda → meio`);
-                    break;
-                    
-                case 'meio_esquerda':
-                    // Estava no meio vindo da esquerda, volta para DIREITA
-                    nextScroll = maxScroll;
-                    estado.posicao = 'direita';
-                    console.log(`  ➡️ ${servicoId}: meio → direita`);
-                    break;
-                    
-                default:
-                    nextScroll = maxScroll;
-                    estado.posicao = 'direita';
+        });
+    }, 100);
+    
+    // Iniciar o carrossel após posicionar na direita
+    setTimeout(() => {
+        carrosselAutomaticoInterval = setInterval(() => {
+            if (!carrosselAutomaticoAtivo) {
+                pararCarrosselAutomatico();
+                return;
             }
             
-            // Aplicar scroll suave
-            scrollEl.scrollTo({
-                left: nextScroll,
-                behavior: 'smooth'
+            document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+                const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
+                if (maxScroll <= 5) return;
+                
+                const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
+                
+                // Inicializar estado se não existir
+                if (!estadoCarrossel.has(servicoId)) {
+                    estadoCarrossel.set(servicoId, {
+                        posicao: 'direita',
+                        maxScroll: maxScroll
+                    });
+                }
+                
+                const estado = estadoCarrossel.get(servicoId);
+                let nextScroll;
+                
+                // Lógica: DIREITA (1° fila) → MEIO → ESQUERDA → MEIO → DIREITA...
+                switch(estado.posicao) {
+                    case 'direita':
+                        // Está na DIREITA (mostrando 1° da fila), vai para o MEIO
+                        nextScroll = Math.floor(maxScroll / 2);
+                        estado.posicao = 'meio_direita';
+                        console.log(`  ➡️ ${servicoId}: DIREITA (1° fila) → MEIO`);
+                        break;
+                        
+                    case 'meio_direita':
+                        // Está no MEIO (vindo da direita), vai para ESQUERDA
+                        nextScroll = 0;
+                        estado.posicao = 'esquerda';
+                        console.log(`  ⬅️ ${servicoId}: MEIO → ESQUERDA (últimos)`);
+                        break;
+                        
+                    case 'esquerda':
+                        // Está na ESQUERDA, vai para o MEIO
+                        nextScroll = Math.floor(maxScroll / 2);
+                        estado.posicao = 'meio_esquerda';
+                        console.log(`  ➡️ ${servicoId}: ESQUERDA → MEIO`);
+                        break;
+                        
+                    case 'meio_esquerda':
+                        // Está no MEIO (vindo da esquerda), volta para DIREITA (1° fila)
+                        nextScroll = maxScroll;
+                        estado.posicao = 'direita';
+                        console.log(`  ➡️ ${servicoId}: MEIO → DIREITA (1° fila)`);
+                        break;
+                        
+                    default:
+                        nextScroll = maxScroll;
+                        estado.posicao = 'direita';
+                }
+                
+                // Aplicar scroll suave
+                scrollEl.scrollTo({
+                    left: nextScroll,
+                    behavior: 'smooth'
+                });
+                
+                // Atualizar estado após o scroll
+                setTimeout(() => {
+                    atualizarEstadoServico(servicoId);
+                }, 400);
             });
-            
-            // Atualizar estado após o scroll
-            setTimeout(() => {
-                atualizarEstadoServico(servicoId);
-            }, 400);
-        });
-    }, 5000); // 5 segundos entre movimentos
+        }, 5000); // 5 segundos entre movimentos
+    }, 200); // Pequeno delay para garantir que o scroll inicial aconteceu
 }
 
 // ============================================
