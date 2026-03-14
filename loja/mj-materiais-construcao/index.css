@@ -3016,17 +3016,8 @@ body {
 }
 
 
-.servico-scroll::-webkit-scrollbar {
-    height: 4px;
-}
-
 .servico-scroll::-webkit-scrollbar-track {
     background: #f1f5f9;
-    border-radius: 8px;
-}
-
-.servico-scroll::-webkit-scrollbar-thumb {
-    background: #0056b3;
     border-radius: 8px;
 }
 
@@ -3152,20 +3143,10 @@ body {
     animation: cardAppear 0.5s ease-out forwards;
 }
 
-.servico-scroll::-webkit-scrollbar {
-    height: 4px;
-}
-
 .servico-scroll::-webkit-scrollbar-track {
     background: #f1f5f9;
     border-radius: 8px;
 }
-
-.servico-scroll::-webkit-scrollbar-thumb {
-    background: #0056b3;
-    border-radius: 8px;
-}
-
 
 /* Efeito hover - levitação com sombra */
 .servico-card:hover {
@@ -4430,21 +4411,6 @@ body {
     border-radius: 10px;
 }
 
-/* Scrollbar personalizada */
-.fila-servico .servico-scroll::-webkit-scrollbar {
-    height: 4px;
-    background: #f1f5f9;
-}
-
-.fila-servico .servico-scroll::-webkit-scrollbar-thumb {
-    background: #0056b3;
-    border-radius: 4px;
-}
-
-.fila-servico .servico-scroll::-webkit-scrollbar-track {
-    background: #e2e8f0;
-}
-
 /* Alinhamento à direita */
 .fila-servico .servico-track.cards-alinhados-direita {
     justify-content: flex-end;
@@ -4481,18 +4447,6 @@ body {
 
 .fila-servico {
     overflow: visible !important;
-}
-
-/* Scrollbar personalizada (opcional) */
-.servico-scroll::-webkit-scrollbar {
-    height: 6px !important;
-    background: #f1f5f9 !important;
-    border-radius: 10px !important;
-}
-
-.servico-scroll::-webkit-scrollbar-thumb {
-    background: #0056b3 !important;
-    border-radius: 10px !important;
 }
 
 .servico-scroll::-webkit-scrollbar-track {
@@ -4575,4 +4529,66 @@ body {
 .fila-servico.skeleton {
     background: #fafafa;
     border: 1px solid #eee;
+}
+
+/* ============================================
+   BARRA DE SCROLL PERSONALIZADA - COR DO TÍTULO
+   ============================================ */
+
+/* Scrollbar para a coluna Outros na Fila */
+.servico-scroll::-webkit-scrollbar {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.servico-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #0056b3, #00a86b); /* Mesma cor do título */
+    border-radius: 10px;
+    box-shadow: 0 0 5px rgba(0, 86, 179, 0.3);
+}
+
+.servico-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(90deg, #0066cc, #00c853);
+}
+
+.servico-scroll::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+/* Para Firefox */
+.servico-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #0056b3 #e2e8f0;
+}
+
+/* Scrollbar da coluna Próximos a Atender (vertical) */
+#proximosFilaCard::-webkit-scrollbar {
+    width: 6px;
+}
+
+#proximosFilaCard::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+#proximosFilaCard::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #0056b3, #00a86b);
+    border-radius: 10px;
+}
+
+/* Scrollbar da coluna Em Atendimento */
+#chamandoAgoraCard::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chamandoAgoraCard::-webkit-scrollbar-track {
+    background: #fff1e6;
+    border-radius: 10px;
+}
+
+#chamandoAgoraCard::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ff6b00, #ff8c40);
+    border-radius: 10px;
 }
