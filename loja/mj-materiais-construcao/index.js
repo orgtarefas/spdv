@@ -1184,12 +1184,12 @@ window.irParaPaginaServico = function(servicoId, pageIndex) {
 };
 
 // ============================================
-// INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS - VERSÃO CORRIGIDA
+// INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS - MAIS LENTO
 // ============================================
 function iniciarCarrosselSenhasAutomatico() {
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático - INÍCIO NA DIREITA (1° da fila)');
+    console.log('🎠 Iniciando carrossel automático - VELOCIDADE LENTA');
     
     // Parar qualquer intervalo existente
     if (carrosselAutomaticoInterval) {
@@ -1248,39 +1248,27 @@ function iniciarCarrosselSenhasAutomatico() {
                 // Lógica: DIREITA (1° fila) → MEIO → ESQUERDA → MEIO → DIREITA...
                 switch(estado.posicao) {
                     case 'direita':
-                        // Está na DIREITA (mostrando 1° da fila), vai para o MEIO
                         nextScroll = Math.floor(maxScroll / 2);
                         estado.posicao = 'meio_direita';
-                        console.log(`  ➡️ ${servicoId}: DIREITA (1° fila) → MEIO`);
                         break;
-                        
                     case 'meio_direita':
-                        // Está no MEIO (vindo da direita), vai para ESQUERDA
                         nextScroll = 0;
                         estado.posicao = 'esquerda';
-                        console.log(`  ⬅️ ${servicoId}: MEIO → ESQUERDA (últimos)`);
                         break;
-                        
                     case 'esquerda':
-                        // Está na ESQUERDA, vai para o MEIO
                         nextScroll = Math.floor(maxScroll / 2);
                         estado.posicao = 'meio_esquerda';
-                        console.log(`  ➡️ ${servicoId}: ESQUERDA → MEIO`);
                         break;
-                        
                     case 'meio_esquerda':
-                        // Está no MEIO (vindo da esquerda), volta para DIREITA (1° fila)
                         nextScroll = maxScroll;
                         estado.posicao = 'direita';
-                        console.log(`  ➡️ ${servicoId}: MEIO → DIREITA (1° fila)`);
                         break;
-                        
                     default:
                         nextScroll = maxScroll;
                         estado.posicao = 'direita';
                 }
                 
-                // Aplicar scroll suave
+                // 🔥 SCROLL MAIS LENTO: aumenta a duração do smooth
                 scrollEl.scrollTo({
                     left: nextScroll,
                     behavior: 'smooth'
@@ -1289,10 +1277,10 @@ function iniciarCarrosselSenhasAutomatico() {
                 // Atualizar estado após o scroll
                 setTimeout(() => {
                     atualizarEstadoServico(servicoId);
-                }, 400);
+                }, 800); // Aumentado para 800ms
             });
-        }, 5000); // 5 segundos entre movimentos
-    }, 200); // Pequeno delay para garantir que o scroll inicial aconteceu
+        }, 7000); // 🔥 AUMENTADO PARA 7 SEGUNDOS entre movimentos
+    }, 200);
 }
 
 // ============================================
