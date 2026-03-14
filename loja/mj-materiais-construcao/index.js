@@ -417,7 +417,7 @@ async function carregarConfiguracoesServicos() {
 }
 
 // ============================================
-// RECONSTRUIR LISTA DE AGENDAMENTOS - VERSÃO CORRIGIDA
+// RECONSTRUIR LISTA DE AGENDAMENTOS - VERSÃO CORRIGIDA (SÓ HOJE)
 // ============================================
 function reconstruirListaAgendamentos(dadosDoDia) {
     try {
@@ -461,15 +461,14 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                 console.log(`    📝 ${agendamentoId}:`, dados);
                 
                 if (dados && dados.data_hora_agendada) {
-                    // Verificar se é hoje
+                    // 🔥 FIX: Verificar se é HOJE de forma mais rigorosa
                     const dataAgendadaDate = new Date(dataHoraAgendada);
                     dataAgendadaDate.setHours(0, 0, 0, 0);
                     
-                    // O número da senha deve ser baseado na posição ORIGINAL no array
-                    const numero = index + 1;
-                    
+                    // 🔥 FIX: SÓ processar se for HOJE
                     if (dataAgendadaDate.getTime() === hoje.getTime()) {
-                        // Agendamento de HOJE
+                        // O número da senha deve ser baseado na posição ORIGINAL no array
+                        const numero = index + 1;
                         
                         // 🔥 STATUS QUE APARECEM NA FILA: Em atendimento, Próximo a atender, Na fila, Verificado
                         const statusFila = [
@@ -501,22 +500,9 @@ function reconstruirListaAgendamentos(dadosDoDia) {
                             console.log(`    ⏳ Agendamento ${agendamentoId} com status "${dados.status_agendamento}" não entra na fila`);
                         }
                     } else {
-                        // Agendamento futuro (outro dia)
-                        agendamentosFuturos.push({
-                            id: `${servicoId}_${agendamentoId}`,
-                            servico_id: servicoId,
-                            servico_nome: servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' '),
-                            agendamento_id: agendamentoId,
-                            cliente_email: dados.cliente_email,
-                            cliente_nome: dados.cliente_nome,
-                            status: dados.status_agendamento,
-                            data: dataHoraAgendada.toISOString().split('T')[0],
-                            horario: dataHoraAgendada.toLocaleTimeString([], { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                            }),
-                            validado: dados.status_agendamento === 'Verificado'
-                        });
+                        // 🔥 FIX: Agendamento de OUTRO DIA - NÃO ADICIONAR NA LISTA ATIVA
+                        console.log(`    📅 Ignorando agendamento de outro dia: ${dataHoraAgendada.toISOString().split('T')[0]}`);
+                        
                     }
                 }
             });
