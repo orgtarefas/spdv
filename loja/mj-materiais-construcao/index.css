@@ -2395,10 +2395,27 @@ body {
 }
 
 .coluna-outros {
-    width: 50% !important; /* Largura fixa da coluna */
+    width: 50% !important;
     max-width: 50% !important;
     min-width: 50% !important;
+    overflow: hidden !important;
+    display: flex;
+    flex-direction: column;
+    height: 600px;
 }
+
+/* Área de scroll da coluna outros */
+.coluna-outros .coluna-content {
+    flex: 1;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+
 
 /* Container da página de serviços */
 .servicos-page {
@@ -2435,28 +2452,6 @@ body {
     flex: 1 1 auto !important;
 }
 
-/* Container do carrossel dentro do fila-servico */
-.fila-servico .servico-carousel-container {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    width: 100% !important;
-    flex: 1 !important; /* Ocupa espaço restante */
-    min-height: 180px !important;
-}
-
-/* Área de scroll - ocupar todo espaço disponível */
-.fila-servico .servico-scroll {
-    flex: 1 1 auto !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    white-space: nowrap !important;
-    
-    /* IMPORTANTE: largura automática para não quebrar */
-    width: auto !important;
-    min-width: 50px !important; /* Mínimo para não sumir */
-}
-
 /* Track dos cards - alinhamento à direita FORÇADO */
 .fila-servico .servico-track.cards-alinhados-direita {
     display: inline-flex !important;
@@ -2483,13 +2478,6 @@ body {
 
 .fila-servico .servico-track.cards-alinhados-direita .servico-card:first-child {
     margin-left: auto !important;
-}
-
-/* Setas mantêm tamanho fixo */
-.fila-servico .servico-arrow {
-    flex-shrink: 0 !important;
-    width: 36px !important;
-    min-width: 36px !important;
 }
 
 /* Coluna 2: PRÓXIMOS A ATENDER - 25% */
@@ -2899,21 +2887,50 @@ body {
     display: none !important;
 }
 
-/* Container da fileira de serviço */
+/* Cada serviço ocupa espaço vertical */
 .fila-servico {
+    width: 100% !important;
     background: #fafcff;
     border-radius: 18px;
-    padding: 10px;
+    padding: 12px;
     border: 1px solid #edf2f7;
-    min-height: 240px;
+    flex-shrink: 0;
+    margin-bottom: 0;
+    
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    margin-bottom: 10px;
-    width: 100%;
-    flex: 1;
+    min-height: 240px;
+    height: auto;
 }
 
+/* Container do carrossel - TEM QUE TER LARGURA FIXA */
+.fila-servico .servico-carousel-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 180px;
+    min-height: 180px;
+    position: relative;
+}
+
+/* ÁREA DE SCROLL - ESSENCIAL PARA FUNCIONAR */
+.fila-servico .servico-scroll {
+    flex: 1 1 auto;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    scroll-behavior: smooth;
+    height: 180px;
+    min-height: 180px;
+    
+    /* IMPORTANTE: Permitir scroll */
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+    
+    /* Largura calculada */
+    width: calc(100% - 88px); /* 36px seta esquerda + 36px seta direita + 16px gap */
+}
 
 .fila-servico:last-child {
     margin-bottom: 0;
@@ -2979,24 +2996,6 @@ body {
     gap: 8px !important;
     width: 100% !important;
     position: relative !important;
-}
-
-/* Container do scroll - TAMANHO FIXO TAMBÉM */
-.servico-scroll {
-    flex: 1 !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    white-space: nowrap !important;
-    scroll-behavior: smooth !important;
-    
-    /* Garantir que o scroll não quebre o layout */
-    min-width: 0 !important;
-    max-width: none !important;
-    width: auto !important;
-}
-
-.servico-scroll {
-    direction: ltr !important;
 }
 
 /* Track dos cards - alinhamento à direita */
@@ -3236,99 +3235,6 @@ body {
     100% { background-position: 200% 0%; }
 }
 
-/* Efeito de máscara no scroll (opcional) */
-.servico-scroll {
-    -webkit-mask-image: linear-gradient(
-        90deg,
-        transparent 0%,
-        black 5%,
-        black 95%,
-        transparent 100%
-    );
-    mask-image: linear-gradient(
-        90deg,
-        transparent 0%,
-        black 5%,
-        black 95%,
-        transparent 100%
-    );
-}
-
-/* Delay progressivo para cada card */
-.servico-track .servico-card:nth-child(1) { animation-delay: 0.05s; }
-.servico-track .servico-card:nth-child(2) { animation-delay: 0.1s; }
-.servico-track .servico-card:nth-child(3) { animation-delay: 0.15s; }
-.servico-track .servico-card:nth-child(4) { animation-delay: 0.2s; }
-.servico-track .servico-card:nth-child(5) { animation-delay: 0.25s; }
-.servico-track .servico-card:nth-child(6) { animation-delay: 0.3s; }
-.servico-track .servico-card:nth-child(7) { animation-delay: 0.35s; }
-.servico-track .servico-card:nth-child(8) { animation-delay: 0.4s; }
-
-/* TAG DO SERVIÇO */
-.servico-card .servico-tag-small {
-    background: #eef2f6;
-    color: #2c3e50;
-    padding: 6px 12px;
-    border-radius: 30px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: inline-block;
-    margin-bottom: 10px;
-    border: 1px solid #dde3e9;
-    align-self: flex-start;
-    max-width: 100%;
-    white-space: normal;
-    word-break: break-word;
-    position: relative;
-    z-index: 3;
-}
-
-/* NÚMERO DA SENHA */
-.servico-card .senha-numero-small {
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #0056b3;
-    background: #f0f7ff;
-    padding: 6px 16px;
-    border-radius: 40px;
-    display: inline-block;
-    margin-bottom: 10px;
-    border: 1px solid #cce4ff;
-    align-self: flex-start;
-    position: relative;
-    z-index: 3;
-}
-
-/* NOME DO CLIENTE */
-.servico-card .senha-cliente-small {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 8px;
-    word-break: break-word;
-    white-space: normal;
-    line-height: 1.4;
-    flex: 0 0 auto;
-    position: relative;
-    z-index: 3;
-}
-
-/* POSIÇÃO NA FILA */
-.servico-card .senha-posicao-small {
-    font-size: 0.75rem;
-    padding: 4px 12px;
-    border-radius: 30px;
-    display: inline-block;
-    align-self: flex-start;
-    background: #e9ecef;
-    color: #495057;
-    border: 1px solid #d0d7de;
-    font-weight: 600;
-    margin-top: auto;
-    position: relative;
-    z-index: 3;
-}
-
 /* Placeholder */
 .servico-card-placeholder {
     width: 100%;
@@ -3343,6 +3249,33 @@ body {
     opacity: 0.6;
     height: 140px;
     flex-shrink: 0;
+}
+
+/* ============================================
+   BOTÃO PLAY NO HEADER
+   ============================================ */
+.btn-carrossel-outros {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    margin-left: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-carrossel-outros:hover {
+    background: #f8f9fa;
+    color: #0056b3;
+    border-color: #0056b3;
+    transform: scale(1.08);
 }
 
 .servico-card-placeholder .placeholder-icon {
@@ -4146,27 +4079,6 @@ body {
     box-shadow: 0 2px 5px rgba(0, 86, 179, 0.2);
 }
 
-/* Botão carrossel - ESTILO PROFISSIONAL */
-.btn-carrossel-outros {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: white;
-    border: none;
-    color: #0056b3;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-left: 5px;
-    padding: 0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    position: relative;
-    overflow: hidden;
-}
-
 /* Efeito de onda no hover */
 .btn-carrossel-outros::before {
     content: '';
@@ -4186,22 +4098,15 @@ body {
     height: 100%;
 }
 
-.btn-carrossel-outros:hover {
-    background: #f0f7ff;
-    transform: scale(1.08);
-    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.2);
-}
-
 /* Estado ATIVO (play - rolando) */
 .btn-carrossel-outros.ativo {
     background: linear-gradient(145deg, #0056b3, #0077be);
     color: white;
-    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.3);
+    border-color: transparent;
 }
 
 .btn-carrossel-outros.ativo:hover {
     background: linear-gradient(145deg, #0066cc, #0088dd);
-    box-shadow: 0 6px 16px rgba(0, 86, 179, 0.4);
 }
 
 /* Estado INATIVO (pause - parado) */
@@ -4215,11 +4120,6 @@ body {
     background: #f8f9fa;
     color: #0056b3;
     border-color: #0056b3;
-}
-
-/* Tooltip personalizado (legenda ao passar mouse) */
-.btn-carrossel-outros {
-    position: relative;
 }
 
 .btn-carrossel-outros::after {
@@ -4298,10 +4198,6 @@ body {
 .coluna-outros .coluna-badge {
     margin-left: auto;
     order: 1;
-}
-
-.btn-carrossel-outros {
-    order: 2;
 }
 
 /* Título fica à esquerda */
@@ -4434,83 +4330,66 @@ body {
     min-height: 240px;
 }
 
-/* Container do carrossel dentro de cada serviço */
-.fila-servico .servico-carousel-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    flex: 1;
-    min-height: 180px;
-}
-
-/* ÁREA DE SCROLL - CADA SERVIÇO TEM O SEU */
-.fila-servico .servico-scroll {
-    flex: 1 1 auto;
-    overflow-x: auto !important;  /* ← ESSENCIAL */
-    overflow-y: hidden;
-    white-space: nowrap;
-    scroll-behavior: smooth;
-    
-    /* Altura fixa */
-    height: 180px;
-    min-height: 180px;
-    
-    /* Scrollbar personalizada */
-    scrollbar-width: thin;
-    scrollbar-color: #0056b3 #e2e8f0;
-}
-
-/* Scrollbar para Chrome/Safari */
-.fila-servico .servico-scroll::-webkit-scrollbar {
-    height: 6px;
-    background: #f1f5f9;
-    border-radius: 10px;
-}
-
-.fila-servico .servico-scroll::-webkit-scrollbar-thumb {
-    background: #0056b3;
-    border-radius: 10px;
-}
-
-.fila-servico .servico-scroll::-webkit-scrollbar-track {
-    background: #e2e8f0;
-    border-radius: 10px;
-}
-
-/* Track dos cards */
+/* Quando tem menos de 4 cards, o track ainda assim pode ter largura menor */
 .fila-servico .servico-track {
-    display: inline-flex;
-    gap: 12px;
-    padding: 8px 4px;
-    height: 100%;
-    align-items: center;
+    display: inline-flex !important;
+    width: max-content !important;
+    min-width: 100% !important;
 }
+
+/* Placeholder */
+.servico-card-placeholder {
+    width: 180px !important;
+    min-width: 180px !important;
+    height: 160px !important;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    display: inline-flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+}
+
 
 /* Cards com tamanho fixo */
 .fila-servico .servico-card {
-    width: 180px;
-    min-width: 180px;
-    max-width: 180px;
-    height: 160px;
-    min-height: 160px;
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    height: 160px !important;
+    min-height: 160px !important;
+    max-height: 160px !important;
     
     background: white;
     border: 1px solid #e2e8f0;
     border-radius: 16px;
     padding: 16px;
     
-    display: inline-flex;
+    display: inline-flex !important;
     flex-direction: column;
+    align-items: flex-start;
     
     flex-shrink: 0;
+    flex-grow: 0;
+    
+    /* Animação */
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
 }
 
-/* Setas */
+/* Setas fixas */
 .fila-servico .servico-arrow {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px !important;
+    
     border-radius: 50%;
     background: white;
     border: 2px solid #0056b3;
@@ -4519,7 +4398,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    
     flex-shrink: 0;
+    flex-grow: 0;
+    
     transition: all 0.2s;
 }
 
@@ -4527,11 +4412,37 @@ body {
     background: #0056b3;
     color: white;
     transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.4);
 }
 
-.fila-servico .servico-arrow:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
+.servico-page-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.servico-page-dots .dot.active {
+    background: #0056b3;
+    width: 20px;
+    border-radius: 10px;
+}
+
+/* Scrollbar personalizada */
+.fila-servico .servico-scroll::-webkit-scrollbar {
+    height: 4px;
+    background: #f1f5f9;
+}
+
+.fila-servico .servico-scroll::-webkit-scrollbar-thumb {
+    background: #0056b3;
+    border-radius: 4px;
+}
+
+.fila-servico .servico-scroll::-webkit-scrollbar-track {
+    background: #e2e8f0;
 }
 
 /* Alinhamento à direita */
@@ -4542,23 +4453,16 @@ body {
 }
 
 /* ============================================
-   CORREÇÃO DEFINITIVA DO SCROLL - OUTROS NA FILA
+   GARANTIR QUE O SCROLL FUNCIONE EM TODOS OS CASOS
    ============================================ */
-
-/* Forçar overflow-x auto em todos os .servico-scroll */
+/* Forçar overflow-x auto em TODOS os .servico-scroll */
 .servico-scroll {
     overflow-x: auto !important;
     overflow-y: hidden !important;
     white-space: nowrap !important;
     
-    /* Garantir que o scroll funcione */
-    scrollbar-width: thin !important;
-    -webkit-overflow-scrolling: touch !important;
-    
-    /* IMPORTANTE: Não limitar a largura */
+    /* Importante: não limitar a largura do conteúdo */
     max-width: none !important;
-    width: auto !important;
-    flex: 1 1 auto !important;
 }
 
 /* Garantir que o track seja mais largo que o container */
@@ -4576,10 +4480,6 @@ body {
 }
 
 .fila-servico {
-    overflow: visible !important;
-}
-
-.coluna-outros {
     overflow: visible !important;
 }
 
