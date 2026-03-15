@@ -54,7 +54,6 @@ let modoAutomatico = true; // true = automático, false = manual
 let carrosselAutomaticoInterval = null;
 let carrosselAutomaticoAtivo = true; // Começa ativo
 let agendamentosCarregados = false; // Falso para Aguardar carregar os agendamentos reais de hoje
-let carrosselOutrosInterval = null;
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
@@ -799,7 +798,7 @@ async function gerenciarFilaAtendimento() {
 }
 
 // ============================================
-// RENDERIZAR PAINEL AGENDAMENTO - VERSÃO COM TELAS FIXAS E PAGINAÇÃO
+// RENDERIZAR PAINEL AGENDAMENTO - VERSÃO CORRIGIDA E OTIMIZADA
 // ============================================
 function renderizarPainelAgendamento() {
     if (!agendamentoHabilitado) return;
@@ -866,6 +865,9 @@ function renderizarPainelAgendamento() {
     const totalOutrosBadge = document.getElementById('totalOutrosBadge');
     if (totalOutrosBadge) totalOutrosBadge.textContent = outrosNaFila.length;
     
+  //  const totalFilaBadge = document.getElementById('totalFilaBadge');
+ //   if (totalFilaBadge) totalFilaBadge.textContent = proximosAtender.length;
+    
     const totalFilaTexto = document.getElementById('totalFilaTexto');
     if (totalFilaTexto) totalFilaTexto.textContent = proximosAtender.length + outrosNaFila.length;
     
@@ -876,625 +878,195 @@ function renderizarPainelAgendamento() {
     });
     
     // ============================================
-    // 2. PREENCHER COLUNAS COM A NOVA ESTRUTURA
+    // COLUNA 1: EM ATENDIMENTO (DIREITA)
     // ============================================
-    
-    // --- COLUNA "EM ATENDIMENTO" (chamandoAgoraCard) ---
-    preencherColunaAtendimento(emAtendimento, servicosOrdenados);
-
-    // --- COLUNA "PRÓXIMOS A ATENDER" (proximosFilaCard) ---
-    preencherColunaProximos(proximosAtender, servicosOrdenados);
-
-    // --- COLUNA "OUTROS NA FILA" (outros-pages-container) com Páginas ---
-    preencherColunaOutros(outrosNaFila, servicosOrdenados);
-
-    // 🔥 CONFIGURAR PAGINAÇÃO E CARROSSEL
-    setTimeout(() => {
-        configurarPaginacaoOutros();
-        
-        // Só inicia o carrossel se estiver ativo
-        if (typeof carrosselAutomaticoAtivo !== 'undefined' ? carrosselAutomaticoAtivo : true) {
-            iniciarCarrosselOutrosAutomatico();
+    const chamandoEl = document.getElementById('chamandoAgoraCard');
+    if (chamandoEl) {
+        if (emAtendimento.length > 0) {
+            let html = '';
+            emAtendimento.forEach(item => {
+                html += `
+                    <div class="card-chamando-item">
+                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
+                        <div class="senha-grande">${item.senha || '---'}</div>
+                        <div class="cliente-nome">${item.cliente_nome}</div>
+                    </div>
+                `;
+            });
+            chamandoEl.innerHTML = html;
+            
+            const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
+            if (ultimoChamadoHora) {
+                const agora = new Date();
+                ultimoChamadoHora.textContent = agora.toLocaleTimeString([], { 
+                    hour: '2-digit', minute: '2-digit' 
+                });
+            }
+        } else {
+            chamandoEl.innerHTML = `
+                <div class="empty-agendamento">
+                    <i class="fas fa-check-circle"></i>
+                    <p>Nenhum atendimento no momento</p>
+                </div>
+            `;
+            const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
+            if (ultimoChamadoHora) ultimoChamadoHora.textContent = '--:--';
         }
-        
-        configurarPausaAoInteragirOutros();
+    }
+    
+    // ============================================
+    // COLUNA 2: PRÓXIMOS A ATENDER (MEIO) - ORDEM FIXA
+    // ============================================
+    const proximosEl = document.getElementById('proximosFilaCard');
+    if (proximosEl) {
+        if (proximosAtender.length > 0) {
+            let html = '';
+            proximosAtender.forEach(item => {
+                html += `
+                    <div class="item-fila-vertical urgente">
+                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
+                        <span class="senha-numero">${item.senha}</span>
+                        <div class="senha-info">
+                            <span class="senha-cliente">${item.cliente_nome}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            proximosEl.innerHTML = html;
+        } else {
+            proximosEl.innerHTML = `
+                <div class="empty-agendamento">
+                    <i class="fas fa-users"></i>
+                    <p>Nenhum próximo</p>
+                </div>
+            `;
+        }
+    }
+    
+    // ============================================
+    // COLUNA 3: OUTROS NA FILA (ESQUERDA) - COM SCROLL FUNCIONAL
+    // ============================================
+    const proximosTrack = document.getElementById('proximasSenhasTrack');
+    if (proximosTrack) {
+        if (outrosNaFila.length > 0) {
+            let html = '';
+            
+            // Usar a mesma ordem fixa dos serviços
+            servicosOrdenados.forEach(servicoId => {
+                const servico = agendamentosPorServico[servicoId];
+                
+                // Filtrar apenas os itens que estão na fila (outros)
+                const itensFila = servico.itens.filter(item => 
+                    ['Na fila', 'Verificado'].includes(item.status)
+                );
+                
+                if (itensFila.length > 0) {
+                    const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
+                    
+                    html += `
+                        <div class="fila-servico" id="container-${servicoIdSafe}">
+                            <div class="fila-servico-header">
+                                <i class="fas fa-star"></i>
+                                <h4 title="${servico.nome}">${servico.nome}</h4>
+                                <span class="servico-count">${itensFila.length}</span>
+                            </div>
+                            
+                            <div class="servico-carousel-container">
+                                <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -192)" ${itensFila.length <= 3 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                
+                                <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
+                                    <div class="servico-track">
+                    `;
+                    
+                    // Manter ordem original (mais antigo primeiro) e exibir da esquerda para a direita
+                    // Mas como o container tem alinhamento à direita, o primeiro card (mais antigo) 
+                    // aparecerá no final (direita)
+                    itensFila.forEach((item, idx) => {
+                        const posicaoReal = idx + 1; // 1° na fila, 2° na fila, etc.
+                        html += `
+                            <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${servicoIdSafe}">
+                                <div class="senha-numero">${item.senha}</div>
+                                <div class="senha-cliente">${item.cliente_nome}</div>
+                                <span class="senha-posicao">${posicaoReal}° na fila</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                                    </div>
+                                </div>
+                                
+                                <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 192)" ${itensFila.length <= 3 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="servico-page-dots" id="dots-${servicoIdSafe}">
+                    `;
+                    
+                    // Calcular quantas páginas (a cada 3 cards)
+                    const totalPages = Math.ceil(itensFila.length / 3);
+                    for (let i = 0; i < totalPages; i++) {
+                        html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="irParaPaginaServico('${servicoIdSafe}', ${i})"></span>`;
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            proximosTrack.innerHTML = html;
+            
+            // Configurar scroll para cada serviço após renderizar
+            setTimeout(() => {
+                servicosOrdenados.forEach(servicoId => {
+                    const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
+                    configurarScrollServico(servicoIdSafe);
+                });
+                
+                // 🔥 RECONFIGURAR CARROSSEL AUTOMÁTICO SE ESTIVER ATIVO
+                if (carrosselAutomaticoAtivo) {
+                    pararCarrosselAutomatico();
+                    iniciarCarrosselSenhasAutomatico();
+                }
+                
+            }, 100);
+            
+        } else {
+            // Placeholders
+            proximosTrack.innerHTML = `
+                <div class="fila-servico">
+                    <div class="fila-servico-header">
+                        <i class="fas fa-star"></i>
+                        <h4>Aguardando...</h4>
+                        <span class="servico-count">0</span>
+                    </div>
+                    <div class="servico-carousel-container">
+                        <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
+                        <div class="servico-scroll">
+                            <div class="servico-track">
+                                <div class="servico-card-placeholder">
+                                    <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
+                                    <div class="placeholder-text">Sem agendamentos</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // 🔥 CONFIGURAR EVENTOS DE INTERAÇÃO PARA PAUSAR CARROSSEL
+    setTimeout(() => {
+        configurarPausaAoInteragir();
         criarBotaoPlayNoHeader();
     }, 200);
-}
-
-// ============================================
-// FUNÇÃO AUXILIAR: Preencher Coluna EM ATENDIMENTO (com telas verticais)
-// ============================================
-function preencherColunaAtendimento(itens, servicosOrdenados) {
-    const chamandoEl = document.getElementById('chamandoAgoraCard');
-    if (!chamandoEl) return;
-
-    // Limpar todos os containers primeiro
-    for (let i = 1; i <= 4; i++) {
-        const container = document.getElementById(`chamando-servico-${i}`);
-        if (container) {
-            container.style.display = 'none';
-            container.innerHTML = '';
-        }
-    }
-
-    if (itens.length === 0) {
-        // Mostrar mensagem de vazio
-        chamandoEl.innerHTML = `
-            <div class="empty-agendamento">
-                <i class="fas fa-check-circle"></i>
-                <p>Nenhum atendimento no momento</p>
-            </div>
-        `;
-        const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
-        if (ultimoChamadoHora) ultimoChamadoHora.textContent = '--:--';
-        return;
-    }
-
-    // Mapa do primeiro item de cada serviço em atendimento
-    const primeiroItemPorServico = {};
-    itens.forEach(item => {
-        if (!primeiroItemPorServico[item.servico_id]) {
-            primeiroItemPorServico[item.servico_id] = item;
-        }
-    });
-
-    // Construir o HTML completo
-    let html = '';
-
-    // TELA 1 (Serviços 1 e 2)
-    html += `<div class="fila-tela tela-1">`;
-    html += `<h4 class="tela-titulo">Tela 1</h4>`;
-    
-    for (let i = 1; i <= 2; i++) {
-        const servicoId = servicosOrdenados[i-1];
-        const item = primeiroItemPorServico[servicoId];
-        
-        if (item) {
-            html += `
-                <div class="fila-servico-item" id="chamando-servico-${i}">
-                    <div class="card-chamando-item" data-servico="${item.servico_id}">
-                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
-                        <div class="senha-grande">${item.senha || '---'}</div>
-                        <div class="cliente-nome">${item.cliente_nome}</div>
-                    </div>
-                </div>
-            `;
-        } else {
-            html += `
-                <div class="fila-servico-item" id="chamando-servico-${i}" style="display: none;"></div>
-            `;
-        }
-    }
-    html += `</div>`;
-
-    // TELA 2 (Serviços 3 e 4)
-    html += `<div class="fila-tela tela-2">`;
-    html += `<h4 class="tela-titulo">Tela 2</h4>`;
-    
-    for (let i = 3; i <= 4; i++) {
-        const servicoId = servicosOrdenados[i-1];
-        const item = primeiroItemPorServico[servicoId];
-        
-        if (item) {
-            html += `
-                <div class="fila-servico-item" id="chamando-servico-${i}">
-                    <div class="card-chamando-item" data-servico="${item.servico_id}">
-                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
-                        <div class="senha-grande">${item.senha || '---'}</div>
-                        <div class="cliente-nome">${item.cliente_nome}</div>
-                    </div>
-                </div>
-            `;
-        } else {
-            html += `
-                <div class="fila-servico-item" id="chamando-servico-${i}" style="display: none;"></div>
-            `;
-        }
-    }
-    html += `</div>`;
-
-    chamandoEl.innerHTML = html;
-
-    // Atualizar horário do último chamado
-    const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
-    if (ultimoChamadoHora) {
-        const agora = new Date();
-        ultimoChamadoHora.textContent = agora.toLocaleTimeString([], { 
-            hour: '2-digit', minute: '2-digit' 
-        });
-    }
-}
-
-// ============================================
-// FUNÇÃO AUXILIAR: Preencher Coluna PRÓXIMOS A ATENDER (com telas verticais)
-// ============================================
-function preencherColunaProximos(itens, servicosOrdenados) {
-    const proximosEl = document.getElementById('proximosFilaCard');
-    if (!proximosEl) return;
-
-    // Limpar todos os containers primeiro
-    for (let i = 1; i <= 4; i++) {
-        const container = document.getElementById(`proximo-servico-${i}`);
-        if (container) {
-            container.style.display = 'none';
-            container.innerHTML = '';
-        }
-    }
-
-    if (itens.length === 0) {
-        proximosEl.innerHTML = `
-            <div class="empty-agendamento">
-                <i class="fas fa-users"></i>
-                <p>Nenhum próximo</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Mapa do primeiro item de cada serviço na fila de próximos
-    const primeiroItemPorServico = {};
-    itens.forEach(item => {
-        if (!primeiroItemPorServico[item.servico_id]) {
-            primeiroItemPorServico[item.servico_id] = item;
-        }
-    });
-
-    // Construir o HTML completo
-    let html = '';
-
-    // TELA 1 (Serviços 1 e 2)
-    html += `<div class="fila-tela tela-1">`;
-    html += `<h4 class="tela-titulo">Tela 1</h4>`;
-    
-    for (let i = 1; i <= 2; i++) {
-        const servicoId = servicosOrdenados[i-1];
-        const item = primeiroItemPorServico[servicoId];
-        
-        if (item) {
-            html += `
-                <div class="fila-servico-item" id="proximo-servico-${i}">
-                    <div class="item-fila-vertical urgente" data-servico="${item.servico_id}">
-                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
-                        <span class="senha-numero">${item.senha}</span>
-                        <div class="senha-info">
-                            <span class="senha-cliente">${item.cliente_nome}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            html += `
-                <div class="fila-servico-item" id="proximo-servico-${i}" style="display: none;"></div>
-            `;
-        }
-    }
-    html += `</div>`;
-
-    // TELA 2 (Serviços 3 e 4)
-    html += `<div class="fila-tela tela-2">`;
-    html += `<h4 class="tela-titulo">Tela 2</h4>`;
-    
-    for (let i = 3; i <= 4; i++) {
-        const servicoId = servicosOrdenados[i-1];
-        const item = primeiroItemPorServico[servicoId];
-        
-        if (item) {
-            html += `
-                <div class="fila-servico-item" id="proximo-servico-${i}">
-                    <div class="item-fila-vertical urgente" data-servico="${item.servico_id}">
-                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
-                        <span class="senha-numero">${item.senha}</span>
-                        <div class="senha-info">
-                            <span class="senha-cliente">${item.cliente_nome}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            html += `
-                <div class="fila-servico-item" id="proximo-servico-${i}" style="display: none;"></div>
-            `;
-        }
-    }
-    html += `</div>`;
-
-    proximosEl.innerHTML = html;
-}
-
-// ============================================
-// FUNÇÃO AUXILIAR: Preencher Coluna OUTROS NA FILA (com páginas)
-// ============================================
-// ============================================
-// FUNÇÃO AUXILIAR: Preencher Coluna OUTROS NA FILA (com páginas)
-// ============================================
-function preencherColunaOutros(itens, servicosOrdenados) {
-    console.log('📦 Preenchendo coluna OUTROS NA FILA com', itens.length, 'itens');
-    
-    // Verificar se os elementos existem
-    const page1 = document.getElementById('outrosPage1');
-    const page2 = document.getElementById('outrosPage2');
-    
-    if (!page1 || !page2) {
-        console.error('❌ Páginas outrosPage1/outrosPage2 não encontradas');
-        return;
-    }
-
-    // ============================================
-    // 🧹 LIMPAR SKELETON - PARTE CRÍTICA!
-    // ============================================
-    const proximasSenhasTrack = document.getElementById('proximasSenhasTrack');
-    if (proximasSenhasTrack) {
-        // Verificar se tem skeleton
-        const temSkeleton = proximasSenhasTrack.querySelector('.skeleton');
-        
-        if (temSkeleton) {
-            console.log('🧹 Removendo skeleton loading...');
-            
-            // Limpar TODO o conteúdo
-            proximasSenhasTrack.innerHTML = '';
-            
-            // Recriar a estrutura correta das telas
-            proximasSenhasTrack.innerHTML = `
-                <!-- TELA 1 (Serviços 1 e 2) -->
-                <div class="tela-servicos tela-1 active" id="tela1">
-                    <div class="fila-servico" id="servico-1-tela1" style="display: none;">
-                        <div class="fila-servico-header">
-                            <i class="fas fa-star"></i>
-                            <h4>Carregando...</h4>
-                            <span class="servico-count">0</span>
-                        </div>
-                        <div class="servico-card-container"></div>
-                    </div>
-                    <div class="fila-servico" id="servico-2-tela1" style="display: none;">
-                        <div class="fila-servico-header">
-                            <i class="fas fa-star"></i>
-                            <h4>Carregando...</h4>
-                            <span class="servico-count">0</span>
-                        </div>
-                        <div class="servico-card-container"></div>
-                    </div>
-                </div>
-                
-                <!-- TELA 2 (Serviços 3 e 4) -->
-                <div class="tela-servicos tela-2" id="tela2" style="display: none;">
-                    <div class="fila-servico" id="servico-3-tela2" style="display: none;">
-                        <div class="fila-servico-header">
-                            <i class="fas fa-star"></i>
-                            <h4>Carregando...</h4>
-                            <span class="servico-count">0</span>
-                        </div>
-                        <div class="servico-card-container"></div>
-                    </div>
-                    <div class="fila-servico" id="servico-4-tela2" style="display: none;">
-                        <div class="fila-servico-header">
-                            <i class="fas fa-star"></i>
-                            <h4>Carregando...</h4>
-                            <span class="servico-count">0</span>
-                        </div>
-                        <div class="servico-card-container"></div>
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    // Limpar containers
-    document.querySelectorAll('.servico-card-container').forEach(container => {
-        container.innerHTML = '';
-    });
-
-    if (itens.length === 0) {
-        console.log('📭 Nenhum item na fila');
-        // Esconder todos os serviços
-        document.getElementById('servico-1-tela1').style.display = 'none';
-        document.getElementById('servico-2-tela1').style.display = 'none';
-        document.getElementById('servico-3-tela2').style.display = 'none';
-        document.getElementById('servico-4-tela2').style.display = 'none';
-        return;
-    }
-
-    // Mapa de itens por serviço
-    const itensPorServico = {};
-    servicosOrdenados.forEach(servicoId => {
-        itensPorServico[servicoId] = itens.filter(item => item.servico_id === servicoId);
-        console.log(`📊 Serviço ${servicoId}: ${itensPorServico[servicoId].length} itens`);
-    });
-
-    // TELA 1: Serviço 1 e 2 (índices 0 e 1)
-    for (let i = 1; i <= 2; i++) {
-        const servicoId = servicosOrdenados[i-1];
-        const container = document.querySelector(`#servico-${i}-tela1 .servico-card-container`);
-        const filaServicoDiv = document.getElementById(`servico-${i}-tela1`);
-        const headerTitle = filaServicoDiv?.querySelector('h4');
-        const countSpan = filaServicoDiv?.querySelector('.servico-count');
-
-        if (container && filaServicoDiv) {
-            if (servicoId && itensPorServico[servicoId] && itensPorServico[servicoId].length > 0) {
-                console.log(`✅ Tela 1 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
-                filaServicoDiv.style.display = 'flex';
-                
-                // Atualizar nome do serviço no cabeçalho
-                if (headerTitle) {
-                    const servicoNome = itensPorServico[servicoId][0]?.servico_nome || servicoId;
-                    headerTitle.textContent = servicoNome;
-                    headerTitle.title = servicoNome;
-                }
-                
-                if (countSpan) countSpan.textContent = itensPorServico[servicoId].length;
-
-                // Limpar container antes de adicionar
-                container.innerHTML = '';
-
-                // Adicionar cards na ORDEM CORRETA (mais antigo à direita)
-                itensPorServico[servicoId].forEach((item, idx) => {
-                    const posicaoReal = idx + 1;
-                    const cardHtml = `
-                        <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${item.servico_id}">
-                            <div class="senha-numero">${item.senha}</div>
-                            <div class="senha-cliente">${item.cliente_nome}</div>
-                            <span class="senha-posicao">${posicaoReal}° na fila</span>
-                        </div>
-                    `;
-                    container.innerHTML += cardHtml;
-                });
-            } else {
-                filaServicoDiv.style.display = 'none';
-            }
-        }
-    }
-
-    // TELA 2: Serviço 3 e 4 (índices 2 e 3)
-    for (let i = 3; i <= 4; i++) {
-        const servicoId = servicosOrdenados[i-1];
-        const container = document.querySelector(`#servico-${i}-tela2 .servico-card-container`);
-        const filaServicoDiv = document.getElementById(`servico-${i}-tela2`);
-        const headerTitle = filaServicoDiv?.querySelector('h4');
-        const countSpan = filaServicoDiv?.querySelector('.servico-count');
-
-        if (container && filaServicoDiv) {
-            if (servicoId && itensPorServico[servicoId] && itensPorServico[servicoId].length > 0) {
-                console.log(`✅ Tela 2 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
-                filaServicoDiv.style.display = 'flex';
-                
-                // Atualizar nome do serviço no cabeçalho
-                if (headerTitle) {
-                    const servicoNome = itensPorServico[servicoId][0]?.servico_nome || servicoId;
-                    headerTitle.textContent = servicoNome;
-                    headerTitle.title = servicoNome;
-                }
-                
-                if (countSpan) countSpan.textContent = itensPorServico[servicoId].length;
-
-                // Limpar container antes de adicionar
-                container.innerHTML = '';
-
-                // Adicionar cards na ORDEM CORRETA
-                itensPorServico[servicoId].forEach((item, idx) => {
-                    const posicaoReal = idx + 1;
-                    const cardHtml = `
-                        <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${item.servico_id}">
-                            <div class="senha-numero">${item.senha}</div>
-                            <div class="senha-cliente">${item.cliente_nome}</div>
-                            <span class="senha-posicao">${posicaoReal}° na fila</span>
-                        </div>
-                    `;
-                    container.innerHTML += cardHtml;
-                });
-            } else {
-                filaServicoDiv.style.display = 'none';
-            }
-        }
-    }
-
-    // Configurar scroll para cada serviço após renderizar
-    setTimeout(() => {
-        configurarScrollServicos();
-    }, 100);
-}
-
-// ============================================
-// FUNÇÃO AUXILIAR: Configurar scroll dos serviços
-// ============================================
-function configurarScrollServicos() {
-    document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
-        const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
-        
-        scrollEl.addEventListener('scroll', function() {
-            atualizarEstadoServico(servicoId);
-        });
-
-        // Configurar setas
-        const container = scrollEl.closest('.servico-carousel-container');
-        if (container) {
-            const prevBtn = container.querySelector('.prev');
-            const nextBtn = container.querySelector('.next');
-            
-            if (prevBtn) {
-                prevBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    scrollServico(servicoId, -192);
-                });
-            }
-            
-            if (nextBtn) {
-                nextBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    scrollServico(servicoId, 192);
-                });
-            }
-        }
-    });
-}
-
-// ============================================
-// CONFIGURAR PAGINAÇÃO DOS BOTÕES 1 E 2
-// ============================================
-function configurarPaginacaoOutros() {
-    const botoes = document.querySelectorAll('.page-btn');
-    const paginas = document.querySelectorAll('.outros-page');
-
-    botoes.forEach(botao => {
-        // Remover listeners antigos clonando e substituindo
-        const novoBotao = botao.cloneNode(true);
-        botao.parentNode.replaceChild(novoBotao, botao);
-        
-        novoBotao.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = novoBotao.dataset.page;
-
-            // Atualizar classe active nos botões
-            document.querySelectorAll('.page-btn').forEach(btn => btn.classList.remove('active'));
-            novoBotao.classList.add('active');
-
-            // Mostrar página correspondente
-            paginas.forEach(pagina => pagina.classList.remove('active'));
-            const paginaAtiva = document.getElementById(`outrosPage${page}`);
-            if (paginaAtiva) paginaAtiva.classList.add('active');
-            
-            console.log(`📄 Página ${page} ativada`);
-        });
-    });
-}
-
-// ============================================
-// INICIAR CARROSSEL AUTOMÁTICO PARA "OUTROS NA FILA"
-// ============================================
-function iniciarCarrosselOutrosAutomatico() {
-    // Parar intervalo anterior se existir
-    if (carrosselOutrosInterval) {
-        clearInterval(carrosselOutrosInterval);
-        carrosselOutrosInterval = null;
-    }
-
-    // Verificar se existem as duas páginas
-    const page1 = document.getElementById('outrosPage1');
-    const page2 = document.getElementById('outrosPage2');
-    if (!page1 || !page2) return;
-
-    console.log('🎠 Iniciando carrossel automático para OUTROS NA FILA');
-
-    carrosselOutrosInterval = setInterval(() => {
-        const paginaAtiva = document.querySelector('.page-btn.active');
-        if (!paginaAtiva) {
-            // Se não tiver ativa, ativa a página 1
-            const btnPage1 = document.querySelector('[data-page="1"]');
-            if (btnPage1) btnPage1.click();
-            return;
-        }
-
-        const paginaAtual = paginaAtiva.dataset.page;
-        
-        // Alternar entre página 1 e 2
-        if (paginaAtual === '1') {
-            const btnPage2 = document.querySelector('[data-page="2"]');
-            if (btnPage2) btnPage2.click();
-        } else {
-            const btnPage1 = document.querySelector('[data-page="1"]');
-            if (btnPage1) btnPage1.click();
-        }
-        
-    }, 7000); // 7 segundos por página
-}
-
-// ============================================
-// PAUSAR CARROSSEL QUANDO USUÁRIO INTERAGE
-// ============================================
-function configurarPausaAoInteragirOutros() {
-    const botoesPagina = document.querySelectorAll('.page-btn');
-    const containerOutros = document.querySelector('.outros-pages-container');
-
-    const pausarCarrossel = () => {
-        if (carrosselOutrosInterval) {
-            clearInterval(carrosselOutrosInterval);
-            carrosselOutrosInterval = null;
-            console.log('⏸️ Carrossel pausado por interação');
-        }
-    };
-
-    botoesPagina.forEach(botao => {
-        botao.addEventListener('click', pausarCarrossel);
-    });
-
-    if (containerOutros) {
-        containerOutros.addEventListener('wheel', pausarCarrossel);
-        containerOutros.addEventListener('touchstart', pausarCarrossel);
-    }
-}
-
-// ============================================
-// CRIAR BOTÃO PLAY NO HEADER (adaptado)
-// ============================================
-function criarBotaoPlayNoHeader() {
-    setTimeout(() => {
-        const colunaOutros = document.querySelector('.coluna-outros');
-        if (!colunaOutros) return;
-        
-        const colunaHeader = colunaOutros.querySelector('.coluna-header');
-        if (!colunaHeader) return;
-        
-        // Verificar se já existe e remover
-        const btnExistente = document.getElementById('btnCarrosselOutros');
-        if (btnExistente) {
-            btnExistente.remove();
-        }
-        
-        // Encontrar elementos
-        const icon = colunaHeader.querySelector('i:first-child');
-        const title = colunaHeader.querySelector('h3');
-        const badge = colunaHeader.querySelector('.coluna-badge');
-        
-        // Criar botão
-        const btnCarrossel = document.createElement('button');
-        btnCarrossel.id = 'btnCarrosselOutros';
-        btnCarrossel.className = `btn-carrossel-outros ${carrosselAutomaticoAtivo ? 'ativo' : ''}`;
-        btnCarrossel.innerHTML = carrosselAutomaticoAtivo ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-        btnCarrossel.title = carrosselAutomaticoAtivo ? 'Rolagem automática (ligada)' : 'Rolagem automática (desligada)';
-        
-        // Guardar conteúdo original
-        const iconClone = icon ? icon.cloneNode(true) : null;
-        const titleClone = title ? title.cloneNode(true) : null;
-        const badgeClone = badge ? badge.cloneNode(true) : null;
-        
-        // Limpar header
-        colunaHeader.innerHTML = '';
-        
-        // Reconstruir na ordem correta
-        if (iconClone) colunaHeader.appendChild(iconClone);
-        if (titleClone) colunaHeader.appendChild(titleClone);
-        colunaHeader.appendChild(btnCarrossel);
-        if (badgeClone) colunaHeader.appendChild(badgeClone);
-        
-        // Adicionar evento
-        btnCarrossel.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Usar a variável global ou definir como true se não existir
-            if (typeof carrosselAutomaticoAtivo === 'undefined') {
-                window.carrosselAutomaticoAtivo = true;
-            }
-            
-            window.carrosselAutomaticoAtivo = !window.carrosselAutomaticoAtivo;
-            
-            if (window.carrosselAutomaticoAtivo) {
-                iniciarCarrosselOutrosAutomatico();
-                btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
-                btnCarrossel.title = 'Rolagem automática (ligada)';
-                btnCarrossel.classList.add('ativo');
-            } else {
-                if (carrosselOutrosInterval) {
-                    clearInterval(carrosselOutrosInterval);
-                    carrosselOutrosInterval = null;
-                }
-                btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
-                btnCarrossel.title = 'Rolagem automática (desligada)';
-                btnCarrossel.classList.remove('ativo');
-            }
-        });
-        
-        console.log('✅ Botão play criado no header');
-    }, 500);
 }
 
 // ============================================
@@ -1825,6 +1397,69 @@ function alternarCarrosselAutomatico() {
         }
         console.log('⏸️ Carrossel pausado');
     }
+}
+
+// ============================================
+// CRIAR BOTÃO PLAY NO HEADER - VERSÃO CORRIGIDA
+// ============================================
+function criarBotaoPlayNoHeader() {
+    setTimeout(() => {
+        const colunaOutros = document.querySelector('.coluna-outros');
+        if (!colunaOutros) return;
+        
+        const colunaHeader = colunaOutros.querySelector('.coluna-header');
+        if (!colunaHeader) return;
+        
+        // Verificar se já existe e remover
+        const btnExistente = document.getElementById('btnCarrosselOutros');
+        if (btnExistente) {
+            btnExistente.remove();
+        }
+        
+        // Encontrar elementos
+        const icon = colunaHeader.querySelector('i:first-child');
+        const title = colunaHeader.querySelector('h3');
+        const badge = colunaHeader.querySelector('.coluna-badge');
+        
+        // Criar botão
+        const btnCarrossel = document.createElement('button');
+        btnCarrossel.id = 'btnCarrosselOutros';
+        btnCarrossel.className = `btn-carrossel-outros ${carrosselAutomaticoAtivo ? 'ativo' : ''}`;
+        btnCarrossel.innerHTML = carrosselAutomaticoAtivo ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        btnCarrossel.title = carrosselAutomaticoAtivo ? 'Rolagem automática (ligada)' : 'Rolagem automática (desligada)';
+        
+        // Guardar conteúdo original
+        const iconClone = icon ? icon.cloneNode(true) : null;
+        const titleClone = title ? title.cloneNode(true) : null;
+        const badgeClone = badge ? badge.cloneNode(true) : null;
+        
+        // Limpar header
+        colunaHeader.innerHTML = '';
+        
+        // Reconstruir na ordem correta
+        if (iconClone) colunaHeader.appendChild(iconClone);
+        if (titleClone) colunaHeader.appendChild(titleClone);
+        colunaHeader.appendChild(btnCarrossel);
+        if (badgeClone) colunaHeader.appendChild(badgeClone);
+        
+        // Adicionar evento
+        btnCarrossel.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            alternarCarrosselAutomatico();
+            
+            // Atualizar ícone e título do botão
+            if (carrosselAutomaticoAtivo) {
+                btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
+                btnCarrossel.title = 'Rolagem automática (ligada)';
+            } else {
+                btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
+                btnCarrossel.title = 'Rolagem automática (desligada)';
+            }
+        });
+        
+        console.log('✅ Botão play criado no header');
+    }, 500);
 }
 
 // ============================================
