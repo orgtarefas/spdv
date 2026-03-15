@@ -1105,6 +1105,9 @@ function preencherColunaProximos(itens, servicosOrdenados) {
 // ============================================
 // FUNÇÃO AUXILIAR: Preencher Coluna OUTROS NA FILA (com páginas)
 // ============================================
+// ============================================
+// FUNÇÃO AUXILIAR: Preencher Coluna OUTROS NA FILA (com páginas)
+// ============================================
 function preencherColunaOutros(itens, servicosOrdenados) {
     console.log('📦 Preenchendo coluna OUTROS NA FILA com', itens.length, 'itens');
     
@@ -1117,6 +1120,65 @@ function preencherColunaOutros(itens, servicosOrdenados) {
         return;
     }
 
+    // ============================================
+    // 🧹 LIMPAR SKELETON - PARTE CRÍTICA!
+    // ============================================
+    const proximasSenhasTrack = document.getElementById('proximasSenhasTrack');
+    if (proximasSenhasTrack) {
+        // Verificar se tem skeleton
+        const temSkeleton = proximasSenhasTrack.querySelector('.skeleton');
+        
+        if (temSkeleton) {
+            console.log('🧹 Removendo skeleton loading...');
+            
+            // Limpar TODO o conteúdo
+            proximasSenhasTrack.innerHTML = '';
+            
+            // Recriar a estrutura correta das telas
+            proximasSenhasTrack.innerHTML = `
+                <!-- TELA 1 (Serviços 1 e 2) -->
+                <div class="tela-servicos tela-1 active" id="tela1">
+                    <div class="fila-servico" id="servico-1-tela1" style="display: none;">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-star"></i>
+                            <h4>Carregando...</h4>
+                            <span class="servico-count">0</span>
+                        </div>
+                        <div class="servico-card-container"></div>
+                    </div>
+                    <div class="fila-servico" id="servico-2-tela1" style="display: none;">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-star"></i>
+                            <h4>Carregando...</h4>
+                            <span class="servico-count">0</span>
+                        </div>
+                        <div class="servico-card-container"></div>
+                    </div>
+                </div>
+                
+                <!-- TELA 2 (Serviços 3 e 4) -->
+                <div class="tela-servicos tela-2" id="tela2" style="display: none;">
+                    <div class="fila-servico" id="servico-3-tela2" style="display: none;">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-star"></i>
+                            <h4>Carregando...</h4>
+                            <span class="servico-count">0</span>
+                        </div>
+                        <div class="servico-card-container"></div>
+                    </div>
+                    <div class="fila-servico" id="servico-4-tela2" style="display: none;">
+                        <div class="fila-servico-header">
+                            <i class="fas fa-star"></i>
+                            <h4>Carregando...</h4>
+                            <span class="servico-count">0</span>
+                        </div>
+                        <div class="servico-card-container"></div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
     // Limpar containers
     document.querySelectorAll('.servico-card-container').forEach(container => {
         container.innerHTML = '';
@@ -1125,10 +1187,10 @@ function preencherColunaOutros(itens, servicosOrdenados) {
     if (itens.length === 0) {
         console.log('📭 Nenhum item na fila');
         // Esconder todos os serviços
-        document.getElementById('servico-1-page1').style.display = 'none';
-        document.getElementById('servico-2-page1').style.display = 'none';
-        document.getElementById('servico-1-page2').style.display = 'none';
-        document.getElementById('servico-2-page2').style.display = 'none';
+        document.getElementById('servico-1-tela1').style.display = 'none';
+        document.getElementById('servico-2-tela1').style.display = 'none';
+        document.getElementById('servico-3-tela2').style.display = 'none';
+        document.getElementById('servico-4-tela2').style.display = 'none';
         return;
     }
 
@@ -1139,17 +1201,17 @@ function preencherColunaOutros(itens, servicosOrdenados) {
         console.log(`📊 Serviço ${servicoId}: ${itensPorServico[servicoId].length} itens`);
     });
 
-    // Página 1: Serviço 1 e 2 (índices 0 e 1)
+    // TELA 1: Serviço 1 e 2 (índices 0 e 1)
     for (let i = 1; i <= 2; i++) {
         const servicoId = servicosOrdenados[i-1];
-        const container = document.querySelector(`#servico-${i}-page1 .servico-card-container`);
-        const filaServicoDiv = document.getElementById(`servico-${i}-page1`);
+        const container = document.querySelector(`#servico-${i}-tela1 .servico-card-container`);
+        const filaServicoDiv = document.getElementById(`servico-${i}-tela1`);
         const headerTitle = filaServicoDiv?.querySelector('h4');
         const countSpan = filaServicoDiv?.querySelector('.servico-count');
 
         if (container && filaServicoDiv) {
             if (servicoId && itensPorServico[servicoId] && itensPorServico[servicoId].length > 0) {
-                console.log(`✅ Página 1 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
+                console.log(`✅ Tela 1 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
                 filaServicoDiv.style.display = 'flex';
                 
                 // Atualizar nome do serviço no cabeçalho
@@ -1165,9 +1227,8 @@ function preencherColunaOutros(itens, servicosOrdenados) {
                 container.innerHTML = '';
 
                 // Adicionar cards na ORDEM CORRETA (mais antigo à direita)
-                // O array já está ordenado por timestamp (mais antigo primeiro)
                 itensPorServico[servicoId].forEach((item, idx) => {
-                    const posicaoReal = idx + 1; // Posição na fila (1° = mais antigo)
+                    const posicaoReal = idx + 1;
                     const cardHtml = `
                         <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${item.servico_id}">
                             <div class="senha-numero">${item.senha}</div>
@@ -1183,18 +1244,17 @@ function preencherColunaOutros(itens, servicosOrdenados) {
         }
     }
 
-    // Página 2: Serviço 3 e 4 (índices 2 e 3)
-    for (let i = 1; i <= 2; i++) {
-        const servicoIndex = i + 1; // i=1 -> índice 2, i=2 -> índice 3
-        const servicoId = servicosOrdenados[servicoIndex];
-        const container = document.querySelector(`#servico-${i}-page2 .servico-card-container`);
-        const filaServicoDiv = document.getElementById(`servico-${i}-page2`);
+    // TELA 2: Serviço 3 e 4 (índices 2 e 3)
+    for (let i = 3; i <= 4; i++) {
+        const servicoId = servicosOrdenados[i-1];
+        const container = document.querySelector(`#servico-${i}-tela2 .servico-card-container`);
+        const filaServicoDiv = document.getElementById(`servico-${i}-tela2`);
         const headerTitle = filaServicoDiv?.querySelector('h4');
         const countSpan = filaServicoDiv?.querySelector('.servico-count');
 
         if (container && filaServicoDiv) {
             if (servicoId && itensPorServico[servicoId] && itensPorServico[servicoId].length > 0) {
-                console.log(`✅ Página 2 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
+                console.log(`✅ Tela 2 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
                 filaServicoDiv.style.display = 'flex';
                 
                 // Atualizar nome do serviço no cabeçalho
