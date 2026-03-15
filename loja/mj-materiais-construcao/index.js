@@ -1379,12 +1379,12 @@ window.irParaPaginaServico = function(servicoId, pageIndex) {
 };
 
 // ============================================
-// INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS - COM MUDANÇA DE PÁGINA
+// INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS - CICLO: DIREITA → MEIO → ESQUERDA → MEIO → DIREITA
 // ============================================
 function iniciarCarrosselSenhasAutomatico() {
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático - CICLO: Esquerda → Meio → Direita → Meio → Esquerda (depois muda tela)');
+    console.log('🎠 Iniciando carrossel automático - CICLO: Direita → Meio → Esquerda → Meio → Direita (depois muda tela)');
     
     // Parar qualquer intervalo existente
     if (carrosselAutomaticoInterval) {
@@ -1395,31 +1395,33 @@ function iniciarCarrosselSenhasAutomatico() {
     // Mapa para controlar a posição e direção de cada serviço
     const estadoCarrossel = new Map();
     let contadorMovimentos = 0;
-    const movimentosPorCiclo = 5; // Esquerda → Meio → Direita → Meio → Esquerda (5 movimentos)
+    const movimentosPorCiclo = 5; // Direita → Meio → Esquerda → Meio → Direita (5 movimentos)
     let ciclosCompletados = 0;
     
-    // Primeiro, garantir que todos os scrolls comecem na ESQUERDA (mostrando os mais novos)
+    // Primeiro, garantir que todos os scrolls comecem na DIREITA (mostrando o 1° da fila)
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
             if (maxScroll > 0) {
                 scrollEl.scrollTo({
-                    left: 0, // Começa na ESQUERDA (mostrando os últimos da fila)
+                    left: maxScroll, // Começa na DIREITA (mostrando o 1° da fila)
                     behavior: 'auto'
                 });
                 
                 // Inicializar estado
                 const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
                 estadoCarrossel.set(servicoId, {
-                    posicao: 'esquerda', // Começa na esquerda
+                    posicao: 'direita', // Começa na direita
                     maxScroll: maxScroll,
-                    ultimoScroll: 0
+                    ultimoScroll: maxScroll
                 });
+                
+                console.log(`   ${servicoId}: Iniciando na DIREITA (${maxScroll}px) - mostrando 1° da fila`);
             }
         });
     }, 100);
     
-    // Iniciar o carrossel após posicionar na esquerda
+    // Iniciar o carrossel após posicionar na direita
     setTimeout(() => {
         carrosselAutomaticoInterval = setInterval(() => {
             if (!carrosselAutomaticoAtivo) {
@@ -1442,49 +1444,53 @@ function iniciarCarrosselSenhasAutomatico() {
                 // Inicializar estado se não existir
                 if (!estadoCarrossel.has(servicoId)) {
                     estadoCarrossel.set(servicoId, {
-                        posicao: 'esquerda',
+                        posicao: 'direita',
                         maxScroll: maxScroll,
-                        ultimoScroll: 0
+                        ultimoScroll: maxScroll
                     });
                 }
                 
                 const estado = estadoCarrossel.get(servicoId);
                 let nextScroll;
+                let descricaoMovimento = '';
                 
-                // CICLO COMPLETO: Esquerda → Meio → Direita → Meio → Esquerda
+                // CICLO CORRETO: Direita → Meio → Esquerda → Meio → Direita
                 switch(estado.posicao) {
-                    case 'esquerda':
+                    case 'direita':
                         // Vai para o MEIO (primeira metade do caminho)
                         nextScroll = Math.floor(maxScroll / 2);
-                        estado.posicao = 'meio_esquerda';
-                        console.log(`   ${servicoId}: Esquerda → Meio (${nextScroll}px)`);
-                        break;
-                        
-                    case 'meio_esquerda':
-                        // Vai para a DIREITA
-                        nextScroll = maxScroll;
-                        estado.posicao = 'direita';
-                        console.log(`   ${servicoId}: Meio → Direita (${nextScroll}px)`);
-                        break;
-                        
-                    case 'direita':
-                        // Vai para o MEIO (segunda metade do caminho)
-                        nextScroll = Math.floor(maxScroll / 2);
                         estado.posicao = 'meio_direita';
-                        console.log(`   ${servicoId}: Direita → Meio (${nextScroll}px)`);
+                        descricaoMovimento = 'Direita → Meio';
                         break;
                         
                     case 'meio_direita':
-                        // Volta para a ESQUERDA
+                        // Vai para a ESQUERDA
                         nextScroll = 0;
                         estado.posicao = 'esquerda';
-                        console.log(`   ${servicoId}: Meio → Esquerda (${nextScroll}px)`);
+                        descricaoMovimento = 'Meio → Esquerda';
+                        break;
+                        
+                    case 'esquerda':
+                        // Vai para o MEIO (segunda metade do caminho)
+                        nextScroll = Math.floor(maxScroll / 2);
+                        estado.posicao = 'meio_esquerda';
+                        descricaoMovimento = 'Esquerda → Meio';
+                        break;
+                        
+                    case 'meio_esquerda':
+                        // Volta para a DIREITA
+                        nextScroll = maxScroll;
+                        estado.posicao = 'direita';
+                        descricaoMovimento = 'Meio → Direita';
                         break;
                         
                     default:
-                        nextScroll = 0;
-                        estado.posicao = 'esquerda';
+                        nextScroll = maxScroll;
+                        estado.posicao = 'direita';
+                        descricaoMovimento = 'Reset → Direita';
                 }
+                
+                console.log(`   ${servicoId}: ${descricaoMovimento} (${nextScroll}px)`);
                 
                 // SCROLL SUAVE - com duração maior
                 scrollEl.scrollTo({
@@ -1498,7 +1504,7 @@ function iniciarCarrosselSenhasAutomatico() {
                 // Atualizar estado após o scroll
                 setTimeout(() => {
                     atualizarEstadoServico(servicoId);
-                }, 1200); // Aumentado para 1.2s
+                }, 1200);
             });
             
             // Incrementar contador de movimentos
@@ -1512,7 +1518,7 @@ function iniciarCarrosselSenhasAutomatico() {
                     ciclosCompletados++;
                     contadorMovimentos = 0;
                     
-                    console.log(`✅ Ciclo ${ciclosCompletados} completo (Esquerda→Meio→Direita→Meio→Esquerda)`);
+                    console.log(`✅ Ciclo ${ciclosCompletados} completo (Direita→Meio→Esquerda→Meio→Direita)`);
                     
                     // Depois de 1 ciclo, mudar de tela
                     if (totalPaginasOutrosFila > 1) {
@@ -1534,7 +1540,7 @@ function iniciarCarrosselSenhasAutomatico() {
                 }
             }
             
-        }, 8000); // Aumentado para 8 segundos entre movimentos (scroll mais lento)
+        }, 8000); // 8 segundos entre movimentos
     }, 200);
 }
 
