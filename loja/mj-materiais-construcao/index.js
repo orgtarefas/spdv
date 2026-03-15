@@ -243,13 +243,13 @@ function mostrarSkeletonAgendamento() {
     
     // Atualizar badges com skeleton
     const totalOutrosBadge = document.getElementById('totalOutrosBadge');
-    const totalFilaBadge = document.getElementById('totalFilaBadge');
+   // const totalFilaBadge = document.getElementById('totalFilaBadge');
     const totalFilaTexto = document.getElementById('totalFilaTexto');
     const tempoMedioEspera = document.getElementById('tempoMedioEspera');
     const ultimoChamadoHora = document.getElementById('ultimoChamadoHora');
     
     if (totalOutrosBadge) totalOutrosBadge.textContent = '—';
-    if (totalFilaBadge) totalFilaBadge.textContent = '—';
+  //  if (totalFilaBadge) totalFilaBadge.textContent = '—';
     if (totalFilaTexto) totalFilaTexto.textContent = '—';
     if (tempoMedioEspera) tempoMedioEspera.textContent = '—';
     if (ultimoChamadoHora) ultimoChamadoHora.textContent = '--:--';
@@ -865,8 +865,8 @@ function renderizarPainelAgendamento() {
     const totalOutrosBadge = document.getElementById('totalOutrosBadge');
     if (totalOutrosBadge) totalOutrosBadge.textContent = outrosNaFila.length;
     
-    const totalFilaBadge = document.getElementById('totalFilaBadge');
-    if (totalFilaBadge) totalFilaBadge.textContent = proximosAtender.length;
+  //  const totalFilaBadge = document.getElementById('totalFilaBadge');
+ //   if (totalFilaBadge) totalFilaBadge.textContent = proximosAtender.length;
     
     const totalFilaTexto = document.getElementById('totalFilaTexto');
     if (totalFilaTexto) totalFilaTexto.textContent = proximosAtender.length + outrosNaFila.length;
