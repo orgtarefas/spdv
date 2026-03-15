@@ -4730,3 +4730,29 @@ body {
     color: #1e293b;
 }
 
+/* Estilo para as telas */
+.tela-servicos {
+    width: 100%;
+    display: none;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.tela-servicos.active {
+    display: flex;
+}
+
+/* Botões de tela */
+.btn-tela.active {
+    background: #0056b3 !important;
+    color: white !important;
+}
+
+.btn-tela {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-tela:hover {
+    transform: scale(1.1);
+}
