@@ -884,15 +884,55 @@ function renderizarPainelAgendamento() {
     });
 
     // ============================================
-    // COLUNA 1: OUTROS NA FILA (ESQUERDA) - COM 2 TELAS
+    // COLUNA 1: OUTROS NA FILA (ESQUERDA) - COM DUAS TELAS - ORDEM POR PRIMEIRO AGENDAMENTO
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
         if (outrosNaFila.length > 0) {
             // ============================================
+            // ORDENAR SERVIÇOS PELO PRIMEIRO AGENDAMENTO DO DIA (MAIS ANTIGO PRIMEIRO)
+            // ============================================
+            
+            // Para cada serviço, encontrar o timestamp do primeiro agendamento do dia
+            const servicosComPrimeiroAgendamento = [];
+            
+            Object.entries(agendamentosPorServico).forEach(([servicoId, servico]) => {
+                // Pegar TODOS os agendamentos deste serviço (independente de status)
+                const todosAgendamentos = servico.itens;
+                
+                if (todosAgendamentos.length > 0) {
+                    // Encontrar o agendamento mais antigo (menor timestamp)
+                    const primeiroAgendamento = todosAgendamentos.reduce((menor, atual) => {
+                        return atual.timestamp < menor.timestamp ? atual : menor;
+                    }, todosAgendamentos[0]);
+                    
+                    servicosComPrimeiroAgendamento.push({
+                        servicoId: servicoId,
+                        nome: servico.nome,
+                        primeiroTimestamp: primeiroAgendamento.timestamp,
+                        dataHora: new Date(primeiroAgendamento.timestamp)
+                    });
+                }
+            });
+            
+            // Ordenar serviços pelo timestamp do primeiro agendamento (mais antigo primeiro)
+            servicosComPrimeiroAgendamento.sort((a, b) => a.primeiroTimestamp - b.primeiroTimestamp);
+            
+            // Extrair apenas os IDs na ordem correta
+            const servicosOrdenadosPorPrimeiroAgendamento = servicosComPrimeiroAgendamento.map(s => s.servicoId);
+            
+            console.log('📊 Serviços ordenados por primeiro agendamento (mais antigo primeiro):', 
+                servicosOrdenadosPorPrimeiroAgendamento.map(id => ({
+                    id: id,
+                    nome: agendamentosPorServico[id].nome,
+                    primeiroHorario: new Date(servicosComPrimeiroAgendamento.find(s => s.servicoId === id).primeiroTimestamp).toLocaleTimeString()
+                }))
+            );
+            
+            // ============================================
             // DIVIDIR SERVIÇOS EM PÁGINAS (2 SERVIÇOS POR PÁGINA)
             // ============================================
-            totalPaginasOutrosFila = Math.max(1, Math.ceil(servicosOrdenados.length / 2));
+            totalPaginasOutrosFila = Math.max(1, Math.ceil(servicosOrdenadosPorPrimeiroAgendamento.length / 2));
             
             // Garantir que a página atual é válida
             if (paginaAtualOutrosFila > totalPaginasOutrosFila) {
@@ -901,15 +941,33 @@ function renderizarPainelAgendamento() {
             
             // Calcular índices para a página atual
             const inicio = (paginaAtualOutrosFila - 1) * 2;
-            const fim = Math.min(inicio + 2, servicosOrdenados.length);
-            const servicosPaginaAtual = servicosOrdenados.slice(inicio, fim);
+            const fim = Math.min(inicio + 2, servicosOrdenadosPorPrimeiroAgendamento.length);
+            const servicosPaginaAtual = servicosOrdenadosPorPrimeiroAgendamento.slice(inicio, fim);
             
-            console.log(`📑 Página ${paginaAtualOutrosFila}/${totalPaginasOutrosFila} - Serviços:`, servicosPaginaAtual);
+            console.log(`📑 Página ${paginaAtualOutrosFila}/${totalPaginasOutrosFila} - Serviços:`, 
+                servicosPaginaAtual.map(id => ({
+                    id: id,
+                    nome: agendamentosPorServico[id].nome,
+                    posicao: servicosOrdenadosPorPrimeiroAgendamento.indexOf(id) + 1
+                }))
+            );
+            
+            // Informação sobre quais serviços estão em cada tela
+            console.log('📋 DISTRIBUIÇÃO DAS TELAS:');
+            for (let i = 0; i < totalPaginasOutrosFila; i++) {
+                const paginaInicio = i * 2;
+                const paginaFim = Math.min(paginaInicio + 2, servicosOrdenadosPorPrimeiroAgendamento.length);
+                const servicosPagina = servicosOrdenadosPorPrimeiroAgendamento.slice(paginaInicio, paginaFim);
+                
+                console.log(`   Tela ${i + 1}: ${servicosPagina.map(id => 
+                    `${i * 2 + servicosPagina.indexOf(id) + 1}° - ${agendamentosPorServico[id].nome}`
+                ).join(' | ')}`);
+            }
             
             let html = '';
             
             // Renderizar apenas os serviços da página atual
-            servicosPaginaAtual.forEach(servicoId => {
+            servicosPaginaAtual.forEach((servicoId, index) => {
                 const servico = agendamentosPorServico[servicoId];
                 
                 // Filtrar apenas os itens que estão na fila (outros)
@@ -919,12 +977,16 @@ function renderizarPainelAgendamento() {
                 
                 if (itensFila.length > 0) {
                     const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
+                    const posicaoGeral = servicosOrdenadosPorPrimeiroAgendamento.indexOf(servicoId) + 1;
                     
                     html += `
-                        <div class="fila-servico" id="container-${servicoIdSafe}">
+                        <div class="fila-servico" data-posicao-geral="${posicaoGeral}" data-servico-id="${servicoId}">
                             <div class="fila-servico-header">
                                 <i class="fas fa-star"></i>
-                                <h4 title="${servico.nome}">${servico.nome}</h4>
+                                <h4 title="${servico.nome}">
+                                    ${servico.nome}
+                                    <span class="servico-posicao-badge">${posicaoGeral}°</span>
+                                </h4>
                                 <span class="servico-count">${itensFila.length}</span>
                             </div>
                             
@@ -981,7 +1043,9 @@ function renderizarPainelAgendamento() {
                         <button class="pagina-arrow prev" onclick="mudarPaginaOutrosFila(${paginaAtualOutrosFila - 1})" ${paginaAtualOutrosFila === 1 ? 'disabled' : ''}>
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <span class="pagina-indicador">${paginaAtualOutrosFila} / ${totalPaginasOutrosFila}</span>
+                        <span class="pagina-indicador">
+                            Tela ${paginaAtualOutrosFila}/${totalPaginasOutrosFila}
+                        </span>
                         <button class="pagina-arrow next" onclick="mudarPaginaOutrosFila(${paginaAtualOutrosFila + 1})" ${paginaAtualOutrosFila === totalPaginasOutrosFila ? 'disabled' : ''}>
                             <i class="fas fa-chevron-right"></i>
                         </button>
