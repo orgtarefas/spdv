@@ -4654,23 +4654,50 @@ body {
    NOVOS ESTILOS PARA AS COLUNAS "PRÓXIMOS" E "EM ATENDIMENTO"
    ============================================ */
 .fila-tela {
-    width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
 }
 
+.tela-titulo {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #dee2e6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Tela 1 - pode ter uma cor de fundo sutil diferente */
 .fila-tela.tela-1 {
-    /* Estilos específicos para a tela de cima, se necessário */
-    border-bottom: 1px dashed #e9ecef;
-    padding-bottom: 10px;
+    background: #ffffff;
+    border-left: 3px solid #0056b3;
 }
 
+/* Tela 2 - pode ter outra cor */
 .fila-tela.tela-2 {
-    /* Estilos específicos para a tela de baixo */
+    background: #f8f9fa;
+    border-left: 3px solid #00a86b;
 }
 
 .fila-servico-item {
     width: 100%;
     margin-bottom: 10px;
+}
+
+.fila-servico-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Estilo dos cards verticais */
+.fila-servico-item .card-chamando-item,
+.fila-servico-item .item-fila-vertical {
+    width: 100%;
+    margin: 0;
 }
 
 /* Ajuste para os cards dentro das telas fixas */
