@@ -919,50 +919,53 @@ function renderizarPainelAgendamento() {
     if (proximosTrack) {
         if (outrosNaFila.length > 0) {
             // ============================================
-            // 1. PRIMEIRO: IDENTIFICAR A ORDEM DA COLUNA "EM ATENDIMENTO"
+            // 1. CAPTURAR A ORDEM EXATA DA COLUNA "EM ATENDIMENTO"
             // ============================================
             
-            // Coletar serviços que estão em atendimento (na ordem em que aparecem)
-            const servicosEmAtendimento = [];
+            // Lista para armazenar os serviços na ordem em que aparecem no "Em Atendimento"
+            const ordemServicosEmAtendimento = [];
             
-            // Percorrer todos os serviços na ordem em que aparecem na coluna "Em Atendimento"
-            // Como a coluna "Em Atendimento" já está renderizada, podemos pegar a ordem do DOM
+            // Pegar todos os cards da coluna "Em Atendimento" na ordem em que aparecem no DOM
             const chamandoCards = document.querySelectorAll('#chamandoAgoraCard .card-chamando-item');
             
-            if (chamandoCards.length > 0) {
-                // Se há cards na coluna "Em Atendimento", extrair os serviços na ordem exata
-                chamandoCards.forEach(card => {
-                    const servicoTag = card.querySelector('.servico-tag');
-                    if (servicoTag) {
-                        const nomeServico = servicoTag.textContent.trim();
-                        // Encontrar o ID do serviço pelo nome
-                        for (const [id, servico] of Object.entries(agendamentosPorServico)) {
-                            if (servico.nome === nomeServico) {
-                                servicosEmAtendimento.push(id);
-                                break;
-                            }
+            console.log('🔍 Cards encontrados em atendimento:', chamandoCards.length);
+            
+            chamandoCards.forEach((card, index) => {
+                // Encontrar o nome do serviço dentro do card
+                const servicoTag = card.querySelector('.servico-tag');
+                if (servicoTag) {
+                    const nomeServico = servicoTag.textContent.trim();
+                    console.log(`   Card ${index + 1}: Serviço "${nomeServico}"`);
+                    
+                    // Encontrar o ID do serviço pelo nome
+                    for (const [id, servico] of Object.entries(agendamentosPorServico)) {
+                        if (servico.nome === nomeServico) {
+                            ordemServicosEmAtendimento.push(id);
+                            break;
                         }
                     }
-                });
-            }
+                }
+            });
             
-            console.log('🔍 Ordem dos serviços em atendimento:', servicosEmAtendimento);
+            console.log('📋 Ordem dos serviços em atendimento (da esquerda para direita):', 
+                ordemServicosEmAtendimento.map(id => agendamentosPorServico[id]?.nome || id)
+            );
             
             // ============================================
-            // 2. CRIAR LISTA COMPLETA DE SERVIÇOS NA ORDEM CORRETA
+            // 2. LISTA COMPLETA DE SERVIÇOS
             // ============================================
             
-            // Lista de todos os serviços disponíveis
+            // Todos os serviços disponíveis (que têm itens na fila)
             const todosServicos = Object.keys(agendamentosPorServico);
             
             // Criar a ordem final:
-            // Primeiro: serviços que estão em atendimento (na mesma ordem)
-            // Depois: demais serviços (ordenados por nome para consistência)
+            // Primeiro: serviços na ordem exata do "Em Atendimento"
+            // Depois: demais serviços (ordenados por nome)
             const servicosOrdenados = [];
             
-            // Adicionar primeiro os serviços em atendimento (mantendo a ordem)
-            servicosEmAtendimento.forEach(servicoId => {
-                if (!servicosOrdenados.includes(servicoId)) {
+            // Adicionar primeiro os serviços na ordem do "Em Atendimento"
+            ordemServicosEmAtendimento.forEach(servicoId => {
+                if (!servicosOrdenados.includes(servicoId) && agendamentosPorServico[servicoId]) {
                     servicosOrdenados.push(servicoId);
                 }
             });
@@ -971,21 +974,24 @@ function renderizarPainelAgendamento() {
             const demaisServicos = todosServicos
                 .filter(id => !servicosOrdenados.includes(id))
                 .sort((a, b) => {
-                    // Ordenar por nome para consistência
-                    const nomeA = agendamentosPorServico[a].nome;
-                    const nomeB = agendamentosPorServico[b].nome;
+                    const nomeA = agendamentosPorServico[a]?.nome || a;
+                    const nomeB = agendamentosPorServico[b]?.nome || b;
                     return nomeA.localeCompare(nomeB);
                 });
             
             servicosOrdenados.push(...demaisServicos);
             
             console.log('📊 Ordem final dos serviços (seguindo Em Atendimento):', 
-                servicosOrdenados.map((id, index) => ({
-                    posicao: index + 1,
-                    id: id,
-                    nome: agendamentosPorServico[id].nome,
-                    emAtendimento: servicosEmAtendimento.includes(id) ? 'SIM' : 'NÃO'
-                }))
+                servicosOrdenados.map((id, index) => {
+                    const emAtendimento = ordemServicosEmAtendimento.includes(id);
+                    const posEmAtendimento = emAtendimento ? ordemServicosEmAtendimento.indexOf(id) + 1 : null;
+                    return {
+                        posicao: index + 1,
+                        id: id,
+                        nome: agendamentosPorServico[id]?.nome || id,
+                        emAtendimento: emAtendimento ? `SIM (${posEmAtendimento}° na fila de atendimento)` : 'NÃO'
+                    };
+                })
             );
             
             // ============================================
@@ -1006,9 +1012,9 @@ function renderizarPainelAgendamento() {
             console.log(`📑 Página ${paginaAtualOutrosFila}/${totalPaginasOutrosFila} - Serviços:`, 
                 servicosPaginaAtual.map((id, idx) => ({
                     id: id,
-                    nome: agendamentosPorServico[id].nome,
+                    nome: agendamentosPorServico[id]?.nome || id,
                     posicao: servicosOrdenados.indexOf(id) + 1,
-                    emAtendimento: servicosEmAtendimento.includes(id) ? '🔥 EM ATENDIMENTO' : 'Na fila'
+                    emAtendimento: ordemServicosEmAtendimento.includes(id) ? '🔥 EM ATENDIMENTO' : 'Na fila'
                 }))
             );
             
@@ -1022,8 +1028,9 @@ function renderizarPainelAgendamento() {
                 console.log(`   Tela ${i + 1}: ${servicosPagina.map((id, idx) => {
                     const posRelativa = idx + 1;
                     const posGlobal = paginaInicio + posRelativa;
-                    const emAtendimento = servicosEmAtendimento.includes(id) ? '🔥' : '';
-                    return `${posGlobal}° ${emAtendimento} - ${agendamentosPorServico[id].nome}`;
+                    const emAtendimento = ordemServicosEmAtendimento.includes(id);
+                    const icone = emAtendimento ? '🔥' : '⏳';
+                    return `${posGlobal}° ${icone} ${agendamentosPorServico[id]?.nome || id}`;
                 }).join(' | ')}`);
             }
             
@@ -1032,6 +1039,7 @@ function renderizarPainelAgendamento() {
             // Renderizar apenas os serviços da página atual
             servicosPaginaAtual.forEach((servicoId, index) => {
                 const servico = agendamentosPorServico[servicoId];
+                if (!servico) return;
                 
                 // Filtrar apenas os itens que estão na fila (outros)
                 const itensFila = servico.itens.filter(item => 
@@ -1041,19 +1049,21 @@ function renderizarPainelAgendamento() {
                 if (itensFila.length > 0) {
                     const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
                     const posicaoGeral = servicosOrdenados.indexOf(servicoId) + 1;
-                    const emAtendimento = servicosEmAtendimento.includes(servicoId);
+                    const emAtendimento = ordemServicosEmAtendimento.includes(servicoId);
+                    const posEmAtendimento = emAtendimento ? ordemServicosEmAtendimento.indexOf(servicoId) + 1 : null;
                     
                     html += `
                         <div class="fila-servico ${emAtendimento ? 'servico-destaque' : ''}" 
                              data-posicao-geral="${posicaoGeral}" 
                              data-servico-id="${servicoId}"
-                             data-em-atendimento="${emAtendimento}">
+                             data-em-atendimento="${emAtendimento}"
+                             data-pos-em-atendimento="${posEmAtendimento || ''}">
                             <div class="fila-servico-header">
                                 <i class="fas fa-star"></i>
                                 <h4 title="${servico.nome}">
                                     ${servico.nome}
                                     <span class="servico-posicao-badge">${posicaoGeral}°</span>
-                                    ${emAtendimento ? '<span class="servico-atendendo-badge"><i class="fas fa-bell"></i> ATENDENDO</span>' : ''}
+                                    ${emAtendimento ? `<span class="servico-atendendo-badge"><i class="fas fa-bell"></i> ${posEmAtendimento}° EM ATEND.</span>` : ''}
                                 </h4>
                                 <span class="servico-count">${itensFila.length}</span>
                             </div>
