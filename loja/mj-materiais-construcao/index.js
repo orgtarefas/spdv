@@ -60,6 +60,8 @@ let agendamentosCarregados = false; // Falso para Aguardar carregar os agendamen
 // ============================================
 let paginaAtualOutrosFila = 1; // 1 = Tela 1, 2 = Tela 2
 let totalPaginasOutrosFila = 1; // Será calculado dinamicamente
+let mudancaManual = false; // VARIÁVEL PARA CONTROLAR SE A MUDANÇA VEIO DO USUÁRIO OU DO SISTEMA
+
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
@@ -1240,23 +1242,25 @@ function renderizarPainelAgendamento() {
 // ============================================
 // FUNÇÃO PARA MUDAR PÁGINA DA COLUNA OUTROS NA FILA
 // ============================================
-window.mudarPaginaOutrosFila = function(novaPagina) {
+window.mudarPaginaOutrosFila = function(novaPagina, origem = 'sistema') {
     if (novaPagina < 1 || novaPagina > totalPaginasOutrosFila || novaPagina === paginaAtualOutrosFila) {
         return;
     }
     
-    console.log(`📑 Mudando página de ${paginaAtualOutrosFila} para ${novaPagina}`);
+    console.log(`📑 Mudando página de ${paginaAtualOutrosFila} para ${novaPagina} (origem: ${origem})`);
     paginaAtualOutrosFila = novaPagina;
+    
+    // Se a mudança veio do usuário (clique nas setas), desabilitar carrossel automático
+    if (origem === 'usuario' && carrosselAutomaticoAtivo) {
+        console.log('👤 Usuário mudou de página manualmente - pausando carrossel');
+        mudancaManual = true;
+        alternarCarrosselAutomatico(); // Pausa o carrossel
+    } else {
+        console.log('🤖 Sistema mudou de página automaticamente - mantendo carrossel');
+    }
     
     // Re-renderizar apenas a coluna Outros na Fila
     renderizarPainelAgendamento();
-    
-    // Atualizar indicador (já será feito dentro do renderizarPainelAgendamento)
-    
-    // 🔥 PAUSAR CARROSSEL AUTOMÁTICO QUANDO USUÁRIO MUDA MANUALMENTE
-    if (carrosselAutomaticoAtivo) {
-        alternarCarrosselAutomatico(); // Pausa o carrossel
-    }
 };
 
 // ============================================
@@ -1476,7 +1480,7 @@ function iniciarCarrosselSenhasAutomatico() {
                 }, 800);
             });
             
-            // Segundo: se completou alguns ciclos, mudar de página
+            // Segundo: se completou alguns ciclos, mudar de página AUTOMATICAMENTE
             if (algumScrollFeito) {
                 contadorCiclos++;
                 
@@ -1491,11 +1495,11 @@ function iniciarCarrosselSenhasAutomatico() {
                         proximaPagina = paginaAtualOutrosFila + 1;
                     }
                     
-                    console.log(`🔄 Carrossel: mudando para página ${proximaPagina}`);
+                    console.log(`🔄 Carrossel: mudando automaticamente para página ${proximaPagina}`);
                     
-                    // Mudar página
+                    // Mudar página (origem = 'sistema' para não pausar o carrossel)
                     if (typeof window.mudarPaginaOutrosFila === 'function') {
-                        window.mudarPaginaOutrosFila(proximaPagina);
+                        window.mudarPaginaOutrosFila(proximaPagina, 'sistema');
                     }
                 }
             }
@@ -1651,7 +1655,7 @@ function criarBotaoPlayNoHeader() {
         controlsContainer.style.marginLeft = 'auto';
         
         // ============================================
-        // SETAS DE NAVEGAÇÃO ENTRE TELAS
+        // SETAS DE NAVEGAÇÃO ENTRE TELAS (COM ORIGEM = USUARIO)
         // ============================================
         if (totalPaginasOutrosFila > 1) {
             // Seta esquerda
@@ -1662,7 +1666,7 @@ function criarBotaoPlayNoHeader() {
             prevPageBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                mudarPaginaOutrosFila(paginaAtualOutrosFila - 1);
+                mudarPaginaOutrosFila(paginaAtualOutrosFila - 1, 'usuario');
             };
             prevPageBtn.disabled = paginaAtualOutrosFila === 1;
             controlsContainer.appendChild(prevPageBtn);
@@ -1683,7 +1687,7 @@ function criarBotaoPlayNoHeader() {
             nextPageBtn.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                mudarPaginaOutrosFila(paginaAtualOutrosFila + 1);
+                mudarPaginaOutrosFila(paginaAtualOutrosFila + 1, 'usuario');
             };
             nextPageBtn.disabled = paginaAtualOutrosFila === totalPaginasOutrosFila;
             controlsContainer.appendChild(nextPageBtn);
