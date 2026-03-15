@@ -1065,7 +1065,7 @@ function renderizarPainelAgendamento() {
                                 <h4 title="${servico.nome}">
                                     ${servico.nome}
                                     <span class="servico-posicao-badge">${posicaoGeral}°</span>
-                                    ${emAtendimento ? `<span class="servico-atendendo-badge"><i class="fas fa-bell"></i> ${posEmAtendimento}° EM ATEND.</span>` : ''}
+                                    <!-- BADGE REMOVIDO -->
                                 </h4>
                                 <span class="servico-count">${itensFila.length}</span>
                             </div>
@@ -1333,7 +1333,7 @@ function atualizarEstadoServico(servicoId) {
 }
 
 // ============================================
-// FUNÇÃO PARA SCROLL DO SERVIÇO (CHAMADA PELOS BOTÕES)
+// FUNÇÃO PARA SCROLL MANUAL
 // ============================================
 window.scrollServico = function(servicoId, amount) {
     const scrollEl = document.getElementById(`servico-${servicoId}-scroll`);
@@ -1355,6 +1355,7 @@ window.scrollServico = function(servicoId, amount) {
         }, 300);
     }
 };
+
 
 // ============================================
 // IR PARA PÁGINA ESPECÍFICA DO SERVIÇO
@@ -1383,7 +1384,7 @@ window.irParaPaginaServico = function(servicoId, pageIndex) {
 function iniciarCarrosselSenhasAutomatico() {
     if (!carrosselAutomaticoAtivo) return;
     
-    console.log('🎠 Iniciando carrossel automático - VELOCIDADE LENTA');
+    console.log('🎠 Iniciando carrossel automático - CICLO: Esquerda → Meio → Direita → Meio → Esquerda (depois muda tela)');
     
     // Parar qualquer intervalo existente
     if (carrosselAutomaticoInterval) {
@@ -1393,30 +1394,32 @@ function iniciarCarrosselSenhasAutomatico() {
     
     // Mapa para controlar a posição e direção de cada serviço
     const estadoCarrossel = new Map();
-    let contadorCiclos = 0;
-    const ciclosPorPagina = 2; // Número de ciclos de scroll antes de mudar de página
+    let contadorMovimentos = 0;
+    const movimentosPorCiclo = 5; // Esquerda → Meio → Direita → Meio → Esquerda (5 movimentos)
+    let ciclosCompletados = 0;
     
-    // Primeiro, garantir que todos os scrolls comecem na DIREITA
+    // Primeiro, garantir que todos os scrolls comecem na ESQUERDA (mostrando os mais novos)
     setTimeout(() => {
         document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
             const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
             if (maxScroll > 0) {
                 scrollEl.scrollTo({
-                    left: maxScroll, // Começa na DIREITA (mostrando o 1° da fila)
-                    behavior: 'auto' // Sem animação inicial
+                    left: 0, // Começa na ESQUERDA (mostrando os últimos da fila)
+                    behavior: 'auto'
                 });
                 
                 // Inicializar estado
                 const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
                 estadoCarrossel.set(servicoId, {
-                    posicao: 'direita', // Começa na direita
-                    maxScroll: maxScroll
+                    posicao: 'esquerda', // Começa na esquerda
+                    maxScroll: maxScroll,
+                    ultimoScroll: 0
                 });
             }
         });
     }, 100);
     
-    // Iniciar o carrossel após posicionar na direita
+    // Iniciar o carrossel após posicionar na esquerda
     setTimeout(() => {
         carrosselAutomaticoInterval = setInterval(() => {
             if (!carrosselAutomaticoAtivo) {
@@ -1424,87 +1427,114 @@ function iniciarCarrosselSenhasAutomatico() {
                 return;
             }
             
-            // Primeiro: fazer scroll dos cards
+            // Fazer scroll dos cards
             let algumScrollFeito = false;
+            let todosMaxScroll = [];
             
             document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
                 const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
-                if (maxScroll <= 5) return;
+                if (maxScroll <= 5) return; // Ignorar se não tem scroll
+                
+                todosMaxScroll.push(maxScroll);
                 
                 const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
                 
                 // Inicializar estado se não existir
                 if (!estadoCarrossel.has(servicoId)) {
                     estadoCarrossel.set(servicoId, {
-                        posicao: 'direita',
-                        maxScroll: maxScroll
+                        posicao: 'esquerda',
+                        maxScroll: maxScroll,
+                        ultimoScroll: 0
                     });
                 }
                 
                 const estado = estadoCarrossel.get(servicoId);
                 let nextScroll;
                 
-                // Lógica: DIREITA (1° fila) → MEIO → ESQUERDA → MEIO → DIREITA...
+                // CICLO COMPLETO: Esquerda → Meio → Direita → Meio → Esquerda
                 switch(estado.posicao) {
-                    case 'direita':
-                        nextScroll = Math.floor(maxScroll / 2);
-                        estado.posicao = 'meio_direita';
-                        break;
-                    case 'meio_direita':
-                        nextScroll = 0;
-                        estado.posicao = 'esquerda';
-                        break;
                     case 'esquerda':
+                        // Vai para o MEIO (primeira metade do caminho)
                         nextScroll = Math.floor(maxScroll / 2);
                         estado.posicao = 'meio_esquerda';
+                        console.log(`   ${servicoId}: Esquerda → Meio (${nextScroll}px)`);
                         break;
+                        
                     case 'meio_esquerda':
+                        // Vai para a DIREITA
                         nextScroll = maxScroll;
                         estado.posicao = 'direita';
+                        console.log(`   ${servicoId}: Meio → Direita (${nextScroll}px)`);
                         break;
+                        
+                    case 'direita':
+                        // Vai para o MEIO (segunda metade do caminho)
+                        nextScroll = Math.floor(maxScroll / 2);
+                        estado.posicao = 'meio_direita';
+                        console.log(`   ${servicoId}: Direita → Meio (${nextScroll}px)`);
+                        break;
+                        
+                    case 'meio_direita':
+                        // Volta para a ESQUERDA
+                        nextScroll = 0;
+                        estado.posicao = 'esquerda';
+                        console.log(`   ${servicoId}: Meio → Esquerda (${nextScroll}px)`);
+                        break;
+                        
                     default:
-                        nextScroll = maxScroll;
-                        estado.posicao = 'direita';
+                        nextScroll = 0;
+                        estado.posicao = 'esquerda';
                 }
                 
+                // SCROLL SUAVE - com duração maior
                 scrollEl.scrollTo({
                     left: nextScroll,
                     behavior: 'smooth'
                 });
                 
+                estado.ultimoScroll = nextScroll;
                 algumScrollFeito = true;
                 
                 // Atualizar estado após o scroll
                 setTimeout(() => {
                     atualizarEstadoServico(servicoId);
-                }, 800);
+                }, 1200); // Aumentado para 1.2s
             });
             
-            // Segundo: se completou alguns ciclos, mudar de página AUTOMATICAMENTE
-            if (algumScrollFeito) {
-                contadorCiclos++;
+            // Incrementar contador de movimentos
+            if (algumScrollFeito && todosMaxScroll.length > 0) {
+                contadorMovimentos++;
                 
-                if (contadorCiclos >= ciclosPorPagina && totalPaginasOutrosFila > 1) {
-                    contadorCiclos = 0;
+                console.log(`   📊 Movimento ${contadorMovimentos}/${movimentosPorCiclo} completado`);
+                
+                // Se completou um ciclo inteiro (5 movimentos)
+                if (contadorMovimentos >= movimentosPorCiclo) {
+                    ciclosCompletados++;
+                    contadorMovimentos = 0;
                     
-                    // Calcular próxima página
-                    let proximaPagina;
-                    if (paginaAtualOutrosFila === totalPaginasOutrosFila) {
-                        proximaPagina = 1; // Volta para a primeira
-                    } else {
-                        proximaPagina = paginaAtualOutrosFila + 1;
-                    }
+                    console.log(`✅ Ciclo ${ciclosCompletados} completo (Esquerda→Meio→Direita→Meio→Esquerda)`);
                     
-                    console.log(`🔄 Carrossel: mudando automaticamente para página ${proximaPagina}`);
-                    
-                    // Mudar página (origem = 'sistema' para não pausar o carrossel)
-                    if (typeof window.mudarPaginaOutrosFila === 'function') {
-                        window.mudarPaginaOutrosFila(proximaPagina, 'sistema');
+                    // Depois de 1 ciclo, mudar de tela
+                    if (totalPaginasOutrosFila > 1) {
+                        // Calcular próxima página
+                        let proximaPagina;
+                        if (paginaAtualOutrosFila === totalPaginasOutrosFila) {
+                            proximaPagina = 1; // Volta para a primeira
+                        } else {
+                            proximaPagina = paginaAtualOutrosFila + 1;
+                        }
+                        
+                        console.log(`🔄 Carrossel: mudando automaticamente para página ${proximaPagina} (após ciclo completo)`);
+                        
+                        // Mudar página (origem = 'sistema' para não pausar o carrossel)
+                        if (typeof window.mudarPaginaOutrosFila === 'function') {
+                            window.mudarPaginaOutrosFila(proximaPagina, 'sistema');
+                        }
                     }
                 }
             }
             
-        }, 7000); // 7 segundos entre movimentos
+        }, 8000); // Aumentado para 8 segundos entre movimentos (scroll mais lento)
     }, 200);
 }
 
