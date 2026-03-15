@@ -155,58 +155,164 @@
                 </div>
             </div>
             
-            <!-- Container com 3 colunas de tamanhos diferentes -->
-            <div class="agendamento-colunas">
-                <!-- Coluna 1: OUTROS NA FILA (ESQUERDA) -->
-                <div class="agendamento-coluna coluna-outros">
-                    <div class="coluna-header">
-                        <i class="fas fa-users"></i>
-                        <h3>OUTROS NA FILA</h3>
-                        <span class="coluna-badge" id="totalOutrosBadge">0</span>
+            <!-- ============================================ -->
+            <!-- ATENDIMENTO - 3 COLUNAS (CLIENTE) -->
+            <!-- ============================================ -->
+            <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
+                <div class="agendamento-header">
+                    <div class="agendamento-status" id="agendamentoStatus">
+                        <span class="status-indicator online"></span>
+                        <span>Modo Automático</span>
+                    </div>    
+                    <h2 class="titulo-atendimento">ATENDIMENTOS HOJE</h2>
+                    <div class="agendamento-actions">
+                        <button class="btn-agendar" id="btnAbrirAgendamento">
+                            <i class="fas fa-calendar-plus"></i> Agendar
+                        </button>
+                        <button class="btn-senha-rapida" id="btnNovaSenhaHoje">
+                            <i class="fas fa-bolt"></i> Nova Senha Hoje
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Container com 3 colunas de tamanhos diferentes -->
+                <div class="agendamento-colunas">
+                    
+                    <!-- Coluna 1: OUTROS NA FILA (ESQUERDA) -->
+                    <div class="agendamento-coluna coluna-outros">
+                        <div class="coluna-header">
+                            <i class="fas fa-users"></i>
+                            <h3>OUTROS NA FILA</h3>
+                            <span class="coluna-badge" id="totalOutrosBadge">0</span>
+                        </div>
+                        
+                        <!-- Container com duas páginas -->
+                        <div class="outros-pages-container">
+                            <!-- Página 1 (Até 2 serviços) -->
+                            <div class="outros-page page-1 active" id="outrosPage1">
+                                <div class="fila-servico" id="servico-1-page1" style="display: none;">
+                                    <div class="fila-servico-header">
+                                        <i class="fas fa-star"></i>
+                                        <h4 title="Serviço 1">Serviço 1</h4>
+                                        <span class="servico-count">0</span>
+                                    </div>
+                                    <div class="servico-card-container">
+                                        <!-- Cards do Serviço 1 na página 1 serão inseridos aqui -->
+                                    </div>
+                                </div>
+                                <div class="fila-servico" id="servico-2-page1" style="display: none;">
+                                    <div class="fila-servico-header">
+                                        <i class="fas fa-star"></i>
+                                        <h4 title="Serviço 2">Serviço 2</h4>
+                                        <span class="servico-count">0</span>
+                                    </div>
+                                    <div class="servico-card-container">
+                                        <!-- Cards do Serviço 2 na página 1 serão inseridos aqui -->
+                                    </div>
+                                </div>
+                            </div>
+                    
+                            <!-- Página 2 (Até 2 serviços) -->
+                            <div class="outros-page page-2" id="outrosPage2">
+                                <div class="fila-servico" id="servico-1-page2" style="display: none;">
+                                    <div class="fila-servico-header">
+                                        <i class="fas fa-star"></i>
+                                        <h4 title="Serviço 3">Serviço 3</h4>
+                                        <span class="servico-count">0</span>
+                                    </div>
+                                    <div class="servico-card-container">
+                                        <!-- Cards do Serviço 3 na página 2 serão inseridos aqui -->
+                                    </div>
+                                </div>
+                                <div class="fila-servico" id="servico-2-page2" style="display: none;">
+                                    <div class="fila-servico-header">
+                                        <i class="fas fa-star"></i>
+                                        <h4 title="Serviço 4">Serviço 4</h4>
+                                        <span class="servico-count">0</span>
+                                    </div>
+                                    <div class="servico-card-container">
+                                        <!-- Cards do Serviço 4 na página 2 serão inseridos aqui -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <!-- Controles de Página (Botões 1 e 2) -->
+                        <div class="outros-paginacao">
+                            <button class="page-btn active" data-page="1">1</button>
+                            <button class="page-btn" data-page="2">2</button>
+                        </div>
+                    </div>
+                        
+                    <!-- Coluna 2: PRÓXIMOS A ATENDER (MEIO) -->
+                    <div class="agendamento-coluna coluna-proximos">
+                        <div class="coluna-header">
+                            <i class="fas fa-arrow-right"></i>
+                            <h3>PRÓXIMOS A ATENDER</h3>
+                        </div>
+                        <div class="coluna-content lista-vertical" id="proximosFilaCard">
+                            <!-- Tela 1 (Parte de cima) -->
+                            <div class="fila-tela tela-1">
+                                <div class="fila-servico-item" id="proximo-servico-1" style="display: none;">
+                                    <!-- Card do Serviço 1 será inserido aqui -->
+                                </div>
+                            </div>
+                    
+                            <!-- Tela 2 (Parte de baixo) -->
+                            <div class="fila-tela tela-2">
+                                <div class="fila-servico-item" id="proximo-servico-2" style="display: none;">
+                                    <!-- Card do Serviço 2 será inserido aqui -->
+                                </div>
+                                <div class="fila-servico-item" id="proximo-servico-3" style="display: none;">
+                                    <!-- Card do Serviço 3 será inserido aqui -->
+                                </div>
+                                <div class="fila-servico-item" id="proximo-servico-4" style="display: none;">
+                                    <!-- Card do Serviço 4 será inserido aqui -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="coluna-footer">
+                            <i class="fas fa-clock"></i> 
+                            <span id="totalFilaTexto">0</span> pessoas • 
+                            <span id="tempoMedioEspera">0</span> min
+                        </div>
                     </div>
                     
-                    <!-- Carrossel horizontal (vazio - será preenchido pelo JS) -->
-                    <div class="proximos-carousel-container">
-                        <div class="proximos-scroll" id="proximasSenhasScroll">
-                            <div class="proximos-track" id="proximasSenhasTrack">
-                                <!-- CONTEÚDO SERÁ PREENCHIDO PELO JAVASCRIPT -->
+                    <!-- Coluna 3: EM ATENDIMENTO (DIREITA) -->
+                    <div class="agendamento-coluna coluna-chamando">
+                        <div class="coluna-header chamando">
+                            <i class="fas fa-bell"></i>
+                            <h3>EM ATENDIMENTO</h3>
+                        </div>
+                        <div class="coluna-content" id="chamandoAgoraCard">
+                            <!-- Tela 1 (Parte de cima) -->
+                            <div class="fila-tela tela-1">
+                                <div class="fila-servico-item" id="chamando-servico-1" style="display: none;">
+                                    <!-- Card do Serviço 1 será inserido aqui -->
+                                </div>
                             </div>
+                    
+                            <!-- Tela 2 (Parte de baixo) -->
+                            <div class="fila-tela tela-2">
+                                <div class="fila-servico-item" id="chamando-servico-2" style="display: none;">
+                                    <!-- Card do Serviço 2 será inserido aqui -->
+                                </div>
+                                <div class="fila-servico-item" id="chamando-servico-3" style="display: none;">
+                                    <!-- Card do Serviço 3 será inserido aqui -->
+                                </div>
+                                <div class="fila-servico-item" id="chamando-servico-4" style="display: none;">
+                                    <!-- Card do Serviço 4 será inserido aqui -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="coluna-footer">
+                            <i class="fas fa-volume-up"></i> 
+                            Último: <span id="ultimoChamadoHora">--:--</span>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Coluna 2: PRÓXIMOS A ATENDER (MEIO) -->
-                <div class="agendamento-coluna coluna-proximos">
-                    <div class="coluna-header">
-                        <i class="fas fa-arrow-right"></i>
-                        <h3>PRÓXIMOS A ATENDER</h3>
-                   <!-- <span class="coluna-badge" id="totalFilaBadge">0</span> -->
-                    </div>
-                    <div class="coluna-content lista-vertical" id="proximosFilaCard">
-                        <!-- CONTEÚDO SERÁ PREENCHIDO PELO JAVASCRIPT -->
-                    </div>
-                    <div class="coluna-footer">
-                        <i class="fas fa-clock"></i> 
-                        <span id="totalFilaTexto">0</span> pessoas • 
-                        <span id="tempoMedioEspera">0</span> min
-                    </div>
-                </div>
-                
-                <!-- Coluna 3: EM ATENDIMENTO (DIREITA) -->
-                <div class="agendamento-coluna coluna-chamando">
-                    <div class="coluna-header chamando">
-                        <i class="fas fa-bell"></i>
-                        <h3>EM ATENDIMENTO</h3>
-                    </div>
-                    <div class="coluna-content" id="chamandoAgoraCard">
-                        <!-- CONTEÚDO SERÁ PREENCHIDO PELO JAVASCRIPT -->
-                    </div>
-                    <div class="coluna-footer">
-                        <i class="fas fa-volume-up"></i> 
-                        Último: <span id="ultimoChamadoHora">--:--</span>
-                    </div>
-                </div>
-            </div>
+            </div> 
+        
             <!-- Modal de Agendamento Rápido -->
             <div id="agendamentoRapidoModal" class="modal" style="display: none;">
                 <div class="modal-content modal-small">
