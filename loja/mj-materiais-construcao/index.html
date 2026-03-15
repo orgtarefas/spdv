@@ -69,7 +69,7 @@
                                     <span>Estoque</span>
                                 </a>
                                 
-                                <!-- 🔥 NOVO: Gestão de Agendamento -->
+                                <!-- Gestão de Agendamento -->
                                 <a href="#" class="menu-item" id="menuGestaoAgendamento" style="display: none;">
                                     <i class="fas fa-calendar-check"></i>
                                     <span>Gestão de Agendamento</span>
@@ -343,9 +343,7 @@
             </div>
         </div>
         
-        <!-- ============================================ -->
         <!-- Modal de Consulta Rápida -->
-        <!-- ============================================ -->
         <div id="quickSearchModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -527,7 +525,6 @@
                             Enviamos um e-mail de confirmação para o endereço acima.<br>
                             Por favor, verifique na caixa de entrada e spam o e-mail do destinatário <strong>valida_login@lojasite...</strong>
                         </p>
-                        <!-- BOTÃO REMOVIDO - agora o reenvio é automático no login -->
                         <div class="verificacao-acoes">
                             <button class="btn-verificacao secundario" id="btnVerificarAgora">
                                 <i class="fas fa-sync-alt"></i> Já verifiquei
@@ -585,7 +582,7 @@
         <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
     </div>
 
-    <!-- Scripts - CAMINHOS ABSOLUTOS -->
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     
     <!-- Firebase (compat version) -->
@@ -594,16 +591,15 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
     
-    <!-- 1️⃣ PRIMEIRO: Login Firebase (NÃO é module) -->
+    <!-- 1️⃣ PRIMEIRO: Login Firebase -->
     <script src="../../login_firebase.js"></script>
     
-    <!-- 2️⃣ SEGUNDO: Carregar novo_lojas.js (global) -->
+    <!-- 2️⃣ SEGUNDO: novo_lojas.js -->
     <script type="module" src="../../novo_lojas.js"></script>
     
-    <!-- 3️⃣ TERCEIRO: Extrair lojaId e carregar scripts da loja -->
+    <!-- 3️⃣ TERCEIRO: Scripts da loja -->
     <script>
         (function() {
-            // EXTRAIR LOJA ID DA URL
             const pathParts = window.location.pathname.split('/');
             const lojaIndex = pathParts.indexOf('loja');
             
@@ -614,11 +610,8 @@
             
             const lojaId = pathParts[lojaIndex + 1];
             console.log(`📍 Loja detectada: ${lojaId}`);
-            
-            // SALVAR NO WINDOW
             window.lojaIdAtual = lojaId;
             
-            // FUNÇÃO PARA AGUARDAR getLojaConfig
             function aguardarGetLojaConfig(callback) {
                 if (typeof window.getLojaConfig === 'function') {
                     console.log('✅ getLojaConfig disponível');
@@ -629,14 +622,11 @@
                 }
             }
             
-            // CARREGAR SCRIPTS DA LOJA - VERSÃO UNIVERSAL
             function carregarScriptsLoja() {
-                // Determinar o caminho base baseado na localização do index.html
-                // Se estamos em /loja/nome-da-loja/, o caminho base é './'
                 const scripts = [
-                    `novo_firebase_config.js`,  // Mesma pasta do index.html
-                    `imagem_api.js`,             // Mesma pasta do index.html
-                    `index.js`                   // Mesma pasta do index.html
+                    `novo_firebase_config.js`,
+                    `imagem_api.js`,
+                    `index.js`
                 ];
                 
                 let index = 0;
@@ -648,7 +638,7 @@
                     }
                     
                     const script = document.createElement('script');
-                    script.src = scripts[index]; // Caminho relativo à pasta atual
+                    script.src = scripts[index];
                     script.type = 'module';
                     script.onload = () => {
                         console.log(`✅ Carregado: ${scripts[index]}`);
@@ -659,7 +649,6 @@
                         console.error(`❌ Erro ao carregar: ${scripts[index]}`);
                         console.log(`Tentando caminho alternativo: ../../loja/${lojaId}/${scripts[index]}`);
                         
-                        // Fallback: tentar caminho absoluto
                         const scriptFallback = document.createElement('script');
                         scriptFallback.src = `../../loja/${lojaId}/${scripts[index]}`;
                         scriptFallback.type = 'module';
@@ -682,7 +671,6 @@
                 carregarProximo();
             }
             
-            // AGUARDAR E INICIAR
             aguardarGetLojaConfig(carregarScriptsLoja);
         })();
     </script>
