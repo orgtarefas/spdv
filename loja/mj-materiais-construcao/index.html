@@ -165,13 +165,95 @@
                         <span class="coluna-badge" id="totalOutrosBadge">0</span>
                     </div>
                     
-                    <!-- Carrossel horizontal (vazio - será preenchido pelo JS) -->
+                    <!-- INDICADOR DE TELA E BOTÃO PLAY -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px; margin-bottom: 5px;">
+                        <span style="font-weight: 600; color: #0056b3;">TELA <span id="telaAtual">1</span>/2</span>
+                        <button class="btn-carrossel-outros" id="btnCarrosselOutros" title="Play/Pause">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Carrossel horizontal com duas telas -->
                     <div class="proximos-carousel-container">
                         <div class="proximos-scroll" id="proximasSenhasScroll">
                             <div class="proximos-track" id="proximasSenhasTrack">
-                                <!-- CONTEÚDO SERÁ PREENCHIDO PELO JAVASCRIPT -->
+                                <!-- TELA 1 (Serviços 1 e 2) -->
+                                <div class="tela-servicos tela-1 active" id="tela1">
+                                    <!-- Serviço 1 -->
+                                    <div class="fila-servico" id="servico-1-tela1" style="display: none;">
+                                        <div class="fila-servico-header">
+                                            <i class="fas fa-star"></i>
+                                            <h4>Carregando...</h4>
+                                            <span class="servico-count">0</span>
+                                        </div>
+                                        <div class="servico-carousel-container">
+                                            <button class="servico-arrow prev" disabled>←</button>
+                                            <div class="servico-scroll">
+                                                <div class="servico-track"></div>
+                                            </div>
+                                            <button class="servico-arrow next" disabled>→</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Serviço 2 -->
+                                    <div class="fila-servico" id="servico-2-tela1" style="display: none;">
+                                        <div class="fila-servico-header">
+                                            <i class="fas fa-star"></i>
+                                            <h4>Carregando...</h4>
+                                            <span class="servico-count">0</span>
+                                        </div>
+                                        <div class="servico-carousel-container">
+                                            <button class="servico-arrow prev" disabled>←</button>
+                                            <div class="servico-scroll">
+                                                <div class="servico-track"></div>
+                                            </div>
+                                            <button class="servico-arrow next" disabled>→</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- TELA 2 (Serviços 3 e 4) -->
+                                <div class="tela-servicos tela-2" id="tela2" style="display: none;">
+                                    <!-- Serviço 3 -->
+                                    <div class="fila-servico" id="servico-3-tela2" style="display: none;">
+                                        <div class="fila-servico-header">
+                                            <i class="fas fa-star"></i>
+                                            <h4>Carregando...</h4>
+                                            <span class="servico-count">0</span>
+                                        </div>
+                                        <div class="servico-carousel-container">
+                                            <button class="servico-arrow prev" disabled>←</button>
+                                            <div class="servico-scroll">
+                                                <div class="servico-track"></div>
+                                            </div>
+                                            <button class="servico-arrow next" disabled>→</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Serviço 4 -->
+                                    <div class="fila-servico" id="servico-4-tela2" style="display: none;">
+                                        <div class="fila-servico-header">
+                                            <i class="fas fa-star"></i>
+                                            <h4>Carregando...</h4>
+                                            <span class="servico-count">0</span>
+                                        </div>
+                                        <div class="servico-carousel-container">
+                                            <button class="servico-arrow prev" disabled>←</button>
+                                            <div class="servico-scroll">
+                                                <div class="servico-track"></div>
+                                            </div>
+                                            <button class="servico-arrow next" disabled>→</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                    
+                    <!-- Botões de navegação entre telas -->
+                    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 10px; padding: 5px;">
+                        <button class="btn-tela" data-tela="1" style="width: 30px; height: 30px; border-radius: 50%; background: #0056b3; color: white; border: none; font-weight: bold;">1</button>
+                        <button class="btn-tela" data-tela="2" style="width: 30px; height: 30px; border-radius: 50%; background: #ccc; color: #333; border: none; font-weight: bold;">2</button>
                     </div>
                 </div>
                 
