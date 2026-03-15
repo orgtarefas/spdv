@@ -155,239 +155,198 @@
                 </div>
             </div>
             
-            <!-- ============================================ -->
-            <!-- ATENDIMENTO - 3 COLUNAS (CLIENTE) -->
-            <!-- ============================================ -->
-            <div id="agendamentoContainer" class="agendamento-section" style="display: none;">
-                <div class="agendamento-header">
-                    <div class="agendamento-status" id="agendamentoStatus">
-                        <span class="status-indicator online"></span>
-                        <span>Modo Automático</span>
-                    </div>    
-                    <h2 class="titulo-atendimento">ATENDIMENTOS HOJE</h2>
-                    <div class="agendamento-actions">
-                        <button class="btn-agendar" id="btnAbrirAgendamento">
-                            <i class="fas fa-calendar-plus"></i> Agendar
-                        </button>
-                        <button class="btn-senha-rapida" id="btnNovaSenhaHoje">
-                            <i class="fas fa-bolt"></i> Nova Senha Hoje
-                        </button>
+            <!-- Container com 3 colunas -->
+            <div class="agendamento-colunas">
+                
+                <!-- COLUNA 1: OUTROS NA FILA (ESQUERDA) -->
+                <div class="agendamento-coluna coluna-outros">
+                    <div class="coluna-header">
+                        <i class="fas fa-users"></i>
+                        <h3>OUTROS NA FILA</h3>
+                        <span class="coluna-badge" id="totalOutrosBadge">0</span>
+                    </div>
+                    
+                    <!-- Container com duas páginas -->
+                    <div class="outros-pages-container">
+                        <!-- Página 1 -->
+                        <div class="outros-page page-1 active" id="outrosPage1">
+                            <div class="fila-servico" id="servico-1-page1">
+                                <div class="fila-servico-header">
+                                    <i class="fas fa-star"></i>
+                                    <h4>Carregando...</h4>
+                                    <span class="servico-count">0</span>
+                                </div>
+                                <div class="servico-card-container"></div>
+                            </div>
+                            <div class="fila-servico" id="servico-2-page1">
+                                <div class="fila-servico-header">
+                                    <i class="fas fa-star"></i>
+                                    <h4>Carregando...</h4>
+                                    <span class="servico-count">0</span>
+                                </div>
+                                <div class="servico-card-container"></div>
+                            </div>
+                        </div>
+                
+                        <!-- Página 2 -->
+                        <div class="outros-page page-2" id="outrosPage2">
+                            <div class="fila-servico" id="servico-1-page2">
+                                <div class="fila-servico-header">
+                                    <i class="fas fa-star"></i>
+                                    <h4>Carregando...</h4>
+                                    <span class="servico-count">0</span>
+                                </div>
+                                <div class="servico-card-container"></div>
+                            </div>
+                            <div class="fila-servico" id="servico-2-page2">
+                                <div class="fila-servico-header">
+                                    <i class="fas fa-star"></i>
+                                    <h4>Carregando...</h4>
+                                    <span class="servico-count">0</span>
+                                </div>
+                                <div class="servico-card-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <!-- Botões de página -->
+                    <div class="outros-paginacao">
+                        <button class="page-btn active" data-page="1">1</button>
+                        <button class="page-btn" data-page="2">2</button>
+                    </div>
+                </div>
+                    
+                <!-- COLUNA 2: PRÓXIMOS A ATENDER (MEIO) -->
+                <div class="agendamento-coluna coluna-proximos">
+                    <div class="coluna-header">
+                        <i class="fas fa-arrow-right"></i>
+                        <h3>PRÓXIMOS A ATENDER</h3>
+                    </div>
+                    <div class="coluna-content lista-vertical" id="proximosFilaCard">
+                        <!-- TELA 1 -->
+                        <div class="fila-tela tela-1">
+                            <h4 class="tela-titulo">Tela 1</h4>
+                            <div class="fila-servico-item" id="proximo-servico-1"></div>
+                            <div class="fila-servico-item" id="proximo-servico-2"></div>
+                        </div>
+                
+                        <!-- TELA 2 -->
+                        <div class="fila-tela tela-2">
+                            <h4 class="tela-titulo">Tela 2</h4>
+                            <div class="fila-servico-item" id="proximo-servico-3"></div>
+                            <div class="fila-servico-item" id="proximo-servico-4"></div>
+                        </div>
+                    </div>
+                    <div class="coluna-footer">
+                        <i class="fas fa-clock"></i> 
+                        <span id="totalFilaTexto">0</span> pessoas • 
+                        <span id="tempoMedioEspera">0</span> min
                     </div>
                 </div>
                 
-                <!-- Container com 3 colunas de tamanhos diferentes -->
-                <div class="agendamento-colunas">
-                    
-                    <!-- Coluna 1: OUTROS NA FILA (ESQUERDA) -->
-                    <div class="agendamento-coluna coluna-outros">
-                        <div class="coluna-header">
-                            <i class="fas fa-users"></i>
-                            <h3>OUTROS NA FILA</h3>
-                            <span class="coluna-badge" id="totalOutrosBadge">0</span>
+                <!-- COLUNA 3: EM ATENDIMENTO (DIREITA) -->
+                <div class="agendamento-coluna coluna-chamando">
+                    <div class="coluna-header chamando">
+                        <i class="fas fa-bell"></i>
+                        <h3>EM ATENDIMENTO</h3>
+                    </div>
+                    <div class="coluna-content" id="chamandoAgoraCard">
+                        <!-- TELA 1 -->
+                        <div class="fila-tela tela-1">
+                            <h4 class="tela-titulo">Tela 1</h4>
+                            <div class="fila-servico-item" id="chamando-servico-1"></div>
+                            <div class="fila-servico-item" id="chamando-servico-2"></div>
                         </div>
-                        
-                        <!-- Container com duas páginas -->
-                        <div class="outros-pages-container">
-                            <!-- Página 1 (Até 2 serviços) -->
-                            <div class="outros-page page-1 active" id="outrosPage1">
-                                <div class="fila-servico" id="servico-1-page1" style="display: none;">
-                                    <div class="fila-servico-header">
-                                        <i class="fas fa-star"></i>
-                                        <h4 title="Serviço 1">Serviço 1</h4>
-                                        <span class="servico-count">0</span>
-                                    </div>
-                                    <div class="servico-card-container">
-                                        <!-- Cards do Serviço 1 na página 1 serão inseridos aqui -->
-                                    </div>
-                                </div>
-                                <div class="fila-servico" id="servico-2-page1" style="display: none;">
-                                    <div class="fila-servico-header">
-                                        <i class="fas fa-star"></i>
-                                        <h4 title="Serviço 2">Serviço 2</h4>
-                                        <span class="servico-count">0</span>
-                                    </div>
-                                    <div class="servico-card-container">
-                                        <!-- Cards do Serviço 2 na página 1 serão inseridos aqui -->
-                                    </div>
-                                </div>
-                            </div>
-                    
-                            <!-- Página 2 (Até 2 serviços) -->
-                            <div class="outros-page page-2" id="outrosPage2">
-                                <div class="fila-servico" id="servico-1-page2" style="display: none;">
-                                    <div class="fila-servico-header">
-                                        <i class="fas fa-star"></i>
-                                        <h4 title="Serviço 3">Serviço 3</h4>
-                                        <span class="servico-count">0</span>
-                                    </div>
-                                    <div class="servico-card-container">
-                                        <!-- Cards do Serviço 3 na página 2 serão inseridos aqui -->
-                                    </div>
-                                </div>
-                                <div class="fila-servico" id="servico-2-page2" style="display: none;">
-                                    <div class="fila-servico-header">
-                                        <i class="fas fa-star"></i>
-                                        <h4 title="Serviço 4">Serviço 4</h4>
-                                        <span class="servico-count">0</span>
-                                    </div>
-                                    <div class="servico-card-container">
-                                        <!-- Cards do Serviço 4 na página 2 serão inseridos aqui -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    
-                        <!-- Controles de Página (Botões 1 e 2) -->
-                        <div class="outros-paginacao">
-                            <button class="page-btn active" data-page="1">1</button>
-                            <button class="page-btn" data-page="2">2</button>
+                
+                        <!-- TELA 2 -->
+                        <div class="fila-tela tela-2">
+                            <h4 class="tela-titulo">Tela 2</h4>
+                            <div class="fila-servico-item" id="chamando-servico-3"></div>
+                            <div class="fila-servico-item" id="chamando-servico-4"></div>
                         </div>
                     </div>
-                        
-                    <!-- Coluna 2: PRÓXIMOS A ATENDER (MEIO) -->
-                    <div class="agendamento-coluna coluna-proximos">
-                        <div class="coluna-header">
-                            <i class="fas fa-arrow-right"></i>
-                            <h3>PRÓXIMOS A ATENDER</h3>
-                        </div>
-                        <div class="coluna-content lista-vertical" id="proximosFilaCard">
-                            <!-- TELA 1 (Serviços 1 e 2) -->
-                            <div class="fila-tela tela-1">
-                                <h4 class="tela-titulo">Tela 1</h4>
-                                <div class="fila-servico-item" id="proximo-servico-1" style="display: none;">
-                                    <!-- Card do Serviço 1 -->
-                                </div>
-                                <div class="fila-servico-item" id="proximo-servico-2" style="display: none;">
-                                    <!-- Card do Serviço 2 -->
-                                </div>
-                            </div>
-                    
-                            <!-- TELA 2 (Serviços 3 e 4) -->
-                            <div class="fila-tela tela-2">
-                                <h4 class="tela-titulo">Tela 2</h4>
-                                <div class="fila-servico-item" id="proximo-servico-3" style="display: none;">
-                                    <!-- Card do Serviço 3 -->
-                                </div>
-                                <div class="fila-servico-item" id="proximo-servico-4" style="display: none;">
-                                    <!-- Card do Serviço 4 -->
-                                </div>
-                            </div>
-                        </div>
-                        <div class="coluna-footer">
-                            <i class="fas fa-clock"></i> 
-                            <span id="totalFilaTexto">0</span> pessoas • 
-                            <span id="tempoMedioEspera">0</span> min
-                        </div>
+                    <div class="coluna-footer">
+                        <i class="fas fa-volume-up"></i> 
+                        Último: <span id="ultimoChamadoHora">--:--</span>
                     </div>
-                    
-                    <!-- Coluna 3: EM ATENDIMENTO (DIREITA) -->
-                    <div class="agendamento-coluna coluna-chamando">
-                        <div class="coluna-header chamando">
-                            <i class="fas fa-bell"></i>
-                            <h3>EM ATENDIMENTO</h3>
+                </div>
+                
+            </div> <!-- FIM agendamento-colunas -->
+        </div> <!-- FIM agendamentoContainer -->
+
+        <!-- Modal de Agendamento Rápido -->
+        <div id="agendamentoRapidoModal" class="modal" style="display: none;">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h3><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
+                    <button class="modal-close" onclick="fecharModal('agendamentoRapidoModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="agendamento-rapido-form">
+                        <div class="form-group">
+                            <label><i class="fas fa-star"></i> Serviço</label>
+                            <select id="servicoSelect" class="form-select">
+                                <option value="">Selecione um serviço...</option>
+                            </select>
                         </div>
-                        <div class="coluna-content" id="chamandoAgoraCard">
-                            <!-- TELA 1 (Serviços 1 e 2) -->
-                            <div class="fila-tela tela-1">
-                                <h4 class="tela-titulo">Tela 1</h4>
-                                <div class="fila-servico-item" id="chamando-servico-1" style="display: none;">
-                                    <!-- Card do Serviço 1 -->
-                                </div>
-                                <div class="fila-servico-item" id="chamando-servico-2" style="display: none;">
-                                    <!-- Card do Serviço 2 -->
-                                </div>
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label><i class="fas fa-calendar"></i> Data</label>
+                                <input type="date" id="agendamentoData" class="form-input">
                             </div>
-                    
-                            <!-- TELA 2 (Serviços 3 e 4) -->
-                            <div class="fila-tela tela-2">
-                                <h4 class="tela-titulo">Tela 2</h4>
-                                <div class="fila-servico-item" id="chamando-servico-3" style="display: none;">
-                                    <!-- Card do Serviço 3 -->
-                                </div>
-                                <div class="fila-servico-item" id="chamando-servico-4" style="display: none;">
-                                    <!-- Card do Serviço 4 -->
-                                </div>
-                            </div>
-                        </div>
-                        <div class="coluna-footer">
-                            <i class="fas fa-volume-up"></i> 
-                            Último: <span id="ultimoChamadoHora">--:--</span>
-                        </div>
-                    </div>
-        
-            <!-- Modal de Agendamento Rápido -->
-            <div id="agendamentoRapidoModal" class="modal" style="display: none;">
-                <div class="modal-content modal-small">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
-                        <button class="modal-close" onclick="fecharModal('agendamentoRapidoModal')">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="agendamento-rapido-form">
-                            <div class="form-group">
-                                <label><i class="fas fa-star"></i> Serviço</label>
-                                <select id="servicoSelect" class="form-select">
-                                    <option value="">Selecione um serviço...</option>
+                            <div class="form-group half">
+                                <label><i class="fas fa-clock"></i> Horário</label>
+                                <select id="agendamentoHorario" class="form-select">
+                                    <option value="">Selecione</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
                                 </select>
                             </div>
-                            <div class="form-row">
-                                <div class="form-group half">
-                                    <label><i class="fas fa-calendar"></i> Data</label>
-                                    <input type="date" id="agendamentoData" class="form-input">
-                                </div>
-                                <div class="form-group half">
-                                    <label><i class="fas fa-clock"></i> Horário</label>
-                                    <select id="agendamentoHorario" class="form-select">
-                                        <option value="">Selecione</option>
-                                        <option value="08:00">08:00</option>
-                                        <option value="09:00">09:00</option>
-                                        <option value="10:00">10:00</option>
-                                        <option value="11:00">11:00</option>
-                                        <option value="13:00">13:00</option>
-                                        <option value="14:00">14:00</option>
-                                        <option value="15:00">15:00</option>
-                                        <option value="16:00">16:00</option>
-                                        <option value="17:00">17:00</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <button class="btn-confirmar-agendamento" id="btnConfirmarAgendamento">
-                                <i class="fas fa-check"></i> Confirmar Agendamento
-                            </button>
                         </div>
+                        <button class="btn-confirmar-agendamento" id="btnConfirmarAgendamento">
+                            <i class="fas fa-check"></i> Confirmar Agendamento
+                        </button>
                     </div>
                 </div>
             </div>
-            <!-- Modal de Nova Senha Hoje -->
-            <div id="novaSenhaHojeModal" class="modal" style="display: none;">
-                <div class="modal-content modal-small">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-bolt"></i> Nova Senha Hoje</h3>
-                        <button class="modal-close" onclick="fecharModal('novaSenhaHojeModal')">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="senha-rapida-form">
-                            <div class="form-group">
-                                <label><i class="fas fa-calendar"></i> Data</label>
-                                <input type="date" id="senhaRapidaData" class="form-input" disabled>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label><i class="fas fa-star"></i> Serviço</label>
-                                <select id="senhaRapidaServico" class="form-select" onchange="carregarPrimeiroHorarioDisponivel(event)">
-                                    <option value="">Selecione um serviço...</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label><i class="fas fa-clock"></i> Primeiro Horário Disponível</label>
-                                <input type="text" id="senhaRapidaHorario" class="form-input" readonly placeholder="Selecione um serviço primeiro">
-                            </div>
-                            
-                            <button class="btn-confirmar-senha" id="btnConfirmarSenhaHoje">
-                                <i class="fas fa-bolt"></i> Gerar Senha
-                            </button>
+        </div>
+        
+        <!-- Modal de Nova Senha Hoje -->
+        <div id="novaSenhaHojeModal" class="modal" style="display: none;">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h3><i class="fas fa-bolt"></i> Nova Senha Hoje</h3>
+                    <button class="modal-close" onclick="fecharModal('novaSenhaHojeModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="senha-rapida-form">
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar"></i> Data</label>
+                            <input type="date" id="senhaRapidaData" class="form-input" disabled>
                         </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-star"></i> Serviço</label>
+                            <select id="senhaRapidaServico" class="form-select" onchange="carregarPrimeiroHorarioDisponivel(event)">
+                                <option value="">Selecione um serviço...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-clock"></i> Primeiro Horário Disponível</label>
+                            <input type="text" id="senhaRapidaHorario" class="form-input" readonly placeholder="Selecione um serviço primeiro">
+                        </div>
+                        
+                        <button class="btn-confirmar-senha" id="btnConfirmarSenhaHoje">
+                            <i class="fas fa-bolt"></i> Gerar Senha
+                        </button>
                     </div>
                 </div>
             </div>
@@ -738,6 +697,3 @@
     </script>
 </body>
 </html>
-
-
-
