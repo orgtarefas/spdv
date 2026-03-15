@@ -4676,28 +4676,76 @@ body {
     border: 1px solid #e2e8f0;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
-
 /* ============================================
-   BADGE DE POSIÇÃO DO SERVIÇO (1°, 2°, etc)
+   CONTROLES DE NAVEGAÇÃO ENTRE TELAS
    ============================================ */
-.servico-posicao-badge {
-    display: inline-flex;
+.page-nav-arrow {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: white;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    cursor: pointer;
+    display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.page-nav-arrow:hover:not(:disabled) {
     background: #0056b3;
     color: white;
-    font-size: 0.65rem;
+    border-color: #0056b3;
+    transform: scale(1.05);
+}
+
+.page-nav-arrow:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.controls-separator {
+    color: #dee2e6;
+    font-weight: 300;
+    margin: 0 2px;
+}
+
+/* Ajuste no container de controles */
+#outrosFilaControls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 30px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+/* Indicador de página */
+.page-indicator-badge {
+    background: linear-gradient(135deg, #0056b3, #0077be);
+    color: white;
+    font-size: 0.7rem;
     font-weight: 700;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    margin-left: 8px;
-    box-shadow: 0 2px 5px rgba(0, 86, 179, 0.3);
+    padding: 4px 8px;
+    border-radius: 30px;
+    min-width: 40px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 86, 179, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.fila-servico-header h4 {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+/* Animação */
+@keyframes pageChange {
+    0% { opacity: 0.5; transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.page-indicator-badge {
+    animation: pageChange 0.3s ease;
 }
