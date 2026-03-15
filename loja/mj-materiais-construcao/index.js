@@ -56,6 +56,12 @@ let carrosselAutomaticoAtivo = true; // Começa ativo
 let agendamentosCarregados = false; // Falso para Aguardar carregar os agendamentos reais de hoje
 
 // ============================================
+// VARIÁVEIS PARA PAGINAÇÃO DA COLUNA OUTROS NA FILA
+// ============================================
+let paginaAtualOutrosFila = 1; // 1 = Tela 1, 2 = Tela 2
+let totalPaginasOutrosFila = 1; // Será calculado dinamicamente
+
+// ============================================
 // VERIFICAR LOJA ID E CONFIG
 // ============================================
 if (!lojaIdAtual) {
@@ -876,9 +882,188 @@ function renderizarPainelAgendamento() {
         const tempoMedioEspera = document.getElementById('tempoMedioEspera');
         if (tempoMedioEspera) tempoMedioEspera.textContent = tempoEstimado;
     });
+
+    // ============================================
+    // COLUNA 1: OUTROS NA FILA (ESQUERDA) - COM 2 TELAS
+    // ============================================
+    const proximosTrack = document.getElementById('proximasSenhasTrack');
+    if (proximosTrack) {
+        if (outrosNaFila.length > 0) {
+            // ============================================
+            // DIVIDIR SERVIÇOS EM PÁGINAS (2 SERVIÇOS POR PÁGINA)
+            // ============================================
+            totalPaginasOutrosFila = Math.max(1, Math.ceil(servicosOrdenados.length / 2));
+            
+            // Garantir que a página atual é válida
+            if (paginaAtualOutrosFila > totalPaginasOutrosFila) {
+                paginaAtualOutrosFila = totalPaginasOutrosFila;
+            }
+            
+            // Calcular índices para a página atual
+            const inicio = (paginaAtualOutrosFila - 1) * 2;
+            const fim = Math.min(inicio + 2, servicosOrdenados.length);
+            const servicosPaginaAtual = servicosOrdenados.slice(inicio, fim);
+            
+            console.log(`📑 Página ${paginaAtualOutrosFila}/${totalPaginasOutrosFila} - Serviços:`, servicosPaginaAtual);
+            
+            let html = '';
+            
+            // Renderizar apenas os serviços da página atual
+            servicosPaginaAtual.forEach(servicoId => {
+                const servico = agendamentosPorServico[servicoId];
+                
+                // Filtrar apenas os itens que estão na fila (outros)
+                const itensFila = servico.itens.filter(item => 
+                    ['Na fila', 'Verificado'].includes(item.status)
+                );
+                
+                if (itensFila.length > 0) {
+                    const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
+                    
+                    html += `
+                        <div class="fila-servico" id="container-${servicoIdSafe}">
+                            <div class="fila-servico-header">
+                                <i class="fas fa-star"></i>
+                                <h4 title="${servico.nome}">${servico.nome}</h4>
+                                <span class="servico-count">${itensFila.length}</span>
+                            </div>
+                            
+                            <div class="servico-carousel-container">
+                                <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -192)" ${itensFila.length <= 3 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                
+                                <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
+                                    <div class="servico-track">
+                    `;
+                    
+                    itensFila.forEach((item, idx) => {
+                        const posicaoReal = idx + 1;
+                        html += `
+                            <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${servicoIdSafe}">
+                                <div class="senha-numero">${item.senha}</div>
+                                <div class="senha-cliente">${item.cliente_nome}</div>
+                                <span class="senha-posicao">${posicaoReal}° na fila</span>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                                    </div>
+                                </div>
+                                
+                                <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 192)" ${itensFila.length <= 3 ? 'disabled' : ''}>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="servico-page-dots" id="dots-${servicoIdSafe}">
+                    `;
+                    
+                    const totalPages = Math.ceil(itensFila.length / 3);
+                    for (let i = 0; i < totalPages; i++) {
+                        html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="irParaPaginaServico('${servicoIdSafe}', ${i})"></span>`;
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            // ============================================
+            // ADICIONAR CONTROLES DE PAGINAÇÃO (SETAS)
+            // ============================================
+            if (totalPaginasOutrosFila > 1) {
+                html += `
+                    <div class="paginacao-outros-fila">
+                        <button class="pagina-arrow prev" onclick="mudarPaginaOutrosFila(${paginaAtualOutrosFila - 1})" ${paginaAtualOutrosFila === 1 ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="pagina-indicador">${paginaAtualOutrosFila} / ${totalPaginasOutrosFila}</span>
+                        <button class="pagina-arrow next" onclick="mudarPaginaOutrosFila(${paginaAtualOutrosFila + 1})" ${paginaAtualOutrosFila === totalPaginasOutrosFila ? 'disabled' : ''}>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                `;
+            }
+            
+            proximosTrack.innerHTML = html;
+            
+            // Configurar scroll para cada serviço após renderizar
+            setTimeout(() => {
+                servicosPaginaAtual.forEach(servicoId => {
+                    const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
+                    configurarScrollServico(servicoIdSafe);
+                });
+                
+                // 🔥 RECONFIGURAR CARROSSEL AUTOMÁTICO SE ESTIVER ATIVO
+                if (carrosselAutomaticoAtivo) {
+                    pararCarrosselAutomatico();
+                    iniciarCarrosselSenhasAutomatico();
+                }
+                
+            }, 100);
+            
+        } else {
+            // Placeholder quando não há agendamentos
+            proximosTrack.innerHTML = `
+                <div class="fila-servico">
+                    <div class="fila-servico-header">
+                        <i class="fas fa-star"></i>
+                        <h4>Aguardando...</h4>
+                        <span class="servico-count">0</span>
+                    </div>
+                    <div class="servico-carousel-container">
+                        <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
+                        <div class="servico-scroll">
+                            <div class="servico-track">
+                                <div class="servico-card-placeholder">
+                                    <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
+                                    <div class="placeholder-text">Sem agendamentos</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
     
     // ============================================
-    // COLUNA 1: EM ATENDIMENTO (DIREITA)
+    // COLUNA 2: PRÓXIMOS A ATENDER (MEIO) - ORDEM FIXA
+    // ============================================
+    const proximosEl = document.getElementById('proximosFilaCard');
+    if (proximosEl) {
+        if (proximosAtender.length > 0) {
+            let html = '';
+            proximosAtender.forEach(item => {
+                html += `
+                    <div class="item-fila-vertical urgente">
+                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
+                        <span class="senha-numero">${item.senha}</span>
+                        <div class="senha-info">
+                            <span class="senha-cliente">${item.cliente_nome}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            proximosEl.innerHTML = html;
+        } else {
+            proximosEl.innerHTML = `
+                <div class="empty-agendamento">
+                    <i class="fas fa-users"></i>
+                    <p>Nenhum próximo</p>
+                </div>
+            `;
+        }
+    }
+
+    // ============================================
+    // COLUNA 3: EM ATENDIMENTO (DIREITA)
     // ============================================
     const chamandoEl = document.getElementById('chamandoAgoraCard');
     if (chamandoEl) {
@@ -914,160 +1099,32 @@ function renderizarPainelAgendamento() {
         }
     }
     
-    // ============================================
-    // COLUNA 2: PRÓXIMOS A ATENDER (MEIO) - ORDEM FIXA
-    // ============================================
-    const proximosEl = document.getElementById('proximosFilaCard');
-    if (proximosEl) {
-        if (proximosAtender.length > 0) {
-            let html = '';
-            proximosAtender.forEach(item => {
-                html += `
-                    <div class="item-fila-vertical urgente">
-                        <div class="servico-tag">${item.servico_nome || item.servico_id}</div>
-                        <span class="senha-numero">${item.senha}</span>
-                        <div class="senha-info">
-                            <span class="senha-cliente">${item.cliente_nome}</span>
-                        </div>
-                    </div>
-                `;
-            });
-            proximosEl.innerHTML = html;
-        } else {
-            proximosEl.innerHTML = `
-                <div class="empty-agendamento">
-                    <i class="fas fa-users"></i>
-                    <p>Nenhum próximo</p>
-                </div>
-            `;
-        }
-    }
-    
-    // ============================================
-    // COLUNA 3: OUTROS NA FILA (ESQUERDA) - COM SCROLL FUNCIONAL
-    // ============================================
-    const proximosTrack = document.getElementById('proximasSenhasTrack');
-    if (proximosTrack) {
-        if (outrosNaFila.length > 0) {
-            let html = '';
-            
-            // Usar a mesma ordem fixa dos serviços
-            servicosOrdenados.forEach(servicoId => {
-                const servico = agendamentosPorServico[servicoId];
-                
-                // Filtrar apenas os itens que estão na fila (outros)
-                const itensFila = servico.itens.filter(item => 
-                    ['Na fila', 'Verificado'].includes(item.status)
-                );
-                
-                if (itensFila.length > 0) {
-                    const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
-                    
-                    html += `
-                        <div class="fila-servico" id="container-${servicoIdSafe}">
-                            <div class="fila-servico-header">
-                                <i class="fas fa-star"></i>
-                                <h4 title="${servico.nome}">${servico.nome}</h4>
-                                <span class="servico-count">${itensFila.length}</span>
-                            </div>
-                            
-                            <div class="servico-carousel-container">
-                                <button class="servico-arrow prev" onclick="scrollServico('${servicoIdSafe}', -192)" ${itensFila.length <= 3 ? 'disabled' : ''}>
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                                
-                                <div class="servico-scroll" id="servico-${servicoIdSafe}-scroll">
-                                    <div class="servico-track">
-                    `;
-                    
-                    // Manter ordem original (mais antigo primeiro) e exibir da esquerda para a direita
-                    // Mas como o container tem alinhamento à direita, o primeiro card (mais antigo) 
-                    // aparecerá no final (direita)
-                    itensFila.forEach((item, idx) => {
-                        const posicaoReal = idx + 1; // 1° na fila, 2° na fila, etc.
-                        html += `
-                            <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${servicoIdSafe}">
-                                <div class="senha-numero">${item.senha}</div>
-                                <div class="senha-cliente">${item.cliente_nome}</div>
-                                <span class="senha-posicao">${posicaoReal}° na fila</span>
-                            </div>
-                        `;
-                    });
-                    
-                    html += `
-                                    </div>
-                                </div>
-                                
-                                <button class="servico-arrow next" onclick="scrollServico('${servicoIdSafe}', 192)" ${itensFila.length <= 3 ? 'disabled' : ''}>
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
-                            
-                            <div class="servico-page-dots" id="dots-${servicoIdSafe}">
-                    `;
-                    
-                    // Calcular quantas páginas (a cada 3 cards)
-                    const totalPages = Math.ceil(itensFila.length / 3);
-                    for (let i = 0; i < totalPages; i++) {
-                        html += `<span class="dot ${i === 0 ? 'active' : ''}" onclick="irParaPaginaServico('${servicoIdSafe}', ${i})"></span>`;
-                    }
-                    
-                    html += `
-                            </div>
-                        </div>
-                    `;
-                }
-            });
-            
-            proximosTrack.innerHTML = html;
-            
-            // Configurar scroll para cada serviço após renderizar
-            setTimeout(() => {
-                servicosOrdenados.forEach(servicoId => {
-                    const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
-                    configurarScrollServico(servicoIdSafe);
-                });
-                
-                // 🔥 RECONFIGURAR CARROSSEL AUTOMÁTICO SE ESTIVER ATIVO
-                if (carrosselAutomaticoAtivo) {
-                    pararCarrosselAutomatico();
-                    iniciarCarrosselSenhasAutomatico();
-                }
-                
-            }, 100);
-            
-        } else {
-            // Placeholders
-            proximosTrack.innerHTML = `
-                <div class="fila-servico">
-                    <div class="fila-servico-header">
-                        <i class="fas fa-star"></i>
-                        <h4>Aguardando...</h4>
-                        <span class="servico-count">0</span>
-                    </div>
-                    <div class="servico-carousel-container">
-                        <button class="servico-arrow prev" disabled><i class="fas fa-chevron-left"></i></button>
-                        <div class="servico-scroll">
-                            <div class="servico-track">
-                                <div class="servico-card-placeholder">
-                                    <div class="placeholder-icon"><i class="fas fa-clock"></i></div>
-                                    <div class="placeholder-text">Sem agendamentos</div>
-                                </div>
-                            </div>
-                        </div>
-                        <button class="servico-arrow next" disabled><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
     // 🔥 CONFIGURAR EVENTOS DE INTERAÇÃO PARA PAUSAR CARROSSEL
     setTimeout(() => {
         configurarPausaAoInteragir();
         criarBotaoPlayNoHeader();
     }, 200);
 }
+
+// ============================================
+// FUNÇÃO PARA MUDAR PÁGINA DA COLUNA OUTROS NA FILA
+// ============================================
+window.mudarPaginaOutrosFila = function(novaPagina) {
+    if (novaPagina < 1 || novaPagina > totalPaginasOutrosFila || novaPagina === paginaAtualOutrosFila) {
+        return;
+    }
+    
+    console.log(`📑 Mudando página de ${paginaAtualOutrosFila} para ${novaPagina}`);
+    paginaAtualOutrosFila = novaPagina;
+    
+    // Re-renderizar apenas a coluna Outros na Fila
+    renderizarPainelAgendamento();
+    
+    // 🔥 PAUSAR CARROSSEL AUTOMÁTICO QUANDO USUÁRIO MUDA MANUALMENTE
+    if (carrosselAutomaticoAtivo) {
+        alternarCarrosselAutomatico(); // Pausa o carrossel
+    }
+};
 
 // ============================================
 // CONFIGURAR SCROLL DO SERVIÇO - VERSÃO OTIMIZADA
@@ -1184,7 +1241,7 @@ window.irParaPaginaServico = function(servicoId, pageIndex) {
 };
 
 // ============================================
-// INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS - MAIS LENTO
+// INICIAR CARROSSEL AUTOMÁTICO DAS SENHAS - COM MUDANÇA DE PÁGINA
 // ============================================
 function iniciarCarrosselSenhasAutomatico() {
     if (!carrosselAutomaticoAtivo) return;
@@ -1199,6 +1256,8 @@ function iniciarCarrosselSenhasAutomatico() {
     
     // Mapa para controlar a posição e direção de cada serviço
     const estadoCarrossel = new Map();
+    let contadorCiclos = 0;
+    const ciclosPorPagina = 2; // Número de ciclos de scroll antes de mudar de página
     
     // Primeiro, garantir que todos os scrolls comecem na DIREITA
     setTimeout(() => {
@@ -1227,6 +1286,9 @@ function iniciarCarrosselSenhasAutomatico() {
                 pararCarrosselAutomatico();
                 return;
             }
+            
+            // Primeiro: fazer scroll dos cards
+            let algumScrollFeito = false;
             
             document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
                 const maxScroll = scrollEl.scrollWidth - scrollEl.clientWidth;
@@ -1268,18 +1330,44 @@ function iniciarCarrosselSenhasAutomatico() {
                         estado.posicao = 'direita';
                 }
                 
-                // 🔥 SCROLL MAIS LENTO: aumenta a duração do smooth
                 scrollEl.scrollTo({
                     left: nextScroll,
                     behavior: 'smooth'
                 });
                 
+                algumScrollFeito = true;
+                
                 // Atualizar estado após o scroll
                 setTimeout(() => {
                     atualizarEstadoServico(servicoId);
-                }, 800); // Aumentado para 800ms
+                }, 800);
             });
-        }, 7000); // 🔥 AUMENTADO PARA 7 SEGUNDOS entre movimentos
+            
+            // Segundo: se completou alguns ciclos, mudar de página
+            if (algumScrollFeito) {
+                contadorCiclos++;
+                
+                if (contadorCiclos >= ciclosPorPagina && totalPaginasOutrosFila > 1) {
+                    contadorCiclos = 0;
+                    
+                    // Calcular próxima página
+                    let proximaPagina;
+                    if (paginaAtualOutrosFila === totalPaginasOutrosFila) {
+                        proximaPagina = 1; // Volta para a primeira
+                    } else {
+                        proximaPagina = paginaAtualOutrosFila + 1;
+                    }
+                    
+                    console.log(`🔄 Carrossel: mudando para página ${proximaPagina}`);
+                    
+                    // Mudar página
+                    if (typeof window.mudarPaginaOutrosFila === 'function') {
+                        window.mudarPaginaOutrosFila(proximaPagina);
+                    }
+                }
+            }
+            
+        }, 7000); // 7 segundos entre movimentos
     }, 200);
 }
 
@@ -1400,7 +1488,7 @@ function alternarCarrosselAutomatico() {
 }
 
 // ============================================
-// CRIAR BOTÃO PLAY NO HEADER - VERSÃO CORRIGIDA
+// CRIAR BOTÃO PLAY NO HEADER - COM INFORMAÇÃO DE PÁGINA
 // ============================================
 function criarBotaoPlayNoHeader() {
     setTimeout(() => {
@@ -1416,10 +1504,23 @@ function criarBotaoPlayNoHeader() {
             btnExistente.remove();
         }
         
+        // Remover indicador de página existente
+        const pageIndicatorExistente = document.getElementById('pageIndicatorOutros');
+        if (pageIndicatorExistente) {
+            pageIndicatorExistente.remove();
+        }
+        
         // Encontrar elementos
         const icon = colunaHeader.querySelector('i:first-child');
         const title = colunaHeader.querySelector('h3');
         const badge = colunaHeader.querySelector('.coluna-badge');
+        
+        // Criar container para botão e indicador
+        const controlsContainer = document.createElement('div');
+        controlsContainer.style.display = 'flex';
+        controlsContainer.style.alignItems = 'center';
+        controlsContainer.style.gap = '8px';
+        controlsContainer.style.marginLeft = 'auto';
         
         // Criar botão
         const btnCarrossel = document.createElement('button');
@@ -1427,6 +1528,18 @@ function criarBotaoPlayNoHeader() {
         btnCarrossel.className = `btn-carrossel-outros ${carrosselAutomaticoAtivo ? 'ativo' : ''}`;
         btnCarrossel.innerHTML = carrosselAutomaticoAtivo ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
         btnCarrossel.title = carrosselAutomaticoAtivo ? 'Rolagem automática (ligada)' : 'Rolagem automática (desligada)';
+        
+        // Criar indicador de página (se houver mais de uma página)
+        if (totalPaginasOutrosFila > 1) {
+            const pageIndicator = document.createElement('span');
+            pageIndicator.id = 'pageIndicatorOutros';
+            pageIndicator.className = 'page-indicator-badge';
+            pageIndicator.innerHTML = `${paginaAtualOutrosFila}/${totalPaginasOutrosFila}`;
+            pageIndicator.title = 'Página atual';
+            controlsContainer.appendChild(pageIndicator);
+        }
+        
+        controlsContainer.appendChild(btnCarrossel);
         
         // Guardar conteúdo original
         const iconClone = icon ? icon.cloneNode(true) : null;
@@ -1439,10 +1552,10 @@ function criarBotaoPlayNoHeader() {
         // Reconstruir na ordem correta
         if (iconClone) colunaHeader.appendChild(iconClone);
         if (titleClone) colunaHeader.appendChild(titleClone);
-        colunaHeader.appendChild(btnCarrossel);
+        colunaHeader.appendChild(controlsContainer);
         if (badgeClone) colunaHeader.appendChild(badgeClone);
         
-        // Adicionar evento
+        // Adicionar evento ao botão
         btnCarrossel.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1458,7 +1571,7 @@ function criarBotaoPlayNoHeader() {
             }
         });
         
-        console.log('✅ Botão play criado no header');
+        console.log('✅ Botão play e indicador criados no header');
     }, 500);
 }
 
