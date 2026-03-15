@@ -405,7 +405,7 @@ async function verificarEAvancarFila() {
 }
 
 // ============================================
-// ATUALIZAR INDICADOR DE PÁGINA NO HEADER
+// ATUALIZAR INDICADOR DE PÁGINA E SETAS NO HEADER
 // ============================================
 function atualizarIndicadorPaginaHeader() {
     const pageIndicator = document.getElementById('pageIndicatorOutros');
@@ -413,10 +413,23 @@ function atualizarIndicadorPaginaHeader() {
         pageIndicator.innerHTML = `${paginaAtualOutrosFila}/${totalPaginasOutrosFila}`;
         pageIndicator.title = `Tela ${paginaAtualOutrosFila} de ${totalPaginasOutrosFila}`;
         
-        // Animação suave ao mudar
+        // Animação suave
         pageIndicator.style.animation = 'none';
-        pageIndicator.offsetHeight; // Forçar reflow
+        pageIndicator.offsetHeight;
         pageIndicator.style.animation = 'pageChange 0.3s ease';
+    }
+    
+    // Atualizar estado das setas
+    const controlsContainer = document.getElementById('outrosFilaControls');
+    if (controlsContainer) {
+        const arrows = controlsContainer.querySelectorAll('.page-nav-arrow');
+        if (arrows.length >= 2) {
+            // Seta esquerda (prev)
+            arrows[0].disabled = paginaAtualOutrosFila === 1;
+            
+            // Seta direita (next)
+            arrows[1].disabled = paginaAtualOutrosFila === totalPaginasOutrosFila;
+        }
     }
 }
 
@@ -1562,7 +1575,7 @@ function alternarCarrosselAutomatico() {
 }
 
 // ============================================
-// CRIAR BOTÃO PLAY NO HEADER - COM INFORMAÇÃO DE PÁGINA
+// CRIAR BOTÃO PLAY E SETAS DE NAVEGAÇÃO NO HEADER
 // ============================================
 function criarBotaoPlayNoHeader() {
     setTimeout(() => {
@@ -1573,15 +1586,9 @@ function criarBotaoPlayNoHeader() {
         if (!colunaHeader) return;
         
         // Verificar se já existe e remover
-        const btnExistente = document.getElementById('btnCarrosselOutros');
-        if (btnExistente) {
-            btnExistente.remove();
-        }
-        
-        // Remover indicador de página existente
-        const pageIndicatorExistente = document.getElementById('pageIndicatorOutros');
-        if (pageIndicatorExistente) {
-            pageIndicatorExistente.remove();
+        const controlsExistente = document.getElementById('outrosFilaControls');
+        if (controlsExistente) {
+            controlsExistente.remove();
         }
         
         // Encontrar elementos
@@ -1589,29 +1596,80 @@ function criarBotaoPlayNoHeader() {
         const title = colunaHeader.querySelector('h3');
         const badge = colunaHeader.querySelector('.coluna-badge');
         
-        // Criar container para botão e indicador
+        // Criar container para os controles
         const controlsContainer = document.createElement('div');
+        controlsContainer.id = 'outrosFilaControls';
         controlsContainer.style.display = 'flex';
         controlsContainer.style.alignItems = 'center';
         controlsContainer.style.gap = '8px';
         controlsContainer.style.marginLeft = 'auto';
         
-        // Criar botão
-        const btnCarrossel = document.createElement('button');
-        btnCarrossel.id = 'btnCarrosselOutros';
-        btnCarrossel.className = `btn-carrossel-outros ${carrosselAutomaticoAtivo ? 'ativo' : ''}`;
-        btnCarrossel.innerHTML = carrosselAutomaticoAtivo ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
-        btnCarrossel.title = carrosselAutomaticoAtivo ? 'Rolagem automática (ligada)' : 'Rolagem automática (desligada)';
-        
-        // Criar indicador de página (se houver mais de uma página)
+        // ============================================
+        // SETAS DE NAVEGAÇÃO ENTRE TELAS
+        // ============================================
         if (totalPaginasOutrosFila > 1) {
+            // Seta esquerda
+            const prevPageBtn = document.createElement('button');
+            prevPageBtn.className = 'page-nav-arrow';
+            prevPageBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevPageBtn.title = 'Tela anterior';
+            prevPageBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                mudarPaginaOutrosFila(paginaAtualOutrosFila - 1);
+            };
+            prevPageBtn.disabled = paginaAtualOutrosFila === 1;
+            controlsContainer.appendChild(prevPageBtn);
+            
+            // Indicador de página
             const pageIndicator = document.createElement('span');
             pageIndicator.id = 'pageIndicatorOutros';
             pageIndicator.className = 'page-indicator-badge';
             pageIndicator.innerHTML = `${paginaAtualOutrosFila}/${totalPaginasOutrosFila}`;
             pageIndicator.title = 'Página atual';
             controlsContainer.appendChild(pageIndicator);
+            
+            // Seta direita
+            const nextPageBtn = document.createElement('button');
+            nextPageBtn.className = 'page-nav-arrow';
+            nextPageBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextPageBtn.title = 'Próxima tela';
+            nextPageBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                mudarPaginaOutrosFila(paginaAtualOutrosFila + 1);
+            };
+            nextPageBtn.disabled = paginaAtualOutrosFila === totalPaginasOutrosFila;
+            controlsContainer.appendChild(nextPageBtn);
+            
+            // Pequeno separador
+            const separator = document.createElement('span');
+            separator.className = 'controls-separator';
+            separator.innerHTML = '|';
+            controlsContainer.appendChild(separator);
         }
+        
+        // Botão play/pause (sempre presente)
+        const btnCarrossel = document.createElement('button');
+        btnCarrossel.id = 'btnCarrosselOutros';
+        btnCarrossel.className = `btn-carrossel-outros ${carrosselAutomaticoAtivo ? 'ativo' : ''}`;
+        btnCarrossel.innerHTML = carrosselAutomaticoAtivo ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        btnCarrossel.title = carrosselAutomaticoAtivo ? 'Rolagem automática (ligada)' : 'Rolagem automática (desligada)';
+        
+        btnCarrossel.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            alternarCarrosselAutomatico();
+            
+            // Atualizar ícone
+            if (carrosselAutomaticoAtivo) {
+                btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
+                btnCarrossel.title = 'Rolagem automática (ligada)';
+            } else {
+                btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
+                btnCarrossel.title = 'Rolagem automática (desligada)';
+            }
+        });
         
         controlsContainer.appendChild(btnCarrossel);
         
@@ -1629,23 +1687,7 @@ function criarBotaoPlayNoHeader() {
         colunaHeader.appendChild(controlsContainer);
         if (badgeClone) colunaHeader.appendChild(badgeClone);
         
-        // Adicionar evento ao botão
-        btnCarrossel.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            alternarCarrosselAutomatico();
-            
-            // Atualizar ícone e título do botão
-            if (carrosselAutomaticoAtivo) {
-                btnCarrossel.innerHTML = '<i class="fas fa-pause"></i>';
-                btnCarrossel.title = 'Rolagem automática (ligada)';
-            } else {
-                btnCarrossel.innerHTML = '<i class="fas fa-play"></i>';
-                btnCarrossel.title = 'Rolagem automática (desligada)';
-            }
-        });
-        
-        console.log('✅ Botão play e indicador criados no header');
+        console.log('✅ Controles de navegação e play criados no header');
     }, 500);
 }
 
