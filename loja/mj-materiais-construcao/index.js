@@ -1106,11 +1106,16 @@ function preencherColunaProximos(itens, servicosOrdenados) {
 // FUNÇÃO AUXILIAR: Preencher Coluna OUTROS NA FILA (com páginas)
 // ============================================
 function preencherColunaOutros(itens, servicosOrdenados) {
+    console.log('📦 Preenchendo coluna OUTROS NA FILA com', itens.length, 'itens');
+    
     // Verificar se os elementos existem
     const page1 = document.getElementById('outrosPage1');
     const page2 = document.getElementById('outrosPage2');
     
-    if (!page1 || !page2) return;
+    if (!page1 || !page2) {
+        console.error('❌ Páginas outrosPage1/outrosPage2 não encontradas');
+        return;
+    }
 
     // Limpar containers
     document.querySelectorAll('.servico-card-container').forEach(container => {
@@ -1118,7 +1123,8 @@ function preencherColunaOutros(itens, servicosOrdenados) {
     });
 
     if (itens.length === 0) {
-        // Mostrar placeholder em ambas as páginas
+        console.log('📭 Nenhum item na fila');
+        // Esconder todos os serviços
         document.getElementById('servico-1-page1').style.display = 'none';
         document.getElementById('servico-2-page1').style.display = 'none';
         document.getElementById('servico-1-page2').style.display = 'none';
@@ -1130,6 +1136,7 @@ function preencherColunaOutros(itens, servicosOrdenados) {
     const itensPorServico = {};
     servicosOrdenados.forEach(servicoId => {
         itensPorServico[servicoId] = itens.filter(item => item.servico_id === servicoId);
+        console.log(`📊 Serviço ${servicoId}: ${itensPorServico[servicoId].length} itens`);
     });
 
     // Página 1: Serviço 1 e 2 (índices 0 e 1)
@@ -1137,23 +1144,38 @@ function preencherColunaOutros(itens, servicosOrdenados) {
         const servicoId = servicosOrdenados[i-1];
         const container = document.querySelector(`#servico-${i}-page1 .servico-card-container`);
         const filaServicoDiv = document.getElementById(`servico-${i}-page1`);
+        const headerTitle = filaServicoDiv?.querySelector('h4');
+        const countSpan = filaServicoDiv?.querySelector('.servico-count');
 
         if (container && filaServicoDiv) {
             if (servicoId && itensPorServico[servicoId] && itensPorServico[servicoId].length > 0) {
+                console.log(`✅ Página 1 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
                 filaServicoDiv.style.display = 'flex';
-                const countSpan = filaServicoDiv.querySelector('.servico-count');
+                
+                // Atualizar nome do serviço no cabeçalho
+                if (headerTitle) {
+                    const servicoNome = itensPorServico[servicoId][0]?.servico_nome || servicoId;
+                    headerTitle.textContent = servicoNome;
+                    headerTitle.title = servicoNome;
+                }
+                
                 if (countSpan) countSpan.textContent = itensPorServico[servicoId].length;
 
-                // Manter ordem original (mais antigo primeiro)
+                // Limpar container antes de adicionar
+                container.innerHTML = '';
+
+                // Adicionar cards na ORDEM CORRETA (mais antigo à direita)
+                // O array já está ordenado por timestamp (mais antigo primeiro)
                 itensPorServico[servicoId].forEach((item, idx) => {
-                    const posicaoReal = idx + 1;
-                    container.innerHTML += `
+                    const posicaoReal = idx + 1; // Posição na fila (1° = mais antigo)
+                    const cardHtml = `
                         <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${item.servico_id}">
                             <div class="senha-numero">${item.senha}</div>
                             <div class="senha-cliente">${item.cliente_nome}</div>
                             <span class="senha-posicao">${posicaoReal}° na fila</span>
                         </div>
                     `;
+                    container.innerHTML += cardHtml;
                 });
             } else {
                 filaServicoDiv.style.display = 'none';
@@ -1167,28 +1189,82 @@ function preencherColunaOutros(itens, servicosOrdenados) {
         const servicoId = servicosOrdenados[servicoIndex];
         const container = document.querySelector(`#servico-${i}-page2 .servico-card-container`);
         const filaServicoDiv = document.getElementById(`servico-${i}-page2`);
+        const headerTitle = filaServicoDiv?.querySelector('h4');
+        const countSpan = filaServicoDiv?.querySelector('.servico-count');
 
         if (container && filaServicoDiv) {
             if (servicoId && itensPorServico[servicoId] && itensPorServico[servicoId].length > 0) {
+                console.log(`✅ Página 2 - Serviço ${i} (${servicoId}): ${itensPorServico[servicoId].length} itens`);
                 filaServicoDiv.style.display = 'flex';
-                const countSpan = filaServicoDiv.querySelector('.servico-count');
+                
+                // Atualizar nome do serviço no cabeçalho
+                if (headerTitle) {
+                    const servicoNome = itensPorServico[servicoId][0]?.servico_nome || servicoId;
+                    headerTitle.textContent = servicoNome;
+                    headerTitle.title = servicoNome;
+                }
+                
                 if (countSpan) countSpan.textContent = itensPorServico[servicoId].length;
 
+                // Limpar container antes de adicionar
+                container.innerHTML = '';
+
+                // Adicionar cards na ORDEM CORRETA
                 itensPorServico[servicoId].forEach((item, idx) => {
                     const posicaoReal = idx + 1;
-                    container.innerHTML += `
+                    const cardHtml = `
                         <div class="servico-card" data-posicao="${posicaoReal}" data-servico="${item.servico_id}">
                             <div class="senha-numero">${item.senha}</div>
                             <div class="senha-cliente">${item.cliente_nome}</div>
                             <span class="senha-posicao">${posicaoReal}° na fila</span>
                         </div>
                     `;
+                    container.innerHTML += cardHtml;
                 });
             } else {
                 filaServicoDiv.style.display = 'none';
             }
         }
     }
+
+    // Configurar scroll para cada serviço após renderizar
+    setTimeout(() => {
+        configurarScrollServicos();
+    }, 100);
+}
+
+// ============================================
+// FUNÇÃO AUXILIAR: Configurar scroll dos serviços
+// ============================================
+function configurarScrollServicos() {
+    document.querySelectorAll('.servico-scroll').forEach(scrollEl => {
+        const servicoId = scrollEl.id.replace('servico-', '').replace('-scroll', '');
+        
+        scrollEl.addEventListener('scroll', function() {
+            atualizarEstadoServico(servicoId);
+        });
+
+        // Configurar setas
+        const container = scrollEl.closest('.servico-carousel-container');
+        if (container) {
+            const prevBtn = container.querySelector('.prev');
+            const nextBtn = container.querySelector('.next');
+            
+            if (prevBtn) {
+                prevBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    scrollServico(servicoId, -192);
+                });
+            }
+            
+            if (nextBtn) {
+                nextBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    scrollServico(servicoId, 192);
+                });
+            }
+        }
+    });
 }
 
 // ============================================
