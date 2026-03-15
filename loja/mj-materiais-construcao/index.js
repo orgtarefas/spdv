@@ -1064,8 +1064,6 @@ function renderizarPainelAgendamento() {
                                 <i class="fas fa-star"></i>
                                 <h4 title="${servico.nome}">
                                     ${servico.nome}
-                                    <span class="servico-posicao-badge">${posicaoGeral}°</span>
-                                    <!-- BADGE REMOVIDO -->
                                 </h4>
                                 <span class="servico-count">${itensFila.length}</span>
                             </div>
