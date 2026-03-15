@@ -69,7 +69,7 @@
                                     <span>Estoque</span>
                                 </a>
                                 
-                                <!-- Gestão de Agendamento -->
+                                <!-- 🔥 NOVO: Gestão de Agendamento -->
                                 <a href="#" class="menu-item" id="menuGestaoAgendamento" style="display: none;">
                                     <i class="fas fa-calendar-check"></i>
                                     <span>Gestão de Agendamento</span>
@@ -155,10 +155,9 @@
                 </div>
             </div>
             
-            <!-- Container com 3 colunas -->
+            <!-- Container com 3 colunas de tamanhos diferentes -->
             <div class="agendamento-colunas">
-                
-                <!-- COLUNA 1: OUTROS NA FILA (ESQUERDA) -->
+                <!-- Coluna 1: OUTROS NA FILA (ESQUERDA) -->
                 <div class="agendamento-coluna coluna-outros">
                     <div class="coluna-header">
                         <i class="fas fa-users"></i>
@@ -166,76 +165,25 @@
                         <span class="coluna-badge" id="totalOutrosBadge">0</span>
                     </div>
                     
-                    <!-- Container com duas páginas -->
-                    <div class="outros-pages-container">
-                        <!-- Página 1 -->
-                        <div class="outros-page page-1 active" id="outrosPage1">
-                            <div class="fila-servico" id="servico-1-page1">
-                                <div class="fila-servico-header">
-                                    <i class="fas fa-star"></i>
-                                    <h4>Carregando...</h4>
-                                    <span class="servico-count">0</span>
-                                </div>
-                                <div class="servico-card-container"></div>
-                            </div>
-                            <div class="fila-servico" id="servico-2-page1">
-                                <div class="fila-servico-header">
-                                    <i class="fas fa-star"></i>
-                                    <h4>Carregando...</h4>
-                                    <span class="servico-count">0</span>
-                                </div>
-                                <div class="servico-card-container"></div>
+                    <!-- Carrossel horizontal (vazio - será preenchido pelo JS) -->
+                    <div class="proximos-carousel-container">
+                        <div class="proximos-scroll" id="proximasSenhasScroll">
+                            <div class="proximos-track" id="proximasSenhasTrack">
+                                <!-- CONTEÚDO SERÁ PREENCHIDO PELO JAVASCRIPT -->
                             </div>
                         </div>
-                
-                        <!-- Página 2 -->
-                        <div class="outros-page page-2" id="outrosPage2">
-                            <div class="fila-servico" id="servico-1-page2">
-                                <div class="fila-servico-header">
-                                    <i class="fas fa-star"></i>
-                                    <h4>Carregando...</h4>
-                                    <span class="servico-count">0</span>
-                                </div>
-                                <div class="servico-card-container"></div>
-                            </div>
-                            <div class="fila-servico" id="servico-2-page2">
-                                <div class="fila-servico-header">
-                                    <i class="fas fa-star"></i>
-                                    <h4>Carregando...</h4>
-                                    <span class="servico-count">0</span>
-                                </div>
-                                <div class="servico-card-container"></div>
-                            </div>
-                        </div>
-                    </div>
-                
-                    <!-- Botões de página -->
-                    <div class="outros-paginacao">
-                        <button class="page-btn active" data-page="1">1</button>
-                        <button class="page-btn" data-page="2">2</button>
                     </div>
                 </div>
-                    
-                <!-- COLUNA 2: PRÓXIMOS A ATENDER (MEIO) -->
+                
+                <!-- Coluna 2: PRÓXIMOS A ATENDER (MEIO) -->
                 <div class="agendamento-coluna coluna-proximos">
                     <div class="coluna-header">
                         <i class="fas fa-arrow-right"></i>
                         <h3>PRÓXIMOS A ATENDER</h3>
+                   <!-- <span class="coluna-badge" id="totalFilaBadge">0</span> -->
                     </div>
                     <div class="coluna-content lista-vertical" id="proximosFilaCard">
-                        <!-- TELA 1 -->
-                        <div class="fila-tela tela-1">
-                            <h4 class="tela-titulo">Tela 1</h4>
-                            <div class="fila-servico-item" id="proximo-servico-1"></div>
-                            <div class="fila-servico-item" id="proximo-servico-2"></div>
-                        </div>
-                
-                        <!-- TELA 2 -->
-                        <div class="fila-tela tela-2">
-                            <h4 class="tela-titulo">Tela 2</h4>
-                            <div class="fila-servico-item" id="proximo-servico-3"></div>
-                            <div class="fila-servico-item" id="proximo-servico-4"></div>
-                        </div>
+                        <!-- CONTEÚDO SERÁ PREENCHIDO PELO JAVASCRIPT -->
                     </div>
                     <div class="coluna-footer">
                         <i class="fas fa-clock"></i> 
@@ -244,106 +192,102 @@
                     </div>
                 </div>
                 
-                <!-- COLUNA 3: EM ATENDIMENTO (DIREITA) -->
+                <!-- Coluna 3: EM ATENDIMENTO (DIREITA) -->
                 <div class="agendamento-coluna coluna-chamando">
                     <div class="coluna-header chamando">
                         <i class="fas fa-bell"></i>
                         <h3>EM ATENDIMENTO</h3>
                     </div>
                     <div class="coluna-content" id="chamandoAgoraCard">
-                        <!-- TELA 1 -->
-                        <div class="fila-tela tela-1">
-                            <h4 class="tela-titulo">Tela 1</h4>
-                            <div class="fila-servico-item" id="chamando-servico-1"></div>
-                            <div class="fila-servico-item" id="chamando-servico-2"></div>
-                        </div>
-                
-                        <!-- TELA 2 -->
-                        <div class="fila-tela tela-2">
-                            <h4 class="tela-titulo">Tela 2</h4>
-                            <div class="fila-servico-item" id="chamando-servico-3"></div>
-                            <div class="fila-servico-item" id="chamando-servico-4"></div>
-                        </div>
+                        <!-- CONTEÚDO SERÁ PREENCHIDO PELO JAVASCRIPT -->
                     </div>
                     <div class="coluna-footer">
                         <i class="fas fa-volume-up"></i> 
                         Último: <span id="ultimoChamadoHora">--:--</span>
                     </div>
                 </div>
-                
-            </div> <!-- FIM agendamento-colunas -->
-        </div> <!-- FIM agendamentoContainer -->
-
-        <!-- Modal de Agendamento Rápido -->
-        <div id="agendamentoRapidoModal" class="modal" style="display: none;">
-            <div class="modal-content modal-small">
-                <div class="modal-header">
-                    <h3><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
-                    <button class="modal-close" onclick="fecharModal('agendamentoRapidoModal')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="agendamento-rapido-form">
-                        <div class="form-group">
-                            <label><i class="fas fa-star"></i> Serviço</label>
-                            <select id="servicoSelect" class="form-select">
-                                <option value="">Selecione um serviço...</option>
-                            </select>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group half">
-                                <label><i class="fas fa-calendar"></i> Data</label>
-                                <input type="date" id="agendamentoData" class="form-input">
-                            </div>
-                            <div class="form-group half">
-                                <label><i class="fas fa-clock"></i> Horário</label>
-                                <select id="agendamentoHorario" class="form-select" disabled>
-                                    <option value="">Primeiro selecione um serviço e data</option>
+            </div>
+            <!-- Modal de Agendamento Rápido -->
+            <div id="agendamentoRapidoModal" class="modal" style="display: none;">
+                <div class="modal-content modal-small">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-calendar-plus"></i> Novo Agendamento</h3>
+                        <button class="modal-close" onclick="fecharModal('agendamentoRapidoModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="agendamento-rapido-form">
+                            <div class="form-group">
+                                <label><i class="fas fa-star"></i> Serviço</label>
+                                <select id="servicoSelect" class="form-select">
+                                    <option value="">Selecione um serviço...</option>
                                 </select>
                             </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label><i class="fas fa-calendar"></i> Data</label>
+                                    <input type="date" id="agendamentoData" class="form-input">
+                                </div>
+                                <div class="form-group half">
+                                    <label><i class="fas fa-clock"></i> Horário</label>
+                                    <select id="agendamentoHorario" class="form-select">
+                                        <option value="">Selecione</option>
+                                        <option value="08:00">08:00</option>
+                                        <option value="09:00">09:00</option>
+                                        <option value="10:00">10:00</option>
+                                        <option value="11:00">11:00</option>
+                                        <option value="13:00">13:00</option>
+                                        <option value="14:00">14:00</option>
+                                        <option value="15:00">15:00</option>
+                                        <option value="16:00">16:00</option>
+                                        <option value="17:00">17:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn-confirmar-agendamento" id="btnConfirmarAgendamento">
+                                <i class="fas fa-check"></i> Confirmar Agendamento
+                            </button>
                         </div>
-                        <button class="btn-confirmar-agendamento" id="btnConfirmarAgendamento">
-                            <i class="fas fa-check"></i> Confirmar Agendamento
-                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal de Nova Senha Hoje -->
+            <div id="novaSenhaHojeModal" class="modal" style="display: none;">
+                <div class="modal-content modal-small">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-bolt"></i> Nova Senha Hoje</h3>
+                        <button class="modal-close" onclick="fecharModal('novaSenhaHojeModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="senha-rapida-form">
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar"></i> Data</label>
+                                <input type="date" id="senhaRapidaData" class="form-input" disabled>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-star"></i> Serviço</label>
+                                <select id="senhaRapidaServico" class="form-select" onchange="carregarPrimeiroHorarioDisponivel(event)">
+                                    <option value="">Selecione um serviço...</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-clock"></i> Primeiro Horário Disponível</label>
+                                <input type="text" id="senhaRapidaHorario" class="form-input" readonly placeholder="Selecione um serviço primeiro">
+                            </div>
+                            
+                            <button class="btn-confirmar-senha" id="btnConfirmarSenhaHoje">
+                                <i class="fas fa-bolt"></i> Gerar Senha
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Modal de Nova Senha Hoje -->
-        <div id="novaSenhaHojeModal" class="modal" style="display: none;">
-            <div class="modal-content modal-small">
-                <div class="modal-header">
-                    <h3><i class="fas fa-bolt"></i> Nova Senha Hoje</h3>
-                    <button class="modal-close" onclick="fecharModal('novaSenhaHojeModal')">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="senha-rapida-form">
-                        <div class="form-group">
-                            <label><i class="fas fa-calendar"></i> Data</label>
-                            <input type="date" id="senhaRapidaData" class="form-input" disabled>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label><i class="fas fa-star"></i> Serviço</label>
-                            <select id="senhaRapidaServico" class="form-select" onchange="carregarPrimeiroHorarioDisponivel(event)">
-                                <option value="">Selecione um serviço...</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label><i class="fas fa-clock"></i> Primeiro Horário Disponível</label>
-                            <input type="text" id="senhaRapidaHorario" class="form-input" readonly placeholder="Selecione um serviço primeiro">
-                        </div>
-                        
-                        <button class="btn-confirmar-senha" id="btnConfirmarSenhaHoje">
-                            <i class="fas fa-bolt"></i> Gerar Senha
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
+        <!-- ============================================ -->
         <!-- Modal de Consulta Rápida -->
+        <!-- ============================================ -->
         <div id="quickSearchModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
@@ -525,6 +469,7 @@
                             Enviamos um e-mail de confirmação para o endereço acima.<br>
                             Por favor, verifique na caixa de entrada e spam o e-mail do destinatário <strong>valida_login@lojasite...</strong>
                         </p>
+                        <!-- BOTÃO REMOVIDO - agora o reenvio é automático no login -->
                         <div class="verificacao-acoes">
                             <button class="btn-verificacao secundario" id="btnVerificarAgora">
                                 <i class="fas fa-sync-alt"></i> Já verifiquei
@@ -582,7 +527,7 @@
         <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
     </div>
 
-    <!-- Scripts -->
+    <!-- Scripts - CAMINHOS ABSOLUTOS -->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     
     <!-- Firebase (compat version) -->
@@ -591,15 +536,16 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
     
-    <!-- 1️⃣ PRIMEIRO: Login Firebase -->
+    <!-- 1️⃣ PRIMEIRO: Login Firebase (NÃO é module) -->
     <script src="../../login_firebase.js"></script>
     
-    <!-- 2️⃣ SEGUNDO: novo_lojas.js -->
+    <!-- 2️⃣ SEGUNDO: Carregar novo_lojas.js (global) -->
     <script type="module" src="../../novo_lojas.js"></script>
     
-    <!-- 3️⃣ TERCEIRO: Scripts da loja -->
+    <!-- 3️⃣ TERCEIRO: Extrair lojaId e carregar scripts da loja -->
     <script>
         (function() {
+            // EXTRAIR LOJA ID DA URL
             const pathParts = window.location.pathname.split('/');
             const lojaIndex = pathParts.indexOf('loja');
             
@@ -610,8 +556,11 @@
             
             const lojaId = pathParts[lojaIndex + 1];
             console.log(`📍 Loja detectada: ${lojaId}`);
+            
+            // SALVAR NO WINDOW
             window.lojaIdAtual = lojaId;
             
+            // FUNÇÃO PARA AGUARDAR getLojaConfig
             function aguardarGetLojaConfig(callback) {
                 if (typeof window.getLojaConfig === 'function') {
                     console.log('✅ getLojaConfig disponível');
@@ -622,11 +571,14 @@
                 }
             }
             
+            // CARREGAR SCRIPTS DA LOJA - VERSÃO UNIVERSAL
             function carregarScriptsLoja() {
+                // Determinar o caminho base baseado na localização do index.html
+                // Se estamos em /loja/nome-da-loja/, o caminho base é './'
                 const scripts = [
-                    `novo_firebase_config.js`,
-                    `imagem_api.js`,
-                    `index.js`
+                    `novo_firebase_config.js`,  // Mesma pasta do index.html
+                    `imagem_api.js`,             // Mesma pasta do index.html
+                    `index.js`                   // Mesma pasta do index.html
                 ];
                 
                 let index = 0;
@@ -638,7 +590,7 @@
                     }
                     
                     const script = document.createElement('script');
-                    script.src = scripts[index];
+                    script.src = scripts[index]; // Caminho relativo à pasta atual
                     script.type = 'module';
                     script.onload = () => {
                         console.log(`✅ Carregado: ${scripts[index]}`);
@@ -649,6 +601,7 @@
                         console.error(`❌ Erro ao carregar: ${scripts[index]}`);
                         console.log(`Tentando caminho alternativo: ../../loja/${lojaId}/${scripts[index]}`);
                         
+                        // Fallback: tentar caminho absoluto
                         const scriptFallback = document.createElement('script');
                         scriptFallback.src = `../../loja/${lojaId}/${scripts[index]}`;
                         scriptFallback.type = 'module';
@@ -671,8 +624,12 @@
                 carregarProximo();
             }
             
+            // AGUARDAR E INICIAR
             aguardarGetLojaConfig(carregarScriptsLoja);
         })();
     </script>
 </body>
 </html>
+
+
+
