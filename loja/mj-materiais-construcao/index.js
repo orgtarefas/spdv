@@ -405,6 +405,22 @@ async function verificarEAvancarFila() {
 }
 
 // ============================================
+// ATUALIZAR INDICADOR DE PÁGINA NO HEADER
+// ============================================
+function atualizarIndicadorPaginaHeader() {
+    const pageIndicator = document.getElementById('pageIndicatorOutros');
+    if (pageIndicator) {
+        pageIndicator.innerHTML = `${paginaAtualOutrosFila}/${totalPaginasOutrosFila}`;
+        pageIndicator.title = `Tela ${paginaAtualOutrosFila} de ${totalPaginasOutrosFila}`;
+        
+        // Animação suave ao mudar
+        pageIndicator.style.animation = 'none';
+        pageIndicator.offsetHeight; // Forçar reflow
+        pageIndicator.style.animation = 'pageChange 0.3s ease';
+    }
+}
+
+// ============================================
 // ATUALIZAR STATUS AGENDAMENTO - VERSÃO SUPER SIMPLES
 // ============================================
 async function atualizarStatusAgendamento(agendamento, novoStatus) {
@@ -1034,26 +1050,13 @@ function renderizarPainelAgendamento() {
                 }
             });
             
-            // ============================================
-            // ADICIONAR CONTROLES DE PAGINAÇÃO (SETAS)
-            // ============================================
-            if (totalPaginasOutrosFila > 1) {
-                html += `
-                    <div class="paginacao-outros-fila">
-                        <button class="pagina-arrow prev" onclick="mudarPaginaOutrosFila(${paginaAtualOutrosFila - 1})" ${paginaAtualOutrosFila === 1 ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <span class="pagina-indicador">
-                            Tela ${paginaAtualOutrosFila}/${totalPaginasOutrosFila}
-                        </span>
-                        <button class="pagina-arrow next" onclick="mudarPaginaOutrosFila(${paginaAtualOutrosFila + 1})" ${paginaAtualOutrosFila === totalPaginasOutrosFila ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
-                `;
-            }
+            // NÃO adicionamos mais os controles de paginação aqui
+            // Eles agora ficam no header através do page-indicator-badge
             
             proximosTrack.innerHTML = html;
+            
+            // Atualizar o indicador de página no header
+            atualizarIndicadorPaginaHeader();
             
             // Configurar scroll para cada serviço após renderizar
             setTimeout(() => {
@@ -1093,6 +1096,11 @@ function renderizarPainelAgendamento() {
                     </div>
                 </div>
             `;
+            
+            // Atualizar indicador para 1/1 quando não há serviços
+            totalPaginasOutrosFila = 1;
+            paginaAtualOutrosFila = 1;
+            atualizarIndicadorPaginaHeader();
         }
     }
     
@@ -1183,6 +1191,8 @@ window.mudarPaginaOutrosFila = function(novaPagina) {
     
     // Re-renderizar apenas a coluna Outros na Fila
     renderizarPainelAgendamento();
+    
+    // Atualizar indicador (já será feito dentro do renderizarPainelAgendamento)
     
     // 🔥 PAUSAR CARROSSEL AUTOMÁTICO QUANDO USUÁRIO MUDA MANUALMENTE
     if (carrosselAutomaticoAtivo) {
