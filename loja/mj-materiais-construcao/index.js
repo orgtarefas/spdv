@@ -944,14 +944,32 @@ function renderizarPainelAgendamento() {
                 }
             });
             
-            // Ordenar serviços pelo timestamp do primeiro agendamento (mais antigo primeiro)
-            servicosComPrimeiroAgendamento.sort((a, b) => a.primeiroTimestamp - b.primeiroTimestamp);
+            // 🔥 ORDENAÇÃO CONSISTENTE:
+            // 1º Critério: Timestamp do primeiro agendamento (mais antigo primeiro)
+            // 2º Critério: Nome do serviço (ordem alfabética para desempate)
+            // 3º Critério: ID do serviço (garantia final de ordem consistente)
+            servicosComPrimeiroAgendamento.sort((a, b) => {
+                // Primeiro critério: timestamp
+                if (a.primeiroTimestamp !== b.primeiroTimestamp) {
+                    return a.primeiroTimestamp - b.primeiroTimestamp;
+                }
+                
+                // Segundo critério: nome do serviço (alfabético)
+                const nomeCompare = a.nome.localeCompare(b.nome);
+                if (nomeCompare !== 0) {
+                    return nomeCompare;
+                }
+                
+                // Terceiro critério: ID do serviço (garantia final)
+                return a.servicoId.localeCompare(b.servicoId);
+            });
             
             // Extrair apenas os IDs na ordem correta
             const servicosOrdenadosPorPrimeiroAgendamento = servicosComPrimeiroAgendamento.map(s => s.servicoId);
             
             console.log('📊 Serviços ordenados por primeiro agendamento (mais antigo primeiro):', 
-                servicosOrdenadosPorPrimeiroAgendamento.map(id => ({
+                servicosOrdenadosPorPrimeiroAgendamento.map((id, index) => ({
+                    posicao: index + 1,
                     id: id,
                     nome: agendamentosPorServico[id].nome,
                     primeiroHorario: new Date(servicosComPrimeiroAgendamento.find(s => s.servicoId === id).primeiroTimestamp).toLocaleTimeString()
@@ -974,10 +992,11 @@ function renderizarPainelAgendamento() {
             const servicosPaginaAtual = servicosOrdenadosPorPrimeiroAgendamento.slice(inicio, fim);
             
             console.log(`📑 Página ${paginaAtualOutrosFila}/${totalPaginasOutrosFila} - Serviços:`, 
-                servicosPaginaAtual.map(id => ({
+                servicosPaginaAtual.map((id, idx) => ({
                     id: id,
                     nome: agendamentosPorServico[id].nome,
-                    posicao: servicosOrdenadosPorPrimeiroAgendamento.indexOf(id) + 1
+                    posicao: servicosOrdenadosPorPrimeiroAgendamento.indexOf(id) + 1,
+                    primeiroHorario: new Date(servicosComPrimeiroAgendamento.find(s => s.servicoId === id).primeiroTimestamp).toLocaleTimeString()
                 }))
             );
             
@@ -988,9 +1007,11 @@ function renderizarPainelAgendamento() {
                 const paginaFim = Math.min(paginaInicio + 2, servicosOrdenadosPorPrimeiroAgendamento.length);
                 const servicosPagina = servicosOrdenadosPorPrimeiroAgendamento.slice(paginaInicio, paginaFim);
                 
-                console.log(`   Tela ${i + 1}: ${servicosPagina.map(id => 
-                    `${i * 2 + servicosPagina.indexOf(id) + 1}° - ${agendamentosPorServico[id].nome}`
-                ).join(' | ')}`);
+                console.log(`   Tela ${i + 1}: ${servicosPagina.map((id, idx) => {
+                    const posRelativa = idx + 1;
+                    const posGlobal = paginaInicio + posRelativa;
+                    return `${posGlobal}° - ${agendamentosPorServico[id].nome}`;
+                }).join(' | ')}`);
             }
             
             let html = '';
@@ -1009,7 +1030,7 @@ function renderizarPainelAgendamento() {
                     const posicaoGeral = servicosOrdenadosPorPrimeiroAgendamento.indexOf(servicoId) + 1;
                     
                     html += `
-                        <div class="fila-servico" data-posicao-geral="${posicaoGeral}" data-servico-id="${servicoId}">
+                        <div class="fila-servico" data-posicao-geral="${posicaoGeral}" data-servico-id="${servicoId}" data-primeiro-timestamp="${servicosComPrimeiroAgendamento.find(s => s.servicoId === servicoId).primeiroTimestamp}">
                             <div class="fila-servico-header">
                                 <i class="fas fa-star"></i>
                                 <h4 title="${servico.nome}">
@@ -1062,9 +1083,6 @@ function renderizarPainelAgendamento() {
                     `;
                 }
             });
-            
-            // NÃO adicionamos mais os controles de paginação aqui
-            // Eles agora ficam no header através do page-indicator-badge
             
             proximosTrack.innerHTML = html;
             
