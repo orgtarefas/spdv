@@ -913,73 +913,85 @@ function renderizarPainelAgendamento() {
     });
 
     // ============================================
-    // COLUNA 1: OUTROS NA FILA (ESQUERDA) - COM DUAS TELAS - ORDEM POR PRIMEIRO AGENDAMENTO
+    // COLUNA 1: OUTROS NA FILA (ESQUERDA) - ORDEM SEGUINDO A COLUNA "EM ATENDIMENTO"
     // ============================================
     const proximosTrack = document.getElementById('proximasSenhasTrack');
     if (proximosTrack) {
         if (outrosNaFila.length > 0) {
             // ============================================
-            // ORDENAR SERVIÇOS PELO PRIMEIRO AGENDAMENTO DO DIA (MAIS ANTIGO PRIMEIRO)
+            // 1. PRIMEIRO: IDENTIFICAR A ORDEM DA COLUNA "EM ATENDIMENTO"
             // ============================================
             
-            // Para cada serviço, encontrar o timestamp do primeiro agendamento do dia
-            const servicosComPrimeiroAgendamento = [];
+            // Coletar serviços que estão em atendimento (na ordem em que aparecem)
+            const servicosEmAtendimento = [];
             
-            Object.entries(agendamentosPorServico).forEach(([servicoId, servico]) => {
-                // Pegar TODOS os agendamentos deste serviço (independente de status)
-                const todosAgendamentos = servico.itens;
-                
-                if (todosAgendamentos.length > 0) {
-                    // Encontrar o agendamento mais antigo (menor timestamp)
-                    const primeiroAgendamento = todosAgendamentos.reduce((menor, atual) => {
-                        return atual.timestamp < menor.timestamp ? atual : menor;
-                    }, todosAgendamentos[0]);
-                    
-                    servicosComPrimeiroAgendamento.push({
-                        servicoId: servicoId,
-                        nome: servico.nome,
-                        primeiroTimestamp: primeiroAgendamento.timestamp,
-                        dataHora: new Date(primeiroAgendamento.timestamp)
-                    });
+            // Percorrer todos os serviços na ordem em que aparecem na coluna "Em Atendimento"
+            // Como a coluna "Em Atendimento" já está renderizada, podemos pegar a ordem do DOM
+            const chamandoCards = document.querySelectorAll('#chamandoAgoraCard .card-chamando-item');
+            
+            if (chamandoCards.length > 0) {
+                // Se há cards na coluna "Em Atendimento", extrair os serviços na ordem exata
+                chamandoCards.forEach(card => {
+                    const servicoTag = card.querySelector('.servico-tag');
+                    if (servicoTag) {
+                        const nomeServico = servicoTag.textContent.trim();
+                        // Encontrar o ID do serviço pelo nome
+                        for (const [id, servico] of Object.entries(agendamentosPorServico)) {
+                            if (servico.nome === nomeServico) {
+                                servicosEmAtendimento.push(id);
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+            
+            console.log('🔍 Ordem dos serviços em atendimento:', servicosEmAtendimento);
+            
+            // ============================================
+            // 2. CRIAR LISTA COMPLETA DE SERVIÇOS NA ORDEM CORRETA
+            // ============================================
+            
+            // Lista de todos os serviços disponíveis
+            const todosServicos = Object.keys(agendamentosPorServico);
+            
+            // Criar a ordem final:
+            // Primeiro: serviços que estão em atendimento (na mesma ordem)
+            // Depois: demais serviços (ordenados por nome para consistência)
+            const servicosOrdenados = [];
+            
+            // Adicionar primeiro os serviços em atendimento (mantendo a ordem)
+            servicosEmAtendimento.forEach(servicoId => {
+                if (!servicosOrdenados.includes(servicoId)) {
+                    servicosOrdenados.push(servicoId);
                 }
             });
             
-            // 🔥 ORDENAÇÃO CONSISTENTE:
-            // 1º Critério: Timestamp do primeiro agendamento (mais antigo primeiro)
-            // 2º Critério: Nome do serviço (ordem alfabética para desempate)
-            // 3º Critério: ID do serviço (garantia final de ordem consistente)
-            servicosComPrimeiroAgendamento.sort((a, b) => {
-                // Primeiro critério: timestamp
-                if (a.primeiroTimestamp !== b.primeiroTimestamp) {
-                    return a.primeiroTimestamp - b.primeiroTimestamp;
-                }
-                
-                // Segundo critério: nome do serviço (alfabético)
-                const nomeCompare = a.nome.localeCompare(b.nome);
-                if (nomeCompare !== 0) {
-                    return nomeCompare;
-                }
-                
-                // Terceiro critério: ID do serviço (garantia final)
-                return a.servicoId.localeCompare(b.servicoId);
-            });
+            // Adicionar os demais serviços (que não estão em atendimento)
+            const demaisServicos = todosServicos
+                .filter(id => !servicosOrdenados.includes(id))
+                .sort((a, b) => {
+                    // Ordenar por nome para consistência
+                    const nomeA = agendamentosPorServico[a].nome;
+                    const nomeB = agendamentosPorServico[b].nome;
+                    return nomeA.localeCompare(nomeB);
+                });
             
-            // Extrair apenas os IDs na ordem correta
-            const servicosOrdenadosPorPrimeiroAgendamento = servicosComPrimeiroAgendamento.map(s => s.servicoId);
+            servicosOrdenados.push(...demaisServicos);
             
-            console.log('📊 Serviços ordenados por primeiro agendamento (mais antigo primeiro):', 
-                servicosOrdenadosPorPrimeiroAgendamento.map((id, index) => ({
+            console.log('📊 Ordem final dos serviços (seguindo Em Atendimento):', 
+                servicosOrdenados.map((id, index) => ({
                     posicao: index + 1,
                     id: id,
                     nome: agendamentosPorServico[id].nome,
-                    primeiroHorario: new Date(servicosComPrimeiroAgendamento.find(s => s.servicoId === id).primeiroTimestamp).toLocaleTimeString()
+                    emAtendimento: servicosEmAtendimento.includes(id) ? 'SIM' : 'NÃO'
                 }))
             );
             
             // ============================================
-            // DIVIDIR SERVIÇOS EM PÁGINAS (2 SERVIÇOS POR PÁGINA)
+            // 3. DIVIDIR SERVIÇOS EM PÁGINAS (2 SERVIÇOS POR PÁGINA)
             // ============================================
-            totalPaginasOutrosFila = Math.max(1, Math.ceil(servicosOrdenadosPorPrimeiroAgendamento.length / 2));
+            totalPaginasOutrosFila = Math.max(1, Math.ceil(servicosOrdenados.length / 2));
             
             // Garantir que a página atual é válida
             if (paginaAtualOutrosFila > totalPaginasOutrosFila) {
@@ -988,15 +1000,15 @@ function renderizarPainelAgendamento() {
             
             // Calcular índices para a página atual
             const inicio = (paginaAtualOutrosFila - 1) * 2;
-            const fim = Math.min(inicio + 2, servicosOrdenadosPorPrimeiroAgendamento.length);
-            const servicosPaginaAtual = servicosOrdenadosPorPrimeiroAgendamento.slice(inicio, fim);
+            const fim = Math.min(inicio + 2, servicosOrdenados.length);
+            const servicosPaginaAtual = servicosOrdenados.slice(inicio, fim);
             
             console.log(`📑 Página ${paginaAtualOutrosFila}/${totalPaginasOutrosFila} - Serviços:`, 
                 servicosPaginaAtual.map((id, idx) => ({
                     id: id,
                     nome: agendamentosPorServico[id].nome,
-                    posicao: servicosOrdenadosPorPrimeiroAgendamento.indexOf(id) + 1,
-                    primeiroHorario: new Date(servicosComPrimeiroAgendamento.find(s => s.servicoId === id).primeiroTimestamp).toLocaleTimeString()
+                    posicao: servicosOrdenados.indexOf(id) + 1,
+                    emAtendimento: servicosEmAtendimento.includes(id) ? '🔥 EM ATENDIMENTO' : 'Na fila'
                 }))
             );
             
@@ -1004,13 +1016,14 @@ function renderizarPainelAgendamento() {
             console.log('📋 DISTRIBUIÇÃO DAS TELAS:');
             for (let i = 0; i < totalPaginasOutrosFila; i++) {
                 const paginaInicio = i * 2;
-                const paginaFim = Math.min(paginaInicio + 2, servicosOrdenadosPorPrimeiroAgendamento.length);
-                const servicosPagina = servicosOrdenadosPorPrimeiroAgendamento.slice(paginaInicio, paginaFim);
+                const paginaFim = Math.min(paginaInicio + 2, servicosOrdenados.length);
+                const servicosPagina = servicosOrdenados.slice(paginaInicio, paginaFim);
                 
                 console.log(`   Tela ${i + 1}: ${servicosPagina.map((id, idx) => {
                     const posRelativa = idx + 1;
                     const posGlobal = paginaInicio + posRelativa;
-                    return `${posGlobal}° - ${agendamentosPorServico[id].nome}`;
+                    const emAtendimento = servicosEmAtendimento.includes(id) ? '🔥' : '';
+                    return `${posGlobal}° ${emAtendimento} - ${agendamentosPorServico[id].nome}`;
                 }).join(' | ')}`);
             }
             
@@ -1027,15 +1040,20 @@ function renderizarPainelAgendamento() {
                 
                 if (itensFila.length > 0) {
                     const servicoIdSafe = servicoId.replace(/[^a-zA-Z0-9]/g, '_');
-                    const posicaoGeral = servicosOrdenadosPorPrimeiroAgendamento.indexOf(servicoId) + 1;
+                    const posicaoGeral = servicosOrdenados.indexOf(servicoId) + 1;
+                    const emAtendimento = servicosEmAtendimento.includes(servicoId);
                     
                     html += `
-                        <div class="fila-servico" data-posicao-geral="${posicaoGeral}" data-servico-id="${servicoId}" data-primeiro-timestamp="${servicosComPrimeiroAgendamento.find(s => s.servicoId === servicoId).primeiroTimestamp}">
+                        <div class="fila-servico ${emAtendimento ? 'servico-destaque' : ''}" 
+                             data-posicao-geral="${posicaoGeral}" 
+                             data-servico-id="${servicoId}"
+                             data-em-atendimento="${emAtendimento}">
                             <div class="fila-servico-header">
                                 <i class="fas fa-star"></i>
                                 <h4 title="${servico.nome}">
                                     ${servico.nome}
                                     <span class="servico-posicao-badge">${posicaoGeral}°</span>
+                                    ${emAtendimento ? '<span class="servico-atendendo-badge"><i class="fas fa-bell"></i> ATENDENDO</span>' : ''}
                                 </h4>
                                 <span class="servico-count">${itensFila.length}</span>
                             </div>
