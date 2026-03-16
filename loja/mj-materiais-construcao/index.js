@@ -4683,22 +4683,18 @@ function aplicarFiltroAgendamentosModal(filtro) {
     const statusNaoExpirados = ['Finalizado', 'Cancelado'];
     
     if (filtro === 'todos') {
-        // Todos os agendamentos
         agendamentosFiltrados = todosAgendamentos;
         
     } else if (filtro === 'expirado') {
-        // Apenas agendamentos que passaram do horário E não estão finalizados/cancelados
         agendamentosFiltrados = todosAgendamentos.filter(ag => {
             if (!ag.data_hora) return false;
-            
             const passouHorario = ag.data_hora < agora;
             const naoFinalizadoNemCancelado = !statusNaoExpirados.includes(ag.status);
-            
             return passouHorario && naoFinalizadoNemCancelado;
         });
         
     } else {
-        // Filtro por status específico
+        // Filtro por status específico (incluindo Cancelado)
         agendamentosFiltrados = todosAgendamentos.filter(ag => {
             switch(filtro) {
                 case 'Pendente':
@@ -4713,7 +4709,7 @@ function aplicarFiltroAgendamentosModal(filtro) {
                     return ag.status === 'Em atendimento';
                 case 'Finalizado':
                     return ag.status === 'Finalizado';
-                case 'Cancelado':
+                case 'Cancelado': // ✅ NOVO
                     return ag.status === 'Cancelado';
                 default:
                     return true;
