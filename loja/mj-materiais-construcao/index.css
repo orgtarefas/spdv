@@ -1104,12 +1104,20 @@ body {
     background: #f8fafc;
 }
 
-/* ✅ ACTIVE/SELECIONADO - mesmo estilo para TODOS os filtros */
+.filter-btn:hover i {
+    color: #0056b3;
+}
+
+/* ✅ ACTIVE/SELECIONADO - MESMO ESTILO PARA TODOS OS FILTROS */
 .filter-btn.active {
-    background: linear-gradient(135deg, #0056b3, #00a86b);
-    color: white;
-    border-color: transparent;
-    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2);
+    background: linear-gradient(135deg, #0056b3, #00a86b) !important;
+    color: white !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2) !important;
+}
+
+.filter-btn.active i {
+    color: white !important;
 }
 
 .search-tip {
@@ -5400,14 +5408,6 @@ body {
 .btn-agendamento-acoes.warning:hover {
     background: #e0a800;
     color: #fff;
-}
-
-.filter-btn[data-filtro-status="expirado"] i {
-    color: #dc3545;
-}
-
-.filter-btn[data-filtro-status="expirado"].active i {
-    color: white;
 }
 
 /* Status colors */
