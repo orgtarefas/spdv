@@ -5568,3 +5568,8 @@ body {
 .filter-btn[data-filtro-status="expirado"].active i {
     color: white !important;
 }
+
+/* Garantir que o scroll seja suave em toda a página */
+html {
+    scroll-behavior: smooth;
+}
