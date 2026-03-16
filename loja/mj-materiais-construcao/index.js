@@ -4676,33 +4676,23 @@ function aplicarFiltroAgendamentosModal(filtro) {
     
     let agendamentosFiltrados = [];
     
-    // ✅ Status que NUNCA entram no filtro expirado
+    // Status que NUNCA entram no filtro expirado
     const statusNaoExpirados = ['Finalizado', 'Cancelado'];
     
     if (filtro === 'todos') {
-        // Todos os agendamentos, mas marcando os expirados visualmente
+        // Todos os agendamentos
         agendamentosFiltrados = todosAgendamentos;
         
     } else if (filtro === 'expirado') {
-        // ✅ APENAS agendamentos que:
-        // 1. Passaram do horário (data_hora < agora)
-        // 2. NÃO estão finalizados
-        // 3. NÃO estão cancelados
+        // Apenas agendamentos que passaram do horário E não estão finalizados/cancelados
         agendamentosFiltrados = todosAgendamentos.filter(ag => {
-            // Se não tem data_hora, não considerar
             if (!ag.data_hora) return false;
             
-            // Verificar se passou do horário
             const passouHorario = ag.data_hora < agora;
-            
-            // Verificar se NÃO está finalizado nem cancelado
             const naoFinalizadoNemCancelado = !statusNaoExpirados.includes(ag.status);
             
-            // Retornar true apenas se passou do horário E não está finalizado/cancelado
             return passouHorario && naoFinalizadoNemCancelado;
         });
-        
-        console.log(`⏰ Filtro expirado: ${agendamentosFiltrados.length} agendamentos encontrados (status: ${agendamentosFiltrados.map(ag => ag.status).join(', ')})`);
         
     } else {
         // Filtro por status específico
@@ -4756,34 +4746,8 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
     
     let html = '';
     
-    // Se não for filtro de expirados, mostrar contagem
-    if (filtroAtual !== 'expirado') {
-        // ✅ Contar apenas agendamentos que:
-        // 1. Passaram do horário
-        // 2. NÃO estão finalizados
-        // 3. NÃO estão cancelados
-        const expiradosCount = agendamentos.filter(ag => 
-            ag.data_hora && 
-            ag.data_hora < agora && 
-            !['Finalizado', 'Cancelado'].includes(ag.status)
-        ).length;
-        
-        if (expiradosCount > 0) {
-            html += `
-                <div class="expirados-aviso">
-                    <i class="fas fa-hourglass-end"></i>
-                    ${expiradosCount} agendamento(s) expirado(s) não estão sendo exibidos.
-                    <button class="btn-ver-expirados" onclick="filtrarAgendamentosModal('expirado')">
-                        Ver expirados
-                    </button>
-                </div>
-            `;
-        }
-    }
-    
     agendamentos.forEach(ag => {
-        // ✅ Verificar se está expirado (apenas se NÃO for Finalizado nem Cancelado)
-        const estaExpirado = !['Finalizado', 'Cancelado'].includes(ag.status) && 
+        const estaExpirado = !statusNaoExpirados.includes(ag.status) && 
                              ag.data_hora && ag.data_hora < agora;
         
         // Determinar o que mostrar no badge
@@ -4792,7 +4756,7 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
         let badgeText = '';
         
         if (estaExpirado) {
-            // ✅ Se está expirado, mostrar "EXPIRADO"
+            // Se está expirado, mostrar "EXPIRADO"
             badgeClass = 'status-expirado';
             badgeIcon = 'fa-hourglass-end';
             badgeText = 'EXPIRADO';
@@ -4840,11 +4804,6 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
                     badgeText = ag.status || 'Pendente';
             }
         }
-
-        
-        // Badge de expirado adicional (opcional, pode remover se quiser)
-        const expiradoBadge = (filtroAtual === 'expirado' && estaExpirado) ? 
-            '<span class="expirado-badge"><i class="fas fa-hourglass-end"></i> Expirado</span>' : '';
         
         // Calcular tempo passado (se expirado)
         let tempoPassado = '';
@@ -4867,7 +4826,6 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
             <div class="agendamento-item-modal ${estaExpirado ? 'agendamento-expirado' : ''}" 
                  data-status="${ag.status}" 
                  data-expirado="${estaExpirado}">
-                ${expiradoBadge}
                 
                 <div class="agendamento-header-modal">
                     <div class="agendamento-servico-tag">
@@ -4902,7 +4860,7 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
                     </div>
                     
                     <div class="agendamento-acoes-modal">
-                        ${isFuncionario && ag.status !== 'Finalizado' && ag.status !== 'Cancelado' && !estaExpirado ? `
+                        ${isFuncionario && ag.status !== 'Finalizado' && ag.status !== 'Cancelado' ? `
                             <button class="btn-agendamento-acoes" onclick="editarAgendamento('${ag.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -4914,9 +4872,9 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
                             </button>
                         ` : ''}
                         
-                        ${estaExpirado && isFuncionario ? `
-                            <button class="btn-agendamento-acoes warning" onclick="reagendarAgendamento('${ag.id}')" title="Reagendar">
-                                <i class="fas fa-calendar-plus"></i> Reagendar
+                        ${ag.status !== 'Cancelado' && ag.status !== 'Finalizado' ? `
+                            <button class="btn-agendamento-acoes cancelar" onclick="cancelarAgendamento('${ag.id}')" title="Cancelar">
+                                <i class="fas fa-times"></i> Cancelar
                             </button>
                         ` : ''}
                     </div>
@@ -4927,6 +4885,46 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
     
     container.innerHTML = html;
 }
+
+// ============================================
+// CANCELAR AGENDAMENTO (COM CONFIRMAÇÃO)
+// ============================================
+window.cancelarAgendamento = async function(agendamentoId) {
+    // Mensagem de confirmação personalizada
+    const mensagemConfirmacao = "Deseja realmente cancelar o agendamento? Consulte as políticas de cancelamento do estabelecimento antes da confirmação. Após efetivar o cancelamento não será possível desfazer o procedimento.";
+    
+    if (!confirm(mensagemConfirmacao)) {
+        return;
+    }
+    
+    // Encontrar o agendamento na lista
+    const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
+    if (!agendamento) {
+        mostrarMensagem('Agendamento não encontrado', 'error');
+        return;
+    }
+    
+    mostrarLoading('Cancelando agendamento...');
+    
+    try {
+        // Atualizar status para Cancelado
+        const resultado = await atualizarStatusAgendamento(agendamento, 'Cancelado');
+        
+        if (resultado) {
+            mostrarMensagem('✅ Agendamento cancelado com sucesso', 'success');
+            
+            // Fechar e reabrir o modal para atualizar (opcional)
+            // ou apenas confiar no onSnapshot
+        } else {
+            mostrarMensagem('❌ Erro ao cancelar agendamento', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        mostrarMensagem('Erro ao cancelar agendamento', 'error');
+    } finally {
+        esconderLoading();
+    }
+};
 
 // ============================================
 // FILTRO GLOBAL DO MODAL
