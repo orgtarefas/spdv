@@ -5517,21 +5517,36 @@ body {
 }
 
 /* ============================================
-   BOTÃO CANCELAR
+   BOTÃO CANCELAR - ESTILOS
    ============================================ */
 .btn-agendamento-acoes.cancelar {
     background: #dc3545;
     color: white;
     border-color: #dc3545;
+    transition: all 0.2s ease;
 }
 
-.btn-agendamento-acoes.cancelar:hover {
+.btn-agendamento-acoes.cancelar:hover:not(:disabled) {
     background: #c82333;
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
 }
 
-.btn-agendamento-acoes.cancelar i {
-    color: white;
+/* Estilo para botão desabilitado */
+.btn-agendamento-acoes.cancelar.disabled,
+.btn-agendamento-acoes.cancelar:disabled {
+    background: #e9ecef;
+    color: #adb5bd;
+    border-color: #dee2e6;
+    cursor: not-allowed;
+    opacity: 0.6;
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-agendamento-acoes.cancelar.disabled i,
+.btn-agendamento-acoes.cancelar:disabled i {
+    color: #adb5bd;
 }
