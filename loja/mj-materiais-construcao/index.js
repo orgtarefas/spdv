@@ -4940,18 +4940,28 @@ window.cancelarAgendamento = async function(agendamentoId) {
 };
 
 // ============================================
-// FILTRO GLOBAL DO MODAL
+// FILTRO GLOBAL DO MODAL - VERSÃO CORRIGIDA
 // ============================================
 window.filtrarAgendamentosModal = function(filtro) {
-    // Atualizar classe ativa dos botões
-    document.querySelectorAll('#filtrosAgendamentosAdmin .filter-btn').forEach(btn => {
+    console.log('🔍 Aplicando filtro:', filtro); // Log para debug
+    
+    // 1. Remove a classe 'active' de TODOS os botões de filtro
+    document.querySelectorAll('#filtrosAgendamentosAdmin .filter-btn, .filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
+    // 2. Adiciona a classe 'active' APENAS no botão que foi clicado
+    // O seletor deve encontrar o botão pelo data-filtro-status
     const btnAtivo = document.querySelector(`[data-filtro-status="${filtro}"]`);
-    if (btnAtivo) btnAtivo.classList.add('active');
     
-    // Aplicar o filtro
+    if (btnAtivo) {
+        btnAtivo.classList.add('active');
+        console.log('✅ Botão ativo:', btnAtivo);
+    } else {
+        console.warn('⚠️ Botão não encontrado para o filtro:', filtro);
+    }
+    
+    // 3. Aplica o filtro nos dados
     aplicarFiltroAgendamentosModal(filtro);
 };
 
