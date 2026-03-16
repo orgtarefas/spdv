@@ -62,6 +62,17 @@ let paginaAtualOutrosFila = 1; // 1 = Tela 1, 2 = Tela 2
 let totalPaginasOutrosFila = 1; // Será calculado dinamicamente
 let mudancaManual = false; // VARIÁVEL PARA CONTROLAR SE A MUDANÇA VEIO DO USUÁRIO OU DO SISTEMA
 
+// ============================================
+// GARANTIR SCROLL SUAVE EM TODA A PÁGINA
+// ============================================
+// Adicionar CSS via JavaScript para garantir scroll suave
+const style = document.createElement('style');
+style.textContent = `
+    html {
+        scroll-behavior: smooth !important;
+    }
+`;
+document.head.appendChild(style);
 
 // ============================================
 // VERIFICAR LOJA ID E CONFIG
