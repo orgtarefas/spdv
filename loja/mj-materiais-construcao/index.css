@@ -5402,17 +5402,6 @@ body {
     color: #fff;
 }
 
-/* Filtro de expirados */
-.filter-btn[data-filtro-status="expirado"] {
-    color: #dc3545;
-}
-
-.filter-btn[data-filtro-status="expirado"].active {
-    background: #dc3545;
-    color: white;
-    border-color: #dc3545;
-}
-
 .filter-btn[data-filtro-status="expirado"] i {
     color: #dc3545;
 }
