@@ -4602,11 +4602,6 @@ async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todo
                         return;
                     }
                     
-                    // Filtrar por status se selecionado
-                    if (filtroStatus !== 'todos' && dados.status_agendamento !== filtroStatus) {
-                        return;
-                    }
-                    
                     // Obter nome do serviço
                     const servicoNome = servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' ');
                     
@@ -4615,15 +4610,12 @@ async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todo
                     const senha = gerarSenha(numero, servicoId, servicosConfig);
                     
                     // Formatar data/hora
-                    let dataHora = '';
+                    let dataHora = null;
                     let horario = '';
                     
                     if (dados.data_hora_agendada) {
-                        const dataObj = dados.data_hora_agendada?.toDate?.() || new Date(dados.data_hora_agendada);
-                        horario = dataObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        dataHora = `${dataExibicao} ${horario}`;
-                    } else {
-                        dataHora = dataExibicao;
+                        dataHora = dados.data_hora_agendada?.toDate?.() || new Date(dados.data_hora_agendada);
+                        horario = dataHora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     }
                     
                     todosAgendamentos.push({
@@ -4636,7 +4628,7 @@ async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todo
                         status: dados.status_agendamento || 'Pendente',
                         data: dataExibicao,
                         horario,
-                        dataHora,
+                        data_hora: dataHora,
                         senha,
                         dados
                     });
@@ -4646,18 +4638,19 @@ async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todo
         
         // Ordenar por data/hora (mais recentes primeiro)
         todosAgendamentos.sort((a, b) => {
-            const dataA = a.dados.data_hora_agendada?.toDate?.() || new Date(a.dados.data_hora_agendada);
-            const dataB = b.dados.data_hora_agendada?.toDate?.() || new Date(b.dados.data_hora_agendada);
-            return dataB - dataA;
+            if (!a.data_hora) return 1;
+            if (!b.data_hora) return -1;
+            return b.data_hora - a.data_hora;
         });
         
         console.log(`📋 ${todosAgendamentos.length} agendamentos carregados para o modal`);
         
-        renderizarAgendamentosModal(container, todosAgendamentos, isFuncionario);
-        
         // Salvar lista completa para filtros
         window.todosAgendamentosModal = todosAgendamentos;
         window.isFuncionarioModal = isFuncionario;
+        
+        // Aplicar filtro inicial
+        aplicarFiltroAgendamentosModal(filtroStatus);
         
     } catch (error) {
         console.error('❌ Erro ao carregar agendamentos para modal:', error);
@@ -4671,17 +4664,82 @@ async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todo
 }
 
 // ============================================
+// APLICAR FILTRO NO MODAL (COM SUPORTE A EXPIRADOS)
+// ============================================
+function aplicarFiltroAgendamentosModal(filtro) {
+    const container = document.getElementById('listaAgendamentosModal');
+    if (!container) return;
+    
+    const todosAgendamentos = window.todosAgendamentosModal || [];
+    const isFuncionario = window.isFuncionarioModal || false;
+    const agora = new Date();
+    
+    let agendamentosFiltrados = [];
+    
+    // Status que consideramos finalizados
+    const statusFinalizados = ['Finalizado', 'Cancelado'];
+    
+    if (filtro === 'todos') {
+        // Todos os agendamentos, mas marcando os expirados visualmente
+        agendamentosFiltrados = todosAgendamentos;
+        
+    } else if (filtro === 'expirado') {
+        // Apenas agendamentos que passaram do horário E não estão finalizados/cancelados
+        agendamentosFiltrados = todosAgendamentos.filter(ag => {
+            // Se não tem data_hora, não considerar
+            if (!ag.data_hora) return false;
+            
+            // Se já está finalizado ou cancelado, não é expirado
+            if (statusFinalizados.includes(ag.status)) return false;
+            
+            // Verificar se passou do horário
+            return ag.data_hora < agora;
+        });
+        
+    } else {
+        // Filtro por status específico (Pendente, Verificado, etc)
+        agendamentosFiltrados = todosAgendamentos.filter(ag => {
+            // Mapear os nomes dos filtros para os status reais
+            switch(filtro) {
+                case 'Pendente':
+                    return ag.status === 'Pendente';
+                case 'Verificado':
+                    return ag.status === 'Verificado';
+                case 'Na fila':
+                    return ag.status === 'Na fila';
+                case 'Próximo a atender':
+                    return ag.status === 'Próximo a atender';
+                case 'Em atendimento':
+                    return ag.status === 'Em atendimento';
+                case 'Finalizado':
+                    return ag.status === 'Finalizado';
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    // Renderizar os agendamentos filtrados
+    renderizarAgendamentosModal(container, agendamentosFiltrados, isFuncionario, filtro);
+}
+
+// ============================================
 // RENDERIZAR AGENDAMENTOS NO MODAL
 // ============================================
-function renderizarAgendamentosModal(container, agendamentos, isFuncionario) {
+function renderizarAgendamentosModal(container, agendamentos, isFuncionario, filtroAtual = 'todos') {
     if (!container) return;
+    
+    const agora = new Date();
+    const statusFinalizados = ['Finalizado', 'Cancelado'];
     
     if (agendamentos.length === 0) {
         container.innerHTML = `
             <div class="empty-results">
                 <i class="fas fa-calendar-times"></i>
                 <p>Nenhum agendamento encontrado</p>
-                <small>Clique em "Agendar" para fazer um novo agendamento</small>
+                ${filtroAtual === 'expirado' ? 
+                    '<small>Não há agendamentos expirados no momento</small>' : 
+                    '<small>Clique em "Agendar" para fazer um novo agendamento</small>'}
             </div>
         `;
         return;
@@ -4689,45 +4747,105 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario) {
     
     let html = '';
     
+    // Se não for filtro de expirados, mostrar contagem
+    if (filtroAtual !== 'expirado') {
+        const expiradosCount = agendamentos.filter(ag => 
+            ag.data_hora && ag.data_hora < agora && !statusFinalizados.includes(ag.status)
+        ).length;
+        
+        if (expiradosCount > 0) {
+            html += `
+                <div class="expirados-aviso">
+                    <i class="fas fa-hourglass-end"></i>
+                    ${expiradosCount} agendamento(s) expirado(s) não estão sendo exibidos.
+                    <button class="btn-ver-expirados" onclick="filtrarAgendamentosModal('expirado')">
+                        Ver expirados
+                    </button>
+                </div>
+            `;
+        }
+    }
+    
     agendamentos.forEach(ag => {
-        // Determinar classe do badge de status
+        const estaExpirado = !statusFinalizados.includes(ag.status) && 
+                             ag.data_hora && ag.data_hora < agora;
+        
+        // Determinar classe do badge baseado no status real
         let statusClass = '';
-        let statusText = ag.status || 'Pendente';
+        let statusIcon = '';
         
         switch(ag.status) {
             case 'Pendente':
                 statusClass = 'status-pendente';
+                statusIcon = 'fa-clock';
                 break;
             case 'Verificado':
-            case 'Na fila':
                 statusClass = 'status-verificado';
+                statusIcon = 'fa-check-circle';
+                break;
+            case 'Na fila':
+                statusClass = 'status-fila';
+                statusIcon = 'fa-users';
                 break;
             case 'Próximo a atender':
                 statusClass = 'status-proximo';
+                statusIcon = 'fa-arrow-right';
                 break;
             case 'Em atendimento':
-                statusClass = 'status-em-atendimento';
+                statusClass = 'status-atendimento';
+                statusIcon = 'fa-bell';
                 break;
             case 'Finalizado':
-            case 'Concluído':
-            case 'Atendido':
                 statusClass = 'status-finalizado';
+                statusIcon = 'fa-check-double';
+                break;
+            case 'Cancelado':
+                statusClass = 'status-cancelado';
+                statusIcon = 'fa-times-circle';
                 break;
             default:
                 statusClass = 'status-pendente';
+                statusIcon = 'fa-clock';
+        }
+        
+        // Se está expirado e o filtro atual é 'expirado', adicionar badge especial
+        const expiradoBadge = (filtroAtual === 'expirado' && estaExpirado) ? 
+            '<span class="expirado-badge"><i class="fas fa-hourglass-end"></i> Expirado</span>' : '';
+        
+        // Calcular tempo passado (se expirado)
+        let tempoPassado = '';
+        if (estaExpirado && ag.data_hora) {
+            const diffMs = agora - ag.data_hora;
+            const diffMin = Math.floor(diffMs / 60000);
+            
+            if (diffMin < 60) {
+                tempoPassado = `há ${diffMin} min`;
+            } else if (diffMin < 1440) {
+                const diffHrs = Math.floor(diffMin / 60);
+                tempoPassado = `há ${diffHrs} ${diffHrs === 1 ? 'hora' : 'horas'}`;
+            } else {
+                const diffDias = Math.floor(diffMin / 1440);
+                tempoPassado = `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}`;
+            }
         }
         
         html += `
-            <div class="agendamento-item-modal" data-status="${ag.status}">
+            <div class="agendamento-item-modal ${estaExpirado ? 'agendamento-expirado' : ''}" 
+                 data-status="${ag.status}" 
+                 data-expirado="${estaExpirado}">
+                ${expiradoBadge}
+                
                 <div class="agendamento-header-modal">
                     <div class="agendamento-servico-tag">
                         <i class="fas fa-tag"></i> ${ag.servicoNome}
                     </div>
-                    <span class="agendamento-status-badge ${statusClass}">${statusText}</span>
+                    <span class="agendamento-status-badge ${statusClass}">
+                        <i class="fas ${statusIcon}"></i> ${ag.status}
+                    </span>
                 </div>
                 
                 <div class="agendamento-body-modal">
-                    <div class="agendamento-senha-modal">
+                    <div class="agendamento-senha-modal ${estaExpirado ? 'expirado' : ''}">
                         ${ag.senha}
                     </div>
                     
@@ -4744,20 +4862,27 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario) {
                         ${ag.horario ? `
                             <div class="agendamento-horario-modal">
                                 <i class="fas fa-clock"></i> ${ag.horario}
+                                ${tempoPassado ? `<span class="tempo-passado">${tempoPassado}</span>` : ''}
                             </div>
                         ` : ''}
                     </div>
                     
                     <div class="agendamento-acoes-modal">
-                        ${isFuncionario ? `
+                        ${isFuncionario && ag.status !== 'Finalizado' && ag.status !== 'Cancelado' ? `
                             <button class="btn-agendamento-acoes" onclick="editarAgendamento('${ag.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
                         ` : ''}
                         
-                        ${ag.status === 'Na fila' || ag.status === 'Verificado' ? `
+                        ${!estaExpirado && ['Na fila', 'Verificado', 'Próximo a atender'].includes(ag.status) ? `
                             <button class="btn-agendamento-acoes primary" onclick="window.location.href='#'" title="Ver na fila">
                                 <i class="fas fa-eye"></i> Ver
+                            </button>
+                        ` : ''}
+                        
+                        ${estaExpirado && isFuncionario ? `
+                            <button class="btn-agendamento-acoes warning" onclick="reagendarAgendamento('${ag.id}')" title="Reagendar">
+                                <i class="fas fa-calendar-plus"></i> Reagendar
                             </button>
                         ` : ''}
                     </div>
@@ -4770,30 +4895,19 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario) {
 }
 
 // ============================================
-// FILTRAR AGENDAMENTOS NO MODAL
+// FILTRO GLOBAL DO MODAL
 // ============================================
-window.filtrarAgendamentosModal = function(status) {
+window.filtrarAgendamentosModal = function(filtro) {
     // Atualizar classe ativa dos botões
     document.querySelectorAll('#filtrosAgendamentosAdmin .filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
-    const btnAtivo = document.querySelector(`#filtrosAgendamentosAdmin .filter-btn[onclick*="'${status}'"]`);
+    const btnAtivo = document.querySelector(`[data-filtro-status="${filtro}"]`);
     if (btnAtivo) btnAtivo.classList.add('active');
     
-    // Filtrar agendamentos
-    const todosAgendamentos = window.todosAgendamentosModal || [];
-    const isFuncionario = window.isFuncionarioModal || false;
-    
-    let filtrados = todosAgendamentos;
-    if (status !== 'todos') {
-        filtrados = todosAgendamentos.filter(ag => ag.status === status);
-    }
-    
-    const container = document.getElementById('listaAgendamentosModal');
-    if (container) {
-        renderizarAgendamentosModal(container, filtrados, isFuncionario);
-    }
+    // Aplicar o filtro
+    aplicarFiltroAgendamentosModal(filtro);
 };
 
 // ============================================
@@ -4804,6 +4918,25 @@ window.editarAgendamento = function(agendamentoId) {
     mostrarMensagem('Função de edição em desenvolvimento', 'info');
     // TODO: Implementar modal de edição
 };
+
+// ============================================
+// VERIFICAR SE AGENDAMENTO ESTÁ EXPIRADO
+// ============================================
+function isAgendamentoExpirado(agendamento) {
+    // Status que NÃO são considerados expirados (já finalizados)
+    const statusNaoExpirados = ['finalizado', 'cancelado'];
+    
+    // Se já está finalizado ou cancelado, não considerar expirado
+    if (statusNaoExpirados.includes(agendamento.status?.toLowerCase())) {
+        return false;
+    }
+    
+    const agora = new Date();
+    const dataAgendamento = agendamento.data_hora;
+    
+    // Verificar se a data/hora do agendamento já passou
+    return dataAgendamento < agora;
+}
 
 // ============================================
 // CONFIGURAR EVENTOS DE INTERFACE
