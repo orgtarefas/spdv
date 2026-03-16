@@ -4664,7 +4664,7 @@ async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todo
 }
 
 // ============================================
-// APLICAR FILTRO NO MODAL (COM SUPORTE A EXPIRADOS)
+// APLICAR FILTRO NO MODAL
 // ============================================
 function aplicarFiltroAgendamentosModal(filtro) {
     const container = document.getElementById('listaAgendamentosModal');
@@ -4676,25 +4676,33 @@ function aplicarFiltroAgendamentosModal(filtro) {
     
     let agendamentosFiltrados = [];
     
-    // Status que consideramos finalizados
-    const statusFinalizados = ['Finalizado', 'Cancelado'];
+    // Status que NÃO devem aparecer no filtro "expirado"
+    const statusIgnorarExpirado = ['Finalizado', 'Cancelado'];
     
     if (filtro === 'todos') {
         // Todos os agendamentos, mas marcando os expirados visualmente
         agendamentosFiltrados = todosAgendamentos;
         
     } else if (filtro === 'expirado') {
-        // Apenas agendamentos que passaram do horário E não estão finalizados/cancelados
+        // ✅ APENAS agendamentos que:
+        // 1. Passaram do horário (data_hora < agora)
+        // 2. NÃO estão finalizados
+        // 3. NÃO estão cancelados
         agendamentosFiltrados = todosAgendamentos.filter(ag => {
             // Se não tem data_hora, não considerar
             if (!ag.data_hora) return false;
             
-            // Se já está finalizado ou cancelado, não é expirado
-            if (statusFinalizados.includes(ag.status)) return false;
-            
             // Verificar se passou do horário
-            return ag.data_hora < agora;
+            const passouHorario = ag.data_hora < agora;
+            
+            // Verificar se NÃO está finalizado nem cancelado
+            const naoFinalizadoNemCancelado = !statusIgnorarExpirado.includes(ag.status);
+            
+            // Retornar true apenas se passou do horário E não está finalizado/cancelado
+            return passouHorario && naoFinalizadoNemCancelado;
         });
+        
+        console.log(`⏰ Filtro expirado: ${agendamentosFiltrados.length} agendamentos encontrados`);
         
     } else {
         // Filtro por status específico (Pendente, Verificado, etc)
@@ -4749,8 +4757,11 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
     
     // Se não for filtro de expirados, mostrar contagem
     if (filtroAtual !== 'expirado') {
+        // ✅ CORRIGIDO: apenas agendamentos que passaram do horário E não estão finalizados/cancelados
         const expiradosCount = agendamentos.filter(ag => 
-            ag.data_hora && ag.data_hora < agora && !statusFinalizados.includes(ag.status)
+            ag.data_hora && 
+            ag.data_hora < agora && 
+            !['Finalizado', 'Cancelado'].includes(ag.status)
         ).length;
         
         if (expiradosCount > 0) {
@@ -4923,16 +4934,19 @@ window.editarAgendamento = function(agendamentoId) {
 // VERIFICAR SE AGENDAMENTO ESTÁ EXPIRADO
 // ============================================
 function isAgendamentoExpirado(agendamento) {
-    // Status que NÃO são considerados expirados (já finalizados)
-    const statusNaoExpirados = ['finalizado', 'cancelado'];
+    // Status que NÃO são considerados expirados
+    const statusNaoExpirados = ['Finalizado', 'Cancelado'];
     
     // Se já está finalizado ou cancelado, não considerar expirado
-    if (statusNaoExpirados.includes(agendamento.status?.toLowerCase())) {
+    if (statusNaoExpirados.includes(agendamento.status)) {
         return false;
     }
     
     const agora = new Date();
     const dataAgendamento = agendamento.data_hora;
+    
+    // Se não tem data, não considerar
+    if (!dataAgendamento) return false;
     
     // Verificar se a data/hora do agendamento já passou
     return dataAgendamento < agora;
