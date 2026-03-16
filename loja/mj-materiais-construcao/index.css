@@ -5515,3 +5515,23 @@ body {
     background: #e0a800;
     color: #fff;
 }
+
+/* ============================================
+   BOTÃO CANCELAR
+   ============================================ */
+.btn-agendamento-acoes.cancelar {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.btn-agendamento-acoes.cancelar:hover {
+    background: #c82333;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+}
+
+.btn-agendamento-acoes.cancelar i {
+    color: white;
+}
