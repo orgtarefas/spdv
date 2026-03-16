@@ -146,9 +146,22 @@
                 </div>    
                 <h2 class="titulo-atendimento">ATENDIMENTOS HOJE</h2>
                 <div class="agendamento-actions">
-                    <button class="btn-agendar" id="btnAbrirAgendamento">
-                        <i class="fas fa-calendar-plus"></i> Agendar
-                    </button>
+                    <!-- NOVO: Dropdown de Agendamento -->
+                    <div class="agendamento-dropdown">
+                        <button class="btn-agendamento-dropdown" id="btnAgendamentoDropdown">
+                            <i class="fas fa-calendar-alt"></i> Agendamento
+                            <i class="fas fa-chevron-down" style="margin-left: 5px; font-size: 0.8rem;"></i>
+                        </button>
+                        <div class="agendamento-dropdown-menu" id="agendamentoDropdownMenu">
+                            <a href="#" class="dropdown-item" id="dropdownAgendar">
+                                <i class="fas fa-calendar-plus"></i> Agendar
+                            </a>
+                            <a href="#" class="dropdown-item" id="dropdownMeusAgendamentos">
+                                <i class="fas fa-list"></i> Meus Agendamentos
+                            </a>
+                        </div>
+                    </div>
+                    
                     <button class="btn-senha-rapida" id="btnNovaSenhaHoje">
                         <i class="fas fa-bolt"></i> Nova Senha Hoje
                     </button>
@@ -207,6 +220,7 @@
                     </div>
                 </div>
             </div>
+            
             <!-- Modal de Agendamento Rápido -->
             <div id="agendamentoRapidoModal" class="modal" style="display: none;">
                 <div class="modal-content modal-small">
@@ -250,6 +264,7 @@
                     </div>
                 </div>
             </div>
+            
             <!-- Modal de Nova Senha Hoje -->
             <div id="novaSenhaHojeModal" class="modal" style="display: none;">
                 <div class="modal-content modal-small">
@@ -279,6 +294,53 @@
                             <button class="btn-confirmar-senha" id="btnConfirmarSenhaHoje">
                                 <i class="fas fa-bolt"></i> Gerar Senha
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal de Meus Agendamentos -->
+        <div id="meusAgendamentosModal" class="modal">
+            <div class="modal-content modal-lg">
+                <div class="modal-header">
+                    <h3><i class="fas fa-calendar-check"></i> <span id="agendamentosTituloModal">Meus Agendamentos</span></h3>
+                    <button class="modal-close" onclick="fecharModal('meusAgendamentosModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- Filtros para funcionários/admin -->
+                    <div id="filtrosAgendamentosAdmin" style="display: none; margin-bottom: 20px;">
+                        <div class="search-filters" style="justify-content: flex-start;">
+                            <button class="filter-btn active" data-filtro-status="todos" onclick="filtrarAgendamentosModal('todos')">
+                                <i class="fas fa-list"></i> Todos
+                            </button>
+                            <button class="filter-btn" data-filtro-status="pendente" onclick="filtrarAgendamentosModal('Pendente')">
+                                <i class="fas fa-clock"></i> Pendentes
+                            </button>
+                            <button class="filter-btn" data-filtro-status="verificado" onclick="filtrarAgendamentosModal('Verificado')">
+                                <i class="fas fa-check-circle"></i> Verificados
+                            </button>
+                            <button class="filter-btn" data-filtro-status="fila" onclick="filtrarAgendamentosModal('Na fila')">
+                                <i class="fas fa-users"></i> Na fila
+                            </button>
+                            <button class="filter-btn" data-filtro-status="proximo" onclick="filtrarAgendamentosModal('Próximo a atender')">
+                                <i class="fas fa-arrow-right"></i> Próximos
+                            </button>
+                            <button class="filter-btn" data-filtro-status="atendimento" onclick="filtrarAgendamentosModal('Em atendimento')">
+                                <i class="fas fa-bell"></i> Em atendimento
+                            </button>
+                            <button class="filter-btn" data-filtro-status="finalizado" onclick="filtrarAgendamentosModal('Finalizado')">
+                                <i class="fas fa-check-double"></i> Finalizados
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Container da lista de agendamentos -->
+                    <div id="listaAgendamentosModal" class="lista-agendamentos" style="max-height: 60vh; overflow-y: auto;">
+                        <!-- Conteúdo será preenchido pelo JavaScript -->
+                        <div class="empty-results">
+                            <i class="fas fa-calendar-times"></i>
+                            <p>Carregando agendamentos...</p>
                         </div>
                     </div>
                 </div>
