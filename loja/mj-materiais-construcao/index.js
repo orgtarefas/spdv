@@ -4676,8 +4676,8 @@ function aplicarFiltroAgendamentosModal(filtro) {
     
     let agendamentosFiltrados = [];
     
-    // Status que NÃO devem aparecer no filtro "expirado"
-    const statusIgnorarExpirado = ['Finalizado', 'Cancelado'];
+    // ✅ Status que NUNCA entram no filtro expirado
+    const statusNaoExpirados = ['Finalizado', 'Cancelado'];
     
     if (filtro === 'todos') {
         // Todos os agendamentos, mas marcando os expirados visualmente
@@ -4696,18 +4696,17 @@ function aplicarFiltroAgendamentosModal(filtro) {
             const passouHorario = ag.data_hora < agora;
             
             // Verificar se NÃO está finalizado nem cancelado
-            const naoFinalizadoNemCancelado = !statusIgnorarExpirado.includes(ag.status);
+            const naoFinalizadoNemCancelado = !statusNaoExpirados.includes(ag.status);
             
             // Retornar true apenas se passou do horário E não está finalizado/cancelado
             return passouHorario && naoFinalizadoNemCancelado;
         });
         
-        console.log(`⏰ Filtro expirado: ${agendamentosFiltrados.length} agendamentos encontrados`);
+        console.log(`⏰ Filtro expirado: ${agendamentosFiltrados.length} agendamentos encontrados (status: ${agendamentosFiltrados.map(ag => ag.status).join(', ')})`);
         
     } else {
-        // Filtro por status específico (Pendente, Verificado, etc)
+        // Filtro por status específico
         agendamentosFiltrados = todosAgendamentos.filter(ag => {
-            // Mapear os nomes dos filtros para os status reais
             switch(filtro) {
                 case 'Pendente':
                     return ag.status === 'Pendente';
@@ -4721,6 +4720,8 @@ function aplicarFiltroAgendamentosModal(filtro) {
                     return ag.status === 'Em atendimento';
                 case 'Finalizado':
                     return ag.status === 'Finalizado';
+                case 'Cancelado':
+                    return ag.status === 'Cancelado';
                 default:
                     return true;
             }
@@ -4738,7 +4739,7 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
     if (!container) return;
     
     const agora = new Date();
-    const statusFinalizados = ['Finalizado', 'Cancelado'];
+    const statusNaoExpirados = ['Finalizado', 'Cancelado'];
     
     if (agendamentos.length === 0) {
         container.innerHTML = `
@@ -4757,7 +4758,10 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
     
     // Se não for filtro de expirados, mostrar contagem
     if (filtroAtual !== 'expirado') {
-        // ✅ CORRIGIDO: apenas agendamentos que passaram do horário E não estão finalizados/cancelados
+        // ✅ Contar apenas agendamentos que:
+        // 1. Passaram do horário
+        // 2. NÃO estão finalizados
+        // 3. NÃO estão cancelados
         const expiradosCount = agendamentos.filter(ag => 
             ag.data_hora && 
             ag.data_hora < agora && 
@@ -4778,48 +4782,67 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
     }
     
     agendamentos.forEach(ag => {
-        const estaExpirado = !statusFinalizados.includes(ag.status) && 
+        // ✅ Verificar se está expirado (apenas se NÃO for Finalizado nem Cancelado)
+        const estaExpirado = !['Finalizado', 'Cancelado'].includes(ag.status) && 
                              ag.data_hora && ag.data_hora < agora;
         
-        // Determinar classe do badge baseado no status real
-        let statusClass = '';
-        let statusIcon = '';
+        // Determinar o que mostrar no badge
+        let badgeClass = '';
+        let badgeIcon = '';
+        let badgeText = '';
         
-        switch(ag.status) {
-            case 'Pendente':
-                statusClass = 'status-pendente';
-                statusIcon = 'fa-clock';
-                break;
-            case 'Verificado':
-                statusClass = 'status-verificado';
-                statusIcon = 'fa-check-circle';
-                break;
-            case 'Na fila':
-                statusClass = 'status-fila';
-                statusIcon = 'fa-users';
-                break;
-            case 'Próximo a atender':
-                statusClass = 'status-proximo';
-                statusIcon = 'fa-arrow-right';
-                break;
-            case 'Em atendimento':
-                statusClass = 'status-atendimento';
-                statusIcon = 'fa-bell';
-                break;
-            case 'Finalizado':
-                statusClass = 'status-finalizado';
-                statusIcon = 'fa-check-double';
-                break;
-            case 'Cancelado':
-                statusClass = 'status-cancelado';
-                statusIcon = 'fa-times-circle';
-                break;
-            default:
-                statusClass = 'status-pendente';
-                statusIcon = 'fa-clock';
+        if (estaExpirado) {
+            // ✅ Se está expirado, mostrar "EXPIRADO"
+            badgeClass = 'status-expirado';
+            badgeIcon = 'fa-hourglass-end';
+            badgeText = 'EXPIRADO';
+        } else {
+            // Caso contrário, mostrar o status real
+            switch(ag.status) {
+                case 'Pendente':
+                    badgeClass = 'status-pendente';
+                    badgeIcon = 'fa-clock';
+                    badgeText = 'Pendente';
+                    break;
+                case 'Verificado':
+                    badgeClass = 'status-verificado';
+                    badgeIcon = 'fa-check-circle';
+                    badgeText = 'Verificado';
+                    break;
+                case 'Na fila':
+                    badgeClass = 'status-fila';
+                    badgeIcon = 'fa-users';
+                    badgeText = 'Na fila';
+                    break;
+                case 'Próximo a atender':
+                    badgeClass = 'status-proximo';
+                    badgeIcon = 'fa-arrow-right';
+                    badgeText = 'Próximo a atender';
+                    break;
+                case 'Em atendimento':
+                    badgeClass = 'status-atendimento';
+                    badgeIcon = 'fa-bell';
+                    badgeText = 'Em atendimento';
+                    break;
+                case 'Finalizado':
+                    badgeClass = 'status-finalizado';
+                    badgeIcon = 'fa-check-double';
+                    badgeText = 'Finalizado';
+                    break;
+                case 'Cancelado':
+                    badgeClass = 'status-cancelado';
+                    badgeIcon = 'fa-times-circle';
+                    badgeText = 'Cancelado';
+                    break;
+                default:
+                    badgeClass = 'status-pendente';
+                    badgeIcon = 'fa-clock';
+                    badgeText = ag.status || 'Pendente';
+            }
         }
+
         
-        // Se está expirado e o filtro atual é 'expirado', adicionar badge especial
+        // Badge de expirado adicional (opcional, pode remover se quiser)
         const expiradoBadge = (filtroAtual === 'expirado' && estaExpirado) ? 
             '<span class="expirado-badge"><i class="fas fa-hourglass-end"></i> Expirado</span>' : '';
         
@@ -4850,8 +4873,8 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
                     <div class="agendamento-servico-tag">
                         <i class="fas fa-tag"></i> ${ag.servicoNome}
                     </div>
-                    <span class="agendamento-status-badge ${statusClass}">
-                        <i class="fas ${statusIcon}"></i> ${ag.status}
+                    <span class="agendamento-status-badge ${badgeClass}">
+                        <i class="fas ${badgeIcon}"></i> ${badgeText}
                     </span>
                 </div>
                 
@@ -4879,7 +4902,7 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
                     </div>
                     
                     <div class="agendamento-acoes-modal">
-                        ${isFuncionario && ag.status !== 'Finalizado' && ag.status !== 'Cancelado' ? `
+                        ${isFuncionario && ag.status !== 'Finalizado' && ag.status !== 'Cancelado' && !estaExpirado ? `
                             <button class="btn-agendamento-acoes" onclick="editarAgendamento('${ag.id}')" title="Editar">
                                 <i class="fas fa-edit"></i>
                             </button>
@@ -4934,11 +4957,13 @@ window.editarAgendamento = function(agendamentoId) {
 // VERIFICAR SE AGENDAMENTO ESTÁ EXPIRADO
 // ============================================
 function isAgendamentoExpirado(agendamento) {
-    // Status que NÃO são considerados expirados
-    const statusNaoExpirados = ['Finalizado', 'Cancelado'];
+    // ✅ Status que NUNCA podem ser considerados expirados:
+    // - Finalizado: foi concluído com sucesso
+    // - Cancelado: perdeu a validade por outros motivos
+    const statusValidos = ['Finalizado', 'Cancelado'];
     
     // Se já está finalizado ou cancelado, não considerar expirado
-    if (statusNaoExpirados.includes(agendamento.status)) {
+    if (statusValidos.includes(agendamento.status)) {
         return false;
     }
     
@@ -4948,7 +4973,10 @@ function isAgendamentoExpirado(agendamento) {
     // Se não tem data, não considerar
     if (!dataAgendamento) return false;
     
-    // Verificar se a data/hora do agendamento já passou
+    // ✅ Apenas agendamentos que:
+    // 1. Passaram do horário (data_hora < agora)
+    // 2. NÃO estão finalizados
+    // 3. NÃO estão cancelados
     return dataAgendamento < agora;
 }
 
