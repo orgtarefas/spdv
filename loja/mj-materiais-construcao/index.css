@@ -5549,3 +5549,89 @@ body {
 .btn-agendamento-acoes.cancelar:disabled i {
     color: #adb5bd;
 }
+
+/* ============================================
+   SOBRESCREVER TODOS OS FILTROS - VERSÃO DEFINITIVA
+   ============================================ */
+
+/* Garantir que TODOS os botões de filtro tenham a mesma cor quando NÃO selecionados */
+.filter-btn,
+.filter-btn[data-filtro-status="pendente"],
+.filter-btn[data-filtro-status="verificado"],
+.filter-btn[data-filtro-status="fila"],
+.filter-btn[data-filtro-status="proximo"],
+.filter-btn[data-filtro-status="atendimento"],
+.filter-btn[data-filtro-status="finalizado"],
+.filter-btn[data-filtro-status="cancelado"],
+.filter-btn[data-filtro-status="expirado"] {
+    color: #475569 !important;
+    border-color: #e2e8f0 !important;
+    background: white !important;
+}
+
+.filter-btn i,
+.filter-btn[data-filtro-status="pendente"] i,
+.filter-btn[data-filtro-status="verificado"] i,
+.filter-btn[data-filtro-status="fila"] i,
+.filter-btn[data-filtro-status="proximo"] i,
+.filter-btn[data-filtro-status="atendimento"] i,
+.filter-btn[data-filtro-status="finalizado"] i,
+.filter-btn[data-filtro-status="cancelado"] i,
+.filter-btn[data-filtro-status="expirado"] i {
+    color: #475569 !important;
+}
+
+/* Hover - todos iguais */
+.filter-btn:hover,
+.filter-btn[data-filtro-status="pendente"]:hover,
+.filter-btn[data-filtro-status="verificado"]:hover,
+.filter-btn[data-filtro-status="fila"]:hover,
+.filter-btn[data-filtro-status="proximo"]:hover,
+.filter-btn[data-filtro-status="atendimento"]:hover,
+.filter-btn[data-filtro-status="finalizado"]:hover,
+.filter-btn[data-filtro-status="cancelado"]:hover,
+.filter-btn[data-filtro-status="expirado"]:hover {
+    border-color: #0056b3 !important;
+    color: #0056b3 !important;
+    background: #f8fafc !important;
+}
+
+.filter-btn:hover i,
+.filter-btn[data-filtro-status="pendente"]:hover i,
+.filter-btn[data-filtro-status="verificado"]:hover i,
+.filter-btn[data-filtro-status="fila"]:hover i,
+.filter-btn[data-filtro-status="proximo"]:hover i,
+.filter-btn[data-filtro-status="atendimento"]:hover i,
+.filter-btn[data-filtro-status="finalizado"]:hover i,
+.filter-btn[data-filtro-status="cancelado"]:hover i,
+.filter-btn[data-filtro-status="expirado"]:hover i {
+    color: #0056b3 !important;
+}
+
+/* ACTIVE - TODOS com gradiente azul-verde */
+.filter-btn.active,
+.filter-btn[data-filtro-status="pendente"].active,
+.filter-btn[data-filtro-status="verificado"].active,
+.filter-btn[data-filtro-status="fila"].active,
+.filter-btn[data-filtro-status="proximo"].active,
+.filter-btn[data-filtro-status="atendimento"].active,
+.filter-btn[data-filtro-status="finalizado"].active,
+.filter-btn[data-filtro-status="cancelado"].active,
+.filter-btn[data-filtro-status="expirado"].active {
+    background: linear-gradient(135deg, #0056b3, #00a86b) !important;
+    color: white !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2) !important;
+}
+
+.filter-btn.active i,
+.filter-btn[data-filtro-status="pendente"].active i,
+.filter-btn[data-filtro-status="verificado"].active i,
+.filter-btn[data-filtro-status="fila"].active i,
+.filter-btn[data-filtro-status="proximo"].active i,
+.filter-btn[data-filtro-status="atendimento"].active i,
+.filter-btn[data-filtro-status="finalizado"].active i,
+.filter-btn[data-filtro-status="cancelado"].active i,
+.filter-btn[data-filtro-status="expirado"].active i {
+    color: white !important;
+}
