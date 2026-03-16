@@ -3307,6 +3307,9 @@ function abrirModal(modalId) {
     if (modal) {
         modal.classList.add('active');
         console.log(`✅ Modal ${modalId} aberto`);
+        
+        // Rolar até o modal
+        rolarAteModal(modalId);
     } else {
         console.error(`❌ Modal ${modalId} não encontrado`);
     }
@@ -5289,6 +5292,23 @@ function configurarEventos() {
     
     document.getElementById('agendamentoStatus')?.addEventListener('click', alternarModoOperacao);    
     console.log("✅ Eventos configurados");
+}
+
+// ============================================
+// ROLAR ATÉ O MODAL QUANDO ABERTO
+// ============================================
+function rolarAteModal(modalId) {
+    setTimeout(() => {
+        const modal = document.getElementById(modalId);
+        if (modal && modal.classList.contains('active')) {
+            // Rolar suavemente até o modal
+            modal.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            console.log(`📜 Rolando até o modal: ${modalId}`);
+        }
+    }, 300); // Pequeno delay para garantir que o modal abriu
 }
 
 // ============================================
