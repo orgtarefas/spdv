@@ -4682,40 +4682,63 @@ function aplicarFiltroAgendamentosModal(filtro) {
     // Status que NUNCA entram no filtro expirado
     const statusNaoExpirados = ['Finalizado', 'Cancelado'];
     
+    // Função para verificar se um agendamento está expirado
+    const isExpirado = (ag) => {
+        return ag.data_hora && 
+               ag.data_hora < agora && 
+               !statusNaoExpirados.includes(ag.status);
+    };
+    
     if (filtro === 'todos') {
+        // ✅ "Todos" mostra TUDO (incluindo expirados)
         agendamentosFiltrados = todosAgendamentos;
         
     } else if (filtro === 'expirado') {
-        agendamentosFiltrados = todosAgendamentos.filter(ag => {
-            if (!ag.data_hora) return false;
-            const passouHorario = ag.data_hora < agora;
-            const naoFinalizadoNemCancelado = !statusNaoExpirados.includes(ag.status);
-            return passouHorario && naoFinalizadoNemCancelado;
-        });
+        // ✅ "Expirado" mostra APENAS expirados
+        agendamentosFiltrados = todosAgendamentos.filter(ag => isExpirado(ag));
         
     } else {
-        // Filtro por status específico (incluindo Cancelado)
+        // ✅ DEMAIS FILTROS: mostram APENAS o status específico, EXCLUINDO expirados
         agendamentosFiltrados = todosAgendamentos.filter(ag => {
+            // Mapear os nomes dos filtros para os status reais
+            let statusMatch = false;
+            
             switch(filtro) {
                 case 'Pendente':
-                    return ag.status === 'Pendente';
+                    statusMatch = ag.status === 'Pendente';
+                    break;
                 case 'Verificado':
-                    return ag.status === 'Verificado';
+                    statusMatch = ag.status === 'Verificado';
+                    break;
                 case 'Na fila':
-                    return ag.status === 'Na fila';
+                    statusMatch = ag.status === 'Na fila';
+                    break;
                 case 'Próximo a atender':
-                    return ag.status === 'Próximo a atender';
+                    statusMatch = ag.status === 'Próximo a atender';
+                    break;
                 case 'Em atendimento':
-                    return ag.status === 'Em atendimento';
+                    statusMatch = ag.status === 'Em atendimento';
+                    break;
                 case 'Finalizado':
-                    return ag.status === 'Finalizado';
-                case 'Cancelado': // ✅ NOVO
-                    return ag.status === 'Cancelado';
+                    statusMatch = ag.status === 'Finalizado';
+                    break;
+                case 'Cancelado':
+                    statusMatch = ag.status === 'Cancelado';
+                    break;
                 default:
-                    return true;
+                    statusMatch = true;
             }
+            
+            // ✅ Se o status não corresponde, já exclui
+            if (!statusMatch) return false;
+            
+            // ✅ Se corresponde, verifica se NÃO está expirado
+            // (a menos que seja o filtro "todos" ou "expirado", que já tratamos acima)
+            return !isExpirado(ag);
         });
     }
+    
+    console.log(`📊 Filtro "${filtro}": ${agendamentosFiltrados.length} agendamentos encontrados`);
     
     // Renderizar os agendamentos filtrados
     renderizarAgendamentosModal(container, agendamentosFiltrados, isFuncionario, filtro);
