@@ -1088,18 +1088,28 @@ body {
     align-items: center;
     gap: 0.25rem;
     font-size: 0.85rem;
-    color: #475569;
+    color: #475569; /* cor padrão para todos */
 }
 
+/* Ícones no estado normal - mesma cor do texto */
+.filter-btn i {
+    color: #475569;
+    transition: color 0.3s ease;
+}
+
+/* Hover - mesmo para todos os botões */
 .filter-btn:hover {
     border-color: #0056b3;
     color: #0056b3;
+    background: #f8fafc;
 }
 
+/* ✅ ACTIVE/SELECIONADO - mesmo estilo para TODOS os filtros */
 .filter-btn.active {
     background: linear-gradient(135deg, #0056b3, #00a86b);
     color: white;
     border-color: transparent;
+    box-shadow: 0 4px 10px rgba(0, 86, 179, 0.2);
 }
 
 .search-tip {
