@@ -5078,3 +5078,218 @@ body {
         right: 0;
     }
 }
+
+/* ============================================
+   MODAL DE MEUS AGENDAMENTOS - AJUSTE DE ALTURA
+   ============================================ */
+
+/* Ajustar altura máxima do modal */
+#meusAgendamentosModal .modal-content {
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header fixo */
+#meusAgendamentosModal .modal-header {
+    flex-shrink: 0;
+}
+
+/* Body com scroll interno */
+#meusAgendamentosModal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    max-height: calc(90vh - 80px); /* 80px é altura aproximada do header */
+}
+
+/* Container da lista com altura automática */
+.lista-agendamentos {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: min-content;
+    height: auto;
+    overflow: visible;
+}
+
+/* Cards mais compactos */
+.agendamento-item-modal {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px; /* Reduzido de 16px */
+    padding: 12px; /* Reduzido de 16px */
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Layout mais compacto no body do card */
+.agendamento-body-modal {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 12px; /* Reduzido de 15px */
+    align-items: center;
+}
+
+/* Senha menor */
+.agendamento-senha-modal {
+    font-size: 1.5rem; /* Reduzido de 1.8rem */
+    font-weight: 700; /* Reduzido de 800 */
+    color: #0056b3;
+    background: #f0f7ff;
+    padding: 4px 12px; /* Reduzido padding */
+    border-radius: 30px; /* Reduzido de 40px */
+    min-width: 80px; /* Reduzido de 100px */
+    text-align: center;
+    border: 1px solid #cce4ff;
+    white-space: nowrap;
+}
+
+/* Informações do cliente mais compactas */
+.agendamento-info-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Reduzido de 5px */
+    min-width: 0; /* Permite que o texto quebre */
+}
+
+.agendamento-cliente-modal {
+    font-weight: 600;
+    font-size: 0.95rem; /* Reduzido de 1rem */
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 6px; /* Reduzido de 8px */
+    flex-wrap: wrap;
+}
+
+.agendamento-cliente-email {
+    font-size: 0.75rem; /* Reduzido de 0.8rem */
+    color: #64748b;
+    font-weight: 400;
+}
+
+.agendamento-data-modal,
+.agendamento-horario-modal {
+    font-size: 0.8rem; /* Reduzido de 0.85rem */
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Reduzido de 5px */
+}
+
+.agendamento-data-modal i,
+.agendamento-horario-modal i {
+    width: 14px; /* Reduzido de 16px */
+    font-size: 0.8rem;
+}
+
+/* Botões de ação mais compactos */
+.agendamento-acoes-modal {
+    display: flex;
+    gap: 6px; /* Reduzido de 8px */
+    align-items: center;
+}
+
+.btn-agendamento-acoes {
+    padding: 6px 10px; /* Reduzido de 8px 12px */
+    border-radius: 6px; /* Reduzido de 8px */
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.75rem; /* Reduzido de 0.8rem */
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Reduzido de 5px */
+    white-space: nowrap;
+}
+
+.btn-agendamento-acoes i {
+    font-size: 0.8rem; /* Reduzido */
+}
+
+/* Header do card mais compacto */
+.agendamento-header-modal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px; /* Reduzido de 10px */
+    flex-wrap: wrap;
+    gap: 6px; /* Reduzido de 8px */
+}
+
+.agendamento-servico-tag {
+    background: #f0f7ff;
+    color: #0056b3;
+    padding: 4px 10px; /* Reduzido de 5px 12px */
+    border-radius: 20px; /* Reduzido de 30px */
+    font-size: 0.75rem; /* Reduzido de 0.8rem */
+    font-weight: 600;
+    border: 1px solid #cce4ff;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px; /* Reduzido de 5px */
+}
+
+.agendamento-status-badge {
+    padding: 3px 10px; /* Reduzido de 4px 12px */
+    border-radius: 20px; /* Reduzido de 30px */
+    font-size: 0.7rem; /* Reduzido de 0.75rem */
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px; /* Reduzido de 0.5px */
+    white-space: nowrap;
+}
+
+/* Responsividade para telas menores */
+@media (max-width: 768px) {
+    .agendamento-body-modal {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .agendamento-senha-modal {
+        font-size: 1.3rem;
+        min-width: 70px;
+        padding: 4px 8px;
+        justify-self: start;
+    }
+    
+    .agendamento-acoes-modal {
+        justify-content: flex-end;
+        margin-top: 4px;
+    }
+    
+    .agendamento-cliente-modal {
+        font-size: 0.9rem;
+    }
+    
+    .agendamento-cliente-email {
+        font-size: 0.7rem;
+    }
+    
+    .btn-agendamento-acoes {
+        padding: 5px 8px;
+        font-size: 0.7rem;
+    }
+}
+
+/* Para telas muito pequenas */
+@media (max-width: 480px) {
+    .agendamento-header-modal {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .agendamento-status-badge {
+        align-self: flex-start;
+    }
+    
+    .agendamento-servico-tag {
+        width: 100%;
+    }
+}
