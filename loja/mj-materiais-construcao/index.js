@@ -4822,6 +4822,12 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
             }
         }
         
+        // ✅ Determinar se o botão CANCELAR deve estar habilitado ou desabilitado
+        const cancelarHabilitado = isFuncionario && 
+                                   ag.status !== 'Finalizado' && 
+                                   ag.status !== 'Cancelado' && 
+                                   !estaExpirado;
+        
         html += `
             <div class="agendamento-item-modal ${estaExpirado ? 'agendamento-expirado' : ''}" 
                  data-status="${ag.status}" 
@@ -4860,23 +4866,19 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
                     </div>
                     
                     <div class="agendamento-acoes-modal">
-                        ${isFuncionario && ag.status !== 'Finalizado' && ag.status !== 'Cancelado' ? `
-                            <button class="btn-agendamento-acoes" onclick="editarAgendamento('${ag.id}')" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                        ` : ''}
-                        
                         ${!estaExpirado && ['Na fila', 'Verificado', 'Próximo a atender'].includes(ag.status) ? `
                             <button class="btn-agendamento-acoes primary" onclick="window.location.href='#'" title="Ver na fila">
                                 <i class="fas fa-eye"></i> Ver
                             </button>
                         ` : ''}
                         
-                        ${ag.status !== 'Cancelado' && ag.status !== 'Finalizado' ? `
-                            <button class="btn-agendamento-acoes cancelar" onclick="cancelarAgendamento('${ag.id}')" title="Cancelar">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                        ` : ''}
+                        <!-- Botão Cancelar (habilitado ou desabilitado) -->
+                        <button class="btn-agendamento-acoes cancelar ${!cancelarHabilitado ? 'disabled' : ''}" 
+                                onclick="${cancelarHabilitado ? `cancelarAgendamento('${ag.id}')` : 'event.preventDefault()'}" 
+                                title="${!cancelarHabilitado ? 'Não é possível cancelar este agendamento' : 'Cancelar agendamento'}"
+                                ${!cancelarHabilitado ? 'disabled' : ''}>
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
                     </div>
                 </div>
             </div>
