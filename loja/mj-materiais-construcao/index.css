@@ -4749,3 +4749,332 @@ body {
 .page-indicator-badge {
     animation: pageChange 0.3s ease;
 }
+
+/* ============================================
+   MODAL DE MEUS AGENDAMENTOS
+   ============================================ */
+.lista-agendamentos {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 5px;
+}
+
+.agendamento-item-modal {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.agendamento-item-modal:hover {
+    border-color: #0056b3;
+    box-shadow: 0 5px 15px rgba(0, 86, 179, 0.1);
+}
+
+.agendamento-item-modal::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #0056b3, #00a86b);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.agendamento-item-modal:hover::before {
+    opacity: 1;
+}
+
+.agendamento-header-modal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.agendamento-servico-tag {
+    background: #f0f7ff;
+    color: #0056b3;
+    padding: 5px 12px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border: 1px solid #cce4ff;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.agendamento-status-badge {
+    padding: 4px 12px;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-pendente {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.status-verificado, .status-na-fila {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.status-proximo {
+    background: #cce5ff;
+    color: #004085;
+    border: 1px solid #b8daff;
+}
+
+.status-em-atendimento {
+    background: #fff0d9;
+    color: #b24d00;
+    border: 1px solid #ffd8b8;
+}
+
+.status-finalizado {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.agendamento-body-modal {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 15px;
+    align-items: center;
+}
+
+.agendamento-senha-modal {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #0056b3;
+    background: #f0f7ff;
+    padding: 8px 16px;
+    border-radius: 40px;
+    min-width: 100px;
+    text-align: center;
+    border: 1px solid #cce4ff;
+}
+
+.agendamento-info-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.agendamento-cliente-modal {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.agendamento-cliente-email {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 400;
+}
+
+.agendamento-data-modal {
+    font-size: 0.85rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.agendamento-data-modal i {
+    width: 16px;
+    color: #0056b3;
+}
+
+.agendamento-horario-modal {
+    font-size: 0.85rem;
+    color: #1e293b;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.agendamento-acoes-modal {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-agendamento-acoes {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #1e293b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-agendamento-acoes:hover {
+    background: #f0f7ff;
+    border-color: #0056b3;
+    color: #0056b3;
+}
+
+.btn-agendamento-acoes.primary {
+    background: #0056b3;
+    color: white;
+    border-color: #0056b3;
+}
+
+.btn-agendamento-acoes.primary:hover {
+    background: #003d82;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .agendamento-body-modal {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .agendamento-senha-modal {
+        font-size: 1.5rem;
+        min-width: 80px;
+        padding: 5px 10px;
+    }
+    
+    .agendamento-acoes-modal {
+        justify-content: flex-end;
+    }
+}
+
+/* ============================================
+   DROPDOWN DE AGENDAMENTO
+   ============================================ */
+.agendamento-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-agendamento-dropdown {
+    background: linear-gradient(145deg, #0056b3, #003d82);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 60px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.25s ease;
+    box-shadow: 0 10px 20px -8px rgba(0, 86, 179, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    white-space: nowrap;
+}
+
+.btn-agendamento-dropdown:hover {
+    background: linear-gradient(145deg, #0066cc, #004a99);
+    transform: translateY(-3px);
+    box-shadow: 0 18px 30px -8px rgba(0, 86, 179, 0.5);
+}
+
+.btn-agendamento-dropdown i:first-child {
+    margin-right: 2px;
+}
+
+.agendamento-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.2);
+    border: 1px solid #e2e8f0;
+    min-width: 220px;
+    z-index: 1000;
+    display: none;
+    overflow: hidden;
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+.agendamento-dropdown-menu.show {
+    display: block;
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    color: #1e293b;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.95rem;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background: #f0f7ff;
+    padding-left: 24px;
+    color: #0056b3;
+}
+
+.dropdown-item i {
+    width: 20px;
+    color: #0056b3;
+    font-size: 1rem;
+}
+
+.dropdown-item:hover i {
+    color: #0056b3;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .btn-agendamento-dropdown {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .agendamento-dropdown-menu {
+        min-width: 200px;
+        right: 0;
+    }
+}
