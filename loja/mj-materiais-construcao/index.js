@@ -4940,13 +4940,13 @@ window.cancelarAgendamento = async function(agendamentoId) {
 };
 
 // ============================================
-// FILTRO GLOBAL DO MODAL - VERSÃO CORRIGIDA
+// FILTRO GLOBAL DO MODAL
 // ============================================
 window.filtrarAgendamentosModal = function(filtro) {
-    console.log('🔍 Aplicando filtro:', filtro); // Log para debug
+    console.log('🔍 Filtro selecionado:', filtro);
     
     // 1. Remove a classe 'active' de TODOS os botões de filtro
-    document.querySelectorAll('#filtrosAgendamentosAdmin .filter-btn, .filter-btn').forEach(btn => {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
@@ -4959,10 +4959,27 @@ window.filtrarAgendamentosModal = function(filtro) {
         console.log('✅ Botão ativo:', btnAtivo);
     } else {
         console.warn('⚠️ Botão não encontrado para o filtro:', filtro);
+        // Fallback: tenta encontrar por variações do nome
+        const variacoes = {
+            'Pendente': 'pendente',
+            'Verificado': 'verificado',
+            'Na fila': 'fila',
+            'Próximo a atender': 'proximo',
+            'Em atendimento': 'atendimento',
+            'Finalizado': 'finalizado',
+            'Cancelado': 'cancelado',
+            'expirado': 'expirado',
+            'todos': 'todos'
+        };
+        const dataStatus = variacoes[filtro] || filtro;
+        const btnFallback = document.querySelector(`[data-filtro-status="${dataStatus}"]`);
+        if (btnFallback) btnFallback.classList.add('active');
     }
     
-    // 3. Aplica o filtro nos dados
-    aplicarFiltroAgendamentosModal(filtro);
+    // 3. Aplica o filtro nos dados (sua função existente)
+    if (typeof aplicarFiltroAgendamentosModal === 'function') {
+        aplicarFiltroAgendamentosModal(filtro);
+    }
 };
 
 // ============================================
@@ -5359,6 +5376,23 @@ window.verProdutoDetalhe = verProdutoDetalhe;
 window.adicionarAoCarrinho = adicionarAoCarrinho;
 window.filtrarPorCategoria = filtrarPorCategoria;
 window.fecharModal = fecharModal;
+
+// ============================================
+// GARANTIR QUE APENAS "TODOS" ESTÁ ATIVO NO INÍCIO
+// ============================================
+setTimeout(() => {
+    // Remover active de todos os botões
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Ativar apenas o botão "todos"
+    const btnTodos = document.querySelector('[data-filtro-status="todos"]');
+    if (btnTodos) {
+        btnTodos.classList.add('active');
+        console.log('✅ Botão "Todos" ativado por padrão');
+    }
+}, 100);
 
 console.log("✅ index.js carregado com sucesso!");
 
