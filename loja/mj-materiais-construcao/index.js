@@ -2030,7 +2030,7 @@ function inicializarCarrosselAgendamento() {
 }
 
 // ============================================
-// ABRIR MODAL NOVA SENHA HOJE - VERSÃO CORRIGIDA
+// ABRIR MODAL NOVA SENHA HOJE
 // ============================================
 async function abrirModalNovaSenhaHoje() {
     if (!usuarioLogado || !dadosUsuario) {
@@ -2121,7 +2121,18 @@ async function abrirModalNovaSenhaHoje() {
     // Carregar serviços com horários mais cedo disponíveis
     await carregarServicosComPrimeiroHorario();
     
+    // Abrir o modal
     modal.classList.add('active');
+    
+    // 🔥 FORÇAR ROLAGEM ATÉ O MODAL
+    setTimeout(() => {
+        modal.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'center'
+        });
+        console.log('📜 Rolando até modal nova senha');
+    }, 500);
 }
 
 // ============================================
@@ -2643,7 +2654,7 @@ document.getElementById('btnConfirmarSenhaHoje')?.addEventListener('click', asyn
 });
 
 // ============================================
-// ABRIR MODAL DE AGENDAMENTO PARA CLIENTES (CORRIGIDO)
+// ABRIR MODAL DE AGENDAMENTO PARA CLIENTES
 // ============================================
 function abrirModalAgendamento() {
     if (!usuarioLogado || !dadosUsuario) {
@@ -2742,7 +2753,18 @@ function abrirModalAgendamento() {
     // Carregar serviços (mas não selecionar nenhum)
     carregarServicosCliente();
     
+    // Abrir o modal
     modal.classList.add('active');
+    
+    // 🔥 FORÇAR ROLAGEM ATÉ O MODAL
+    setTimeout(() => {
+        modal.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'center'
+        });
+        console.log('📜 Rolando até modal de agendamento');
+    }, 500); // Aumentei o delay para garantir que o modal abriu
 }
 
 // ============================================
@@ -4557,7 +4579,18 @@ async function abrirModalMeusAgendamentos() {
         // Carregar agendamentos
         await carregarAgendamentosParaModal(isFuncionario);
         
+        // Abrir o modal
         modal.classList.add('active');
+        
+        // 🔥 FORÇAR ROLAGEM ATÉ O MODAL
+        setTimeout(() => {
+            modal.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'center'
+            });
+            console.log('📜 Rolando até modal meus agendamentos');
+        }, 500);
         
     } catch (error) {
         console.error('❌ Erro ao abrir modal de agendamentos:', error);
