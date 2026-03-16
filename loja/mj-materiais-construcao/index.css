@@ -5293,3 +5293,157 @@ body {
         width: 100%;
     }
 }
+
+/* ============================================
+   ESTILOS PARA AGENDAMENTOS EXPIRADOS
+   ============================================ */
+
+/* Aviso de expirados */
+.expirados-aviso {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+}
+
+.btn-ver-expirados {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-left: auto;
+    transition: all 0.2s;
+}
+
+.btn-ver-expirados:hover {
+    background: #c82333;
+}
+
+/* Card expirado */
+.agendamento-expirado {
+    opacity: 0.8;
+    background: #fff8f8;
+    border: 1px solid #ffcdd2;
+    position: relative;
+    overflow: visible;
+}
+
+.agendamento-expirado:hover {
+    opacity: 1;
+    background: #fff0f0;
+}
+
+/* Badge de expirado */
+.expirado-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #dc3545;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 3px 10px rgba(220, 53, 69, 0.3);
+    z-index: 10;
+}
+
+/* Senha expirada */
+.agendamento-senha-modal.expirado {
+    background: #fff0f0;
+    border-color: #ffcdd2;
+    color: #dc3545;
+    text-decoration: line-through;
+    text-decoration-color: rgba(220, 53, 69, 0.3);
+}
+
+/* Tempo passado */
+.tempo-passado {
+    font-size: 0.7rem;
+    color: #dc3545;
+    margin-left: 8px;
+    font-weight: 500;
+    background: #fff0f0;
+    padding: 2px 6px;
+    border-radius: 12px;
+}
+
+/* Botão warning para reagendar */
+.btn-agendamento-acoes.warning {
+    background: #ffc107;
+    color: #856404;
+    border-color: #ffc107;
+}
+
+.btn-agendamento-acoes.warning:hover {
+    background: #e0a800;
+    color: #fff;
+}
+
+/* Filtro de expirados */
+.filter-btn[data-filtro-status="expirado"] {
+    color: #dc3545;
+}
+
+.filter-btn[data-filtro-status="expirado"].active {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.filter-btn[data-filtro-status="expirado"] i {
+    color: #dc3545;
+}
+
+.filter-btn[data-filtro-status="expirado"].active i {
+    color: white;
+}
+
+/* Status colors */
+.status-pendente {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffeeba;
+}
+
+.status-verificado, .status-fila {
+    background: #d1ecf1;
+    color: #0c5460;
+    border-color: #bee5eb;
+}
+
+.status-proximo {
+    background: #cce5ff;
+    color: #004085;
+    border-color: #b8daff;
+}
+
+.status-atendimento {
+    background: #fff0d9;
+    color: #b24d00;
+    border-color: #ffd8b8;
+}
+
+.status-finalizado {
+    background: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.status-cancelado {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
