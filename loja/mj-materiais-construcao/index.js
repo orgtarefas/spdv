@@ -4630,7 +4630,10 @@ async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todo
                         horario,
                         data_hora: dataHora,
                         senha,
-                        dados
+                        dados: {
+                            criado_por: dados.criado_por,
+                            criado_por_nome: dados.criado_por_nome,
+                        }
                     });
                 });
             });
@@ -4756,12 +4759,10 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
         let badgeText = '';
         
         if (estaExpirado) {
-            // Se está expirado, mostrar "EXPIRADO"
             badgeClass = 'status-expirado';
             badgeIcon = 'fa-hourglass-end';
             badgeText = 'EXPIRADO';
         } else {
-            // Caso contrário, mostrar o status real
             switch(ag.status) {
                 case 'Pendente':
                     badgeClass = 'status-pendente';
@@ -4822,7 +4823,11 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
             }
         }
         
-        // ✅ Determinar se o botão CANCELAR deve estar habilitado ou desabilitado
+        // ✅ Verificar se o agendamento foi criado por um funcionário para outro cliente
+        const criadoPorFuncionario = ag.dados?.criado_por && ag.dados?.criado_por !== ag.clienteEmail;
+        const nomeCriador = ag.dados?.criado_por_nome || ag.dados?.criado_por;
+        
+        // Determinar se o botão CANCELAR deve estar habilitado
         const cancelarHabilitado = isFuncionario && 
                                    ag.status !== 'Finalizado' && 
                                    ag.status !== 'Cancelado' && 
@@ -4848,10 +4853,20 @@ function renderizarAgendamentosModal(container, agendamentos, isFuncionario, fil
                     </div>
                     
                     <div class="agendamento-info-modal">
+                        <!-- 👤 Cliente (para quem é o agendamento) -->
                         <div class="agendamento-cliente-modal">
-                            <i class="fas fa-user"></i> ${ag.clienteNome}
+                            <i class="fas fa-user"></i> 
+                            <strong>${ag.clienteNome}</strong>
                             ${isFuncionario ? `<span class="agendamento-cliente-email">(${ag.clienteEmail})</span>` : ''}
                         </div>
+                        
+                        <!-- 📝 Quem agendou (se for diferente do cliente) -->
+                        ${criadoPorFuncionario && isFuncionario ? `
+                            <div class="agendamento-criado-por">
+                                <i class="fas fa-pen"></i> 
+                                Agendado por: ${nomeCriador}
+                            </div>
+                        ` : ''}
                         
                         <div class="agendamento-data-modal">
                             <i class="fas fa-calendar-alt"></i> ${ag.data}
