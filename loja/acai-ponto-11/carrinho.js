@@ -270,7 +270,23 @@ window.addEventListener('usuarioDeslogado', () => {
     }
     
     if (btnOrcamento) {
-        btnOrcamento.style.display = 'none';
+        console.log('🎯 Configurando botão Imprimir Orçamento');
+        
+        // Remove todos os eventos antigos
+        const novoBtnOrcamento = btnOrcamento.cloneNode(true);
+        btnOrcamento.parentNode.replaceChild(novoBtnOrcamento, btnOrcamento);
+        
+        // Adiciona o novo evento
+        novoBtnOrcamento.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🖨️ Botão Imprimir Orçamento clicado!');
+            gerarOrcamento();
+        });
+        
+        console.log('✅ Botão Imprimir Orçamento configurado');
+    } else {
+        console.warn('⚠️ Botão btnImprimirOrcamento não encontrado no DOM');
     }
     
     const btnFinalizarTexto = document.getElementById('btnFinalizarTexto');
