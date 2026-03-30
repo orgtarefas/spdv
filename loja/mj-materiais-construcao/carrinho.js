@@ -924,9 +924,16 @@ function configurarEventos() {
     // Configurar canal de vendas
     configurarCanalVendas();
     
-    const btnConfirmarVenda = document.getElementById('btnConfirmarVenda');
-    if (btnConfirmarVenda) {
-        btnConfirmarVenda.addEventListener('click', finalizarVenda);
+    const btnConfirmarFinalizacao = document.getElementById('btnConfirmarFinalizacao');
+    if (btnConfirmarFinalizacao) {
+        // Remove listeners antigos para evitar duplicação
+        const novoBtn = btnConfirmarFinalizacao.cloneNode(true);
+        btnConfirmarFinalizacao.parentNode.replaceChild(novoBtn, btnConfirmarFinalizacao);
+        
+        const btnFinal = document.getElementById('btnConfirmarFinalizacao');
+        if (btnFinal) {
+            btnFinal.addEventListener('click', finalizarVenda);
+        }
     }
     
     setInterval(atualizarRelogio, 1000);
@@ -1307,7 +1314,248 @@ function abrirModalRecolhimento() {
 }
 
 function gerarOrcamento() {
-    mostrarMensagem('Gerando orçamento...', 'info');
+    if (!usuarioLogado) {
+        mostrarMensagem('Faça login para gerar orçamento', 'warning');
+        return;
+    }
+    
+    if (carrinho.itens.length === 0) {
+        mostrarMensagem('Carrinho vazio. Adicione itens para gerar o orçamento.', 'warning');
+        return;
+    }
+    
+    mostrarLoading('Gerando orçamento...');
+    
+    try {
+        // Gerar conteúdo do orçamento
+        const orcamentoHTML = gerarConteudoOrcamento();
+        
+        // Criar janela de impressão
+        const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+        
+        if (!printWindow) {
+            mostrarMensagem('Por favor, permita pop-ups para esta página', 'warning');
+            esconderLoading();
+            return;
+        }
+        
+        printWindow.document.write(orcamentoHTML);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Aguardar carregamento completo antes de chamar print
+        printWindow.onload = function() {
+            setTimeout(() => {
+                printWindow.print();
+                esconderLoading();
+                mostrarMensagem('Orçamento enviado para impressão', 'success');
+            }, 500);
+        };
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar orçamento:', error);
+        mostrarMensagem('Erro ao gerar orçamento', 'error');
+        esconderLoading();
+    }
+}
+
+function gerarConteudoOrcamento() {
+    const nomeLoja = dadosLoja?.nome || lojaIdAtual?.replace(/-/g, ' ') || 'SUA LOJA';
+    const dataAtual = new Date().toLocaleString('pt-BR');
+    const numeroOrcamento = `ORC${Date.now().toString().slice(-8)}`;
+    
+    let html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Orçamento - ${numeroOrcamento}</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: 'Courier New', monospace;
+                padding: 20px;
+                font-size: 12px;
+                background: white;
+            }
+            .orcamento-container {
+                max-width: 800px;
+                margin: 0 auto;
+                border: 1px solid #ddd;
+                padding: 20px;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 2px solid #333;
+            }
+            .header h1 {
+                font-size: 18px;
+                margin-bottom: 5px;
+            }
+            .header p {
+                font-size: 11px;
+                color: #666;
+            }
+            .info-section {
+                margin-bottom: 20px;
+                padding: 10px;
+                background: #f5f5f5;
+                border-radius: 5px;
+            }
+            .info-row {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 5px;
+            }
+            .info-label {
+                font-weight: bold;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+            }
+            .text-right {
+                text-align: right;
+            }
+            .totals {
+                margin-top: 20px;
+                text-align: right;
+            }
+            .totals p {
+                margin-bottom: 5px;
+            }
+            .total-final {
+                font-size: 16px;
+                font-weight: bold;
+                border-top: 2px solid #333;
+                padding-top: 10px;
+                margin-top: 10px;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #ddd;
+                text-align: center;
+                font-size: 10px;
+                color: #666;
+            }
+            @media print {
+                body {
+                    padding: 0;
+                }
+                .no-print {
+                    display: none;
+                }
+                button {
+                    display: none;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="orcamento-container">
+            <div class="header">
+                <h1>${nomeLoja}</h1>
+                <p>CNPJ: ${dadosLoja?.cnpj || '00.000.000/0001-00'}</p>
+                <p>${dadosLoja?.contato?.endereco?.rua || ''}, ${dadosLoja?.contato?.endereco?.numero || ''} - ${dadosLoja?.contato?.endereco?.bairro || ''}</p>
+                <p>${dadosLoja?.contato?.endereco?.cidade || ''}/${dadosLoja?.contato?.endereco?.uf || ''} - CEP: ${dadosLoja?.contato?.endereco?.cep || ''}</p>
+                <p>Tel: ${dadosLoja?.contato?.telefone || '(00) 0000-0000'}</p>
+            </div>
+            
+            <div class="info-section">
+                <div class="info-row">
+                    <span class="info-label">ORÇAMENTO Nº:</span>
+                    <span>${numeroOrcamento}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">DATA:</span>
+                    <span>${dataAtual}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">CLIENTE:</span>
+                    <span>${usuarioLogado?.nome || 'Cliente'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">VENDEDOR:</span>
+                    <span>${usuarioLogado?.nome || 'Sistema'}</span>
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Descrição</th>
+                        <th class="text-right">Qtd</th>
+                        <th class="text-right">Unitário</th>
+                        <th class="text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    carrinho.itens.forEach(item => {
+        html += `
+            <tr>
+                <td>${item.codigo || '---'}</td>
+                <td>${item.nome}</td>
+                <td class="text-right">${item.quantidade} ${item.unidade || 'UN'}</td>
+                <td class="text-right">${formatarMoeda(item.preco_unitario)}</td>
+                <td class="text-right">${formatarMoeda(item.subtotal)}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+            
+            <div class="totals">
+                <p>Subtotal: ${formatarMoeda(carrinho.subtotal)}</p>
+                ${carrinho.descontoTotal > 0 ? `<p>Descontos: -${formatarMoeda(carrinho.descontoTotal)}</p>` : ''}
+                <div class="total-final">
+                    <strong>TOTAL: ${formatarMoeda(carrinho.total)}</strong>
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>Este orçamento é válido por 30 dias.</p>
+                <p>Formas de pagamento: Dinheiro, PIX, Débito e Crédito.</p>
+                <p>_________________________________________</p>
+                <p>Assinatura do Cliente</p>
+                <br>
+                <p>Obrigado pela preferência!</p>
+            </div>
+        </div>
+        
+        <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">
+                🖨️ Imprimir
+            </button>
+            <button onclick="window.close()" style="padding: 10px 20px; font-size: 14px; cursor: pointer; margin-left: 10px;">
+                ✖️ Fechar
+            </button>
+        </div>
+    </body>
+    </html>
+    `;
+    
+    return html;
 }
 
 // ============================================
@@ -1666,21 +1914,9 @@ window.alterarQuantidade = alterarQuantidade;
 window.alterarQuantidadeInput = alterarQuantidadeInput;
 window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
+window.gerarOrcamento = gerarOrcamento;
 
 console.log("✅ carrinho.js carregado com sucesso!");
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
