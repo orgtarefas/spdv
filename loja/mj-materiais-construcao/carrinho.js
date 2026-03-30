@@ -1164,6 +1164,8 @@ function abrirModalFinalizacao() {
 }
 
 async function finalizarVenda() {
+    console.log("🔵 FUNÇÃO finalizarVenda CHAMADA!"); // Debug
+    
     if (!usuarioLogado) {
         fecharModal('finalizarModal');
         abrirModal('loginModal');
@@ -1179,10 +1181,13 @@ async function finalizarVenda() {
     const tipoEntrega = document.querySelector('input[name="tipoEntrega"]:checked')?.value;
     const formaPagamento = document.querySelector('input[name="payment"]:checked')?.value;
     
-    const telefone = document.getElementById('clienteTelefone')?.value.trim();
-    if (!telefone) {
-        mostrarMensagem('Telefone é obrigatório', 'warning');
-        return;
+    // 🔥 CORREÇÃO: Só exigir telefone se for entrega em casa
+    if (tipoEntrega === 'entrega') {
+        const telefone = document.getElementById('clienteTelefone')?.value.trim();
+        if (!telefone) {
+            mostrarMensagem('Telefone é obrigatório para entrega em casa', 'warning');
+            return;
+        }
     }
     
     if (tipoEntrega === 'entrega') {
@@ -1195,7 +1200,7 @@ async function finalizarVenda() {
     
     if (formaPagamento === 'dinheiro') {
         const valorRecebidoInput = document.getElementById('valorRecebido');
-        if (valorRecebidoInput) {
+        if (valorRecebidoInput && valorRecebidoInput.value.trim()) {
             const valorRecebido = parseFloat(valorRecebidoInput.value.replace(/[^\d,]/g, '').replace(',', '.') || '0');
             if (valorRecebido < carrinho.total) {
                 mostrarMensagem('Valor recebido insuficiente', 'warning');
@@ -1212,6 +1217,11 @@ async function finalizarVenda() {
         const taxaEntrega = parseFloat(document.getElementById('taxaEntrega')?.value.replace(/[^\d,]/g, '').replace(',', '.') || '0');
         const totalComEntrega = carrinho.total + taxaEntrega;
         const cpfCliente = document.getElementById('clienteCpf')?.value.replace(/\D/g, '') || '';
+        
+        // 🔥 CORREÇÃO: Pegar telefone apenas se existir
+        const telefoneCliente = tipoEntrega === 'entrega' 
+            ? document.getElementById('clienteTelefone')?.value.trim() || ''
+            : document.getElementById('clienteTelefone')?.value.trim() || '';
         
         const vendaData = {
             tipo: 'VENDA',
@@ -1244,7 +1254,7 @@ async function finalizarVenda() {
             cliente: {
                 nome: document.getElementById('clienteNome')?.value || usuarioLogado.nome,
                 email: usuarioLogado.email,
-                telefone: telefone,
+                telefone: telefoneCliente,
                 cpf: cpfCliente
             },
             vendedor: {
