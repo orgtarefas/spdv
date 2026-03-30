@@ -199,6 +199,7 @@ window.addEventListener('usuarioLogado', (event) => {
     usuarioLogado = usuario;
     
     console.log('✅ Usuário logado no carrinho:', usuario);
+    console.log('🔑 UID:', usuario.uid);
     console.log('🔑 Nível:', usuario.nivel);
     console.log('🔑 Perfil:', usuario.perfil);
     console.log('🔑 Tipo:', usuario.tipo);
@@ -1164,7 +1165,7 @@ function abrirModalFinalizacao() {
 }
 
 async function finalizarVenda() {
-    console.log("🔵 FUNÇÃO finalizarVenda CHAMADA!"); // Debug
+    console.log("🔵 FUNÇÃO finalizarVenda CHAMADA!");
     
     if (!usuarioLogado) {
         fecharModal('finalizarModal');
@@ -1188,9 +1189,7 @@ async function finalizarVenda() {
             mostrarMensagem('Telefone é obrigatório para entrega em casa', 'warning');
             return;
         }
-    }
-    
-    if (tipoEntrega === 'entrega') {
+        
         const endereco = document.getElementById('clienteEndereco')?.value.trim();
         if (!endereco) {
             mostrarMensagem('Endereço de entrega é obrigatório', 'warning');
@@ -1218,7 +1217,21 @@ async function finalizarVenda() {
         const totalComEntrega = carrinho.total + taxaEntrega;
         const cpfCliente = document.getElementById('clienteCpf')?.value.replace(/\D/g, '') || '';
         
-        // 🔥 CORREÇÃO: Pegar telefone apenas se existir
+        // 🔥 CORREÇÃO: Pegar o UID do usuário de forma correta
+        let uidVendedor = usuarioLogado.uid;
+        
+        // Se não tiver uid, tentar obter do Firebase Auth
+        if (!uidVendedor && window.auth && window.auth.currentUser) {
+            uidVendedor = window.auth.currentUser.uid;
+            console.log('📌 UID obtido do auth.currentUser:', uidVendedor);
+        }
+        
+        // Se ainda não tiver, usar o email como fallback (não ideal, mas melhor que undefined)
+        if (!uidVendedor) {
+            uidVendedor = usuarioLogado.email || 'unknown';
+            console.warn('⚠️ UID não encontrado, usando fallback:', uidVendedor);
+        }
+        
         const telefoneCliente = tipoEntrega === 'entrega' 
             ? document.getElementById('clienteTelefone')?.value.trim() || ''
             : document.getElementById('clienteTelefone')?.value.trim() || '';
@@ -1258,8 +1271,8 @@ async function finalizarVenda() {
                 cpf: cpfCliente
             },
             vendedor: {
-                uid: usuarioLogado.uid,
-                nome: usuarioLogado.nome,
+                uid: uidVendedor,  // 🔥 AGORA COM VALOR VÁLIDO
+                nome: usuarioLogado.nome || 'Funcionário',
                 email: usuarioLogado.email,
                 perfil: usuarioLogado.nivel || usuarioLogado.perfil || usuarioLogado.tipo
             },
@@ -1269,6 +1282,12 @@ async function finalizarVenda() {
             data_criacao: new Date(),
             data_conclusao: new Date()
         };
+        
+        console.log('📝 Dados da venda:', {
+            vendedor: vendaData.vendedor,
+            cliente: vendaData.cliente,
+            total: vendaData.total
+        });
         
         const resultado = await lojaServices.criarVenda(vendaData);
         
