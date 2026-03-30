@@ -10,10 +10,8 @@ import { getLojaConfig } from '../../novo_lojas.js';
 (async function() {
     console.log("🔒 Verificando acesso ao carrinho...");
     
-    // Aguardar um momento para o login ser processado
     await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Verificar se usuário está logado (de múltiplas fontes)
     const usuarioLogado = window.auth?.currentUser || 
                          window.dadosUsuario || 
                          lojaServices?.usuario ||
@@ -27,9 +25,8 @@ import { getLojaConfig } from '../../novo_lojas.js';
                          })();
     
     if (!usuarioLogado) {
-        console.log("🚫 Usuário não logado - Redirecionando para clientes...");
+        console.log("🚫 Usuário não logado - Redirecionando...");
         
-        // Extrair lojaId da URL
         const pathMatch = window.location.pathname.match(/\/spdv\/loja\/([^\/]+)\//);
         const lojaId = pathMatch ? pathMatch[1] : null;
         
@@ -43,7 +40,6 @@ import { getLojaConfig } from '../../novo_lojas.js';
     
     console.log("✅ Usuário logado, acesso permitido ao carrinho");
     
-    // Se temos dados no sessionStorage mas não nas variáveis, restaurar
     try {
         const sessionData = sessionStorage.getItem('dadosUsuario');
         if (sessionData && !window.dadosUsuario) {
@@ -170,13 +166,12 @@ function habilitarCampoCodigoBarras(perfil) {
         canalFisicoOption.style.display = temPermissao ? 'flex' : 'none';
     }
     
-    // NÃO mostrar mais os botões aqui - eles serão controlados pelo canal de vendas
     if (btnRecolhimento) {
-        btnRecolhimento.style.display = 'none'; // Inicialmente oculto
+        btnRecolhimento.style.display = 'none';
     }
     
     if (btnOrcamento) {
-        btnOrcamento.style.display = 'none'; // Inicialmente oculto
+        btnOrcamento.style.display = 'none';
     }
     
     const btnFinalizarTexto = document.getElementById('btnFinalizarTexto');
@@ -238,13 +233,10 @@ window.addEventListener('usuarioLogado', (event) => {
     console.log('🎯 Perfil para controle de permissões:', perfil);
     
     habilitarCampoCodigoBarras(perfil);
-    setTimeout(configurarMenuPerfil, 500); // Configurar menu de perfil
+    setTimeout(configurarMenuPerfil, 500);
     carregarCarrinhoDoUsuario();
 });
 
-// ============================================
-// EVENTO USUÁRIO DESLOGADO
-// ============================================
 window.addEventListener('usuarioDeslogado', () => {
     usuarioLogado = null;
     carrinho.itens = [];
@@ -263,7 +255,6 @@ window.addEventListener('usuarioDeslogado', () => {
     const btnRecolhimento = document.getElementById('btnRecolhimento');
     const btnOrcamento = document.getElementById('btnImprimirOrcamento');
 
-    // Fechar dropdown se estiver aberto
     const dropdown = document.getElementById('profileMenuDropdown');
     if (dropdown) dropdown.classList.remove('show');
     
@@ -274,7 +265,6 @@ window.addEventListener('usuarioDeslogado', () => {
     if (barcodeSection) barcodeSection.style.display = 'none';
     if (canalFisicoOption) canalFisicoOption.style.display = 'none';
     
-    // 🔥 GARANTIR QUE OS BOTÕES SUMIRAM
     if (btnRecolhimento) {
         btnRecolhimento.style.display = 'none';
     }
@@ -296,9 +286,6 @@ window.addEventListener('usuarioDeslogado', () => {
 // FUNÇÕES DO CARRINHO (FIREBASE)
 // ============================================
 
-/**
- * Carregar carrinho do usuário do Firebase
- */
 async function carregarCarrinhoDoUsuario() {
     if (!usuarioLogado || !usuarioLogado.email) {
         console.log('👤 Usuário não logado ou sem email');
@@ -333,9 +320,6 @@ async function carregarCarrinhoDoUsuario() {
     }
 }
 
-/**
- * Salvar carrinho no Firebase (função auxiliar)
- */
 async function salvarCarrinhoNoFirebase() {
     if (!usuarioLogado || !usuarioLogado.email) return;
     
@@ -347,9 +331,6 @@ async function salvarCarrinhoNoFirebase() {
     }
 }
 
-/**
- * Atualizar quantidade de um item
- */
 async function atualizarQuantidade(index, novaQuantidade) {
     if (!usuarioLogado || !usuarioLogado.email) return;
     
@@ -389,9 +370,6 @@ async function atualizarQuantidade(index, novaQuantidade) {
     }
 }
 
-/**
- * Remover item do carrinho
- */
 async function removerItem(index) {
     if (!usuarioLogado || !usuarioLogado.email) return;
     
@@ -433,9 +411,6 @@ async function removerItem(index) {
     }
 }
 
-/**
- * Limpar carrinho
- */
 async function limparCarrinho() {
     if (!usuarioLogado) return;
     
@@ -469,7 +444,6 @@ async function limparCarrinho() {
 // FUNÇÕES DE INTERFACE
 // ============================================
 
-// Calcular totais
 function calcularTotais() {
     carrinho.subtotal = carrinho.itens.reduce((acc, item) => {
         item.subtotal = (item.preco_unitario * item.quantidade) - (item.desconto_valor || 0);
@@ -480,7 +454,6 @@ function calcularTotais() {
     carrinho.total = carrinho.subtotal;
 }
 
-// Atualizar interface
 function atualizarInterface() {
     console.log('🔄 Atualizando interface...');
     
@@ -490,7 +463,6 @@ function atualizarInterface() {
     atualizarBotoes();
 }
 
-// ATUALIZAR RESUMO
 function atualizarResumo() {
     console.log('📊 Atualizando resumo...');
     
@@ -522,7 +494,6 @@ function atualizarResumo() {
     }
 }
 
-// Atualizar botões
 function atualizarBotoes() {
     const btnFinalizar = document.getElementById('btnFinalizar');
     const btnLimpar = document.getElementById('btnLimparCarrinho');
@@ -535,7 +506,6 @@ function atualizarBotoes() {
     if (btnOrcamento) btnOrcamento.disabled = !temItens;
 }
 
-// Renderizar itens na tela
 function renderizarItens() {
     const container = document.getElementById('cartItemsList');
     if (!container) {
@@ -640,7 +610,6 @@ window.selecionarProduto = async function(index) {
         if (ampliadoCodigo) ampliadoCodigo.textContent = produto.codigo || '---';
         if (ampliadoPreco) ampliadoPreco.textContent = formatarMoeda(produto.preco_unitario);
         
-        // 🔥 CORREÇÃO: Buscar estoque real do produto
         try {
             mostrarLoading('Buscando estoque...');
             const resultado = await lojaServices.buscarProdutoPorId(produto.id);
@@ -648,8 +617,6 @@ window.selecionarProduto = async function(index) {
                 const estoqueReal = resultado.data.quantidade || 0;
                 if (ampliadoEstoque) {
                     ampliadoEstoque.textContent = estoqueReal;
-                    
-                    // Adicionar classe baseada no estoque
                     ampliadoEstoque.className = 'estoque-valor';
                     if (estoqueReal <= 0) {
                         ampliadoEstoque.classList.add('critico');
@@ -714,7 +681,6 @@ async function buscarProdutoPorCodigoBarras(codigo) {
             const produto = resultado.data;
             const quantidade = parseInt(document.getElementById('itemQuantity')?.value || 1);
             
-            // Verificar estoque
             if (produto.quantidade < quantidade) {
                 mostrarMensagem(`Estoque insuficiente! Disponível: ${produto.quantidade}`, 'warning');
                 esconderLoading();
@@ -772,14 +738,10 @@ function configurarCanalVendas() {
     if (radioOnline && radioFisica && barcodeSection) {
         radioOnline.addEventListener('change', function() {
             if (this.checked) {
-                // Modo Loja Online
                 barcodeSection.style.display = 'none';
-                
-                // 🔥 ESCONDER BOTÕES ESPECÍFICOS DA LOJA FÍSICA
                 if (btnRecolhimento) btnRecolhimento.style.display = 'none';
                 if (btnOrcamento) btnOrcamento.style.display = 'none';
-                
-                console.log('🌐 Modo Loja Online ativado - Botões de loja física ocultos');
+                console.log('🌐 Modo Loja Online ativado');
             }
         });
         
@@ -790,21 +752,15 @@ function configurarCanalVendas() {
                 const perfilLower = perfil ? perfil.toLowerCase() : '';
                 
                 if (perfisPermitidos.includes(perfilLower)) {
-                    // Modo Loja Física - mostrar tudo
                     barcodeSection.style.display = 'block';
-                    
-                    // 🔥 MOSTRAR BOTÕES ESPECÍFICOS DA LOJA FÍSICA
                     if (btnRecolhimento) btnRecolhimento.style.display = 'flex';
                     if (btnOrcamento) btnOrcamento.style.display = 'flex';
+                    console.log('🏪 Modo Loja Física ativado');
                     
-                    console.log('🏪 Modo Loja Física ativado - Todos os botões visíveis');
-                    
-                    // Focar no input de código de barras
                     setTimeout(() => {
                         document.getElementById('barcodeInput')?.focus();
                     }, 100);
                 } else {
-                    // Se não tiver permissão, volta para online
                     radioOnline.checked = true;
                     radioOnline.dispatchEvent(new Event('change'));
                     mostrarMensagem('Você não tem permissão para usar o modo Loja Física', 'warning');
@@ -815,347 +771,172 @@ function configurarCanalVendas() {
 }
 
 // ============================================
-// CONFIGURAR EVENTOS
+// FUNÇÃO DE IMPRESSÃO DE ORÇAMENTO
 // ============================================
-function configurarEventos() {
-    console.log('⚙️ Configurando eventos...');
-    
-    const btnFinalizar = document.getElementById('btnFinalizar');
-    const btnLimpar = document.getElementById('btnLimparCarrinho');
-    const btnVoltar = document.getElementById('btnVoltar');
-    const btnLogout = document.getElementById('btnLogout');
-    const btnAddBarcode = document.getElementById('btnAddBarcode');
-    const barcodeInput = document.getElementById('barcodeInput');
-    const barcodeClear = document.getElementById('barcodeClear');
-    const btnConsultarPreco = document.getElementById('btnConsultarPreco');
-    const btnRecolhimento = document.getElementById('btnRecolhimento');
-    const btnOrcamento = document.getElementById('btnImprimirOrcamento');
-    
-    if (btnFinalizar) {
-        btnFinalizar.addEventListener('click', () => {
-            if (!usuarioLogado) {
-                abrirModal('loginModal');
-                return;
-            }
-            if (carrinho.itens.length === 0) {
-                mostrarMensagem('Carrinho vazio', 'warning');
-                return;
-            }
-            abrirModalFinalizacao();
-        });
+function gerarOrcamento() {
+    if (!usuarioLogado) {
+        mostrarMensagem('Faça login para gerar orçamento', 'warning');
+        return;
     }
     
-    if (btnLimpar) {
-        btnLimpar.addEventListener('click', limparCarrinho);
+    if (carrinho.itens.length === 0) {
+        mostrarMensagem('Carrinho vazio. Adicione itens para gerar orçamento.', 'warning');
+        return;
     }
     
-    if (btnVoltar) {
-        btnVoltar.addEventListener('click', (e) => {
-            if (carrinho.itens.length > 0 && usuarioLogado) {
-                if (!confirm('Há itens no carrinho. Deseja realmente sair?')) {
-                    e.preventDefault();
-                }
-            }
-        });
-    }
+    mostrarLoading('Gerando orçamento...');
     
-    if (btnLogout) {
-        btnLogout.addEventListener('click', () => {
-            if (confirm('Deseja realmente sair?')) {
-                window.fazerLogout();
-            }
-        });
-    }
-    
-    if (btnAddBarcode && barcodeInput) {
-        btnAddBarcode.addEventListener('click', () => {
-            const codigo = barcodeInput.value.trim();
-            if (codigo) {
-                buscarProdutoPorCodigoBarras(codigo);
-            } else {
-                mostrarMensagem('Digite um código de barras', 'warning');
-            }
-        });
-    }
-    
-    if (barcodeInput) {
-        barcodeInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const codigo = barcodeInput.value.trim();
-                if (codigo) {
-                    buscarProdutoPorCodigoBarras(codigo);
-                }
-            }
-        });
+    try {
+        const nomeLoja = dadosLoja?.nome || lojaIdAtual?.replace(/-/g, ' ')?.replace(/\b\w/g, l => l.toUpperCase()) || 'SUA LOJA';
+        const enderecoLoja = dadosLoja?.contato?.endereco ? 
+            `${dadosLoja.contato.endereco.rua || ''}, ${dadosLoja.contato.endereco.numero || ''} - ${dadosLoja.contato.endereco.bairro || ''}, ${dadosLoja.contato.endereco.cidade || ''}/${dadosLoja.contato.endereco.uf || ''}` : 
+            '';
+        const telefoneLoja = dadosLoja?.contato?.telefone || '';
         
-        barcodeInput.addEventListener('input', () => {
-            const codigo = barcodeInput.value.replace(/\D/g, '');
-            if (codigo.length === 13) {
-                buscarProdutoPorCodigoBarras(codigo);
-            }
-        });
-    }
-    
-    if (barcodeClear) {
-        barcodeClear.addEventListener('click', () => {
-            if (barcodeInput) {
-                barcodeInput.value = '';
-                barcodeInput.focus();
-            }
-        });
-    }
-    
-    if (btnConsultarPreco) {
-        btnConsultarPreco.addEventListener('click', () => {
-            abrirModal('consultaPrecoModal');
-        });
-    }
-    
-    if (btnRecolhimento) {
-        btnRecolhimento.addEventListener('click', () => {
-            abrirModalRecolhimento();
-        });
-    }
-    
-    if (btnOrcamento) {
-        btnOrcamento.addEventListener('click', gerarOrcamento);
-    }
-    
-    // Configurar canal de vendas
-    configurarCanalVendas();
-    
-    const btnConfirmarVenda = document.getElementById('btnConfirmarVenda');
-    if (btnConfirmarVenda) {
-        btnConfirmarVenda.addEventListener('click', finalizarVenda);
-    }
-    
-    setInterval(atualizarRelogio, 1000);
-}
-
-// ============================================
-// FUNÇÕES DE FINALIZAÇÃO
-// ============================================
-function abrirModalFinalizacao() {
-    const perfil = extrairPerfil();
-    const isFuncionario = perfil && ['admin', 'gerente', 'supervisor', 'vendedor'].includes(perfil.toLowerCase());
-    
-    const modal = document.getElementById('finalizarModal');
-    const titulo = document.getElementById('modalFinalizarTitulo');
-    const body = document.getElementById('finalizarModalBody');
-    
-    if (!modal || !body) return;
-    
-    titulo.innerHTML = isFuncionario ? 
-        '<i class="fas fa-cash-register"></i> Finalizar Venda' : 
-        '<i class="fas fa-check-circle"></i> Finalizar Compra';
-    
-    let html = `
-        <!-- RESUMO DA COMPRA -->
-        <div class="venda-resumo">
-            <h4>Resumo do Pedido</h4>
-            <div class="resumo-linha">
-                <span>Total de Itens:</span>
-                <span id="resumoTotalItens">${carrinho.itens.length}</span>
-            </div>
-            <div class="resumo-linha">
-                <span>Subtotal:</span>
-                <span id="resumoSubtotal">${formatarMoeda(carrinho.subtotal)}</span>
-            </div>
-            <div class="resumo-linha total">
-                <span>TOTAL:</span>
-                <span id="resumoTotal">${formatarMoeda(carrinho.total)}</span>
-            </div>
-        </div>
-    `;
-    
-    if (isFuncionario) {
-        // Modal para funcionários (venda física)
-        html += `
-            <!-- OPÇÕES DE ENTREGA -->
-            <div class="entrega-section">
-                <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
-                <div class="entrega-opcoes">
-                    <label class="entrega-option">
-                        <input type="radio" name="tipoEntrega" value="retirada" checked>
-                        <span class="entrega-icon"><i class="fas fa-store"></i></span>
-                        <span class="entrega-nome">Retirada na loja</span>
-                    </label>
-                    <label class="entrega-option">
-                        <input type="radio" name="tipoEntrega" value="entrega">
-                        <span class="entrega-icon"><i class="fas fa-home"></i></span>
-                        <span class="entrega-nome">Receber em casa</span>
-                    </label>
-                </div>
-
-                <div id="camposEntrega" style="display: none;">
-                    <div class="form-group">
-                        <label><i class="fas fa-user"></i> Nome do Cliente *</label>
-                        <input type="text" id="clienteNome" placeholder="Nome completo" value="${usuarioLogado?.nome || ''}">
+        const orcamentoNumero = `ORC${Date.now().toString().slice(-8)}${Math.floor(Math.random() * 1000)}`;
+        const dataOrcamento = new Date().toLocaleString('pt-BR');
+        
+        const conteudoHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Orçamento - ${nomeLoja}</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Courier New', monospace; font-size: 12px; padding: 20px; background: white; }
+                    .orcamento-container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; }
+                    .header { text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #333; }
+                    .header h1 { font-size: 20px; margin-bottom: 5px; }
+                    .header p { font-size: 11px; color: #666; margin: 3px 0; }
+                    .orcamento-info { margin: 15px 0; padding: 10px; background: #f5f5f5; border: 1px solid #ddd; }
+                    .orcamento-info .row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+                    .cliente-info { margin: 15px 0; padding: 10px; border: 1px solid #ddd; }
+                    .cliente-info h3 { font-size: 13px; margin-bottom: 8px; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+                    th { background-color: #f2f2f2; font-weight: bold; }
+                    .text-right { text-align: right; }
+                    .totals { margin-top: 20px; text-align: right; border-top: 2px solid #333; padding-top: 10px; }
+                    .totals p { margin: 5px 0; }
+                    .totals .total { font-size: 16px; font-weight: bold; margin-top: 10px; }
+                    .footer { margin-top: 30px; text-align: center; padding-top: 20px; border-top: 1px solid #ddd; font-size: 10px; color: #666; }
+                    .validity { margin-top: 15px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; text-align: center; font-size: 11px; }
+                    @media print { body { padding: 0; margin: 0; } .orcamento-container { padding: 10px; } .no-print { display: none; } }
+                    .btn-print { display: block; margin: 20px auto; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+                    .btn-print:hover { background: #45a049; }
+                </style>
+            </head>
+            <body>
+                <div class="orcamento-container">
+                    <div class="header">
+                        <h1>${nomeLoja}</h1>
+                        ${enderecoLoja ? `<p>${enderecoLoja}</p>` : ''}
+                        ${telefoneLoja ? `<p>Tel: ${telefoneLoja}</p>` : ''}
+                        <h2 style="margin-top: 10px;">ORÇAMENTO</h2>
                     </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-phone"></i> Telefone *</label>
-                        <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
-                        <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Cidade</label>
-                            <input type="text" id="clienteCidade" placeholder="Cidade">
+                    
+                    <div class="orcamento-info">
+                        <div class="row">
+                            <span><strong>Nº Orçamento:</strong> ${orcamentoNumero}</span>
+                            <span><strong>Data:</strong> ${dataOrcamento}</span>
                         </div>
-                        <div class="form-group">
-                            <label>CEP</label>
-                            <input type="text" id="clienteCep" placeholder="00000-000">
+                        <div class="row">
+                            <span><strong>Vendedor:</strong> ${usuarioLogado?.nome || 'Não informado'}</span>
+                            <span><strong>Validade:</strong> 30 dias</span>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
-                        <input type="text" id="taxaEntrega" value="R$ 0,00">
+                    
+                    <div class="cliente-info">
+                        <h3>Dados do Cliente</h3>
+                        <p><strong>Nome:</strong> ${document.getElementById('clienteNome')?.value || usuarioLogado?.nome || 'Não informado'}</p>
+                        <p><strong>Telefone:</strong> ${document.getElementById('clienteTelefone')?.value || 'Não informado'}</p>
+                        ${document.getElementById('clienteCpf')?.value ? `<p><strong>CPF:</strong> ${document.getElementById('clienteCpf').value}</p>` : ''}
                     </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Código</th>
+                                <th>Descrição</th>
+                                <th class="text-right">Qtd</th>
+                                <th class="text-right">Unitário</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${carrinho.itens.map((item, idx) => `
+                                <tr>
+                                    <td>${idx + 1}</td>
+                                    <td>${item.codigo || '---'}</td>
+                                    <td>${item.nome}</td>
+                                    <td class="text-right">${item.quantidade}</td>
+                                    <td class="text-right">${formatarMoeda(item.preco_unitario)}</td>
+                                    <td class="text-right">${formatarMoeda(item.subtotal)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div class="totals">
+                        <p><strong>Subtotal:</strong> ${formatarMoeda(carrinho.subtotal)}</p>
+                        ${carrinho.descontoTotal > 0 ? `<p><strong>Descontos:</strong> -${formatarMoeda(carrinho.descontoTotal)}</p>` : ''}
+                        <p class="total"><strong>TOTAL:</strong> ${formatarMoeda(carrinho.total)}</p>
+                    </div>
+                    
+                    <div class="validity">
+                        <strong>⏱️ Validade do Orçamento: 30 dias</strong><br>
+                        Este orçamento está sujeito à disponibilidade de estoque no momento da compra.
+                    </div>
+                    
+                    <div class="footer">
+                        <p>Este documento não é uma nota fiscal e não tem valor fiscal.</p>
+                        <p>${nomeLoja} - Agradecemos a preferência!</p>
+                    </div>
+                    
+                    <button class="btn-print no-print" onclick="window.print(); setTimeout(() => window.close(), 500);">
+                        🖨️ Imprimir Orçamento
+                    </button>
                 </div>
-            </div>
-
-            <!-- CPF DO CLIENTE -->
-            <div class="form-group">
-                <label><i class="fas fa-id-card"></i> CPF do Cliente (opcional)</label>
-                <input type="text" id="clienteCpf" placeholder="000.000.000-00">
-            </div>
+                
+                <script>
+                    window.onload = function() {
+                        setTimeout(() => { window.print(); }, 500);
+                    };
+                <\/script>
+            </body>
+            </html>
         `;
-    } else {
-        // Modal para clientes (compra online)
-        html += `
-            <!-- DADOS DO CLIENTE -->
-            <div class="cliente-section">
-                <h4><i class="fas fa-user"></i> Dados do Cliente</h4>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-user"></i> Nome *</label>
-                    <input type="text" id="clienteNome" readonly class="readonly-field" value="${usuarioLogado?.nome || ''}">
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-envelope"></i> E-mail *</label>
-                    <input type="email" id="clienteEmail" readonly class="readonly-field" value="${usuarioLogado?.email || ''}">
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-phone"></i> Telefone *</label>
-                    <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
-                </div>
-                
-                <div class="form-group">
-                    <label><i class="fas fa-id-card"></i> CPF (opcional)</label>
-                    <input type="text" id="clienteCpf" placeholder="000.000.000-00">
-                </div>
-            </div>
-
-            <!-- OPÇÕES DE ENTREGA -->
-            <div class="entrega-section">
-                <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
-                
-                <div class="entrega-opcoes">
-                    <label class="entrega-option">
-                        <input type="radio" name="tipoEntrega" value="retirada" checked>
-                        <span class="entrega-icon"><i class="fas fa-store"></i></span>
-                        <span class="entrega-nome">Retirada na loja</span>
-                    </label>
-                    <label class="entrega-option">
-                        <input type="radio" name="tipoEntrega" value="entrega">
-                        <span class="entrega-icon"><i class="fas fa-home"></i></span>
-                        <span class="entrega-nome">Receber em casa</span>
-                    </label>
-                </div>
-
-                <div id="camposEntrega" style="display: none;">
-                    <div class="form-group">
-                        <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
-                        <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Cidade</label>
-                            <input type="text" id="clienteCidade" placeholder="Cidade">
-                        </div>
-                        <div class="form-group">
-                            <label>CEP</label>
-                            <input type="text" id="clienteCep" placeholder="00000-000">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
-                        <input type="text" id="taxaEntrega" value="R$ 0,00">
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // FORMAS DE PAGAMENTO (igual para ambos)
-    html += `
-        <div class="payment-section">
-            <h4><i class="fas fa-credit-card"></i> Forma de Pagamento</h4>
+        
+        const printWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+        
+        if (printWindow) {
+            printWindow.document.write(conteudoHTML);
+            printWindow.document.close();
             
-            <div class="methods-grid">
-                <label class="method-option">
-                    <input type="radio" name="payment" value="dinheiro" checked>
-                    <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
-                    <span class="method-name">Dinheiro</span>
-                </label>
-                <label class="method-option">
-                    <input type="radio" name="payment" value="pix">
-                    <span class="method-icon"><i class="fas fa-qrcode"></i></span>
-                    <span class="method-name">PIX</span>
-                </label>
-                <label class="method-option">
-                    <input type="radio" name="payment" value="debito">
-                    <span class="method-icon"><i class="fas fa-credit-card"></i></span>
-                    <span class="method-name">Débito</span>
-                </label>
-                <label class="method-option">
-                    <input type="radio" name="payment" value="credito">
-                    <span class="method-icon"><i class="fas fa-credit-card"></i></span>
-                    <span class="method-name">Crédito</span>
-                </label>
-            </div>
-
-            <div id="trocoSection" style="display: none;">
-                <div class="form-group">
-                    <label><i class="fas fa-calculator"></i> Valor Recebido</label>
-                    <input type="text" id="valorRecebido" placeholder="R$ 0,00">
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-exchange-alt"></i> Troco</label>
-                    <input type="text" id="valorTroco" placeholder="R$ 0,00" readonly>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    body.innerHTML = html;
-    modal.style.display = 'block';
-    
-    // Configurar eventos do modal
-    document.querySelectorAll('input[name="tipoEntrega"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const camposEntrega = document.getElementById('camposEntrega');
-            if (camposEntrega) {
-                camposEntrega.style.display = this.value === 'entrega' ? 'block' : 'none';
-            }
-        });
-    });
-    
-    document.querySelectorAll('input[name="payment"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            const trocoSection = document.getElementById('trocoSection');
-            if (trocoSection) {
-                trocoSection.style.display = this.value === 'dinheiro' ? 'block' : 'none';
-            }
-        });
-    });
+            setTimeout(() => {
+                if (printWindow && !printWindow.closed) {
+                    printWindow.close();
+                }
+            }, 30000);
+            
+            mostrarMensagem('Orçamento gerado com sucesso!', 'success');
+        } else {
+            mostrarMensagem('Não foi possível abrir a janela de impressão. Verifique se o popup foi bloqueado.', 'error');
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar orçamento:', error);
+        mostrarMensagem('Erro ao gerar orçamento', 'error');
+    } finally {
+        esconderLoading();
+    }
 }
 
+// ============================================
+// FUNÇÃO DE FINALIZAÇÃO DE VENDA
+// ============================================
 async function finalizarVenda() {
     if (!usuarioLogado) {
         fecharModal('finalizarModal');
@@ -1293,6 +1074,227 @@ async function finalizarVenda() {
     }
 }
 
+// ============================================
+// FUNÇÃO PARA ABRIR MODAL DE FINALIZAÇÃO
+// ============================================
+function abrirModalFinalizacao() {
+    const perfil = extrairPerfil();
+    const isFuncionario = perfil && ['admin', 'gerente', 'supervisor', 'vendedor'].includes(perfil.toLowerCase());
+    
+    const modal = document.getElementById('finalizarModal');
+    const titulo = document.getElementById('modalFinalizarTitulo');
+    const body = document.getElementById('finalizarModalBody');
+    
+    if (!modal || !body) return;
+    
+    titulo.innerHTML = isFuncionario ? 
+        '<i class="fas fa-cash-register"></i> Finalizar Venda' : 
+        '<i class="fas fa-check-circle"></i> Finalizar Compra';
+    
+    let html = `
+        <div class="venda-resumo">
+            <h4>Resumo do Pedido</h4>
+            <div class="resumo-linha">
+                <span>Total de Itens:</span>
+                <span id="resumoTotalItens">${carrinho.itens.length}</span>
+            </div>
+            <div class="resumo-linha">
+                <span>Subtotal:</span>
+                <span id="resumoSubtotal">${formatarMoeda(carrinho.subtotal)}</span>
+            </div>
+            <div class="resumo-linha total">
+                <span>TOTAL:</span>
+                <span id="resumoTotal">${formatarMoeda(carrinho.total)}</span>
+            </div>
+        </div>
+    `;
+    
+    if (isFuncionario) {
+        html += `
+            <div class="entrega-section">
+                <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
+                <div class="entrega-opcoes">
+                    <label class="entrega-option">
+                        <input type="radio" name="tipoEntrega" value="retirada" checked>
+                        <span class="entrega-icon"><i class="fas fa-store"></i></span>
+                        <span class="entrega-nome">Retirada na loja</span>
+                    </label>
+                    <label class="entrega-option">
+                        <input type="radio" name="tipoEntrega" value="entrega">
+                        <span class="entrega-icon"><i class="fas fa-home"></i></span>
+                        <span class="entrega-nome">Receber em casa</span>
+                    </label>
+                </div>
+                <div id="camposEntrega" style="display: none;">
+                    <div class="form-group">
+                        <label><i class="fas fa-user"></i> Nome do Cliente *</label>
+                        <input type="text" id="clienteNome" placeholder="Nome completo" value="${usuarioLogado?.nome || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-phone"></i> Telefone *</label>
+                        <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
+                        <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cidade</label>
+                            <input type="text" id="clienteCidade" placeholder="Cidade">
+                        </div>
+                        <div class="form-group">
+                            <label>CEP</label>
+                            <input type="text" id="clienteCep" placeholder="00000-000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
+                        <input type="text" id="taxaEntrega" value="R$ 0,00">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-id-card"></i> CPF do Cliente (opcional)</label>
+                <input type="text" id="clienteCpf" placeholder="000.000.000-00">
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="cliente-section">
+                <h4><i class="fas fa-user"></i> Dados do Cliente</h4>
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Nome *</label>
+                    <input type="text" id="clienteNome" readonly class="readonly-field" value="${usuarioLogado?.nome || ''}">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> E-mail *</label>
+                    <input type="email" id="clienteEmail" readonly class="readonly-field" value="${usuarioLogado?.email || ''}">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-phone"></i> Telefone *</label>
+                    <input type="text" id="clienteTelefone" placeholder="(00) 00000-0000">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-id-card"></i> CPF (opcional)</label>
+                    <input type="text" id="clienteCpf" placeholder="000.000.000-00">
+                </div>
+            </div>
+            <div class="entrega-section">
+                <h4><i class="fas fa-truck"></i> Opções de Entrega</h4>
+                <div class="entrega-opcoes">
+                    <label class="entrega-option">
+                        <input type="radio" name="tipoEntrega" value="retirada" checked>
+                        <span class="entrega-icon"><i class="fas fa-store"></i></span>
+                        <span class="entrega-nome">Retirada na loja</span>
+                    </label>
+                    <label class="entrega-option">
+                        <input type="radio" name="tipoEntrega" value="entrega">
+                        <span class="entrega-icon"><i class="fas fa-home"></i></span>
+                        <span class="entrega-nome">Receber em casa</span>
+                    </label>
+                </div>
+                <div id="camposEntrega" style="display: none;">
+                    <div class="form-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Endereço *</label>
+                        <input type="text" id="clienteEndereco" placeholder="Rua, número, bairro">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cidade</label>
+                            <input type="text" id="clienteCidade" placeholder="Cidade">
+                        </div>
+                        <div class="form-group">
+                            <label>CEP</label>
+                            <input type="text" id="clienteCep" placeholder="00000-000">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-motorcycle"></i> Taxa de Entrega</label>
+                        <input type="text" id="taxaEntrega" value="R$ 0,00">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div class="payment-section">
+            <h4><i class="fas fa-credit-card"></i> Forma de Pagamento</h4>
+            <div class="methods-grid">
+                <label class="method-option">
+                    <input type="radio" name="payment" value="dinheiro" checked>
+                    <span class="method-icon"><i class="fas fa-money-bill-wave"></i></span>
+                    <span class="method-name">Dinheiro</span>
+                </label>
+                <label class="method-option">
+                    <input type="radio" name="payment" value="pix">
+                    <span class="method-icon"><i class="fas fa-qrcode"></i></span>
+                    <span class="method-name">PIX</span>
+                </label>
+                <label class="method-option">
+                    <input type="radio" name="payment" value="debito">
+                    <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                    <span class="method-name">Débito</span>
+                </label>
+                <label class="method-option">
+                    <input type="radio" name="payment" value="credito">
+                    <span class="method-icon"><i class="fas fa-credit-card"></i></span>
+                    <span class="method-name">Crédito</span>
+                </label>
+            </div>
+            <div id="trocoSection" style="display: none;">
+                <div class="form-group">
+                    <label><i class="fas fa-calculator"></i> Valor Recebido</label>
+                    <input type="text" id="valorRecebido" placeholder="R$ 0,00">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-exchange-alt"></i> Troco</label>
+                    <input type="text" id="valorTroco" placeholder="R$ 0,00" readonly>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    body.innerHTML = html;
+    modal.style.display = 'block';
+    
+    document.querySelectorAll('input[name="tipoEntrega"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const camposEntrega = document.getElementById('camposEntrega');
+            if (camposEntrega) {
+                camposEntrega.style.display = this.value === 'entrega' ? 'block' : 'none';
+            }
+        });
+    });
+    
+    document.querySelectorAll('input[name="payment"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const trocoSection = document.getElementById('trocoSection');
+            if (trocoSection) {
+                trocoSection.style.display = this.value === 'dinheiro' ? 'block' : 'none';
+            }
+        });
+    });
+    
+    // Configurar o botão de confirmação
+    setTimeout(() => {
+        const btnConfirmar = document.getElementById('btnConfirmarFinalizacao');
+        if (btnConfirmar) {
+            const newBtn = btnConfirmar.cloneNode(true);
+            btnConfirmar.parentNode.replaceChild(newBtn, btnConfirmar);
+            newBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('✅ Botão Confirmar clicado!');
+                finalizarVenda();
+            });
+        }
+    }, 100);
+}
+
+// ============================================
+// FUNÇÕES DE RECOLHIMENTO E OUTROS
+// ============================================
 function abrirModalRecolhimento() {
     const modal = document.getElementById('recolhimentoModal');
     if (!modal) return;
@@ -1304,10 +1306,6 @@ function abrirModalRecolhimento() {
     if (dataHoraInput) dataHoraInput.value = new Date().toLocaleString('pt-BR');
     
     modal.style.display = 'block';
-}
-
-function gerarOrcamento() {
-    mostrarMensagem('Gerando orçamento...', 'info');
 }
 
 // ============================================
@@ -1326,7 +1324,6 @@ function configurarMenuPerfil() {
     
     console.log('✅ Elementos do menu encontrados');
     
-    // Mostrar/esconder itens baseado no perfil
     const perfil = extrairPerfil();
     const perfisPermitidos = ['admin', 'gerente', 'supervisor'];
     const perfilLower = perfil ? perfil.toLowerCase() : '';
@@ -1345,33 +1342,22 @@ function configurarMenuPerfil() {
     }
     
     if (menuEstoque) {
-        // Vendedores também podem ver estoque
         menuEstoque.style.display = (temAcessoTotal || perfilLower === 'vendedor') ? 'flex' : 'none';
     }
     
-    // Remover event listeners antigos
     const newMenuBtn = menuBtn.cloneNode(true);
     menuBtn.parentNode.replaceChild(newMenuBtn, menuBtn);
     
-    // Reatribuir variáveis com os novos elementos
     const finalMenuBtn = document.getElementById('profileMenuBtn');
     const finalDropdown = document.getElementById('profileMenuDropdown');
     
-    // Abrir/fechar menu ao clicar no botão
     finalMenuBtn.addEventListener('click', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        
-        console.log('🔹 Botão do menu clicado');
-        
-        // Toggle da classe show
         finalDropdown.classList.toggle('show');
-        
-        // Toggle classe active no botão
         this.classList.toggle('active');
     });
     
-    // Fechar menu ao clicar fora
     document.addEventListener('click', function(e) {
         if (!finalMenuBtn.contains(e.target) && !finalDropdown.contains(e.target)) {
             finalDropdown.classList.remove('show');
@@ -1379,7 +1365,6 @@ function configurarMenuPerfil() {
         }
     });
     
-    // Fechar menu ao pressionar ESC
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             finalDropdown.classList.remove('show');
@@ -1387,7 +1372,6 @@ function configurarMenuPerfil() {
         }
     });
     
-    // Configurar ações dos itens do menu
     if (menuRelatorios) {
         menuRelatorios.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1436,6 +1420,121 @@ function configurarMenuPerfil() {
     console.log('✅ Menu de perfil configurado');
 }
 
+// ============================================
+// CONFIGURAR EVENTOS
+// ============================================
+function configurarEventos() {
+    console.log('⚙️ Configurando eventos...');
+    
+    const btnFinalizar = document.getElementById('btnFinalizar');
+    const btnLimpar = document.getElementById('btnLimparCarrinho');
+    const btnVoltar = document.getElementById('btnVoltar');
+    const btnLogout = document.getElementById('btnLogout');
+    const btnAddBarcode = document.getElementById('btnAddBarcode');
+    const barcodeInput = document.getElementById('barcodeInput');
+    const barcodeClear = document.getElementById('barcodeClear');
+    const btnRecolhimento = document.getElementById('btnRecolhimento');
+    const btnOrcamento = document.getElementById('btnImprimirOrcamento');
+    
+    if (btnFinalizar) {
+        btnFinalizar.addEventListener('click', () => {
+            if (!usuarioLogado) {
+                abrirModal('loginModal');
+                return;
+            }
+            if (carrinho.itens.length === 0) {
+                mostrarMensagem('Carrinho vazio', 'warning');
+                return;
+            }
+            abrirModalFinalizacao();
+        });
+    }
+    
+    if (btnLimpar) {
+        btnLimpar.addEventListener('click', limparCarrinho);
+    }
+    
+    if (btnVoltar) {
+        btnVoltar.addEventListener('click', (e) => {
+            if (carrinho.itens.length > 0 && usuarioLogado) {
+                if (!confirm('Há itens no carrinho. Deseja realmente sair?')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+    
+    if (btnLogout) {
+        btnLogout.addEventListener('click', () => {
+            if (confirm('Deseja realmente sair?')) {
+                window.fazerLogout();
+            }
+        });
+    }
+    
+    if (btnAddBarcode && barcodeInput) {
+        btnAddBarcode.addEventListener('click', () => {
+            const codigo = barcodeInput.value.trim();
+            if (codigo) {
+                buscarProdutoPorCodigoBarras(codigo);
+            } else {
+                mostrarMensagem('Digite um código de barras', 'warning');
+            }
+        });
+    }
+    
+    if (barcodeInput) {
+        barcodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const codigo = barcodeInput.value.trim();
+                if (codigo) {
+                    buscarProdutoPorCodigoBarras(codigo);
+                }
+            }
+        });
+        
+        barcodeInput.addEventListener('input', () => {
+            const codigo = barcodeInput.value.replace(/\D/g, '');
+            if (codigo.length === 13) {
+                buscarProdutoPorCodigoBarras(codigo);
+            }
+        });
+    }
+    
+    if (barcodeClear) {
+        barcodeClear.addEventListener('click', () => {
+            if (barcodeInput) {
+                barcodeInput.value = '';
+                barcodeInput.focus();
+            }
+        });
+    }
+    
+    if (btnRecolhimento) {
+        btnRecolhimento.addEventListener('click', () => {
+            abrirModalRecolhimento();
+        });
+    }
+    
+    if (btnOrcamento) {
+        const newBtnOrcamento = btnOrcamento.cloneNode(true);
+        btnOrcamento.parentNode.replaceChild(newBtnOrcamento, btnOrcamento);
+        newBtnOrcamento.addEventListener('click', (e) => {
+            e.preventDefault();
+            console.log('🖨️ Botão Imprimir Orçamento clicado');
+            gerarOrcamento();
+        });
+    }
+    
+    configurarCanalVendas();
+    
+    const btnConfirmarVenda = document.getElementById('btnConfirmarVenda');
+    if (btnConfirmarVenda) {
+        btnConfirmarVenda.addEventListener('click', finalizarVenda);
+    }
+    
+    setInterval(atualizarRelogio, 1000);
+}
 
 // ============================================
 // FUNÇÕES UTILITÁRIAS
@@ -1631,11 +1730,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             setTimeout(configurarMenuPerfil, 500);
         }
         
-        // Garantir que Loja Online esteja selecionado inicialmente
         const radioOnline = document.querySelector('input[name="canalVenda"][value="online"]');
         if (radioOnline) radioOnline.checked = true;
         
-        // Esconder seção de código de barras e botões da loja física inicialmente
         const barcodeSection = document.getElementById('barcodeSection');
         const btnRecolhimento = document.getElementById('btnRecolhimento');
         const btnOrcamento = document.getElementById('btnImprimirOrcamento');
@@ -1666,21 +1763,6 @@ window.alterarQuantidade = alterarQuantidade;
 window.alterarQuantidadeInput = alterarQuantidadeInput;
 window.abrirModalFinalizacao = abrirModalFinalizacao;
 window.finalizarVenda = finalizarVenda;
+window.gerarOrcamento = gerarOrcamento;
 
 console.log("✅ carrinho.js carregado com sucesso!");
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
