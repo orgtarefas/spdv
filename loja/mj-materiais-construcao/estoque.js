@@ -511,7 +511,7 @@ function configurarMenuPerfil() {
     // Configurar ações dos botões do menu
     document.getElementById('menuRelatorios')?.addEventListener('click', (e) => {
         e.preventDefault();
-        mostrarMensagem('Página de relatórios em desenvolvimento', 'info');
+        window.location.href = 'relatorios.html';
     });
     
     document.getElementById('menuGestaoLogins')?.addEventListener('click', (e) => {
