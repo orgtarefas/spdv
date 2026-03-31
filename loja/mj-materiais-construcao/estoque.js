@@ -328,7 +328,6 @@ function configurarPermissoes() {
     atualizarInterfacePermissoes();
 }
 
-// Atualizar interface baseado nas permissões
 function atualizarInterfacePermissoes() {
     console.log('🔄 Atualizando interface com permissões...');
     
@@ -343,15 +342,7 @@ function atualizarInterfacePermissoes() {
             elemento.style.display = 'none';
         }
     });
-    
-    // Botão de relatório específico
-    if (btnRelatorioEstoque) {
-        btnRelatorioEstoque.addEventListener('click', function() {
-            // Abrir página de relatórios
-            window.location.href = 'relatorios.html';
-        });
-    }
-    
+        
     // Coluna de preço de custo
     const colunasCusto = document.querySelectorAll('.custo-cell, th:nth-child(7)');
     colunasCusto.forEach(col => {
