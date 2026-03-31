@@ -17,6 +17,35 @@ import {
 
 console.log('📊 Sistema de Relatórios - Iniciando...');
 
+// ============================================
+// AGUARDAR getLojaConfig SER CARREGADO
+// ============================================
+(async function aguardarGetLojaConfig() {
+    let tentativas = 0;
+    const maxTentativas = 30;
+    
+    while (!window.getLojaConfig && tentativas < maxTentativas) {
+        console.log(`⏳ Aguardando getLojaConfig... tentativa ${tentativas + 1}/${maxTentativas}`);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
+    }
+    
+    if (window.getLojaConfig) {
+        console.log(`✅ getLojaConfig disponível!`);
+        
+        // Testar com a loja atual
+        if (lojaIdAtual) {
+            const config = window.getLojaConfig(lojaIdAtual);
+            console.log(`🏪 Config da loja ${lojaIdAtual}:`, {
+                banco_estoque: config?.banco_estoque,
+                banco_vendas: config?.banco_vendas
+            });
+        }
+    } else {
+        console.error('❌ getLojaConfig não foi carregado');
+    }
+})();
+
 // Aguardar lojaServices ser inicializado antes de prosseguir
 (async function aguardarInicializacao() {
     let tentativas = 0;
@@ -172,22 +201,40 @@ async function carregarVendas() {
     try {
         mostrarLoading('Carregando vendas...');
         
-        // 🔥 AGUARDAR O lojaServices SER INICIALIZADO
-        let tentativas = 0;
-        while ((!lojaServices || !lojaServices.bancoVendas) && tentativas < 20) {
-            console.log(`⏳ Aguardando lojaServices.bancoVendas... tentativa ${tentativas + 1}`);
-            await new Promise(resolve => setTimeout(resolve, 200));
-            tentativas++;
+        // 🔥 OBTER O BANCO DE VENDAS DIRETAMENTE DO getLojaConfig
+        let bancoVendas = null;
+        
+        // Tentativa 1: Usar getLojaConfig do window
+        if (window.getLojaConfig && lojaIdAtual) {
+            const config = window.getLojaConfig(lojaIdAtual);
+            bancoVendas = config?.banco_vendas;
+            console.log(`📦 Banco de vendas do getLojaConfig: ${bancoVendas}`);
         }
         
-        // 🔥 USAR O bancoVendas do lojaServices (que já lê do novo_lojas.js)
-        const bancoVendas = lojaServices?.bancoVendas;
-        console.log(`🔍 Buscando vendas em: ${bancoVendas}`);
-        console.log(`🏪 Loja ID atual: ${lojaIdAtual}`);
+        // Tentativa 2: Usar lojaServices
+        if (!bancoVendas && lojaServices && lojaServices.config) {
+            bancoVendas = lojaServices.config?.banco_vendas;
+            console.log(`📦 Banco de vendas do lojaServices.config: ${bancoVendas}`);
+        }
+        
+        // Tentativa 3: Usar lojaServices.bancoVendas
+        if (!bancoVendas && lojaServices && lojaServices.bancoVendas) {
+            bancoVendas = lojaServices.bancoVendas;
+            console.log(`📦 Banco de vendas do lojaServices.bancoVendas: ${bancoVendas}`);
+        }
+        
+        // Tentativa 4: Fallback baseado no lojaId
+        if (!bancoVendas && lojaIdAtual) {
+            bancoVendas = `vendas_${lojaIdAtual.replace(/-/g, '_')}`;
+            console.log(`📦 Banco de vendas (fallback): ${bancoVendas}`);
+        }
         
         if (!bancoVendas) {
             throw new Error('Banco de vendas não identificado');
         }
+        
+        console.log(`🔍 Buscando vendas em: ${bancoVendas}`);
+        console.log(`🏪 Loja ID atual: ${lojaIdAtual}`);
         
         const vendasRef = collection(db, bancoVendas);
         const snapshot = await getDocs(vendasRef);
@@ -198,7 +245,7 @@ async function carregarVendas() {
         snapshot.forEach(doc => {
             const data = doc.data();
             
-            // 🔥 CORREÇÃO: Converter timestamps corretamente
+            // Converter timestamps corretamente
             let dataVenda = null;
             if (data.data_venda) {
                 if (data.data_venda.toDate) {
@@ -252,7 +299,6 @@ async function carregarVendas() {
         console.error('❌ Erro ao carregar vendas:', error);
         mostrarMensagem('Erro ao carregar vendas: ' + error.message, 'error');
         
-        // Mostrar estado vazio
         const tbody = document.getElementById('vendasTableBody');
         if (tbody) {
             tbody.innerHTML = `
