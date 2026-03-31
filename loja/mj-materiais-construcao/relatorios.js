@@ -15,6 +15,16 @@ import {
     serverTimestamp
 } from './novo_firebase_config.js';
 
+console.log('📊 Sistema de Relatórios - Iniciando...');
+
+// 🔥 VERIFICAR QUAL BANCO ESTÁ SENDO USADO
+setTimeout(() => {
+    if (lojaServices && lojaServices.bancoVendas) {
+        console.log(`🏪 Banco de vendas configurado: ${lojaServices.bancoVendas}`);
+        console.log(`🏪 Banco de estoque configurado: ${lojaServices.bancoEstoque}`);
+    }
+}, 1000);
+
 // ============================================
 // VARIÁVEIS GLOBAIS
 // ============================================
@@ -150,12 +160,17 @@ async function carregarVendas() {
     try {
         mostrarLoading('Carregando vendas...');
         
-        const bancoVendas = lojaServices.bancoVendas || `vendas_${lojaIdAtual?.replace(/-/g, '_')}`;
+        // 🔥 USAR O bancoVendas do lojaServices (que já lê do novo_lojas.js)
+        const bancoVendas = lojaServices.bancoVendas;
         console.log(`🔍 Buscando vendas em: ${bancoVendas}`);
+        console.log(`🏪 Loja ID atual: ${lojaIdAtual}`);
         
         const vendasRef = collection(db, bancoVendas);
         const snapshot = await getDocs(vendasRef);
-                vendas = [];
+        
+        console.log(`📁 Documentos encontrados: ${snapshot.size}`);
+        
+        vendas = [];
         snapshot.forEach(doc => {
             const data = doc.data();
             
@@ -184,19 +199,12 @@ async function carregarVendas() {
             vendas.push({
                 id: doc.id,
                 ...data,
-                // Garantir que data_venda seja um objeto Date
                 data_venda_obj: dataVenda
             });
         });
         
-        // Filtrar apenas vendas da loja atual (se necessário)
-        vendas = vendas.filter(v => {
-            // Se tem loja_id, verificar
-            if (v.loja_id) {
-                return v.loja_id === lojaIdAtual;
-            }
-            return true;
-        });
+        // Filtrar apenas vendas da loja atual
+        vendas = vendas.filter(v => v.loja_id === lojaIdAtual);
         
         // Ordenar por data (mais recentes primeiro)
         vendas.sort((a, b) => {
@@ -206,7 +214,9 @@ async function carregarVendas() {
         });
         
         console.log(`✅ ${vendas.length} vendas carregadas`);
-        console.log('📋 Primeira venda:', vendas[0]);
+        if (vendas.length > 0) {
+            console.log('📋 Primeira venda:', vendas[0]);
+        }
         
         // Carregar vendedores para o filtro
         carregarVendedoresFiltro();
@@ -302,13 +312,13 @@ function aplicarFiltrosVendas() {
             dataFim.setHours(23, 59, 59, 999);
     }
     
-    console.log(`📅 Filtro período: ${periodo}, de ${dataInicio} até ${dataFim}`);
+    console.log(`📅 Filtro período: ${periodo}`);
+    console.log(`📅 Data início: ${dataInicio.toLocaleString()}`);
+    console.log(`📅 Data fim: ${dataFim.toLocaleString()}`);
     
     vendasFiltradas = vendas.filter(v => {
-        // Usar data_venda_obj que já é um objeto Date
         const dataVenda = v.data_venda_obj;
         
-        // Verificar se dataVenda é válida
         if (!dataVenda || isNaN(dataVenda.getTime())) {
             console.warn('Data inválida para venda:', v.id);
             return false;
