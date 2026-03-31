@@ -1664,13 +1664,13 @@ function configurarMenuPerfil() {
         }
     });
     
-    // Configurar ações dos itens do menu
+    // Configurar ações dos itens do menu{
     if (menuRelatorios) {
         menuRelatorios.addEventListener('click', (e) => {
             e.preventDefault();
             finalDropdown.classList.remove('show');
             finalMenuBtn.classList.remove('active');
-            mostrarMensagem('Em desenvolvimento.', 'info');
+            window.location.href = 'relatorios.html';
         });
     }
     
