@@ -3390,7 +3390,8 @@ function configurarMenuPerfil() {
     // Configurar botões do menu
     document.getElementById('menuRelatorios')?.addEventListener('click', (e) => {
         e.preventDefault();
-        mostrarMensagem('Página de relatórios em desenvolvimento', 'info');
+        // Redirecionar para a página de relatórios
+        window.location.href = 'relatorios.html';
     });
     
     document.getElementById('menuGestaoLogins')?.addEventListener('click', (e) => {
