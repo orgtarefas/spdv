@@ -17,13 +17,25 @@ import {
 
 console.log('📊 Sistema de Relatórios - Iniciando...');
 
-// 🔥 VERIFICAR QUAL BANCO ESTÁ SENDO USADO
-setTimeout(() => {
-    if (lojaServices && lojaServices.bancoVendas) {
-        console.log(`🏪 Banco de vendas configurado: ${lojaServices.bancoVendas}`);
-        console.log(`🏪 Banco de estoque configurado: ${lojaServices.bancoEstoque}`);
+// Aguardar lojaServices ser inicializado antes de prosseguir
+(async function aguardarInicializacao() {
+    let tentativas = 0;
+    const maxTentativas = 30;
+    
+    while ((!window.lojaServices || !window.lojaServices.bancoVendas) && tentativas < maxTentativas) {
+        console.log(`⏳ Aguardando inicialização do lojaServices... tentativa ${tentativas + 1}/${maxTentativas}`);
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
     }
-}, 1000);
+    
+    if (window.lojaServices && window.lojaServices.bancoVendas) {
+        console.log(`✅ lojaServices inicializado!`);
+        console.log(`🏪 Banco de vendas: ${window.lojaServices.bancoVendas}`);
+        console.log(`🏪 Banco de estoque: ${window.lojaServices.bancoEstoque}`);
+    } else {
+        console.error('❌ lojaServices não foi inicializado corretamente');
+    }
+})();
 
 // ============================================
 // VARIÁVEIS GLOBAIS
@@ -160,10 +172,22 @@ async function carregarVendas() {
     try {
         mostrarLoading('Carregando vendas...');
         
+        // 🔥 AGUARDAR O lojaServices SER INICIALIZADO
+        let tentativas = 0;
+        while ((!lojaServices || !lojaServices.bancoVendas) && tentativas < 20) {
+            console.log(`⏳ Aguardando lojaServices.bancoVendas... tentativa ${tentativas + 1}`);
+            await new Promise(resolve => setTimeout(resolve, 200));
+            tentativas++;
+        }
+        
         // 🔥 USAR O bancoVendas do lojaServices (que já lê do novo_lojas.js)
-        const bancoVendas = lojaServices.bancoVendas;
+        const bancoVendas = lojaServices?.bancoVendas;
         console.log(`🔍 Buscando vendas em: ${bancoVendas}`);
         console.log(`🏪 Loja ID atual: ${lojaIdAtual}`);
+        
+        if (!bancoVendas) {
+            throw new Error('Banco de vendas não identificado');
+        }
         
         const vendasRef = collection(db, bancoVendas);
         const snapshot = await getDocs(vendasRef);
@@ -226,7 +250,21 @@ async function carregarVendas() {
         
     } catch (error) {
         console.error('❌ Erro ao carregar vendas:', error);
-        mostrarMensagem('Erro ao carregar vendas', 'error');
+        mostrarMensagem('Erro ao carregar vendas: ' + error.message, 'error');
+        
+        // Mostrar estado vazio
+        const tbody = document.getElementById('vendasTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Erro ao carregar vendas</p>
+                        <small>${error.message}</small>
+                    </td>
+                </tr>
+            `;
+        }
     } finally {
         esconderLoading();
     }
