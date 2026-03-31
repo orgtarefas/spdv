@@ -346,7 +346,10 @@ function atualizarInterfacePermissoes() {
     
     // Botão de relatório específico
     if (btnRelatorioEstoque) {
-        btnRelatorioEstoque.style.display = permissoes.podeVerRelatorios ? 'inline-flex' : 'none';
+        btnRelatorioEstoque.addEventListener('click', function() {
+            // Abrir página de relatórios
+            window.location.href = 'relatorios.html';
+        });
     }
     
     // Coluna de preço de custo
