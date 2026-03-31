@@ -2006,7 +2006,7 @@ function configurarEventos() {
     
     if (btnRelatorioEstoque) {
         btnRelatorioEstoque.addEventListener('click', function() {
-            mostrarMensagem('Relatório em desenvolvimento', 'info');
+            window.location.href = 'relatorios.html';
         });
     }
     
