@@ -151,29 +151,62 @@ async function carregarVendas() {
         mostrarLoading('Carregando vendas...');
         
         const bancoVendas = lojaServices.bancoVendas || `vendas_${lojaIdAtual?.replace(/-/g, '_')}`;
+        console.log(`🔍 Buscando vendas em: ${bancoVendas}`);
+        
         const vendasRef = collection(db, bancoVendas);
         const snapshot = await getDocs(vendasRef);
-        
-        vendas = [];
+                vendas = [];
         snapshot.forEach(doc => {
             const data = doc.data();
+            
+            // 🔥 CORREÇÃO: Converter timestamps corretamente
+            let dataVenda = null;
+            if (data.data_venda) {
+                if (data.data_venda.toDate) {
+                    dataVenda = data.data_venda.toDate();
+                } else if (data.data_venda.seconds) {
+                    dataVenda = new Date(data.data_venda.seconds * 1000);
+                } else {
+                    dataVenda = new Date(data.data_venda);
+                }
+            } else if (data.data_criacao) {
+                if (data.data_criacao.toDate) {
+                    dataVenda = data.data_criacao.toDate();
+                } else if (data.data_criacao.seconds) {
+                    dataVenda = new Date(data.data_criacao.seconds * 1000);
+                } else {
+                    dataVenda = new Date(data.data_criacao);
+                }
+            } else {
+                dataVenda = new Date();
+            }
+            
             vendas.push({
                 id: doc.id,
-                ...data
+                ...data,
+                // Garantir que data_venda seja um objeto Date
+                data_venda_obj: dataVenda
             });
         });
         
-        // Filtrar apenas vendas da loja atual
-        vendas = vendas.filter(v => v.loja_id === lojaIdAtual);
+        // Filtrar apenas vendas da loja atual (se necessário)
+        vendas = vendas.filter(v => {
+            // Se tem loja_id, verificar
+            if (v.loja_id) {
+                return v.loja_id === lojaIdAtual;
+            }
+            return true;
+        });
         
         // Ordenar por data (mais recentes primeiro)
         vendas.sort((a, b) => {
-            const dataA = a.data_venda?.toDate?.() || new Date(a.data_criacao || 0);
-            const dataB = b.data_venda?.toDate?.() || new Date(b.data_criacao || 0);
+            const dataA = a.data_venda_obj;
+            const dataB = b.data_venda_obj;
             return dataB - dataA;
         });
         
         console.log(`✅ ${vendas.length} vendas carregadas`);
+        console.log('📋 Primeira venda:', vendas[0]);
         
         // Carregar vendedores para o filtro
         carregarVendedoresFiltro();
@@ -269,15 +302,34 @@ function aplicarFiltrosVendas() {
             dataFim.setHours(23, 59, 59, 999);
     }
     
+    console.log(`📅 Filtro período: ${periodo}, de ${dataInicio} até ${dataFim}`);
+    
     vendasFiltradas = vendas.filter(v => {
-        const dataVenda = v.data_venda?.toDate?.() || new Date(v.data_criacao || 0);
+        // Usar data_venda_obj que já é um objeto Date
+        const dataVenda = v.data_venda_obj;
         
-        if (dataVenda < dataInicio || dataVenda > dataFim) return false;
+        // Verificar se dataVenda é válida
+        if (!dataVenda || isNaN(dataVenda.getTime())) {
+            console.warn('Data inválida para venda:', v.id);
+            return false;
+        }
         
-        if (canal !== 'todos' && v.canal_venda !== canal) return false;
+        // Aplicar filtro de data
+        if (dataVenda < dataInicio || dataVenda > dataFim) {
+            return false;
+        }
         
-        if (pagamento !== 'todos' && v.forma_pagamento !== pagamento) return false;
+        // Aplicar filtro de canal
+        if (canal !== 'todos' && v.canal_venda !== canal) {
+            return false;
+        }
         
+        // Aplicar filtro de pagamento
+        if (pagamento !== 'todos' && v.forma_pagamento !== pagamento) {
+            return false;
+        }
+        
+        // Aplicar filtro de vendedor
         if (vendedor !== 'todos') {
             const nomeVendedor = v.vendedor_nome || v.vendedor?.nome;
             if (nomeVendedor !== vendedor) return false;
@@ -307,6 +359,8 @@ function atualizarResumoVendas() {
         else if (v.cliente_email) clientes.add(v.cliente_email);
     });
     
+    console.log(`📊 Resumo: ${totalVendas} vendas, R$ ${faturamento.toFixed(2)} faturamento`);
+    
     document.getElementById('totalVendas').textContent = totalVendas;
     document.getElementById('totalFaturamento').textContent = formatarMoeda(faturamento);
     document.getElementById('ticketMedio').textContent = formatarMoeda(ticketMedio);
@@ -324,12 +378,15 @@ function renderizarTabelaVendas() {
     const paginados = vendasFiltradas.slice(inicio, inicio + itensPorPagina);
     const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPagina);
     
+    console.log(`📋 Renderizando página ${paginaAtualVendas} de ${totalPaginas}, ${paginados.length} vendas`);
+    
     if (paginados.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="empty-state">
                     <i class="fas fa-shopping-cart"></i>
                     <p>Nenhuma venda encontrada</p>
+                    <small>Período: ${document.getElementById('filtroPeriodo')?.value || 'hoje'}</small>
                 </td>
             </tr>
         `;
@@ -339,7 +396,7 @@ function renderizarTabelaVendas() {
     
     let html = '';
     paginados.forEach(v => {
-        const dataVenda = v.data_venda?.toDate?.() || new Date(v.data_criacao || 0);
+        const dataVenda = v.data_venda_obj;
         const dataFormatada = dataVenda.toLocaleDateString('pt-BR');
         const horaFormatada = dataVenda.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         
