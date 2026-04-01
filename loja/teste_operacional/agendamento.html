@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Gestão de Agendamentos</title>
+    
+    <!-- Favicon -->
+    <link id="favicon" rel="icon" href="" type="image/x-icon">
+    
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="agendamento.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-top">
+                <!-- Esquerda: Logo -->
+                <div class="header-left">
+                    <div class="logo">
+                        <img src="" alt="Logo" class="logo-img" id="lojaLogo">
+                        <div class="logo-text">
+                            <h1 id="lojaNomeHeader">Carregando...</h1>
+                            <p class="subtitle">Gestão de Agendamentos</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Centro: Status e Indicadores -->
+                <div class="header-center">
+                    <div class="status-header">
+                        <div class="status-item" id="statusFuncionamento">
+                            <i class="fas fa-circle status-indicator online"></i>
+                            <span>Estabelecimento Aberto</span>
+                        </div>
+                        <div class="status-item" id="statusPausa" style="display: none;">
+                            <i class="fas fa-pause-circle"></i>
+                            <span>Em Pausa: <span id="tempoPausaRestante">--:--</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Direita: Usuário e Voltar -->
+                <div class="header-right">
+                    <div class="user-info">
+                        <span id="userName">Carregando...</span>
+                        <button class="btn-voltar" id="btnVoltar">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Conteúdo Principal -->
+        <div class="gestao-container">
+            <!-- Barra de Ações Principais -->
+            <div class="acoes-principais">
+                <button class="btn-principal btn-primary" id="btnCriarAgendamento">
+                    <i class="fas fa-plus-circle"></i> Criar Agendamento
+                </button>
+                
+                <div class="btn-group-vertical">
+                    <button class="btn-principal btn-info" id="btnGerenciarAgendamentosClientes">
+                        <i class="fas fa-users"></i> Gerenciar Agendamentos Clientes
+                    </button>
+                    
+                    <button class="btn-principal btn-secondary" id="btnGerenciarServicos">
+                        <i class="fas fa-cut"></i> Gerenciar Serviços de Agendamento
+                    </button>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn-principal btn-warning" id="btnPausarAtendimento">
+                        <i class="fas fa-pause-circle"></i> Pausar
+                    </button>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn-principal btn-info" id="btnValidarTodos">
+                        <i class="fas fa-check-double"></i> Validar Todos
+                    </button>
+                    <button class="btn-principal btn-secondary" id="btnHistoricoClientes">
+                        <i class="fas fa-users"></i> Histórico
+                    </button>
+                </div>
+            </div>
+
+            <!-- Abas de Navegação -->
+            <div class="gestao-tabs">
+                <button class="tab-btn active" data-tab="fila">
+                    <i class="fas fa-users"></i> Fila de Atendimento
+                    <span class="tab-badge" id="filaTotalBadge">0</span>
+                </button>
+                <button class="tab-btn" data-tab="futuros">
+                    <i class="fas fa-calendar-alt"></i> Agendamentos Futuros
+                    <span class="tab-badge" id="futurosBadge">0</span>
+                </button>
+                <button class="tab-btn" data-tab="funcionamento">
+                    <i class="fas fa-clock"></i> Horário de Agendamento
+                </button>
+                <button class="tab-btn" data-tab="historico">
+                    <i class="fas fa-history"></i> Histórico por Cliente
+                </button>
+            </div>
+
+            <!-- TAB 1: FILA DE ATENDIMENTO -->
+            <div class="tab-content active" id="tab-fila">
+                <!-- Painel de 3 Colunas -->
+                <div class="fila-painel">
+                    <!-- Coluna 1: EM ATENDIMENTO -->
+                    <div class="fila-coluna">
+                        <div class="coluna-header status-atendimento">
+                            <i class="fas fa-user-check"></i>
+                            <h3>EM ATENDIMENTO</h3>
+                            <span class="coluna-badge" id="emAtendimentoBadge">0</span>
+                        </div>
+                        <div class="coluna-content" id="emAtendimentoLista">
+                            <div class="empty-state">
+                                <i class="fas fa-user-clock"></i>
+                                <p>Nenhum atendimento no momento</p>
+                            </div>
+                        </div>
+                        <div class="coluna-footer">
+                            <div class="atendimento-acoes">
+                                <button class="btn-acao-footer" id="btnSelecionarTodosAtendimento">
+                                    <i class="fas fa-check-double"></i> Selecionar Todos
+                                </button>
+                                <button class="btn-acao-footer btn-concluir" id="btnConcluirSelecionados" disabled>
+                                    <i class="fas fa-check-circle"></i> Concluir Selecionados
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coluna 2: PRÓXIMOS A ATENDER -->
+                    <div class="fila-coluna destaque">
+                        <div class="coluna-header status-proximo">
+                            <i class="fas fa-bell"></i>
+                            <h3>PRÓXIMOS A ATENDER</h3>
+                            <span class="coluna-badge" id="proximosBadge">0</span>
+                        </div>
+                        <div class="coluna-content" id="proximosLista">
+                            <div class="empty-state">
+                                <i class="fas fa-smile"></i>
+                                <p>Fila vazia</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coluna 3: OUTROS NA FILA -->
+                    <div class="fila-coluna">
+                        <div class="coluna-header status-outros">
+                            <i class="fas fa-users"></i>
+                            <h3>OUTROS NA FILA</h3>
+                            <span class="coluna-badge" id="outrosBadge">0</span>
+                        </div>
+                        <div class="coluna-content" id="outrosLista">
+                            <div class="empty-state">
+                                <i class="fas fa-smile"></i>
+                                <p>Fila vazia</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: AGENDAMENTOS FUTUROS -->
+            <div class="tab-content" id="tab-futuros">
+                <div class="futuros-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Agendamentos Futuros</h3>
+                    <div class="futuros-acoes">
+                        <button class="btn-acoes" id="btnFiltrarData">
+                            <i class="fas fa-filter"></i> Filtrar por Data
+                        </button>
+                        <button class="btn-acoes btn-primary" id="btnValidarTodosFuturos">
+                            <i class="fas fa-check-double"></i> Validar Todos
+                        </button>
+                    </div>
+                </div>
+
+                <div class="futuros-grid" id="futurosGrid">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Carregando agendamentos futuros...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: HORÁRIO DE FUNCIONAMENTO -->
+            <div class="tab-content" id="tab-funcionamento">
+                <div class="funcionamento-container">
+                    <!-- Horário Padrão -->
+                    <div class="funcionamento-section">
+                        <h3><i class="fas fa-calendar-week"></i> Horário de Agendamento</h3>
+                        <p class="section-desc">Configure os horários disponíveis para agendamentos</p>
+                        
+                        <div class="horarios-grid" id="horariosSemana">
+                            <!-- Dias serão inseridos via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Limite de Clientes -->
+                    <div class="funcionamento-section">
+                        <h3><i class="fas fa-users"></i> Limite de Clientes</h3>
+                        
+                        <div class="limite-config">
+                            <div class="form-group">
+                                <label>Máximo de clientes por dia:</label>
+                                <input type="number" id="maxClientesDia" value="30" min="1" max="100">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Máximo de agendamentos simultâneos:</label>
+                                <input type="number" id="maxSimultaneos" value="3" min="1" max="10">
+                                <small>Quantos clientes podem ser atendidos ao mesmo tempo</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exceções -->
+                    <div class="funcionamento-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-exclamation-triangle"></i> Exceções</h3>
+                            <button class="btn-add" id="btnAddExcecao">
+                                <i class="fas fa-plus"></i> Adicionar Exceção
+                            </button>
+                        </div>
+                        
+                        <div class="excecoes-lista" id="excecoesLista">
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <p>Nenhuma exceção cadastrada</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="funcionamento-actions">
+                        <button class="btn-salvar" id="btnSalvarFuncionamento">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: HISTÓRICO POR CLIENTE -->
+            <div class="tab-content" id="tab-historico">
+                <div class="historico-header">
+                    <h3><i class="fas fa-users"></i> Histórico por Cliente</h3>
+                    <div class="busca-cliente">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="buscaCliente" placeholder="Buscar cliente por nome ou email...">
+                    </div>
+                </div>
+
+                <div class="clientes-grid" id="clientesGrid">
+                    <div class="loading-spinner">
+                        <div class="spinner"></div>
+                        <p>Carregando histórico de clientes...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Criar Agendamento (Configuração do Serviço com horários por dia) -->
+    <div id="salvarCriarAgendamentoModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-plus"></i> Configurar Serviço de Agendamento</h3>
+                <button class="modal-close" onclick="fecharModal('salvarCriarAgendamentoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="criarAgendamentoForm">
+                    <!-- Nome do Serviço (único) -->
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> Nome do Serviço *</label>
+                        <input type="text" id="servicoNome" placeholder="Ex: Corte de Cabelo, Consulta, etc" required>
+                    </div>
+    
+                    <!-- Abreviação da Senha -->
+                    <div class="form-group">
+                        <label><i class="fas fa-ticket-alt"></i> Abreviação da Senha *</label>
+                        <input type="text" id="servicoAbreviacao" placeholder="Ex: CORT, MEC, MANI" maxlength="10" required>
+                        <small class="help-text">Use até 10 caracteres para identificar o serviço nas senhas (ex: CORT01, MEC02)</small>
+                    </div>
+                    
+                    <!-- Descrição -->
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Descrição</label>
+                        <textarea id="servicoDescricao" rows="2" placeholder="Descrição do serviço..."></textarea>
+                    </div>
+    
+                    <!-- Abas para cada dia da semana -->
+                    <div class="dias-config-tabs">
+                        <button type="button" class="dia-tab active" data-dia="segunda">Segunda</button>
+                        <button type="button" class="dia-tab" data-dia="terca">Terça</button>
+                        <button type="button" class="dia-tab" data-dia="quarta">Quarta</button>
+                        <button type="button" class="dia-tab" data-dia="quinta">Quinta</button>
+                        <button type="button" class="dia-tab" data-dia="sexta">Sexta</button>
+                        <button type="button" class="dia-tab" data-dia="sabado">Sábado</button>
+                        <button type="button" class="dia-tab" data-dia="domingo">Domingo</button>
+                    </div>
+    
+                    <!-- Container para configuração de todos os dias -->
+                    <div class="dias-config-container">
+                        <!-- SEGUNDA-FEIRA -->
+                        <div class="dia-config active" id="config-segunda">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="segunda" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="segunda" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="segunda" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label><i class="fas fa-hourglass-half"></i> Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="segunda" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label><i class="fas fa-clock"></i> Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="segunda" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label><i class="fas fa-utensils"></i> Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="segunda" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="segunda" value="13:00">
+                                    </div>
+                                    <small class="help-text">Deixe em branco se não houver intervalo</small>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- TERÇA-FEIRA -->
+                        <div class="dia-config" id="config-terca">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="terca" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="terca" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="terca" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="terca" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="terca" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="terca" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="terca" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- QUARTA-FEIRA -->
+                        <div class="dia-config" id="config-quarta">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="quarta" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="quarta" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="quarta" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="quarta" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="quarta" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="quarta" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="quarta" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- QUINTA-FEIRA -->
+                        <div class="dia-config" id="config-quinta">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="quinta" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="quinta" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="quinta" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="quinta" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="quinta" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="quinta" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="quinta" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- SEXTA-FEIRA -->
+                        <div class="dia-config" id="config-sexta">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="sexta" checked>
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="sexta" value="08:00">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="sexta" value="18:00">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="sexta" value="30" min="5" step="5">
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="sexta" value="0" min="0" step="5">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="sexta" value="12:00">
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="sexta" value="13:00">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- SÁBADO -->
+                        <div class="dia-config" id="config-sabado">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="sabado">
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content" style="opacity:0.5; pointer-events:none;">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="sabado" value="09:00" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="sabado" value="13:00" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="sabado" value="30" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="sabado" value="0" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="sabado" value="12:00" disabled>
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="sabado" value="13:00" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <!-- DOMINGO -->
+                        <div class="dia-config" id="config-domingo">
+                            <div class="config-header">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" class="dia-ativo" data-dia="domingo">
+                                    <span>Atender neste dia</span>
+                                </label>
+                            </div>
+                            <div class="config-content" style="opacity:0.5; pointer-events:none;">
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Início do expediente</label>
+                                        <input type="time" class="horario-inicio" data-dia="domingo" value="09:00" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Fim do expediente</label>
+                                        <input type="time" class="horario-fim" data-dia="domingo" value="13:00" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group half">
+                                        <label>Duração do atendimento (min)</label>
+                                        <input type="number" class="duracao" data-dia="domingo" value="30" disabled>
+                                    </div>
+                                    <div class="form-group half">
+                                        <label>Intervalo entre atendimentos (min)</label>
+                                        <input type="number" class="intervalo-entre" data-dia="domingo" value="0" disabled>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Intervalo de almoço/pausa</label>
+                                    <div class="intervalo-inputs">
+                                        <input type="time" class="intervalo-inicio" data-dia="domingo" value="12:00" disabled>
+                                        <span>às</span>
+                                        <input type="time" class="intervalo-fim" data-dia="domingo" value="13:00" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permitir Agendamentos fora do dia vigente -->
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="permitirForaDia" checked>
+                            <span>Permitir Agendamentos fora do dia vigente</span>
+                        </label>
+                        <small class="help-text">
+                            Se desativado, só será possível agendar para o dia atual
+                        </small>
+                    </div>
+    
+                    <!-- Opções de Validação -->
+                    <div class="form-group" id="opcoesValidacaoGroup">
+                        <label><i class="fas fa-check-circle"></i> Opções de Validação</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="automatico_dia" checked>
+                                <div class="radio-content">
+                                    <strong>Validar Agendamento Automaticamente Dia</strong>
+                                    <small>Agendamentos do dia entram na fila automaticamente. Outros dias precisam validação manual.</small>
+                                </div>
+                            </label>
+    
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="automatico_todos">
+                                <div class="radio-content">
+                                    <strong>Validar Senha Automaticamente Dia e Período</strong>
+                                    <small>Todos os agendamentos entram na fila sem precisar validar.</small>
+                                </div>
+                            </label>
+    
+                            <label class="radio-label">
+                                <input type="radio" name="validacao" value="manual">
+                                <div class="radio-content">
+                                    <strong>Validar Senha Manualmente</strong>
+                                    <small>Precisa validar manualmente todos os agendamentos para serem válidos.</small>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+    
+                    <!-- Observação sobre validação -->
+                    <div class="alert-info" id="alertaValidacao" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        Com "Permitir Agendamentos fora do dia vigente" desativado, a validação automática só se aplica ao dia atual.
+                    </div>
+    
+                    <input type="hidden" id="agendamentoIdAdmin">
+
+                    <!-- ============================================ -->
+                    <!-- DIAS EXCEPCIONAIS (DENTRO DO MODAL) -->
+                    <!-- ============================================ -->
+                    <div class="excepcionais-section">
+                        <div class="excepcionais-header">
+                            <h4><i class="fas fa-calendar-exclamation"></i> Dias de Atendimento Excepcional</h4>
+                            <button type="button" class="btn-add-pequeno" id="btnAdicionarExcecao">
+                                <i class="fas fa-plus"></i> Adicionar
+                            </button>
+                        </div>
+                        
+                        <div class="excepcionais-lista" id="excepcionaisLista">
+                            <div class="empty-state-pequeno">
+                                <i class="fas fa-calendar-times"></i>
+                                <p>Nenhum dia excepcional configurado</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulário para adicionar/editar dia excepcional (inicialmente oculto) -->
+                    <div class="excepcional-form" id="excepcionalForm" style="display: none;">
+                        <h5><i class="fas fa-pen"></i> Configurar Dia Excepcional</h5>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-day"></i> Data *</label>
+                            <input type="date" id="excepcionalData" class="form-input" required>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label><i class="fas fa-info-circle"></i> Motivo</label>
+                            <select id="excepcionalMotivo">
+                                <option value="feriado">Feriado</option>
+                                <option value="abertura_especial">Abertura Especial</option>
+                                <option value="evento">Evento Especial</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+                    
+                        <div class="form-group">
+                            <label><i class="fas fa-align-left"></i> Descrição</label>
+                            <textarea id="excepcionalDescricao" rows="2" placeholder="Descreva o motivo..."></textarea>
+                        </div>
+                    
+                        <div class="config-header">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="excepcionalAtivo" checked>
+                                <span>Atender neste dia</span>
+                            </label>
+                        </div>
+                    
+                        <div class="config-content" id="excepcionalConfigContent">
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Início</label>
+                                    <input type="time" id="excepcionalInicio" value="08:00">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Fim</label>
+                                    <input type="time" id="excepcionalFim" value="18:00">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label>Duração (min)</label>
+                                    <input type="number" id="excepcionalDuracao" value="30" min="5" step="5">
+                                </div>
+                                <div class="form-group half">
+                                    <label>Intervalo (min)</label>
+                                    <input type="number" id="excepcionalIntervalo" value="0" min="0" step="5">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Intervalo de almoço</label>
+                                <div class="intervalo-inputs">
+                                    <input type="time" id="excepcionalIntervaloInicio" value="12:00">
+                                    <span>às</span>
+                                    <input type="time" id="excepcionalIntervaloFim" value="13:00">
+                                </div>
+                            </div>
+                        </div>
+                    
+                        <input type="hidden" id="excepcionalId">
+                    
+                        <div class="form-actions">
+                            <button type="button" class="btn-cancelar-pequeno" id="btnCancelarExcecao">Cancelar</button>
+                            <button type="button" class="btn-salvar-pequeno" id="btnSalvarExcecao">
+                                <i class="fas fa-save"></i> Salvar
+                            </button>
+                        </div>
+                    </div>        
+                    
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="fecharModal('salvarCriarAgendamentoModal')">Cancelar</button>
+                <button class="btn-salvar" id="btnSalvarCriarAgendamento">
+                    <i class="fas fa-save"></i> Salvar Configuração
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Dias de Atendimento Excepcional -->
+    <div id="diasExcepcionaisModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-exclamation"></i> Dias de Atendimento Excepcional</h3>
+                <button class="modal-close" onclick="fecharModal('diasExcepcionaisModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Lista de dias excepcionais cadastrados -->
+                <div class="excepcionais-header">
+                    <h4>Dias excepcionais configurados</h4>
+                    <button class="btn-add" id="btnAdicionarDiaExcepcional">
+                        <i class="fas fa-plus"></i> Adicionar Data
+                    </button>
+                </div>
+                
+                <div class="excepcionais-lista" id="excepcionaisLista">
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Nenhum dia excepcional configurado</p>
+                        <small>Clique em "Adicionar Data" para criar uma exceção</small>
+                    </div>
+                </div>
+    
+                <!-- Formulário para adicionar/editar dia excepcional (inicialmente oculto) -->
+                <div class="excepcional-form" id="excepcionalForm" style="display: none;">
+                    <h4><i class="fas fa-pen"></i> Configurar Dia Excepcional</h4>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-calendar-day"></i> Data *</label>
+                        <input type="date" id="excepcionalData" class="form-input" required>
+                        <small class="help-text">Selecione a data que terá atendimento especial</small>
+                    </div>
+    
+                    <div class="form-group">
+                        <label><i class="fas fa-info-circle"></i> Motivo da exceção</label>
+                        <select id="excepcionalMotivo">
+                            <option value="feriado">Feriado</option>
+                            <option value="abertura_especial">Abertura Especial</option>
+                            <option value="evento">Evento Especial</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+    
+                    <div class="form-group">
+                        <label><i class="fas fa-align-left"></i> Descrição (opcional)</label>
+                        <textarea id="excepcionalDescricao" rows="2" placeholder="Descreva o motivo da exceção..."></textarea>
+                    </div>
+    
+                    <div class="config-header">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="excepcionalAtivo" checked>
+                            <span>Atender neste dia</span>
+                        </label>
+                    </div>
+    
+                    <div class="config-content" id="excepcionalConfigContent">
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label>Início do expediente</label>
+                                <input type="time" id="excepcionalInicio" value="08:00">
+                            </div>
+                            <div class="form-group half">
+                                <label>Fim do expediente</label>
+                                <input type="time" id="excepcionalFim" value="18:00">
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group half">
+                                <label><i class="fas fa-hourglass-half"></i> Duração do atendimento (min)</label>
+                                <input type="number" id="excepcionalDuracao" value="30" min="5" step="5">
+                            </div>
+                            <div class="form-group half">
+                                <label><i class="fas fa-clock"></i> Intervalo entre atendimentos (min)</label>
+                                <input type="number" id="excepcionalIntervalo" value="0" min="0" step="5">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-utensils"></i> Intervalo de almoço/pausa</label>
+                            <div class="intervalo-inputs">
+                                <input type="time" id="excepcionalIntervaloInicio" value="12:00">
+                                <span>às</span>
+                                <input type="time" id="excepcionalIntervaloFim" value="13:00">
+                            </div>
+                        </div>
+                    </div>
+    
+                    <input type="hidden" id="excepcionalId">
+    
+                    <div class="form-actions">
+                        <button class="btn-cancelar" id="btnCancelarExcepcional">Cancelar</button>
+                        <button class="btn-salvar" id="btnSalvarExcepcional">
+                            <i class="fas fa-save"></i> Salvar Exceção
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Pausa no Atendimento -->
+    <div id="pausaModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3><i class="fas fa-pause-circle"></i> Pausar Atendimento</h3>
+                <button class="modal-close" onclick="fecharModal('pausaModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pausa-opcoes">
+                    <div class="opcao-pausa">
+                        <label class="radio-label">
+                            <input type="radio" name="modoPausa" value="apenas_atendimento" checked>
+                            <div class="opcao-content">
+                                <strong>Apenas quem está em atendimento</strong>
+                                <small>Finaliza apenas os que estão sendo atendidos agora</small>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="opcao-pausa">
+                        <label class="radio-label">
+                            <input type="radio" name="modoPausa" value="todos">
+                            <div class="opcao-content">
+                                <strong>Pausar todos</strong>
+                                <small>Finaliza apenas quem está em atendimento, pausa o resto</small>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="opcao-pausa">
+                        <label class="radio-label">
+                            <input type="radio" name="modoPausa" value="ate_proximos">
+                            <div class="opcao-content">
+                                <strong>Atender até PRÓXIMOS</strong>
+                                <small>Atende quem está em "PRÓXIMOS A ATENDER", pausa "OUTROS NA FILA"</small>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tempo de pausa:</label>
+                        <select id="tempoPausa">
+                            <option value="15">15 minutos</option>
+                            <option value="30">30 minutos</option>
+                            <option value="60">1 hora</option>
+                            <option value="120">2 horas</option>
+                            <option value="0">Tempo indeterminado</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="fecharModal('pausaModal')">Cancelar</button>
+                <button class="btn-warning" id="btnConfirmarPausa">
+                    <i class="fas fa-pause-circle"></i> Iniciar Pausa
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Exceção de Funcionamento -->
+    <div id="excecaoModal" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Adicionar Exceção</h3>
+                <button class="modal-close" onclick="fecharModal('excecaoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="excecaoForm">
+                    <div class="form-group">
+                        <label>Data *</label>
+                        <input type="date" id="excecaoData" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tipo de Exceção</label>
+                        <select id="excecaoTipo">
+                            <option value="feriado">Feriado (fechado)</option>
+                            <option value="horario_especial">Horário Especial</option>
+                            <option value="capacidade_extra">Capacidade Extra</option>
+                            <option value="capacidade_reduzida">Capacidade Reduzida</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="excecaoHorarioGroup">
+                        <label>Horário de funcionamento</label>
+                        <div class="horario-inputs">
+                            <input type="time" id="excecaoAbertura" value="10:00">
+                            <span>às</span>
+                            <input type="time" id="excecaoFechamento" value="18:00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Máximo de clientes neste dia</label>
+                        <input type="number" id="excecaoMaxClientes" value="30" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Observação</label>
+                        <input type="text" id="excecaoObs" placeholder="Ex: Funcionamento especial...">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancelar" onclick="fecharModal('excecaoModal')">Cancelar</button>
+                <button class="btn-salvar" id="btnSalvarExcecao">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Histórico do Cliente -->
+    <div id="clienteHistoricoModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-user"></i> Histórico do Cliente</h3>
+                <button class="modal-close" onclick="fecharModal('clienteHistoricoModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="clienteHistoricoBody">
+                <div class="empty-state">
+                    <i class="fas fa-user-clock"></i>
+                    <p>Selecione um cliente para ver o histórico</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3 id="loadingMessage">Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <span class="message-text"></span>
+        </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
+    <!-- Firebase (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
+    
+    <script src="../../login_firebase.js"></script>
+    <script type="module" src="../../novo_lojas.js"></script>
+    <script type="module" src="agendamento.js"></script>
+</body>
+</html>
