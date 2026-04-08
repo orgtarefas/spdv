@@ -16,6 +16,8 @@ import {
     getDoc, 
     setDoc,
     updateDoc,
+    deleteDoc,
+    addDoc,
     serverTimestamp
 } from './novo_firebase_config.js';
 
@@ -31,7 +33,7 @@ let testes = [];
 let progresso = null;
 
 // ============================================
-// INICIALIZAÇÃO (igual ao agendamento)
+// INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando...');
@@ -85,13 +87,11 @@ function obterLojaId() {
 }
 
 async function obterUsuarioLogado() {
-    // Tentar window.dadosUsuario
     if (window.dadosUsuario) {
         dadosUsuario = window.dadosUsuario;
         return;
     }
     
-    // Tentar sessionStorage
     const info = sessionStorage.getItem('usuarioInfo');
     if (info) {
         try {
@@ -100,7 +100,6 @@ async function obterUsuarioLogado() {
         } catch(e) {}
     }
     
-    // Tentar Firebase Auth
     if (window.auth && window.auth.currentUser) {
         const user = window.auth.currentUser;
         dadosUsuario = {
@@ -125,13 +124,13 @@ function mostrarMensagem(msg, tipo = 'info') {
     setTimeout(() => toast.remove(), 3000);
 }
 
-function fecharModal(modalId) {
+window.fecharModal = function(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.style.display = 'none';
-}
+};
 
 // ============================================
-// CARREGAR DADOS (usando db importado)
+// CARREGAR DADOS
 // ============================================
 async function carregarTreinamentos() {
     try {
@@ -247,7 +246,7 @@ function renderizarTreinamentos() {
             <div class="empty">
                 <i class="fas fa-book-open"></i>
                 <p>Nenhum treinamento disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="window.abrirModalTreinamento()"><i class="fas fa-plus"></i> Criar Treinamento</button>' : ''}
+                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTreinamento()"><i class="fas fa-plus"></i> Criar Primeiro Treinamento</button>' : ''}
             </div>
         `;
         return;
@@ -255,7 +254,7 @@ function renderizarTreinamentos() {
     
     let html = '';
     if (isAdmin) {
-        html += '<button class="btn-add" onclick="window.abrirModalTreinamento()"><i class="fas fa-plus"></i> Novo Treinamento</button>';
+        html += '<button class="btn-add" onclick="abrirModalTreinamento()"><i class="fas fa-plus"></i> Novo Treinamento</button>';
     }
     
     treinamentos.forEach(t => {
@@ -269,12 +268,12 @@ function renderizarTreinamentos() {
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
-                        <button class="btn-editar" onclick="window.editarTreinamento('${t.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-excluir" onclick="window.excluirTreinamento('${t.id}')"><i class="fas fa-trash"></i></button>
+                        <button class="btn-editar" onclick="editarTreinamento('${t.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-excluir" onclick="excluirTreinamento('${t.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
                         ${concluido ? 
                             '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Concluído</button>' : 
-                            `<button class="btn-concluir" onclick="window.concluirTreinamento('${t.id}', ${t.pontos || 10})"><i class="fas fa-check-circle"></i> Marcar Concluído</button>`
+                            `<button class="btn-concluir" onclick="concluirTreinamento('${t.id}', ${t.pontos || 10})"><i class="fas fa-check-circle"></i> Marcar Concluído</button>`
                         }
                     `}
                 </div>
@@ -294,7 +293,7 @@ function renderizarVideos() {
             <div class="empty">
                 <i class="fas fa-video"></i>
                 <p>Nenhum vídeo disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="window.abrirModalVideo()"><i class="fas fa-plus"></i> Adicionar Vídeo</button>' : ''}
+                ${isAdmin ? '<button class="btn-add" onclick="abrirModalVideo()"><i class="fas fa-plus"></i> Adicionar Primeiro Vídeo</button>' : ''}
             </div>
         `;
         return;
@@ -302,7 +301,7 @@ function renderizarVideos() {
     
     let html = '';
     if (isAdmin) {
-        html += '<button class="btn-add" onclick="window.abrirModalVideo()"><i class="fas fa-plus"></i> Novo Vídeo</button>';
+        html += '<button class="btn-add" onclick="abrirModalVideo()"><i class="fas fa-plus"></i> Novo Vídeo</button>';
     }
     
     videos.forEach(v => {
@@ -313,15 +312,16 @@ function renderizarVideos() {
                     <div class="card-title">${v.titulo || 'Sem título'}</div>
                     <div class="card-desc">${v.descricao || ''}</div>
                     <div class="card-pontos"><i class="fas fa-star"></i> ${v.pontos || 5} pontos</div>
+                    ${v.duracao ? `<div class="card-duracao"><i class="fas fa-clock"></i> ${v.duracao} min</div>` : ''}
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
-                        <button class="btn-editar" onclick="window.editarVideo('${v.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-excluir" onclick="window.excluirVideo('${v.id}')"><i class="fas fa-trash"></i></button>
+                        <button class="btn-editar" onclick="editarVideo('${v.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-excluir" onclick="excluirVideo('${v.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
                         ${assistido ? 
                             '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Assistido</button>' : 
-                            `<button class="btn-concluir" onclick="window.assistirVideo('${v.id}', '${v.url}', ${v.pontos || 5})"><i class="fas fa-play"></i> Assistir</button>`
+                            `<button class="btn-concluir" onclick="assistirVideo('${v.id}', '${v.url}', ${v.pontos || 5})"><i class="fas fa-play"></i> Assistir</button>`
                         }
                     `}
                 </div>
@@ -341,7 +341,7 @@ function renderizarTestes() {
             <div class="empty">
                 <i class="fas fa-clipboard-list"></i>
                 <p>Nenhum teste disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="window.abrirModalTeste()"><i class="fas fa-plus"></i> Criar Teste</button>' : ''}
+                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTeste()"><i class="fas fa-plus"></i> Criar Primeiro Teste</button>' : ''}
             </div>
         `;
         return;
@@ -349,23 +349,29 @@ function renderizarTestes() {
     
     let html = '';
     if (isAdmin) {
-        html += '<button class="btn-add" onclick="window.abrirModalTeste()"><i class="fas fa-plus"></i> Novo Teste</button>';
+        html += '<button class="btn-add" onclick="abrirModalTeste()"><i class="fas fa-plus"></i> Novo Teste</button>';
     }
     
     testes.forEach(t => {
+        const realizado = progresso?.testes?.find(tr => tr.id === t.id);
+        const aprovado = realizado?.aprovado;
         html += `
             <div class="card">
                 <div class="card-info">
                     <div class="card-title">${t.titulo || 'Sem título'}</div>
                     <div class="card-desc">${t.descricao || ''}</div>
-                    <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos_max || 100} pontos</div>
+                    <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos_max || 100} pontos máx</div>
+                    <div class="card-nota-minima"><i class="fas fa-flag-checkered"></i> Mínimo: ${t.pontos_min || 70}%</div>
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
-                        <button class="btn-editar" onclick="window.editarTeste('${t.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-excluir" onclick="window.excluirTeste('${t.id}')"><i class="fas fa-trash"></i></button>
+                        <button class="btn-editar" onclick="editarTeste('${t.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-excluir" onclick="excluirTeste('${t.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
-                        <button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>
+                        ${aprovado ? 
+                            '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Aprovado</button>' : 
+                            `<button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>`
+                        }
                     `}
                 </div>
             </div>
@@ -393,11 +399,11 @@ function atualizarStats() {
 }
 
 // ============================================
-// AÇÕES (GLOBAIS)
+// AÇÕES DO USUÁRIO
 // ============================================
 window.concluirTreinamento = async function(id, pontos) {
     if (progresso.treinamentos?.includes(id)) {
-        mostrarMensagem('Já concluído!', 'warning');
+        mostrarMensagem('Este treinamento já foi concluído!', 'warning');
         return;
     }
     
@@ -408,12 +414,12 @@ window.concluirTreinamento = async function(id, pontos) {
     await salvarProgresso();
     renderizarTreinamentos();
     atualizarStats();
-    mostrarMensagem(`✅ +${pontos} pontos!`, 'success');
+    mostrarMensagem(`✅ Parabéns! Você ganhou ${pontos} pontos!`, 'success');
 };
 
 window.assistirVideo = function(id, url, pontos) {
     if (progresso.videos?.includes(id)) {
-        mostrarMensagem('Já assistido!', 'warning');
+        mostrarMensagem('Este vídeo já foi assistido!', 'warning');
         return;
     }
     
@@ -434,12 +440,12 @@ window.assistirVideo = function(id, url, pontos) {
         await salvarProgresso();
         renderizarVideos();
         atualizarStats();
-        mostrarMensagem(`✅ +${pontos} pontos!`, 'success');
-    }, 5000);
+        mostrarMensagem(`✅ Você ganhou ${pontos} pontos!`, 'success');
+    }, 3000);
 };
 
 // ============================================
-// CRUD (GLOBAIS)
+// CRUD TREINAMENTOS
 // ============================================
 window.abrirModalTreinamento = function(id = null) {
     if (id) {
@@ -448,14 +454,18 @@ window.abrirModalTreinamento = function(id = null) {
             document.getElementById('treinamentoId').value = t.id;
             document.getElementById('treinamentoTitulo').value = t.titulo;
             document.getElementById('treinamentoDescricao').value = t.descricao || '';
+            document.getElementById('treinamentoConteudo').value = t.conteudo || '';
             document.getElementById('treinamentoPontos').value = t.pontos || 10;
+            document.getElementById('treinamentoCategoria').value = t.categoria || 'iniciante';
             document.getElementById('modalTreinamentoTitle').textContent = 'Editar Treinamento';
         }
     } else {
         document.getElementById('treinamentoId').value = '';
         document.getElementById('treinamentoTitulo').value = '';
         document.getElementById('treinamentoDescricao').value = '';
+        document.getElementById('treinamentoConteudo').value = '';
         document.getElementById('treinamentoPontos').value = 10;
+        document.getElementById('treinamentoCategoria').value = 'iniciante';
         document.getElementById('modalTreinamentoTitle').textContent = 'Novo Treinamento';
     }
     document.getElementById('modalTreinamento').style.display = 'flex';
@@ -466,12 +476,14 @@ window.salvarTreinamento = async function() {
     const dados = {
         titulo: document.getElementById('treinamentoTitulo').value,
         descricao: document.getElementById('treinamentoDescricao').value,
+        conteudo: document.getElementById('treinamentoConteudo').value,
         pontos: parseInt(document.getElementById('treinamentoPontos').value) || 10,
-        data_criacao: new Date().toISOString()
+        categoria: document.getElementById('treinamentoCategoria').value,
+        data_atualizacao: new Date().toISOString()
     };
     
     if (!dados.titulo) {
-        mostrarMensagem('Título obrigatório', 'warning');
+        mostrarMensagem('Título é obrigatório', 'warning');
         return;
     }
     
@@ -483,10 +495,11 @@ window.salvarTreinamento = async function() {
         
         if (id) {
             await updateDoc(doc(treinamentosRef, id), dados);
-            mostrarMensagem('Atualizado!', 'success');
+            mostrarMensagem('Treinamento atualizado!', 'success');
         } else {
+            dados.data_criacao = new Date().toISOString();
             await addDoc(treinamentosRef, dados);
-            mostrarMensagem('Criado!', 'success');
+            mostrarMensagem('Treinamento criado!', 'success');
         }
         
         fecharModal('modalTreinamento');
@@ -502,7 +515,7 @@ window.salvarTreinamento = async function() {
 };
 
 window.excluirTreinamento = async function(id) {
-    if (!confirm('Excluir?')) return;
+    if (!confirm('Tem certeza que deseja excluir este treinamento?')) return;
     
     mostrarLoading(true);
     
@@ -511,7 +524,7 @@ window.excluirTreinamento = async function(id) {
         const treinamentosRef = collection(db, colecaoNome, 'treinamentos', 'itens');
         await deleteDoc(doc(treinamentosRef, id));
         
-        mostrarMensagem('Excluído!', 'success');
+        mostrarMensagem('Treinamento excluído!', 'success');
         await carregarTreinamentos();
         renderizarTreinamentos();
         
@@ -527,7 +540,9 @@ window.editarTreinamento = function(id) {
     window.abrirModalTreinamento(id);
 };
 
-// Vídeos
+// ============================================
+// CRUD VÍDEOS
+// ============================================
 window.abrirModalVideo = function(id = null) {
     if (id) {
         const v = videos.find(v => v.id === id);
@@ -536,7 +551,9 @@ window.abrirModalVideo = function(id = null) {
             document.getElementById('videoTitulo').value = v.titulo;
             document.getElementById('videoDescricao').value = v.descricao || '';
             document.getElementById('videoUrl').value = v.url || '';
+            document.getElementById('videoDuracao').value = v.duracao || 0;
             document.getElementById('videoPontos').value = v.pontos || 5;
+            document.getElementById('videoCategoria').value = v.categoria || 'iniciante';
             document.getElementById('modalVideoTitle').textContent = 'Editar Vídeo';
         }
     } else {
@@ -544,7 +561,9 @@ window.abrirModalVideo = function(id = null) {
         document.getElementById('videoTitulo').value = '';
         document.getElementById('videoDescricao').value = '';
         document.getElementById('videoUrl').value = '';
+        document.getElementById('videoDuracao').value = 5;
         document.getElementById('videoPontos').value = 5;
+        document.getElementById('videoCategoria').value = 'iniciante';
         document.getElementById('modalVideoTitle').textContent = 'Novo Vídeo';
     }
     document.getElementById('modalVideo').style.display = 'flex';
@@ -556,12 +575,14 @@ window.salvarVideo = async function() {
         titulo: document.getElementById('videoTitulo').value,
         descricao: document.getElementById('videoDescricao').value,
         url: document.getElementById('videoUrl').value,
+        duracao: parseInt(document.getElementById('videoDuracao').value) || 0,
         pontos: parseInt(document.getElementById('videoPontos').value) || 5,
-        data_criacao: new Date().toISOString()
+        categoria: document.getElementById('videoCategoria').value,
+        data_atualizacao: new Date().toISOString()
     };
     
     if (!dados.titulo) {
-        mostrarMensagem('Título obrigatório', 'warning');
+        mostrarMensagem('Título é obrigatório', 'warning');
         return;
     }
     
@@ -573,10 +594,11 @@ window.salvarVideo = async function() {
         
         if (id) {
             await updateDoc(doc(videosRef, id), dados);
-            mostrarMensagem('Atualizado!', 'success');
+            mostrarMensagem('Vídeo atualizado!', 'success');
         } else {
+            dados.data_criacao = new Date().toISOString();
             await addDoc(videosRef, dados);
-            mostrarMensagem('Criado!', 'success');
+            mostrarMensagem('Vídeo criado!', 'success');
         }
         
         fecharModal('modalVideo');
@@ -592,7 +614,7 @@ window.salvarVideo = async function() {
 };
 
 window.excluirVideo = async function(id) {
-    if (!confirm('Excluir?')) return;
+    if (!confirm('Tem certeza que deseja excluir este vídeo?')) return;
     
     mostrarLoading(true);
     
@@ -601,7 +623,7 @@ window.excluirVideo = async function(id) {
         const videosRef = collection(db, colecaoNome, 'videos', 'itens');
         await deleteDoc(doc(videosRef, id));
         
-        mostrarMensagem('Excluído!', 'success');
+        mostrarMensagem('Vídeo excluído!', 'success');
         await carregarVideos();
         renderizarVideos();
         
@@ -617,7 +639,9 @@ window.editarVideo = function(id) {
     window.abrirModalVideo(id);
 };
 
-// Testes
+// ============================================
+// CRUD TESTES
+// ============================================
 window.abrirModalTeste = function(id = null) {
     if (id) {
         const t = testes.find(t => t.id === id);
@@ -626,29 +650,142 @@ window.abrirModalTeste = function(id = null) {
             document.getElementById('testeTitulo').value = t.titulo;
             document.getElementById('testeDescricao').value = t.descricao || '';
             document.getElementById('testePontosMax').value = t.pontos_max || 100;
+            document.getElementById('testePontosMin').value = t.pontos_min || 70;
             document.getElementById('modalTesteTitle').textContent = 'Editar Teste';
+            
+            // Carregar questões
+            const container = document.getElementById('questoesContainer');
+            container.innerHTML = '';
+            if (t.questoes && t.questoes.length > 0) {
+                t.questoes.forEach(q => adicionarQuestaoForm(q));
+            } else {
+                adicionarQuestaoForm();
+                adicionarQuestaoForm();
+            }
         }
     } else {
         document.getElementById('testeId').value = '';
         document.getElementById('testeTitulo').value = '';
         document.getElementById('testeDescricao').value = '';
         document.getElementById('testePontosMax').value = 100;
+        document.getElementById('testePontosMin').value = 70;
         document.getElementById('modalTesteTitle').textContent = 'Novo Teste';
+        
+        const container = document.getElementById('questoesContainer');
+        container.innerHTML = '';
+        adicionarQuestaoForm();
+        adicionarQuestaoForm();
     }
     document.getElementById('modalTeste').style.display = 'flex';
 };
 
+function adicionarQuestaoForm(questaoData = null) {
+    const container = document.getElementById('questoesContainer');
+    const questaoDiv = document.createElement('div');
+    questaoDiv.className = 'questao-item';
+    const questaoNumero = container.children.length + 1;
+    
+    let alternativasHtml = '';
+    if (questaoData) {
+        for (let i = 0; i < questaoData.alternativas.length; i++) {
+            const letra = String.fromCharCode(65 + i);
+            alternativasHtml += `
+                <div class="alternativa-item">
+                    <input type="radio" name="alternativa_correta" class="alternativa-correta" value="${i}" ${questaoData.correta === i ? 'checked' : ''}>
+                    <input type="text" class="alternativa-texto" placeholder="Alternativa ${letra}" value="${escapeHtml(questaoData.alternativas[i])}">
+                    <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+            `;
+        }
+    } else {
+        alternativasHtml = `
+            <div class="alternativa-item">
+                <input type="radio" name="alternativa_correta" class="alternativa-correta" value="0">
+                <input type="text" class="alternativa-texto" placeholder="Alternativa A">
+                <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+            <div class="alternativa-item">
+                <input type="radio" name="alternativa_correta" class="alternativa-correta" value="1">
+                <input type="text" class="alternativa-texto" placeholder="Alternativa B">
+                <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+        `;
+    }
+    
+    questaoDiv.innerHTML = `
+        <div class="questao-header">
+            <span class="questao-numero">Questão ${questaoNumero}</span>
+            <button type="button" class="btn-remover-questao" onclick="this.remove()">&times;</button>
+        </div>
+        <input type="text" class="questao-texto" placeholder="Enunciado da questão" value="${questaoData ? escapeHtml(questaoData.texto) : ''}">
+        <div class="alternativas-container">
+            ${alternativasHtml}
+        </div>
+        <button type="button" class="btn-add-alternativa" onclick="adicionarAlternativa(this)">+ Adicionar Alternativa</button>
+    `;
+    
+    container.appendChild(questaoDiv);
+}
+
+window.adicionarQuestao = function() {
+    adicionarQuestaoForm();
+};
+
+function adicionarAlternativa(btn) {
+    const alternativasContainer = btn.closest('.questao-item').querySelector('.alternativas-container');
+    const numAlternativas = alternativasContainer.children.length;
+    const letra = String.fromCharCode(65 + numAlternativas);
+    
+    const altDiv = document.createElement('div');
+    altDiv.className = 'alternativa-item';
+    altDiv.innerHTML = `
+        <input type="radio" name="alternativa_correta" class="alternativa-correta" value="${numAlternativas}">
+        <input type="text" class="alternativa-texto" placeholder="Alternativa ${letra}">
+        <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+    `;
+    alternativasContainer.appendChild(altDiv);
+}
+
 window.salvarTeste = async function() {
     const id = document.getElementById('testeId').value;
+    const questoes = [];
+    
+    document.querySelectorAll('#questoesContainer .questao-item').forEach((questaoDiv) => {
+        const texto = questaoDiv.querySelector('.questao-texto').value;
+        const alternativas = [];
+        let correta = -1;
+        
+        questaoDiv.querySelectorAll('.alternativa-item').forEach((altDiv, altIdx) => {
+            const textoAlt = altDiv.querySelector('.alternativa-texto').value;
+            if (textoAlt.trim()) {
+                alternativas.push(textoAlt);
+                if (altDiv.querySelector('.alternativa-correta').checked) {
+                    correta = altIdx;
+                }
+            }
+        });
+        
+        if (texto.trim() && alternativas.length >= 2 && correta !== -1) {
+            questoes.push({ texto, alternativas, correta });
+        }
+    });
+    
+    if (questoes.length === 0) {
+        mostrarMensagem('Adicione pelo menos uma questão válida!', 'warning');
+        return;
+    }
+    
     const dados = {
         titulo: document.getElementById('testeTitulo').value,
         descricao: document.getElementById('testeDescricao').value,
         pontos_max: parseInt(document.getElementById('testePontosMax').value) || 100,
-        data_criacao: new Date().toISOString()
+        pontos_min: parseInt(document.getElementById('testePontosMin').value) || 70,
+        questoes: questoes,
+        data_atualizacao: new Date().toISOString()
     };
     
     if (!dados.titulo) {
-        mostrarMensagem('Título obrigatório', 'warning');
+        mostrarMensagem('Título é obrigatório', 'warning');
         return;
     }
     
@@ -660,10 +797,11 @@ window.salvarTeste = async function() {
         
         if (id) {
             await updateDoc(doc(testesRef, id), dados);
-            mostrarMensagem('Atualizado!', 'success');
+            mostrarMensagem('Teste atualizado!', 'success');
         } else {
+            dados.data_criacao = new Date().toISOString();
             await addDoc(testesRef, dados);
-            mostrarMensagem('Criado!', 'success');
+            mostrarMensagem('Teste criado!', 'success');
         }
         
         fecharModal('modalTeste');
@@ -679,7 +817,7 @@ window.salvarTeste = async function() {
 };
 
 window.excluirTeste = async function(id) {
-    if (!confirm('Excluir?')) return;
+    if (!confirm('Tem certeza que deseja excluir este teste?')) return;
     
     mostrarLoading(true);
     
@@ -688,7 +826,7 @@ window.excluirTeste = async function(id) {
         const testesRef = collection(db, colecaoNome, 'testes', 'itens');
         await deleteDoc(doc(testesRef, id));
         
-        mostrarMensagem('Excluído!', 'success');
+        mostrarMensagem('Teste excluído!', 'success');
         await carregarTestes();
         renderizarTestes();
         
@@ -703,6 +841,16 @@ window.excluirTeste = async function(id) {
 window.editarTeste = function(id) {
     window.abrirModalTeste(id);
 };
+
+// ============================================
+// UTILITÁRIOS
+// ============================================
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 // ============================================
 // CONFIGURAR EVENTOS
@@ -724,8 +872,5 @@ function configurarEventos() {
         }
     };
 }
-
-// Exportar
-window.fecharModal = fecharModal;
 
 console.log('✅ programas_aprimoramento.js carregado');
