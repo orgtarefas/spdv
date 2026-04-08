@@ -442,5 +442,100 @@
     <script type="module" src="../../novo_lojas.js"></script>
     <script src="novo_firebase_config.js" type="module"></script>
     <script src="relatorios.js" type="module"></script>
+
+    <!-- VALIDAÇÃO DE ACESSO - RELATÓRIOS (depende do estoque/carrinho) -->
+    <script>
+        (async function validarAcessoRelatorios() {
+            console.log('🔒 Validando acesso aos relatórios...');
+            
+            let tentativas = 0;
+            let maxTentativas = 50;
+            let estoqueHabilitado = true;
+            let usuarioPermissao = false;
+            let lojaId = null;
+            
+            function obterLojaIdDaURL() {
+                const path = window.location.pathname;
+                const match = path.match(/\/loja\/([^\/]+)/);
+                return match ? match[1] : null;
+            }
+            
+            while (tentativas < maxTentativas) {
+                lojaId = window.lojaIdAtual || window.lojaServices?.lojaId || obterLojaIdDaURL();
+                
+                if (window.loginDb && lojaId) {
+                    try {
+                        // 1. Verificar se estoque/carrinho está habilitado na loja
+                        const lojaDoc = await window.loginDb
+                            .collection('lojas')
+                            .doc(lojaId)
+                            .get();
+                        
+                        if (lojaDoc.exists) {
+                            const dados = lojaDoc.data();
+                            estoqueHabilitado = dados.habilitar_estoque_carrinho !== false;
+                            console.log(`🛒 Estoque/Carrinho habilitado: ${estoqueHabilitado ? 'SIM' : 'NÃO'}`);
+                        }
+                        
+                        // 2. Verificar permissão do usuário (apenas admin e gerente)
+                        if (window.auth && window.auth.currentUser) {
+                            const email = window.auth.currentUser.email;
+                            
+                            // Verificar admin global
+                            const adminDoc = await window.loginDb
+                                .collection('usuarios')
+                                .doc('admin')
+                                .get();
+                            
+                            if (adminDoc.exists && adminDoc.data()[email]) {
+                                usuarioPermissao = true;
+                                console.log('✅ Usuário é ADMIN global');
+                            } else {
+                                // Verificar funcionário da loja
+                                const funcDoc = await window.loginDb
+                                    .collection('usuarios')
+                                    .doc(lojaId)
+                                    .collection('funcionarios')
+                                    .doc(email)
+                                    .get();
+                                
+                                if (funcDoc.exists) {
+                                    const perfil = funcDoc.data().perfil;
+                                    // Apenas admin e gerente podem ver relatórios
+                                    usuarioPermissao = perfil === 'admin' || perfil === 'gerente';
+                                    console.log(`👤 Perfil: ${perfil} - Acesso a relatórios: ${usuarioPermissao ? 'SIM' : 'NÃO'}`);
+                                }
+                            }
+                        }
+                        break;
+                    } catch(e) {
+                        console.warn('Erro ao verificar:', e);
+                    }
+                }
+                await new Promise(r => setTimeout(r, 500));
+                tentativas++;
+                if (tentativas % 10 === 0) {
+                    console.log(`⏳ Aguardando Firebase... tentativa ${tentativas}/${maxTentativas}`);
+                }
+            }
+            
+            // Verificar acesso
+            if (!estoqueHabilitado) {
+                console.warn('🚫 Funcionalidade de estoque/carrinho desabilitada. Relatórios bloqueados. Redirecionando...');
+                alert('⚠️ A funcionalidade de relatórios está desabilitada nesta loja.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            if (!usuarioPermissao) {
+                console.warn('🚫 Usuário sem permissão para acessar relatórios. Redirecionando...');
+                alert('⚠️ Você não tem permissão para acessar os relatórios.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            console.log('✅ Acesso aos relatórios permitido');
+        })();
+    </script>    
 </body>
 </html>
