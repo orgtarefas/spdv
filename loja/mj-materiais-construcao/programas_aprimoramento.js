@@ -1,5 +1,5 @@
 // ============================================
-// programas_aprimoramento.js
+// programas_aprimoramento.js - CORRIGIDO
 // Sistema de Programas de Aprimoramento
 // ============================================
 
@@ -15,59 +15,115 @@ let allVideos = [];
 let userProgress = null;
 let chatUnsubscribe = null;
 let currentFilter = 'todos';
+let db = null;
+let loginDb = null;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando Programas de Aprimoramento...');
+    
+    // Aguardar Firebase e serviços carregarem
+    await aguardarServicos();
     
     await carregarDadosUsuario();
     await verificarHabilitacao();
     
     configurarEventListeners();
     
-    // Aguardar lojaServices estar disponível
-    if (window.lojaServices) {
+    // Aguardar db do Firebase estar disponível
+    if (window.db) {
+        db = window.db;
+    } else if (window.firebaseDb) {
+        db = window.firebaseDb;
+    }
+    
+    if (window.loginDb) {
+        loginDb = window.loginDb;
+    }
+    
+    if (db) {
         await carregarDados();
         await carregarProgresso();
         await iniciarChat();
     } else {
-        console.log('⏳ Aguardando lojaServices...');
-        const checkInterval = setInterval(async () => {
-            if (window.lojaServices) {
-                clearInterval(checkInterval);
-                await carregarDados();
-                await carregarProgresso();
-                await iniciarChat();
-            }
-        }, 500);
+        console.error('❌ Banco de dados não disponível');
+        mostrarMensagem('Erro ao carregar dados. Tente novamente mais tarde.', 'error');
     }
 });
+
+// Aguardar serviços carregarem
+async function aguardarServicos() {
+    let tentativas = 0;
+    const maxTentativas = 30;
+    
+    while (tentativas < maxTentativas) {
+        // Verificar se temos os dados do usuário via window.dadosUsuario
+        if (window.dadosUsuario || window.getUsuarioInfo) {
+            console.log('✅ Dados do usuário disponíveis');
+            break;
+        }
+        
+        // Verificar se temos o banco de dados
+        if (window.db || window.firebaseDb) {
+            console.log('✅ Firebase db disponível');
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
+    }
+    
+    // Tentar obter dados do usuário de diferentes fontes
+    if (!window.dadosUsuario && window.getUsuarioInfo) {
+        const usuarioInfo = window.getUsuarioInfo();
+        if (usuarioInfo) {
+            window.dadosUsuario = usuarioInfo;
+        }
+    }
+    
+    console.log('⏳ Serviços carregados após', tentativas, 'tentativas');
+}
 
 // Carregar dados do usuário
 async function carregarDadosUsuario() {
     try {
-        const usuarioInfo = window.getUsuarioInfo ? window.getUsuarioInfo() : null;
-        
-        if (usuarioInfo) {
+        // Tentar obter de window.dadosUsuario (definido pelo sistema de login)
+        if (window.dadosUsuario) {
             usuarioAtual = {
-                email: usuarioInfo.email,
-                nome: usuarioInfo.nome,
-                perfil: usuarioInfo.perfil,
-                tipo: usuarioInfo.tipo
+                email: window.dadosUsuario.email,
+                nome: window.dadosUsuario.nome || window.dadosUsuario.email?.split('@')[0],
+                perfil: window.dadosUsuario.perfil || window.dadosUsuario.nivel || window.dadosUsuario.tipo,
+                tipo: window.dadosUsuario.tipo || 'cliente'
             };
-        } else if (window.dadosUsuario) {
-            usuarioAtual = window.dadosUsuario;
+            console.log('✅ Usuário carregado de window.dadosUsuario:', usuarioAtual);
         }
         
-        if (usuarioAtual) {
-            document.getElementById('userNameDisplay').textContent = usuarioAtual.nome || usuarioAtual.email.split('@')[0];
-            isGestor = usuarioAtual.perfil === 'admin' || usuarioAtual.perfil === 'gerente';
-            
-            if (isGestor) {
-                document.getElementById('btnGestao').style.display = 'flex';
-                document.getElementById('btnAdicionarTreinamento').style.display = 'flex';
-                document.getElementById('btnAdicionarTeste').style.display = 'flex';
-                document.getElementById('btnAdicionarVideo').style.display = 'flex';
+        // Tentar obter de sessionStorage
+        if (!usuarioAtual?.email) {
+            const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
+            if (sessao) {
+                const dados = JSON.parse(sessao);
+                usuarioAtual = {
+                    email: dados.email,
+                    nome: dados.nome || dados.email?.split('@')[0],
+                    perfil: dados.perfil || dados.nivel,
+                    tipo: dados.tipo || 'cliente'
+                };
+                console.log('✅ Usuário carregado de sessionStorage:', usuarioAtual);
+            }
+        }
+        
+        // Tentar obter de localStorage
+        if (!usuarioAtual?.email) {
+            const backup = localStorage.getItem('pdv_sessao_backup');
+            if (backup) {
+                const dados = JSON.parse(backup);
+                usuarioAtual = {
+                    email: dados.email,
+                    nome: dados.nome || dados.email?.split('@')[0],
+                    perfil: dados.perfil || dados.nivel,
+                    tipo: dados.tipo || 'cliente'
+                };
+                console.log('✅ Usuário carregado de localStorage:', usuarioAtual);
             }
         }
         
@@ -76,6 +132,34 @@ async function carregarDadosUsuario() {
         const lojaIndex = pathParts.indexOf('loja');
         if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
             lojaId = pathParts[lojaIndex + 1];
+        } else if (window.lojaIdAtual) {
+            lojaId = window.lojaIdAtual;
+        } else if (window.lojaServices?.lojaId) {
+            lojaId = window.lojaServices.lojaId;
+        }
+        
+        // Atualizar display do nome do usuário
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        if (userNameDisplay && usuarioAtual) {
+            userNameDisplay.textContent = usuarioAtual.nome || usuarioAtual.email?.split('@')[0] || 'Usuário';
+        }
+        
+        // Verificar se é gestor
+        if (usuarioAtual) {
+            const perfil = usuarioAtual.perfil || '';
+            isGestor = perfil === 'admin' || perfil === 'gerente' || perfil === 'supervisor';
+            
+            if (isGestor) {
+                const btnGestao = document.getElementById('btnGestao');
+                const btnAdicionarTreinamento = document.getElementById('btnAdicionarTreinamento');
+                const btnAdicionarTeste = document.getElementById('btnAdicionarTeste');
+                const btnAdicionarVideo = document.getElementById('btnAdicionarVideo');
+                
+                if (btnGestao) btnGestao.style.display = 'flex';
+                if (btnAdicionarTreinamento) btnAdicionarTreinamento.style.display = 'flex';
+                if (btnAdicionarTeste) btnAdicionarTeste.style.display = 'flex';
+                if (btnAdicionarVideo) btnAdicionarVideo.style.display = 'flex';
+            }
         }
         
         console.log(`📍 Loja: ${lojaId}, Usuário: ${usuarioAtual?.email}, Gestor: ${isGestor}`);
@@ -88,15 +172,21 @@ async function carregarDadosUsuario() {
 // Verificar se o programa está habilitado para a loja
 async function verificarHabilitacao() {
     try {
-        if (!window.loginDb || !lojaId) {
-            console.error('loginDb ou lojaId não disponível');
+        // Tentar obter loginDb de diferentes fontes
+        const dbLogin = window.loginDb || (window.firebaseLoginDb ? window.firebaseLoginDb : null);
+        
+        if (!dbLogin || !lojaId) {
+            console.warn('loginDb ou lojaId não disponível ainda');
+            // Se não estiver disponível, tentar novamente em 1 segundo
+            setTimeout(() => verificarHabilitacao(), 1000);
             return;
         }
         
-        const lojaDoc = await window.loginDb.collection('lojas').doc(lojaId).get();
+        const lojaDoc = await dbLogin.collection('lojas').doc(lojaId).get();
         
         if (lojaDoc.exists) {
             const habilitado = lojaDoc.data().habilitar_programas_aprimoramento === true;
+            console.log(`📚 Programas de Aprimoramento habilitado: ${habilitado}`);
             
             if (!habilitado) {
                 mostrarMensagem('❌ Programa de Aprimoramento não está habilitado para esta loja.', 'error');
@@ -110,20 +200,28 @@ async function verificarHabilitacao() {
         
     } catch (error) {
         console.error('Erro ao verificar habilitação:', error);
+        // Tentar novamente em 2 segundos
+        setTimeout(() => verificarHabilitacao(), 2000);
     }
 }
 
 // Configurar event listeners
 function configurarEventListeners() {
     // Botão voltar
-    document.getElementById('btnBack').addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
+    const btnBack = document.getElementById('btnBack');
+    if (btnBack) {
+        btnBack.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    }
     
     // Botão gestão
-    document.getElementById('btnGestao').addEventListener('click', () => {
-        abrirGestao();
-    });
+    const btnGestao = document.getElementById('btnGestao');
+    if (btnGestao) {
+        btnGestao.addEventListener('click', () => {
+            abrirGestao();
+        });
+    }
     
     // Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -134,41 +232,81 @@ function configurarEventListeners() {
     });
     
     // Buscas
-    document.getElementById('searchTreinamento').addEventListener('input', (e) => {
-        filtrarTreinamentos(e.target.value);
-    });
+    const searchTreinamento = document.getElementById('searchTreinamento');
+    if (searchTreinamento) {
+        searchTreinamento.addEventListener('input', (e) => {
+            filtrarTreinamentos(e.target.value);
+        });
+    }
     
-    document.getElementById('searchTeste').addEventListener('input', (e) => {
-        filtrarTestes(e.target.value);
-    });
+    const searchTeste = document.getElementById('searchTeste');
+    if (searchTeste) {
+        searchTeste.addEventListener('input', (e) => {
+            filtrarTestes(e.target.value);
+        });
+    }
     
-    document.getElementById('searchVideo').addEventListener('input', (e) => {
-        filtrarVideos(e.target.value);
-    });
+    const searchVideo = document.getElementById('searchVideo');
+    if (searchVideo) {
+        searchVideo.addEventListener('input', (e) => {
+            filtrarVideos(e.target.value);
+        });
+    }
     
     // Chat
-    document.getElementById('btnEnviarChat').addEventListener('click', enviarMensagemChat);
-    document.getElementById('chatInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            enviarMensagemChat();
-        }
-    });
+    const btnEnviarChat = document.getElementById('btnEnviarChat');
+    if (btnEnviarChat) {
+        btnEnviarChat.addEventListener('click', enviarMensagemChat);
+    }
+    
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                enviarMensagemChat();
+            }
+        });
+    }
     
     // Formulários
-    document.getElementById('treinamentoForm').addEventListener('submit', salvarTreinamento);
-    document.getElementById('testeForm').addEventListener('submit', salvarTeste);
-    document.getElementById('videoForm').addEventListener('submit', salvarVideo);
-    document.getElementById('btnAddQuestao').addEventListener('click', adicionarQuestaoForm);
+    const treinamentoForm = document.getElementById('treinamentoForm');
+    if (treinamentoForm) {
+        treinamentoForm.addEventListener('submit', salvarTreinamento);
+    }
+    
+    const testeForm = document.getElementById('testeForm');
+    if (testeForm) {
+        testeForm.addEventListener('submit', salvarTeste);
+    }
+    
+    const videoForm = document.getElementById('videoForm');
+    if (videoForm) {
+        videoForm.addEventListener('submit', salvarVideo);
+    }
+    
+    const btnAddQuestao = document.getElementById('btnAddQuestao');
+    if (btnAddQuestao) {
+        btnAddQuestao.addEventListener('click', () => adicionarQuestaoForm());
+    }
     
     // Botão confirmar conclusão
-    document.getElementById('btnConfirmarConcluir').addEventListener('click', confirmarConclusao);
+    const btnConfirmarConcluir = document.getElementById('btnConfirmarConcluir');
+    if (btnConfirmarConcluir) {
+        btnConfirmarConcluir.addEventListener('click', confirmarConclusao);
+    }
     
     // Botão enviar respostas do teste
-    document.getElementById('btnEnviarRespostas').addEventListener('click', enviarRespostasTeste);
+    const btnEnviarRespostas = document.getElementById('btnEnviarRespostas');
+    if (btnEnviarRespostas) {
+        btnEnviarRespostas.addEventListener('click', enviarRespostasTeste);
+    }
     
     // Botão marcar assistido
-    document.getElementById('btnMarcarAssistido').addEventListener('click', marcarVideoAssistido);
+    const btnMarcarAssistido = document.getElementById('btnMarcarAssistido');
+    if (btnMarcarAssistido) {
+        btnMarcarAssistido.addEventListener('click', marcarVideoAssistido);
+    }
 }
 
 // Mudar tab
@@ -186,16 +324,27 @@ function mudarTab(tabId) {
         pane.classList.remove('active');
     });
     
-    document.getElementById(`tab-${tabId}`).classList.add('active');
+    const targetPane = document.getElementById(`tab-${tabId}`);
+    if (targetPane) {
+        targetPane.classList.add('active');
+    }
     
     // Atualizar badge do chat
     if (tabId === 'chat') {
-        document.getElementById('chatBadge').style.display = 'none';
+        const chatBadge = document.getElementById('chatBadge');
+        if (chatBadge) {
+            chatBadge.style.display = 'none';
+        }
     }
 }
 
 // Carregar dados do Firebase
 async function carregarDados() {
+    if (!db || !lojaId) {
+        console.warn('db ou lojaId não disponível para carregar dados');
+        return;
+    }
+    
     await Promise.all([
         carregarTreinamentos(),
         carregarTestes(),
@@ -205,8 +354,9 @@ async function carregarDados() {
 
 async function carregarTreinamentos() {
     try {
-        const treinamentosRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
-        const treinamentosSub = collection(treinamentosRef, 'treinamentos');
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
+        const treinamentosSub = collection(aprimoramentoRef, 'treinamentos');
         const snapshot = await getDocs(treinamentosSub);
         
         allTreinamentos = [];
@@ -220,18 +370,22 @@ async function carregarTreinamentos() {
         
     } catch (error) {
         console.error('Erro ao carregar treinamentos:', error);
-        document.getElementById('treinamentosGrid').innerHTML = `
-            <div class="loading-spinner">
-                <i class="fas fa-exclamation-triangle"></i>
-                <span>Erro ao carregar treinamentos</span>
-            </div>
-        `;
+        const grid = document.getElementById('treinamentosGrid');
+        if (grid) {
+            grid.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Erro ao carregar treinamentos</span>
+                </div>
+            `;
+        }
     }
 }
 
 async function carregarTestes() {
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const testesSub = collection(aprimoramentoRef, 'testes');
         const snapshot = await getDocs(testesSub);
         
@@ -249,7 +403,8 @@ async function carregarTestes() {
 
 async function carregarVideos() {
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const videosSub = collection(aprimoramentoRef, 'videos');
         const snapshot = await getDocs(videosSub);
         
@@ -268,19 +423,21 @@ async function carregarVideos() {
 // Renderizar treinamentos
 function renderizarTreinamentos(filtro = '') {
     const grid = document.getElementById('treinamentosGrid');
+    if (!grid) return;
+    
     let treinamentos = [...allTreinamentos];
     
     if (filtro) {
         const termo = filtro.toLowerCase();
         treinamentos = treinamentos.filter(t => 
-            t.titulo.toLowerCase().includes(termo) ||
+            (t.titulo && t.titulo.toLowerCase().includes(termo)) ||
             (t.descricao && t.descricao.toLowerCase().includes(termo))
         );
     }
     
     if (treinamentos.length === 0) {
         grid.innerHTML = `
-            <div class="loading-spinner">
+            <div class="empty-state">
                 <i class="fas fa-book-open"></i>
                 <span>Nenhum treinamento encontrado</span>
                 ${isGestor ? '<small>Clique em "Novo Treinamento" para começar</small>' : ''}
@@ -291,12 +448,11 @@ function renderizarTreinamentos(filtro = '') {
     
     grid.innerHTML = treinamentos.map(t => {
         const isCompleted = userProgress?.treinamentos_concluidos?.includes(t.id);
-        const isLocked = !isGestor && !isCompleted && !verificarPreRequisitos(t);
         
         return `
             <div class="treinamento-card">
                 <div class="card-header">
-                    <h4>${escapeHtml(t.titulo)}</h4>
+                    <h4>${escapeHtml(t.titulo || 'Sem título')}</h4>
                     <span class="card-badge ${t.categoria || 'iniciante'}">${getCategoriaNome(t.categoria)}</span>
                 </div>
                 <div class="card-descricao">${escapeHtml(t.descricao || 'Sem descrição')}</div>
@@ -339,19 +495,21 @@ function filtrarVideos(termo) {
 
 function renderizarTestes(filtro = '') {
     const grid = document.getElementById('testesGrid');
+    if (!grid) return;
+    
     let testes = [...allTestes];
     
     if (filtro) {
         const termo = filtro.toLowerCase();
         testes = testes.filter(t => 
-            t.titulo.toLowerCase().includes(termo) ||
+            (t.titulo && t.titulo.toLowerCase().includes(termo)) ||
             (t.descricao && t.descricao.toLowerCase().includes(termo))
         );
     }
     
     if (testes.length === 0) {
         grid.innerHTML = `
-            <div class="loading-spinner">
+            <div class="empty-state">
                 <i class="fas fa-clipboard-list"></i>
                 <span>Nenhum teste encontrado</span>
                 ${isGestor ? '<small>Clique em "Novo Teste" para começar</small>' : ''}
@@ -368,7 +526,7 @@ function renderizarTestes(filtro = '') {
         return `
             <div class="teste-card">
                 <div class="card-header">
-                    <h4>${escapeHtml(t.titulo)}</h4>
+                    <h4>${escapeHtml(t.titulo || 'Sem título')}</h4>
                     <span class="card-badge">${t.questoes?.length || 0} questões</span>
                 </div>
                 <div class="card-descricao">${escapeHtml(t.descricao || 'Sem descrição')}</div>
@@ -401,19 +559,21 @@ function renderizarTestes(filtro = '') {
 
 function renderizarVideos(filtro = '') {
     const grid = document.getElementById('videosGrid');
+    if (!grid) return;
+    
     let videos = [...allVideos];
     
     if (filtro) {
         const termo = filtro.toLowerCase();
         videos = videos.filter(v => 
-            v.titulo.toLowerCase().includes(termo) ||
+            (v.titulo && v.titulo.toLowerCase().includes(termo)) ||
             (v.descricao && v.descricao.toLowerCase().includes(termo))
         );
     }
     
     if (videos.length === 0) {
         grid.innerHTML = `
-            <div class="loading-spinner">
+            <div class="empty-state">
                 <i class="fas fa-video"></i>
                 <span>Nenhum vídeo encontrado</span>
                 ${isGestor ? '<small>Clique em "Novo Vídeo" para começar</small>' : ''}
@@ -428,7 +588,7 @@ function renderizarVideos(filtro = '') {
         return `
             <div class="video-card">
                 <div class="card-header">
-                    <h4>${escapeHtml(v.titulo)}</h4>
+                    <h4>${escapeHtml(v.titulo || 'Sem título')}</h4>
                     <span class="card-badge ${v.categoria || 'iniciante'}">${getCategoriaNome(v.categoria)}</span>
                 </div>
                 <div class="card-descricao">${escapeHtml(v.descricao || 'Sem descrição')}</div>
@@ -459,10 +619,14 @@ function renderizarVideos(filtro = '') {
 
 // Carregar progresso do usuário
 async function carregarProgresso() {
-    if (!usuarioAtual?.email) return;
+    if (!usuarioAtual?.email || !db || !lojaId) {
+        console.warn('Dados insuficientes para carregar progresso');
+        return;
+    }
     
     try {
-        const progressoRef = doc(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`, 'progresso');
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const progressoRef = doc(db, colecaoNome, 'progresso');
         const progressoSub = collection(progressoRef, 'usuarios');
         const userDoc = await getDoc(doc(progressoSub, usuarioAtual.email));
         
@@ -490,10 +654,11 @@ async function carregarProgresso() {
 }
 
 async function salvarProgresso() {
-    if (!usuarioAtual?.email) return;
+    if (!usuarioAtual?.email || !db || !lojaId) return;
     
     try {
-        const progressoRef = doc(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`, 'progresso');
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const progressoRef = doc(db, colecaoNome, 'progresso');
         const progressoSub = collection(progressoRef, 'usuarios');
         await setDoc(doc(progressoSub, usuarioAtual.email), userProgress, { merge: true });
         
@@ -504,7 +669,8 @@ async function salvarProgresso() {
 
 function atualizarJornada() {
     // Atualizar stats
-    document.getElementById('totalPontos').textContent = userProgress?.pontos_totais || 0;
+    const totalPontosEl = document.getElementById('totalPontos');
+    if (totalPontosEl) totalPontosEl.textContent = userProgress?.pontos_totais || 0;
     
     const totalTreinamentos = allTreinamentos.length;
     const treinamentosConcluidos = userProgress?.treinamentos_concluidos?.length || 0;
@@ -517,16 +683,23 @@ function atualizarJornada() {
     const totalConcluidos = treinamentosConcluidos + videosAssistidos + testesAprovados;
     const percentual = totalItens > 0 ? Math.round((totalConcluidos / totalItens) * 100) : 0;
     
-    document.getElementById('totalConcluidos').textContent = `${totalConcluidos}/${totalItens}`;
-    document.getElementById('progressoPercentual').textContent = `${percentual}%`;
-    document.getElementById('progressoFill').style.width = `${percentual}%`;
+    const totalConcluidosEl = document.getElementById('totalConcluidos');
+    if (totalConcluidosEl) totalConcluidosEl.textContent = `${totalConcluidos}/${totalItens}`;
+    
+    const progressoPercentualEl = document.getElementById('progressoPercentual');
+    if (progressoPercentualEl) progressoPercentualEl.textContent = `${percentual}%`;
+    
+    const progressoFillEl = document.getElementById('progressoFill');
+    if (progressoFillEl) progressoFillEl.style.width = `${percentual}%`;
     
     // Definir nível
     let nivel = 'Iniciante';
     if (percentual >= 80) nivel = 'Expert';
     else if (percentual >= 60) nivel = 'Avançado';
     else if (percentual >= 30) nivel = 'Intermediário';
-    document.getElementById('nivelAtual').textContent = nivel;
+    
+    const nivelAtualEl = document.getElementById('nivelAtual');
+    if (nivelAtualEl) nivelAtualEl.textContent = nivel;
     
     // Renderizar timeline
     renderizarTimeline();
@@ -537,6 +710,8 @@ function atualizarJornada() {
 
 function renderizarTimeline() {
     const timelineList = document.getElementById('timelineList');
+    if (!timelineList) return;
+    
     const todosItens = [
         ...allTreinamentos.map(t => ({ ...t, tipo: 'treinamento', pontos: t.pontos || 10 })),
         ...allVideos.map(v => ({ ...v, tipo: 'video', pontos: v.pontos || 5 })),
@@ -547,7 +722,7 @@ function renderizarTimeline() {
     
     if (todosItens.length === 0) {
         timelineList.innerHTML = `
-            <div class="loading-spinner">
+            <div class="empty-state">
                 <i class="fas fa-road"></i>
                 <span>Nenhum conteúdo disponível ainda</span>
             </div>
@@ -574,7 +749,7 @@ function renderizarTimeline() {
                     <i class="fas ${icon}"></i>
                 </div>
                 <div class="timeline-content">
-                    <h4>${escapeHtml(item.titulo)}</h4>
+                    <h4>${escapeHtml(item.titulo || 'Sem título')}</h4>
                     <p>${escapeHtml(item.descricao || '')}</p>
                 </div>
                 <div class="timeline-pontos">${item.pontos} pts</div>
@@ -588,6 +763,7 @@ function renderizarTimeline() {
 
 function renderizarConquistas() {
     const conquistasGrid = document.getElementById('conquistasGrid');
+    if (!conquistasGrid) return;
     
     const conquistas = [
         { id: 'primeiro_passo', nome: 'Primeiro Passo', descricao: 'Complete seu primeiro conteúdo', icone: 'fa-flag-checkered', condicao: () => (userProgress?.treinamentos_concluidos?.length || 0) > 0 || (userProgress?.videos_assistidos?.length || 0) > 0 },
@@ -620,9 +796,14 @@ function renderizarConquistas() {
 // Funções de conclusão
 window.marcarConcluido = function(tipo, id, pontos) {
     currentItemToComplete = { tipo, id, pontos };
-    document.getElementById('concluirMensagem').textContent = `Tem certeza que deseja marcar este ${tipo} como concluído?`;
-    document.getElementById('concluirPontos').textContent = pontos;
-    document.getElementById('concluirModal').style.display = 'flex';
+    const concluirMensagem = document.getElementById('concluirMensagem');
+    const concluirPontos = document.getElementById('concluirPontos');
+    
+    if (concluirMensagem) concluirMensagem.textContent = `Tem certeza que deseja marcar este ${tipo} como concluído?`;
+    if (concluirPontos) concluirPontos.textContent = pontos;
+    
+    const concluirModal = document.getElementById('concluirModal');
+    if (concluirModal) concluirModal.style.display = 'flex';
 }
 
 async function confirmarConclusao() {
@@ -659,39 +840,48 @@ window.iniciarTeste = function(testeId) {
     if (!teste) return;
     
     currentTesteToSubmit = teste;
-    document.getElementById('testeRealizarTitulo').textContent = teste.titulo;
+    
+    const testeRealizarTitulo = document.getElementById('testeRealizarTitulo');
+    if (testeRealizarTitulo) testeRealizarTitulo.textContent = teste.titulo;
     
     const container = document.getElementById('testeQuestoesContainer');
+    if (!container) return;
+    
     container.innerHTML = '';
     
-    teste.questoes.forEach((questao, idx) => {
-        const questaoDiv = document.createElement('div');
-        questaoDiv.className = 'questao-item';
-        questaoDiv.innerHTML = `
-            <div class="questao-header">
-                <span class="questao-numero">Questão ${idx + 1}</span>
-            </div>
-            <p style="margin-bottom: 12px; font-weight: 500;">${escapeHtml(questao.texto)}</p>
-            <div class="alternativas-container">
-                ${questao.alternativas.map((alt, altIdx) => `
-                    <label class="alternativa-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <input type="radio" name="questao_${idx}" value="${altIdx}">
-                        <span>${escapeHtml(alt)}</span>
-                    </label>
-                `).join('')}
-            </div>
-        `;
-        container.appendChild(questaoDiv);
-    });
+    if (teste.questoes && teste.questoes.length > 0) {
+        teste.questoes.forEach((questao, idx) => {
+            const questaoDiv = document.createElement('div');
+            questaoDiv.className = 'questao-item';
+            questaoDiv.innerHTML = `
+                <div class="questao-header">
+                    <span class="questao-numero">Questão ${idx + 1}</span>
+                </div>
+                <p style="margin-bottom: 12px; font-weight: 500;">${escapeHtml(questao.texto || 'Sem texto')}</p>
+                <div class="alternativas-container">
+                    ${(questao.alternativas || []).map((alt, altIdx) => `
+                        <label class="alternativa-item" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <input type="radio" name="questao_${idx}" value="${altIdx}">
+                            <span>${escapeHtml(alt)}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            `;
+            container.appendChild(questaoDiv);
+        });
+    } else {
+        container.innerHTML = '<p>Este teste não possui questões configuradas.</p>';
+    }
     
-    document.getElementById('realizarTesteModal').style.display = 'flex';
+    const realizarTesteModal = document.getElementById('realizarTesteModal');
+    if (realizarTesteModal) realizarTesteModal.style.display = 'flex';
 }
 
 async function enviarRespostasTeste() {
     if (!currentTesteToSubmit) return;
     
     let acertos = 0;
-    const questoes = currentTesteToSubmit.questoes;
+    const questoes = currentTesteToSubmit.questoes || [];
     
     for (let i = 0; i < questoes.length; i++) {
         const selected = document.querySelector(`input[name="questao_${i}"]:checked`);
@@ -700,8 +890,8 @@ async function enviarRespostasTeste() {
         }
     }
     
-    const percentual = (acertos / questoes.length) * 100;
-    const pontuacao = Math.round((percentual / 100) * currentTesteToSubmit.pontos_max);
+    const percentual = questoes.length > 0 ? (acertos / questoes.length) * 100 : 0;
+    const pontuacao = Math.round((percentual / 100) * (currentTesteToSubmit.pontos_max || 100));
     const aprovado = percentual >= (currentTesteToSubmit.pontos_min || 70);
     
     const resultadoExistente = userProgress.testes_resultados.find(tr => tr.teste_id === currentTesteToSubmit.id);
@@ -747,10 +937,13 @@ window.assistirVideo = function(videoId) {
     const video = allVideos.find(v => v.id === videoId);
     if (!video) return;
     
-    document.getElementById('videoVerTitulo').textContent = video.titulo;
-    document.getElementById('videoVerDescricao').textContent = video.descricao || '';
+    const videoVerTitulo = document.getElementById('videoVerTitulo');
+    const videoVerDescricao = document.getElementById('videoVerDescricao');
     
-    const videoUrl = video.url;
+    if (videoVerTitulo) videoVerTitulo.textContent = video.titulo || 'Sem título';
+    if (videoVerDescricao) videoVerDescricao.textContent = video.descricao || '';
+    
+    const videoUrl = video.url || '';
     let embedUrl = videoUrl;
     
     if (videoUrl.includes('youtube.com/watch?v=')) {
@@ -763,8 +956,11 @@ window.assistirVideo = function(videoId) {
         embedUrl = `https://player.vimeo.com/video/${id}`;
     }
     
-    document.getElementById('videoIframe').src = embedUrl;
-    document.getElementById('verVideoModal').style.display = 'flex';
+    const videoIframe = document.getElementById('videoIframe');
+    if (videoIframe) videoIframe.src = embedUrl;
+    
+    const verVideoModal = document.getElementById('verVideoModal');
+    if (verVideoModal) verVideoModal.style.display = 'flex';
     
     window.currentVideoWatching = video;
 }
@@ -786,14 +982,23 @@ async function marcarVideoAssistido() {
     }
     
     fecharModal('verVideoModal');
-    document.getElementById('videoIframe').src = '';
+    
+    const videoIframe = document.getElementById('videoIframe');
+    if (videoIframe) videoIframe.src = '';
+    
     window.currentVideoWatching = null;
 }
 
 // Chat
 async function iniciarChat() {
+    if (!db || !lojaId) {
+        console.warn('db ou lojaId não disponível para chat');
+        return;
+    }
+    
     try {
-        const chatRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`, 'chat');
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const chatRef = collection(db, colecaoNome, 'chat');
         const q = query(chatRef, orderBy('timestamp', 'desc'), limit(100));
         
         if (chatUnsubscribe) {
@@ -807,6 +1012,8 @@ async function iniciarChat() {
             });
             mensagens.reverse();
             renderizarMensagensChat(mensagens);
+        }, (error) => {
+            console.error('Erro no snapshot do chat:', error);
         });
         
     } catch (error) {
@@ -816,6 +1023,7 @@ async function iniciarChat() {
 
 function renderizarMensagensChat(mensagens) {
     const container = document.getElementById('chatMessages');
+    if (!container) return;
     
     if (mensagens.length === 0) {
         container.innerHTML = `
@@ -830,17 +1038,17 @@ function renderizarMensagensChat(mensagens) {
     
     container.innerHTML = mensagens.map(msg => {
         const isCurrentUser = msg.email === usuarioAtual?.email;
-        const initials = msg.nome ? msg.nome.substring(0, 2).toUpperCase() : msg.email.substring(0, 2).toUpperCase();
+        const initials = msg.nome ? msg.nome.substring(0, 2).toUpperCase() : (msg.email ? msg.email.substring(0, 2).toUpperCase() : '??');
         const time = msg.timestamp?.toDate ? new Date(msg.timestamp.toDate()).toLocaleTimeString() : new Date().toLocaleTimeString();
         
         return `
             <div class="chat-message ${isCurrentUser ? 'current-user' : ''}">
                 <div class="chat-message-avatar">
-                    ${initials}
+                    ${escapeHtml(initials)}
                 </div>
                 <div class="chat-message-content">
-                    <div class="chat-message-name">${escapeHtml(msg.nome || msg.email)}</div>
-                    <div class="chat-message-text">${escapeHtml(msg.mensagem)}</div>
+                    <div class="chat-message-name">${escapeHtml(msg.nome || msg.email || 'Anônimo')}</div>
+                    <div class="chat-message-text">${escapeHtml(msg.mensagem || '')}</div>
                     <div class="chat-message-time">${time}</div>
                 </div>
             </div>
@@ -852,26 +1060,28 @@ function renderizarMensagensChat(mensagens) {
 
 async function enviarMensagemChat() {
     const input = document.getElementById('chatInput');
-    const mensagem = input.value.trim();
+    const mensagem = input?.value.trim();
     
-    if (!mensagem) return;
+    if (!mensagem || !db || !lojaId || !usuarioAtual?.email) return;
     
     try {
-        const chatRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`, 'chat');
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const chatRef = collection(db, colecaoNome, 'chat');
         await addDoc(chatRef, {
-            email: usuarioAtual?.email,
-            nome: usuarioAtual?.nome,
+            email: usuarioAtual.email,
+            nome: usuarioAtual.nome || usuarioAtual.email.split('@')[0],
             mensagem: mensagem,
             timestamp: serverTimestamp(),
             loja_id: lojaId
         });
         
-        input.value = '';
+        if (input) input.value = '';
         
         // Atualizar badge
         const currentTab = document.querySelector('.tab-btn.active')?.dataset.tab;
         if (currentTab !== 'chat') {
-            document.getElementById('chatBadge').style.display = 'inline-block';
+            const chatBadge = document.getElementById('chatBadge');
+            if (chatBadge) chatBadge.style.display = 'inline-block';
         }
         
     } catch (error) {
@@ -883,7 +1093,8 @@ async function enviarMensagemChat() {
 // Gestão
 async function abrirGestao() {
     await carregarMembros();
-    document.getElementById('gestaoModal').style.display = 'flex';
+    const gestaoModal = document.getElementById('gestaoModal');
+    if (gestaoModal) gestaoModal.style.display = 'flex';
     
     // Configurar tabs da gestão
     document.querySelectorAll('.gestao-tab-btn').forEach(btn => {
@@ -892,7 +1103,8 @@ async function abrirGestao() {
             document.querySelectorAll('.gestao-tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             document.querySelectorAll('.gestao-pane').forEach(p => p.classList.remove('active'));
-            document.getElementById(`gestao-${tabId}`).classList.add('active');
+            const targetPane = document.getElementById(`gestao-${tabId}`);
+            if (targetPane) targetPane.classList.add('active');
             
             if (tabId === 'relatorios') {
                 carregarRelatorios();
@@ -902,51 +1114,72 @@ async function abrirGestao() {
 }
 
 async function carregarMembros() {
+    if (!loginDb || !lojaId) {
+        console.warn('loginDb ou lojaId não disponível');
+        return;
+    }
+    
     try {
-        const usuariosRef = collection(window.loginDb, 'usuarios');
+        const usuariosRef = collection(loginDb, 'usuarios');
         const lojaDoc = doc(usuariosRef, lojaId);
         
-        const funcionariosSnapshot = await getDocs(collection(lojaDoc, 'funcionarios'));
-        const clientesSnapshot = await getDocs(collection(lojaDoc, 'clientes'));
+        let membros = [];
         
-        const membros = [];
-        
-        funcionariosSnapshot.forEach(doc => {
-            const data = doc.data();
-            membros.push({
-                email: doc.id,
-                nome: data.nome,
-                perfil: data.perfil,
-                tipo: 'funcionario'
+        try {
+            const funcionariosSnapshot = await getDocs(collection(lojaDoc, 'funcionarios'));
+            funcionariosSnapshot.forEach(doc => {
+                const data = doc.data();
+                membros.push({
+                    email: doc.id,
+                    nome: data.nome || doc.id.split('@')[0],
+                    perfil: data.perfil || 'funcionario',
+                    tipo: 'funcionario'
+                });
             });
-        });
+        } catch (e) {
+            console.warn('Erro ao carregar funcionários:', e);
+        }
         
-        clientesSnapshot.forEach(doc => {
-            const data = doc.data();
-            membros.push({
-                email: doc.id,
-                nome: data.nome,
-                perfil: 'cliente',
-                tipo: 'cliente'
+        try {
+            const clientesSnapshot = await getDocs(collection(lojaDoc, 'clientes'));
+            clientesSnapshot.forEach(doc => {
+                const data = doc.data();
+                membros.push({
+                    email: doc.id,
+                    nome: data.nome || doc.id.split('@')[0],
+                    perfil: 'cliente',
+                    tipo: 'cliente'
+                });
             });
-        });
+        } catch (e) {
+            console.warn('Erro ao carregar clientes:', e);
+        }
         
         // Carregar progresso de cada membro
-        const progressoRef = doc(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`, 'progresso');
-        const progressoSub = collection(progressoRef, 'usuarios');
-        
-        const membrosComProgresso = await Promise.all(membros.map(async (membro) => {
-            const progressoDoc = await getDoc(doc(progressoSub, membro.email));
-            const progresso = progressoDoc.exists() ? progressoDoc.data() : { pontos_totais: 0 };
-            return { ...membro, progresso };
-        }));
-        
-        renderizarMembrosTabela(membrosComProgresso);
-        
-        // Popular select de relatórios
-        const select = document.getElementById('relatorioMembroSelect');
-        select.innerHTML = '<option value="todos">Todos os Membros</option>' + 
-            membrosComProgresso.map(m => `<option value="${m.email}">${m.nome} (${m.perfil})</option>`).join('');
+        if (db && lojaId) {
+            const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+            const progressoRef = doc(db, colecaoNome, 'progresso');
+            const progressoSub = collection(progressoRef, 'usuarios');
+            
+            const membrosComProgresso = await Promise.all(membros.map(async (membro) => {
+                try {
+                    const progressoDoc = await getDoc(doc(progressoSub, membro.email));
+                    const progresso = progressoDoc.exists() ? progressoDoc.data() : { pontos_totais: 0 };
+                    return { ...membro, progresso };
+                } catch (e) {
+                    return { ...membro, progresso: { pontos_totais: 0 } };
+                }
+            }));
+            
+            renderizarMembrosTabela(membrosComProgresso);
+            
+            // Popular select de relatórios
+            const select = document.getElementById('relatorioMembroSelect');
+            if (select) {
+                select.innerHTML = '<option value="todos">Todos os Membros</option>' + 
+                    membrosComProgresso.map(m => `<option value="${m.email}">${m.nome} (${m.perfil})</option>`).join('');
+            }
+        }
         
     } catch (error) {
         console.error('Erro ao carregar membros:', error);
@@ -955,11 +1188,17 @@ async function carregarMembros() {
 
 function renderizarMembrosTabela(membros) {
     const tbody = document.getElementById('membrosTableBody');
+    if (!tbody) return;
     
     const totalTreinamentos = allTreinamentos.length;
     const totalVideos = allVideos.length;
     const totalTestes = allTestes.length;
     const totalItens = totalTreinamentos + totalVideos + totalTestes;
+    
+    if (membros.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">Nenhum membro encontrado</td></tr>';
+        return;
+    }
     
     tbody.innerHTML = membros.map(m => {
         const progresso = m.progresso;
@@ -973,9 +1212,9 @@ function renderizarMembrosTabela(membros) {
             <tr>
                 <td>
                     <strong>${escapeHtml(m.nome)}</strong><br>
-                    <small>${m.email}</small>
+                    <small>${escapeHtml(m.email)}</small>
                 </td>
-                <td>${m.perfil}</td>
+                <td>${escapeHtml(m.perfil)}</td>
                 <td>${progresso?.pontos_totais || 0}</td>
                 <td class="membro-progresso">
                     <div class="progress-bar-small">
@@ -999,14 +1238,16 @@ window.verPerfilMembro = function(email) {
 }
 
 async function carregarRelatorios() {
+    if (!db || !lojaId) return;
+    
     try {
-        const progressoRef = doc(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`, 'progresso');
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const progressoRef = doc(db, colecaoNome, 'progresso');
         const progressoSub = collection(progressoRef, 'usuarios');
         const snapshot = await getDocs(progressoSub);
         
         let totalPontos = 0;
         let totalUsuarios = 0;
-        let mediaProgresso = 0;
         
         const usuarios = [];
         snapshot.forEach(doc => {
@@ -1018,21 +1259,27 @@ async function carregarRelatorios() {
         
         const mediaPontos = totalUsuarios > 0 ? Math.round(totalPontos / totalUsuarios) : 0;
         
-        document.getElementById('relatorioResumo').innerHTML = `
-            <p><strong>Total de Usuários:</strong> ${totalUsuarios}</p>
-            <p><strong>Total de Pontos Acumulados:</strong> ${totalPontos}</p>
-            <p><strong>Média de Pontos por Usuário:</strong> ${mediaPontos}</p>
-            <p><strong>Total de Treinamentos:</strong> ${allTreinamentos.length}</p>
-            <p><strong>Total de Vídeos:</strong> ${allVideos.length}</p>
-            <p><strong>Total de Testes:</strong> ${allTestes.length}</p>
-        `;
+        const relatorioResumo = document.getElementById('relatorioResumo');
+        if (relatorioResumo) {
+            relatorioResumo.innerHTML = `
+                <p><strong>Total de Usuários:</strong> ${totalUsuarios}</p>
+                <p><strong>Total de Pontos Acumulados:</strong> ${totalPontos}</p>
+                <p><strong>Média de Pontos por Usuário:</strong> ${mediaPontos}</p>
+                <p><strong>Total de Treinamentos:</strong> ${allTreinamentos.length}</p>
+                <p><strong>Total de Vídeos:</strong> ${allVideos.length}</p>
+                <p><strong>Total de Testes:</strong> ${allTestes.length}</p>
+            `;
+        }
         
-        document.getElementById('relatorioAtividades').innerHTML = `
-            <div class="loading-spinner">
-                <i class="fas fa-chart-line"></i>
-                <span>Relatório detalhado em desenvolvimento</span>
-            </div>
-        `;
+        const relatorioAtividades = document.getElementById('relatorioAtividades');
+        if (relatorioAtividades) {
+            relatorioAtividades.innerHTML = `
+                <div class="loading-spinner">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Relatório detalhado em desenvolvimento</span>
+                </div>
+            `;
+        }
         
     } catch (error) {
         console.error('Erro ao carregar relatórios:', error);
@@ -1044,34 +1291,50 @@ window.editarTreinamento = async function(id) {
     const treinamento = allTreinamentos.find(t => t.id === id);
     if (!treinamento) return;
     
-    document.getElementById('treinamentoModalTitle').textContent = 'Editar Treinamento';
-    document.getElementById('treinamentoId').value = treinamento.id;
-    document.getElementById('treinamentoTitulo').value = treinamento.titulo;
-    document.getElementById('treinamentoDescricao').value = treinamento.descricao || '';
-    document.getElementById('treinamentoConteudo').value = treinamento.conteudo || '';
-    document.getElementById('treinamentoPontos').value = treinamento.pontos || 10;
-    document.getElementById('treinamentoCategoria').value = treinamento.categoria || 'iniciante';
-    document.getElementById('treinamentoOrdem').value = treinamento.ordem || 0;
+    const treinamentoModalTitle = document.getElementById('treinamentoModalTitle');
+    const treinamentoId = document.getElementById('treinamentoId');
+    const treinamentoTitulo = document.getElementById('treinamentoTitulo');
+    const treinamentoDescricao = document.getElementById('treinamentoDescricao');
+    const treinamentoConteudo = document.getElementById('treinamentoConteudo');
+    const treinamentoPontos = document.getElementById('treinamentoPontos');
+    const treinamentoCategoria = document.getElementById('treinamentoCategoria');
+    const treinamentoOrdem = document.getElementById('treinamentoOrdem');
     
-    document.getElementById('treinamentoModal').style.display = 'flex';
+    if (treinamentoModalTitle) treinamentoModalTitle.textContent = 'Editar Treinamento';
+    if (treinamentoId) treinamentoId.value = treinamento.id;
+    if (treinamentoTitulo) treinamentoTitulo.value = treinamento.titulo || '';
+    if (treinamentoDescricao) treinamentoDescricao.value = treinamento.descricao || '';
+    if (treinamentoConteudo) treinamentoConteudo.value = treinamento.conteudo || '';
+    if (treinamentoPontos) treinamentoPontos.value = treinamento.pontos || 10;
+    if (treinamentoCategoria) treinamentoCategoria.value = treinamento.categoria || 'iniciante';
+    if (treinamentoOrdem) treinamentoOrdem.value = treinamento.ordem || 0;
+    
+    const treinamentoModal = document.getElementById('treinamentoModal');
+    if (treinamentoModal) treinamentoModal.style.display = 'flex';
 }
 
 async function salvarTreinamento(e) {
     e.preventDefault();
     
-    const id = document.getElementById('treinamentoId').value;
+    const id = document.getElementById('treinamentoId')?.value;
     const dados = {
-        titulo: document.getElementById('treinamentoTitulo').value,
-        descricao: document.getElementById('treinamentoDescricao').value,
-        conteudo: document.getElementById('treinamentoConteudo').value,
-        pontos: parseInt(document.getElementById('treinamentoPontos').value) || 10,
-        categoria: document.getElementById('treinamentoCategoria').value,
-        ordem: parseInt(document.getElementById('treinamentoOrdem').value) || 0,
+        titulo: document.getElementById('treinamentoTitulo')?.value || '',
+        descricao: document.getElementById('treinamentoDescricao')?.value || '',
+        conteudo: document.getElementById('treinamentoConteudo')?.value || '',
+        pontos: parseInt(document.getElementById('treinamentoPontos')?.value) || 10,
+        categoria: document.getElementById('treinamentoCategoria')?.value || 'iniciante',
+        ordem: parseInt(document.getElementById('treinamentoOrdem')?.value) || 0,
         data_atualizacao: serverTimestamp()
     };
     
+    if (!db || !lojaId) {
+        mostrarMensagem('Erro: Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const treinamentosSub = collection(aprimoramentoRef, 'treinamentos');
         
         if (id) {
@@ -1084,8 +1347,10 @@ async function salvarTreinamento(e) {
         }
         
         fecharModal('treinamentoModal');
-        document.getElementById('treinamentoForm').reset();
-        document.getElementById('treinamentoId').value = '';
+        const treinamentoForm = document.getElementById('treinamentoForm');
+        if (treinamentoForm) treinamentoForm.reset();
+        const treinamentoId = document.getElementById('treinamentoId');
+        if (treinamentoId) treinamentoId.value = '';
         
         await carregarTreinamentos();
         await carregarProgresso();
@@ -1099,8 +1364,14 @@ async function salvarTreinamento(e) {
 window.excluirTreinamento = async function(id) {
     if (!confirm('Tem certeza que deseja excluir este treinamento?')) return;
     
+    if (!db || !lojaId) {
+        mostrarMensagem('Erro: Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const treinamentosSub = collection(aprimoramentoRef, 'treinamentos');
         await deleteDoc(doc(treinamentosSub, id));
         
@@ -1118,72 +1389,94 @@ window.editarTeste = async function(id) {
     const teste = allTestes.find(t => t.id === id);
     if (!teste) return;
     
-    document.getElementById('testeModalTitle').textContent = 'Editar Teste';
-    document.getElementById('testeId').value = teste.id;
-    document.getElementById('testeTitulo').value = teste.titulo;
-    document.getElementById('testeDescricao').value = teste.descricao || '';
-    document.getElementById('testePontosMax').value = teste.pontos_max || 100;
-    document.getElementById('testePontosMin').value = teste.pontos_min || 70;
+    const testeModalTitle = document.getElementById('testeModalTitle');
+    const testeId = document.getElementById('testeId');
+    const testeTitulo = document.getElementById('testeTitulo');
+    const testeDescricao = document.getElementById('testeDescricao');
+    const testePontosMax = document.getElementById('testePontosMax');
+    const testePontosMin = document.getElementById('testePontosMin');
+    
+    if (testeModalTitle) testeModalTitle.textContent = 'Editar Teste';
+    if (testeId) testeId.value = teste.id;
+    if (testeTitulo) testeTitulo.value = teste.titulo || '';
+    if (testeDescricao) testeDescricao.value = teste.descricao || '';
+    if (testePontosMax) testePontosMax.value = teste.pontos_max || 100;
+    if (testePontosMin) testePontosMin.value = teste.pontos_min || 70;
     
     // Carregar questões
     const container = document.getElementById('questoesContainer');
-    container.innerHTML = '';
+    if (container) {
+        container.innerHTML = '';
+        
+        if (teste.questoes && teste.questoes.length > 0) {
+            teste.questoes.forEach((questao, idx) => {
+                adicionarQuestaoForm(questao, idx);
+            });
+        }
+    }
     
-    teste.questoes.forEach((questao, idx) => {
-        adicionarQuestaoForm(questao, idx);
-    });
-    
-    document.getElementById('testeModal').style.display = 'flex';
+    const testeModal = document.getElementById('testeModal');
+    if (testeModal) testeModal.style.display = 'flex';
 }
 
 function adicionarQuestaoForm(questaoData = null, idx = null) {
     const container = document.getElementById('questoesContainer');
+    if (!container) return;
+    
     const template = document.querySelector('.questao-item.template');
+    if (!template) return;
+    
     const newQuestao = template.cloneNode(true);
     newQuestao.classList.remove('template');
     newQuestao.style.display = 'block';
     
     const questaoNumero = container.children.length + 1;
-    newQuestao.querySelector('.questao-numero').textContent = `Questão ${questaoNumero}`;
+    const questaoNumeroSpan = newQuestao.querySelector('.questao-numero');
+    if (questaoNumeroSpan) questaoNumeroSpan.textContent = `Questão ${questaoNumero}`;
     
     if (questaoData) {
-        newQuestao.querySelector('.questao-texto').value = questaoData.texto;
-        const alternativasContainer = newQuestao.querySelector('.alternativas-container');
-        alternativasContainer.innerHTML = '';
+        const questaoTexto = newQuestao.querySelector('.questao-texto');
+        if (questaoTexto) questaoTexto.value = questaoData.texto || '';
         
-        questaoData.alternativas.forEach((alt, altIdx) => {
-            const altDiv = document.createElement('div');
-            altDiv.className = 'alternativa-item';
-            altDiv.innerHTML = `
-                <input type="radio" name="alternativa_correta_temp" class="alternativa-correta" value="${altIdx}" ${questaoData.correta === altIdx ? 'checked' : ''}>
-                <input type="text" class="alternativa-texto" placeholder="Alternativa ${String.fromCharCode(65 + altIdx)}" value="${escapeHtml(alt)}">
-                <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
-            `;
-            alternativasContainer.appendChild(altDiv);
-        });
+        const alternativasContainer = newQuestao.querySelector('.alternativas-container');
+        if (alternativasContainer) {
+            alternativasContainer.innerHTML = '';
+            
+            if (questaoData.alternativas && questaoData.alternativas.length > 0) {
+                questaoData.alternativas.forEach((alt, altIdx) => {
+                    const altDiv = document.createElement('div');
+                    altDiv.className = 'alternativa-item';
+                    altDiv.innerHTML = `
+                        <input type="radio" name="alternativa_correta_temp" class="alternativa-correta" value="${altIdx}" ${questaoData.correta === altIdx ? 'checked' : ''}>
+                        <input type="text" class="alternativa-texto" placeholder="Alternativa ${String.fromCharCode(65 + altIdx)}" value="${escapeHtml(alt)}">
+                        <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+                    `;
+                    alternativasContainer.appendChild(altDiv);
+                });
+            }
+        }
     }
     
     container.appendChild(newQuestao);
 }
 
-document.getElementById('btnAddQuestao').addEventListener('click', () => adicionarQuestaoForm());
-
 async function salvarTeste(e) {
     e.preventDefault();
     
-    const id = document.getElementById('testeId').value;
+    const id = document.getElementById('testeId')?.value;
     const questoes = [];
     
     document.querySelectorAll('#questoesContainer .questao-item').forEach((questaoDiv, idx) => {
-        const texto = questaoDiv.querySelector('.questao-texto').value;
+        const texto = questaoDiv.querySelector('.questao-texto')?.value || '';
         const alternativas = [];
         let correta = -1;
         
         questaoDiv.querySelectorAll('.alternativa-item').forEach((altDiv, altIdx) => {
-            const textoAlt = altDiv.querySelector('.alternativa-texto').value;
+            const textoAlt = altDiv.querySelector('.alternativa-texto')?.value || '';
             if (textoAlt.trim()) {
                 alternativas.push(textoAlt);
-                if (altDiv.querySelector('.alternativa-correta').checked) {
+                const corretaRadio = altDiv.querySelector('.alternativa-correta');
+                if (corretaRadio && corretaRadio.checked) {
                     correta = altIdx;
                 }
             }
@@ -1195,10 +1488,10 @@ async function salvarTeste(e) {
     });
     
     const dados = {
-        titulo: document.getElementById('testeTitulo').value,
-        descricao: document.getElementById('testeDescricao').value,
-        pontos_max: parseInt(document.getElementById('testePontosMax').value) || 100,
-        pontos_min: parseInt(document.getElementById('testePontosMin').value) || 70,
+        titulo: document.getElementById('testeTitulo')?.value || '',
+        descricao: document.getElementById('testeDescricao')?.value || '',
+        pontos_max: parseInt(document.getElementById('testePontosMax')?.value) || 100,
+        pontos_min: parseInt(document.getElementById('testePontosMin')?.value) || 70,
         questoes: questoes,
         data_atualizacao: serverTimestamp()
     };
@@ -1208,8 +1501,14 @@ async function salvarTeste(e) {
         return;
     }
     
+    if (!db || !lojaId) {
+        mostrarMensagem('Erro: Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const testesSub = collection(aprimoramentoRef, 'testes');
         
         if (id) {
@@ -1222,9 +1521,12 @@ async function salvarTeste(e) {
         }
         
         fecharModal('testeModal');
-        document.getElementById('testeForm').reset();
-        document.getElementById('testeId').value = '';
-        document.getElementById('questoesContainer').innerHTML = '';
+        const testeForm = document.getElementById('testeForm');
+        if (testeForm) testeForm.reset();
+        const testeId = document.getElementById('testeId');
+        if (testeId) testeId.value = '';
+        const questoesContainer = document.getElementById('questoesContainer');
+        if (questoesContainer) questoesContainer.innerHTML = '';
         
         await carregarTestes();
         await carregarProgresso();
@@ -1238,8 +1540,14 @@ async function salvarTeste(e) {
 window.excluirTeste = async function(id) {
     if (!confirm('Tem certeza que deseja excluir este teste?')) return;
     
+    if (!db || !lojaId) {
+        mostrarMensagem('Erro: Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const testesSub = collection(aprimoramentoRef, 'testes');
         await deleteDoc(doc(testesSub, id));
         
@@ -1257,34 +1565,50 @@ window.editarVideo = async function(id) {
     const video = allVideos.find(v => v.id === id);
     if (!video) return;
     
-    document.getElementById('videoModalTitle').textContent = 'Editar Vídeo';
-    document.getElementById('videoId').value = video.id;
-    document.getElementById('videoTitulo').value = video.titulo;
-    document.getElementById('videoDescricao').value = video.descricao || '';
-    document.getElementById('videoUrl').value = video.url || '';
-    document.getElementById('videoDuracao').value = video.duracao || 0;
-    document.getElementById('videoPontos').value = video.pontos || 5;
-    document.getElementById('videoCategoria').value = video.categoria || 'iniciante';
+    const videoModalTitle = document.getElementById('videoModalTitle');
+    const videoId = document.getElementById('videoId');
+    const videoTitulo = document.getElementById('videoTitulo');
+    const videoDescricao = document.getElementById('videoDescricao');
+    const videoUrl = document.getElementById('videoUrl');
+    const videoDuracao = document.getElementById('videoDuracao');
+    const videoPontos = document.getElementById('videoPontos');
+    const videoCategoria = document.getElementById('videoCategoria');
     
-    document.getElementById('videoModal').style.display = 'flex';
+    if (videoModalTitle) videoModalTitle.textContent = 'Editar Vídeo';
+    if (videoId) videoId.value = video.id;
+    if (videoTitulo) videoTitulo.value = video.titulo || '';
+    if (videoDescricao) videoDescricao.value = video.descricao || '';
+    if (videoUrl) videoUrl.value = video.url || '';
+    if (videoDuracao) videoDuracao.value = video.duracao || 0;
+    if (videoPontos) videoPontos.value = video.pontos || 5;
+    if (videoCategoria) videoCategoria.value = video.categoria || 'iniciante';
+    
+    const videoModal = document.getElementById('videoModal');
+    if (videoModal) videoModal.style.display = 'flex';
 }
 
 async function salvarVideo(e) {
     e.preventDefault();
     
-    const id = document.getElementById('videoId').value;
+    const id = document.getElementById('videoId')?.value;
     const dados = {
-        titulo: document.getElementById('videoTitulo').value,
-        descricao: document.getElementById('videoDescricao').value,
-        url: document.getElementById('videoUrl').value,
-        duracao: parseInt(document.getElementById('videoDuracao').value) || 0,
-        pontos: parseInt(document.getElementById('videoPontos').value) || 5,
-        categoria: document.getElementById('videoCategoria').value,
+        titulo: document.getElementById('videoTitulo')?.value || '',
+        descricao: document.getElementById('videoDescricao')?.value || '',
+        url: document.getElementById('videoUrl')?.value || '',
+        duracao: parseInt(document.getElementById('videoDuracao')?.value) || 0,
+        pontos: parseInt(document.getElementById('videoPontos')?.value) || 5,
+        categoria: document.getElementById('videoCategoria')?.value || 'iniciante',
         data_atualizacao: serverTimestamp()
     };
     
+    if (!db || !lojaId) {
+        mostrarMensagem('Erro: Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const videosSub = collection(aprimoramentoRef, 'videos');
         
         if (id) {
@@ -1297,8 +1621,10 @@ async function salvarVideo(e) {
         }
         
         fecharModal('videoModal');
-        document.getElementById('videoForm').reset();
-        document.getElementById('videoId').value = '';
+        const videoForm = document.getElementById('videoForm');
+        if (videoForm) videoForm.reset();
+        const videoId = document.getElementById('videoId');
+        if (videoId) videoId.value = '';
         
         await carregarVideos();
         await carregarProgresso();
@@ -1312,8 +1638,14 @@ async function salvarVideo(e) {
 window.excluirVideo = async function(id) {
     if (!confirm('Tem certeza que deseja excluir este vídeo?')) return;
     
+    if (!db || !lojaId) {
+        mostrarMensagem('Erro: Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
-        const aprimoramentoRef = collection(window.db, `aprimoramento_${lojaId.replace(/-/g, '_')}`);
+        const colecaoNome = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
+        const aprimoramentoRef = collection(db, colecaoNome);
         const videosSub = collection(aprimoramentoRef, 'videos');
         await deleteDoc(doc(videosSub, id));
         
@@ -1328,7 +1660,6 @@ window.excluirVideo = async function(id) {
 
 // Funções auxiliares
 function verificarPreRequisitos(item) {
-    // Implementar lógica de pré-requisitos se necessário
     return true;
 }
 
@@ -1349,39 +1680,77 @@ function escapeHtml(text) {
 }
 
 function fecharModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (modal) modal.style.display = 'none';
 }
 
 function mostrarMensagem(mensagem, tipo = 'info') {
-    const alertDiv = document.getElementById('messageAlert') || criarMessageAlert();
-    const icon = alertDiv.querySelector('.message-icon');
-    const text = alertDiv.querySelector('.message-text');
+    // Criar elemento de mensagem temporário
+    const toast = document.createElement('div');
+    toast.className = `message-toast ${tipo}`;
+    toast.innerHTML = `
+        <i class="fas ${tipo === 'success' ? 'fa-check-circle' : tipo === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+        <span>${mensagem}</span>
+    `;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease;
+    `;
     
-    alertDiv.className = `message-alert ${tipo}`;
-    icon.className = `message-icon fas ${tipo === 'success' ? 'fa-check-circle' : tipo === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}`;
-    text.textContent = mensagem;
-    alertDiv.style.display = 'flex';
+    document.body.appendChild(toast);
     
     setTimeout(() => {
-        alertDiv.style.display = 'none';
-    }, 5000);
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 300);
+    }, 4000);
 }
 
-function criarMessageAlert() {
-    const div = document.createElement('div');
-    div.id = 'messageAlert';
-    div.className = 'message-alert';
-    div.innerHTML = `
-        <div class="message-content">
-            <i class="message-icon"></i>
-            <span class="message-text"></span>
-        </div>
-        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
-    `;
-    document.body.appendChild(div);
-    return div;
-}
+// Adicionar estilos de animação
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
 
 // Exportar funções para window
 window.fecharModal = fecharModal;
 window.mostrarMensagem = mostrarMensagem;
+window.adicionarQuestaoForm = adicionarQuestaoForm;
+window.salvarTreinamento = salvarTreinamento;
+window.salvarTeste = salvarTeste;
+window.salvarVideo = salvarVideo;
+
+console.log("✅ programas_aprimoramento.js carregado com sucesso!");
