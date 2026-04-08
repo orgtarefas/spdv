@@ -18,6 +18,7 @@ let progresso = null;
 // INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 DOM carregado');
     mostrarLoading(true);
     
     try {
@@ -42,7 +43,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('👤 Usuário:', usuario.email, '| Admin:', isAdmin);
         
         // Obter Firebase
-        db = window.db || window.lojaServices?.db;
+        if (window.db) {
+            db = window.db;
+        } else if (window.lojaServices && window.lojaServices.db) {
+            db = window.lojaServices.db;
+        }
         
         if (!db) {
             mostrarMensagem('Banco de dados não disponível', 'error');
@@ -177,7 +182,7 @@ async function carregarProgresso() {
             };
             await ref.set(progresso);
         }
-        console.log('✅ Progresso carregado:', progresso);
+        console.log('✅ Progresso carregado');
     } catch (err) {
         console.error('Erro progresso:', err);
         progresso = { pontos: 0, treinamentos: [], videos: [], testes: [] };
@@ -214,7 +219,7 @@ function renderizarTreinamentos() {
             <div class="empty">
                 <i class="fas fa-book-open"></i>
                 <p>Nenhum treinamento disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTreinamento()"><i class="fas fa-plus"></i> Criar Treinamento</button>' : ''}
+                ${isAdmin ? '<button class="btn-add" onclick="window.abrirModalTreinamento()"><i class="fas fa-plus"></i> Criar Treinamento</button>' : ''}
             </div>
         `;
         return;
@@ -222,7 +227,7 @@ function renderizarTreinamentos() {
     
     let html = '';
     if (isAdmin) {
-        html += '<button class="btn-add" onclick="abrirModalTreinamento()"><i class="fas fa-plus"></i> Novo Treinamento</button>';
+        html += '<button class="btn-add" onclick="window.abrirModalTreinamento()"><i class="fas fa-plus"></i> Novo Treinamento</button>';
     }
     
     treinamentos.forEach(t => {
@@ -236,12 +241,12 @@ function renderizarTreinamentos() {
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
-                        <button class="btn-editar" onclick="editarTreinamento('${t.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-excluir" onclick="excluirTreinamento('${t.id}')"><i class="fas fa-trash"></i></button>
+                        <button class="btn-editar" onclick="window.editarTreinamento('${t.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-excluir" onclick="window.excluirTreinamento('${t.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
                         ${concluido ? 
                             '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Concluído</button>' : 
-                            `<button class="btn-concluir" onclick="concluirTreinamento('${t.id}', ${t.pontos || 10})"><i class="fas fa-check-circle"></i> Marcar Concluído</button>`
+                            `<button class="btn-concluir" onclick="window.concluirTreinamento('${t.id}', ${t.pontos || 10})"><i class="fas fa-check-circle"></i> Marcar Concluído</button>`
                         }
                     `}
                 </div>
@@ -261,7 +266,7 @@ function renderizarVideos() {
             <div class="empty">
                 <i class="fas fa-video"></i>
                 <p>Nenhum vídeo disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="abrirModalVideo()"><i class="fas fa-plus"></i> Adicionar Vídeo</button>' : ''}
+                ${isAdmin ? '<button class="btn-add" onclick="window.abrirModalVideo()"><i class="fas fa-plus"></i> Adicionar Vídeo</button>' : ''}
             </div>
         `;
         return;
@@ -269,7 +274,7 @@ function renderizarVideos() {
     
     let html = '';
     if (isAdmin) {
-        html += '<button class="btn-add" onclick="abrirModalVideo()"><i class="fas fa-plus"></i> Novo Vídeo</button>';
+        html += '<button class="btn-add" onclick="window.abrirModalVideo()"><i class="fas fa-plus"></i> Novo Vídeo</button>';
     }
     
     videos.forEach(v => {
@@ -283,12 +288,12 @@ function renderizarVideos() {
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
-                        <button class="btn-editar" onclick="editarVideo('${v.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-excluir" onclick="excluirVideo('${v.id}')"><i class="fas fa-trash"></i></button>
+                        <button class="btn-editar" onclick="window.editarVideo('${v.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-excluir" onclick="window.excluirVideo('${v.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
                         ${assistido ? 
                             '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Assistido</button>' : 
-                            `<button class="btn-concluir" onclick="assistirVideo('${v.id}', '${v.url}', ${v.pontos || 5})"><i class="fas fa-play"></i> Assistir</button>`
+                            `<button class="btn-concluir" onclick="window.assistirVideo('${v.id}', '${v.url}', ${v.pontos || 5})"><i class="fas fa-play"></i> Assistir</button>`
                         }
                     `}
                 </div>
@@ -308,7 +313,7 @@ function renderizarTestes() {
             <div class="empty">
                 <i class="fas fa-clipboard-list"></i>
                 <p>Nenhum teste disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTeste()"><i class="fas fa-plus"></i> Criar Teste</button>' : ''}
+                ${isAdmin ? '<button class="btn-add" onclick="window.abrirModalTeste()"><i class="fas fa-plus"></i> Criar Teste</button>' : ''}
             </div>
         `;
         return;
@@ -316,7 +321,7 @@ function renderizarTestes() {
     
     let html = '';
     if (isAdmin) {
-        html += '<button class="btn-add" onclick="abrirModalTeste()"><i class="fas fa-plus"></i> Novo Teste</button>';
+        html += '<button class="btn-add" onclick="window.abrirModalTeste()"><i class="fas fa-plus"></i> Novo Teste</button>';
     }
     
     testes.forEach(t => {
@@ -331,8 +336,8 @@ function renderizarTestes() {
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
-                        <button class="btn-editar" onclick="editarTeste('${t.id}')"><i class="fas fa-edit"></i></button>
-                        <button class="btn-excluir" onclick="excluirTeste('${t.id}')"><i class="fas fa-trash"></i></button>
+                        <button class="btn-editar" onclick="window.editarTeste('${t.id}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-excluir" onclick="window.excluirTeste('${t.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
                         ${aprovado ? 
                             '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Aprovado</button>' : 
@@ -365,9 +370,10 @@ function atualizarStats() {
 }
 
 // ============================================
-// AÇÕES DO USUÁRIO
+// AÇÕES DO USUÁRIO (GLOBAIS)
 // ============================================
 window.concluirTreinamento = async function(id, pontos) {
+    console.log('concluirTreinamento chamado', id, pontos);
     if (progresso.treinamentos?.includes(id)) {
         mostrarMensagem('Este treinamento já foi concluído!', 'warning');
         return;
@@ -384,6 +390,7 @@ window.concluirTreinamento = async function(id, pontos) {
 };
 
 window.assistirVideo = function(id, url, pontos) {
+    console.log('assistirVideo chamado', id, url, pontos);
     if (progresso.videos?.includes(id)) {
         mostrarMensagem('Este vídeo já foi assistido!', 'warning');
         return;
@@ -412,9 +419,10 @@ window.assistirVideo = function(id, url, pontos) {
 };
 
 // ============================================
-// CRUD ADMIN
+// CRUD ADMIN (GLOBAIS)
 // ============================================
 window.abrirModalTreinamento = function(id = null) {
+    console.log('abrirModalTreinamento chamado', id);
     if (id) {
         const t = treinamentos.find(t => t.id === id);
         if (t) {
@@ -435,6 +443,7 @@ window.abrirModalTreinamento = function(id = null) {
 };
 
 window.salvarTreinamento = async function() {
+    console.log('salvarTreinamento chamado');
     const id = document.getElementById('treinamentoId').value;
     const dados = {
         titulo: document.getElementById('treinamentoTitulo').value,
@@ -475,6 +484,7 @@ window.salvarTreinamento = async function() {
 };
 
 window.excluirTreinamento = async function(id) {
+    console.log('excluirTreinamento chamado', id);
     if (!confirm('Tem certeza?')) return;
     
     mostrarLoading(true);
@@ -497,11 +507,12 @@ window.excluirTreinamento = async function(id) {
 };
 
 window.editarTreinamento = function(id) {
-    abrirModalTreinamento(id);
+    window.abrirModalTreinamento(id);
 };
 
 // CRUD Vídeos
 window.abrirModalVideo = function(id = null) {
+    console.log('abrirModalVideo chamado', id);
     if (id) {
         const v = videos.find(v => v.id === id);
         if (v) {
@@ -524,6 +535,7 @@ window.abrirModalVideo = function(id = null) {
 };
 
 window.salvarVideo = async function() {
+    console.log('salvarVideo chamado');
     const id = document.getElementById('videoId').value;
     const dados = {
         titulo: document.getElementById('videoTitulo').value,
@@ -565,6 +577,7 @@ window.salvarVideo = async function() {
 };
 
 window.excluirVideo = async function(id) {
+    console.log('excluirVideo chamado', id);
     if (!confirm('Tem certeza?')) return;
     
     mostrarLoading(true);
@@ -587,11 +600,12 @@ window.excluirVideo = async function(id) {
 };
 
 window.editarVideo = function(id) {
-    abrirModalVideo(id);
+    window.abrirModalVideo(id);
 };
 
 // CRUD Testes
 window.abrirModalTeste = function(id = null) {
+    console.log('abrirModalTeste chamado', id);
     if (id) {
         const t = testes.find(t => t.id === id);
         if (t) {
@@ -612,6 +626,7 @@ window.abrirModalTeste = function(id = null) {
 };
 
 window.salvarTeste = async function() {
+    console.log('salvarTeste chamado');
     const id = document.getElementById('testeId').value;
     const dados = {
         titulo: document.getElementById('testeTitulo').value,
@@ -652,6 +667,7 @@ window.salvarTeste = async function() {
 };
 
 window.excluirTeste = async function(id) {
+    console.log('excluirTeste chamado', id);
     if (!confirm('Tem certeza?')) return;
     
     mostrarLoading(true);
@@ -674,7 +690,7 @@ window.excluirTeste = async function(id) {
 };
 
 window.editarTeste = function(id) {
-    abrirModalTeste(id);
+    window.abrirModalTeste(id);
 };
 
 // ============================================
