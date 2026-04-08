@@ -1,13 +1,29 @@
 // ============================================
 // programas_aprimoramento.js
+// MESMO PADRÃO DO AGENDAMENTO - COM IMPORT
 // ============================================
 
-console.log('📚 Iniciando Programas de Aprimoramento...');
+console.log("📚 Inicializando Programas de Aprimoramento...");
 
-// Variáveis globais
-let lojaId = null;
-let usuario = null;
-let db = null;
+// ============================================
+// IMPORTAÇÕES (igual ao agendamento)
+// ============================================
+import { 
+    db, 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc, 
+    setDoc,
+    updateDoc,
+    serverTimestamp
+} from './novo_firebase_config.js';
+
+// ============================================
+// VARIÁVEIS GLOBAIS
+// ============================================
+let lojaIdAtual = null;
+let dadosUsuario = null;
 let isAdmin = false;
 let treinamentos = [];
 let videos = [];
@@ -15,44 +31,29 @@ let testes = [];
 let progresso = null;
 
 // ============================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO (igual ao agendamento)
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 DOM carregado');
+    console.log('🚀 Inicializando...');
+    
     mostrarLoading(true);
     
     try {
-        // Aguardar Firebase
-        await delay(1000);
+        // Obter loja ID
+        lojaIdAtual = obterLojaId();
+        console.log(`📍 Loja: ${lojaIdAtual}`);
         
-        // Obter loja
-        lojaId = obterLojaId();
-        console.log('📍 Loja:', lojaId);
+        // Obter usuário logado
+        await obterUsuarioLogado();
         
-        // Obter usuário
-        usuario = obterUsuario();
-        
-        if (!usuario) {
-            mostrarMensagem('Faça login primeiro', 'error');
-            setTimeout(() => window.location.href = 'index.html', 2000);
+        if (!dadosUsuario) {
+            mostrarMensagem('Faça login para acessar', 'warning');
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
             return;
         }
         
-        document.getElementById('userName').textContent = usuario.nome || usuario.email;
-        isAdmin = usuario.perfil === 'admin' || usuario.perfil === 'gerente' || usuario.perfil === 'supervisor';
-        console.log('👤 Usuário:', usuario.email, '| Admin:', isAdmin);
-        
-        // Obter Firebase
-        if (window.db) {
-            db = window.db;
-        } else if (window.lojaServices && window.lojaServices.db) {
-            db = window.lojaServices.db;
-        }
-        
-        if (!db) {
-            mostrarMensagem('Banco de dados não disponível', 'error');
-            return;
-        }
+        console.log(`👤 Usuário: ${dadosUsuario.email} (${dadosUsuario.perfil})`);
+        isAdmin = dadosUsuario.perfil === 'admin' || dadosUsuario.perfil === 'gerente' || dadosUsuario.perfil === 'supervisor';
         
         // Carregar dados
         await carregarTreinamentos();
@@ -62,14 +63,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Renderizar
         renderizarTudo();
-        
-        // Configurar eventos
         configurarEventos();
         
+        mostrarLoading(false);
+        console.log('✅ Sistema pronto!');
+        
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('❌ Erro:', error);
         mostrarMensagem('Erro ao carregar', 'error');
-    } finally {
         mostrarLoading(false);
     }
 });
@@ -77,27 +78,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ============================================
 // FUNÇÕES AUXILIARES
 // ============================================
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 function obterLojaId() {
     const path = window.location.pathname;
     const match = path.match(/\/loja\/([^\/]+)/);
     return match ? match[1] : null;
 }
 
-function obterUsuario() {
-    if (window.dadosUsuario) return window.dadosUsuario;
+async function obterUsuarioLogado() {
+    // Tentar window.dadosUsuario
+    if (window.dadosUsuario) {
+        dadosUsuario = window.dadosUsuario;
+        return;
+    }
     
+    // Tentar sessionStorage
     const info = sessionStorage.getItem('usuarioInfo');
     if (info) {
         try {
-            return JSON.parse(info);
+            dadosUsuario = JSON.parse(info);
+            return;
         } catch(e) {}
     }
     
-    return null;
+    // Tentar Firebase Auth
+    if (window.auth && window.auth.currentUser) {
+        const user = window.auth.currentUser;
+        dadosUsuario = {
+            email: user.email,
+            nome: user.displayName || user.email.split('@')[0],
+            perfil: 'cliente'
+        };
+        return;
+    }
 }
 
 function mostrarLoading(show) {
@@ -119,15 +131,19 @@ function fecharModal(modalId) {
 }
 
 // ============================================
-// CARREGAR DADOS
+// CARREGAR DADOS (usando db importado)
 // ============================================
 async function carregarTreinamentos() {
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('treinamentos').collection('itens');
-        const snap = await ref.get();
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const treinamentosRef = collection(db, colecaoNome, 'treinamentos', 'itens');
+        const snapshot = await getDocs(treinamentosRef);
+        
         treinamentos = [];
-        snap.forEach(doc => treinamentos.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach(doc => {
+            treinamentos.push({ id: doc.id, ...doc.data() });
+        });
+        
         console.log(`📚 ${treinamentos.length} treinamentos`);
     } catch (err) {
         console.error('Erro treinamentos:', err);
@@ -137,11 +153,15 @@ async function carregarTreinamentos() {
 
 async function carregarVideos() {
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('videos').collection('itens');
-        const snap = await ref.get();
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const videosRef = collection(db, colecaoNome, 'videos', 'itens');
+        const snapshot = await getDocs(videosRef);
+        
         videos = [];
-        snap.forEach(doc => videos.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach(doc => {
+            videos.push({ id: doc.id, ...doc.data() });
+        });
+        
         console.log(`🎬 ${videos.length} vídeos`);
     } catch (err) {
         console.error('Erro vídeos:', err);
@@ -151,11 +171,15 @@ async function carregarVideos() {
 
 async function carregarTestes() {
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('testes').collection('itens');
-        const snap = await ref.get();
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const testesRef = collection(db, colecaoNome, 'testes', 'itens');
+        const snapshot = await getDocs(testesRef);
+        
         testes = [];
-        snap.forEach(doc => testes.push({ id: doc.id, ...doc.data() }));
+        snapshot.forEach(doc => {
+            testes.push({ id: doc.id, ...doc.data() });
+        });
+        
         console.log(`📝 ${testes.length} testes`);
     } catch (err) {
         console.error('Erro testes:', err);
@@ -164,23 +188,25 @@ async function carregarTestes() {
 }
 
 async function carregarProgresso() {
+    if (!dadosUsuario?.email) return;
+    
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('progresso').collection('usuarios').doc(usuario.email);
-        const doc = await ref.get();
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const progressoRef = doc(db, colecaoNome, 'progresso', 'usuarios', dadosUsuario.email);
+        const docSnap = await getDoc(progressoRef);
         
-        if (doc.exists) {
-            progresso = doc.data();
+        if (docSnap.exists()) {
+            progresso = docSnap.data();
         } else {
             progresso = {
-                email: usuario.email,
-                nome: usuario.nome,
+                email: dadosUsuario.email,
+                nome: dadosUsuario.nome,
                 pontos: 0,
                 treinamentos: [],
                 videos: [],
                 testes: []
             };
-            await ref.set(progresso);
+            await setDoc(progressoRef, progresso);
         }
         console.log('✅ Progresso carregado');
     } catch (err) {
@@ -190,10 +216,12 @@ async function carregarProgresso() {
 }
 
 async function salvarProgresso() {
+    if (!dadosUsuario?.email) return;
+    
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('progresso').collection('usuarios').doc(usuario.email);
-        await ref.set(progresso);
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const progressoRef = doc(db, colecaoNome, 'progresso', 'usuarios', dadosUsuario.email);
+        await setDoc(progressoRef, progresso);
         console.log('✅ Progresso salvo');
     } catch (err) {
         console.error('Erro ao salvar:', err);
@@ -325,24 +353,19 @@ function renderizarTestes() {
     }
     
     testes.forEach(t => {
-        const realizado = progresso?.testes?.find(tr => tr.id === t.id);
-        const aprovado = realizado?.aprovado;
         html += `
             <div class="card">
                 <div class="card-info">
                     <div class="card-title">${t.titulo || 'Sem título'}</div>
                     <div class="card-desc">${t.descricao || ''}</div>
-                    <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos_max || 100} pontos máx</div>
+                    <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos_max || 100} pontos</div>
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
                         <button class="btn-editar" onclick="window.editarTeste('${t.id}')"><i class="fas fa-edit"></i></button>
                         <button class="btn-excluir" onclick="window.excluirTeste('${t.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
-                        ${aprovado ? 
-                            '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Aprovado</button>' : 
-                            `<button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>`
-                        }
+                        <button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>
                     `}
                 </div>
             </div>
@@ -353,12 +376,12 @@ function renderizarTestes() {
 }
 
 function atualizarStats() {
-    const totalTreinamentos = treinamentos.length;
+    const total = treinamentos.length;
     const concluidos = progresso?.treinamentos?.length || 0;
-    const percentual = totalTreinamentos > 0 ? Math.round((concluidos / totalTreinamentos) * 100) : 0;
+    const percentual = total > 0 ? Math.round((concluidos / total) * 100) : 0;
     
     document.getElementById('totalPontos').textContent = progresso?.pontos || 0;
-    document.getElementById('totalConcluidos').textContent = `${concluidos}/${totalTreinamentos}`;
+    document.getElementById('totalConcluidos').textContent = `${concluidos}/${total}`;
     document.getElementById('progressoPercentual').textContent = `${percentual}%`;
     document.getElementById('progressoFill').style.width = `${percentual}%`;
     
@@ -370,12 +393,11 @@ function atualizarStats() {
 }
 
 // ============================================
-// AÇÕES DO USUÁRIO (GLOBAIS)
+// AÇÕES (GLOBAIS)
 // ============================================
 window.concluirTreinamento = async function(id, pontos) {
-    console.log('concluirTreinamento chamado', id, pontos);
     if (progresso.treinamentos?.includes(id)) {
-        mostrarMensagem('Este treinamento já foi concluído!', 'warning');
+        mostrarMensagem('Já concluído!', 'warning');
         return;
     }
     
@@ -386,17 +408,15 @@ window.concluirTreinamento = async function(id, pontos) {
     await salvarProgresso();
     renderizarTreinamentos();
     atualizarStats();
-    mostrarMensagem(`✅ Parabéns! Você ganhou ${pontos} pontos!`, 'success');
+    mostrarMensagem(`✅ +${pontos} pontos!`, 'success');
 };
 
 window.assistirVideo = function(id, url, pontos) {
-    console.log('assistirVideo chamado', id, url, pontos);
     if (progresso.videos?.includes(id)) {
-        mostrarMensagem('Este vídeo já foi assistido!', 'warning');
+        mostrarMensagem('Já assistido!', 'warning');
         return;
     }
     
-    // Extrair ID do YouTube
     let videoId = url;
     if (url.includes('youtu.be/')) {
         videoId = url.split('youtu.be/')[1].split('?')[0];
@@ -406,23 +426,22 @@ window.assistirVideo = function(id, url, pontos) {
     
     window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank');
     
-    if (confirm('Após assistir, clique em OK para marcar como concluído')) {
+    setTimeout(async () => {
         if (!progresso.videos) progresso.videos = [];
         progresso.videos.push(id);
         progresso.pontos = (progresso.pontos || 0) + pontos;
         
-        salvarProgresso();
+        await salvarProgresso();
         renderizarVideos();
         atualizarStats();
-        mostrarMensagem(`✅ Vídeo assistido! Você ganhou ${pontos} pontos!`, 'success');
-    }
+        mostrarMensagem(`✅ +${pontos} pontos!`, 'success');
+    }, 5000);
 };
 
 // ============================================
-// CRUD ADMIN (GLOBAIS)
+// CRUD (GLOBAIS)
 // ============================================
 window.abrirModalTreinamento = function(id = null) {
-    console.log('abrirModalTreinamento chamado', id);
     if (id) {
         const t = treinamentos.find(t => t.id === id);
         if (t) {
@@ -443,32 +462,31 @@ window.abrirModalTreinamento = function(id = null) {
 };
 
 window.salvarTreinamento = async function() {
-    console.log('salvarTreinamento chamado');
     const id = document.getElementById('treinamentoId').value;
     const dados = {
         titulo: document.getElementById('treinamentoTitulo').value,
         descricao: document.getElementById('treinamentoDescricao').value,
-        pontos: parseInt(document.getElementById('treinamentoPontos').value) || 10
+        pontos: parseInt(document.getElementById('treinamentoPontos').value) || 10,
+        data_criacao: new Date().toISOString()
     };
     
     if (!dados.titulo) {
-        mostrarMensagem('Título é obrigatório', 'warning');
+        mostrarMensagem('Título obrigatório', 'warning');
         return;
     }
     
     mostrarLoading(true);
     
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('treinamentos').collection('itens');
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const treinamentosRef = collection(db, colecaoNome, 'treinamentos', 'itens');
         
         if (id) {
-            await ref.doc(id).update(dados);
-            mostrarMensagem('Treinamento atualizado!', 'success');
+            await updateDoc(doc(treinamentosRef, id), dados);
+            mostrarMensagem('Atualizado!', 'success');
         } else {
-            dados.data_criacao = new Date().toISOString();
-            await ref.add(dados);
-            mostrarMensagem('Treinamento criado!', 'success');
+            await addDoc(treinamentosRef, dados);
+            mostrarMensagem('Criado!', 'success');
         }
         
         fecharModal('modalTreinamento');
@@ -484,17 +502,16 @@ window.salvarTreinamento = async function() {
 };
 
 window.excluirTreinamento = async function(id) {
-    console.log('excluirTreinamento chamado', id);
-    if (!confirm('Tem certeza?')) return;
+    if (!confirm('Excluir?')) return;
     
     mostrarLoading(true);
     
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('treinamentos').collection('itens');
-        await ref.doc(id).delete();
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const treinamentosRef = collection(db, colecaoNome, 'treinamentos', 'itens');
+        await deleteDoc(doc(treinamentosRef, id));
         
-        mostrarMensagem('Treinamento excluído!', 'success');
+        mostrarMensagem('Excluído!', 'success');
         await carregarTreinamentos();
         renderizarTreinamentos();
         
@@ -510,9 +527,8 @@ window.editarTreinamento = function(id) {
     window.abrirModalTreinamento(id);
 };
 
-// CRUD Vídeos
+// Vídeos
 window.abrirModalVideo = function(id = null) {
-    console.log('abrirModalVideo chamado', id);
     if (id) {
         const v = videos.find(v => v.id === id);
         if (v) {
@@ -535,33 +551,32 @@ window.abrirModalVideo = function(id = null) {
 };
 
 window.salvarVideo = async function() {
-    console.log('salvarVideo chamado');
     const id = document.getElementById('videoId').value;
     const dados = {
         titulo: document.getElementById('videoTitulo').value,
         descricao: document.getElementById('videoDescricao').value,
         url: document.getElementById('videoUrl').value,
-        pontos: parseInt(document.getElementById('videoPontos').value) || 5
+        pontos: parseInt(document.getElementById('videoPontos').value) || 5,
+        data_criacao: new Date().toISOString()
     };
     
     if (!dados.titulo) {
-        mostrarMensagem('Título é obrigatório', 'warning');
+        mostrarMensagem('Título obrigatório', 'warning');
         return;
     }
     
     mostrarLoading(true);
     
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('videos').collection('itens');
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const videosRef = collection(db, colecaoNome, 'videos', 'itens');
         
         if (id) {
-            await ref.doc(id).update(dados);
-            mostrarMensagem('Vídeo atualizado!', 'success');
+            await updateDoc(doc(videosRef, id), dados);
+            mostrarMensagem('Atualizado!', 'success');
         } else {
-            dados.data_criacao = new Date().toISOString();
-            await ref.add(dados);
-            mostrarMensagem('Vídeo criado!', 'success');
+            await addDoc(videosRef, dados);
+            mostrarMensagem('Criado!', 'success');
         }
         
         fecharModal('modalVideo');
@@ -577,17 +592,16 @@ window.salvarVideo = async function() {
 };
 
 window.excluirVideo = async function(id) {
-    console.log('excluirVideo chamado', id);
-    if (!confirm('Tem certeza?')) return;
+    if (!confirm('Excluir?')) return;
     
     mostrarLoading(true);
     
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('videos').collection('itens');
-        await ref.doc(id).delete();
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const videosRef = collection(db, colecaoNome, 'videos', 'itens');
+        await deleteDoc(doc(videosRef, id));
         
-        mostrarMensagem('Vídeo excluído!', 'success');
+        mostrarMensagem('Excluído!', 'success');
         await carregarVideos();
         renderizarVideos();
         
@@ -603,9 +617,8 @@ window.editarVideo = function(id) {
     window.abrirModalVideo(id);
 };
 
-// CRUD Testes
+// Testes
 window.abrirModalTeste = function(id = null) {
-    console.log('abrirModalTeste chamado', id);
     if (id) {
         const t = testes.find(t => t.id === id);
         if (t) {
@@ -626,32 +639,31 @@ window.abrirModalTeste = function(id = null) {
 };
 
 window.salvarTeste = async function() {
-    console.log('salvarTeste chamado');
     const id = document.getElementById('testeId').value;
     const dados = {
         titulo: document.getElementById('testeTitulo').value,
         descricao: document.getElementById('testeDescricao').value,
-        pontos_max: parseInt(document.getElementById('testePontosMax').value) || 100
+        pontos_max: parseInt(document.getElementById('testePontosMax').value) || 100,
+        data_criacao: new Date().toISOString()
     };
     
     if (!dados.titulo) {
-        mostrarMensagem('Título é obrigatório', 'warning');
+        mostrarMensagem('Título obrigatório', 'warning');
         return;
     }
     
     mostrarLoading(true);
     
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('testes').collection('itens');
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const testesRef = collection(db, colecaoNome, 'testes', 'itens');
         
         if (id) {
-            await ref.doc(id).update(dados);
-            mostrarMensagem('Teste atualizado!', 'success');
+            await updateDoc(doc(testesRef, id), dados);
+            mostrarMensagem('Atualizado!', 'success');
         } else {
-            dados.data_criacao = new Date().toISOString();
-            await ref.add(dados);
-            mostrarMensagem('Teste criado!', 'success');
+            await addDoc(testesRef, dados);
+            mostrarMensagem('Criado!', 'success');
         }
         
         fecharModal('modalTeste');
@@ -667,17 +679,16 @@ window.salvarTeste = async function() {
 };
 
 window.excluirTeste = async function(id) {
-    console.log('excluirTeste chamado', id);
-    if (!confirm('Tem certeza?')) return;
+    if (!confirm('Excluir?')) return;
     
     mostrarLoading(true);
     
     try {
-        const colecao = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        const ref = db.collection(colecao).doc('testes').collection('itens');
-        await ref.doc(id).delete();
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const testesRef = collection(db, colecaoNome, 'testes', 'itens');
+        await deleteDoc(doc(testesRef, id));
         
-        mostrarMensagem('Teste excluído!', 'success');
+        mostrarMensagem('Excluído!', 'success');
         await carregarTestes();
         renderizarTestes();
         
@@ -694,10 +705,9 @@ window.editarTeste = function(id) {
 };
 
 // ============================================
-// EVENTOS
+// CONFIGURAR EVENTOS
 // ============================================
 function configurarEventos() {
-    // Tabs
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const tabId = tab.dataset.tab;
@@ -708,7 +718,6 @@ function configurarEventos() {
         });
     });
     
-    // Fechar modais ao clicar fora
     window.onclick = function(event) {
         if (event.target.classList.contains('modal')) {
             event.target.style.display = 'none';
@@ -716,7 +725,7 @@ function configurarEventos() {
     };
 }
 
-// Exportar para window
+// Exportar
 window.fecharModal = fecharModal;
 
 console.log('✅ programas_aprimoramento.js carregado');
