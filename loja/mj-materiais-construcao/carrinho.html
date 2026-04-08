@@ -344,18 +344,47 @@
     <script type="module" src="../../novo_lojas.js"></script>
     <script src="novo_firebase_config.js" type="module"></script>
     <script src="carrinho.js" type="module"></script>
+    
+    <!-- VALIDAÇÃO DE ACESSO - ESTOQUE/CARRINHO -->
+    <script>
+        (async function validarAcessoEstoqueCarrinho() {
+            console.log('🔒 Validando acesso ao carrinho...');
+            
+            // Aguardar Firebase inicializar
+            let tentativas = 0;
+            let estoqueHabilitado = true;
+            
+            while (tentativas < 30) {
+                // Verificar se loginDb está disponível
+                if (window.loginDb && window.lojaIdAtual) {
+                    try {
+                        const lojaDoc = await window.loginDb
+                            .collection('lojas')
+                            .doc(window.lojaIdAtual)
+                            .get();
+                        
+                        if (lojaDoc.exists) {
+                            const dados = lojaDoc.data();
+                            // Se o campo não existir, assume true (compatibilidade)
+                            estoqueHabilitado = dados.habilitar_estoque_carrinho !== false;
+                            console.log(`🛒 Estoque/Carrinho habilitado: ${estoqueHabilitado ? 'SIM' : 'NÃO'}`);
+                        }
+                        break;
+                    } catch(e) {
+                        console.warn('Erro ao verificar:', e);
+                    }
+                }
+                await new Promise(r => setTimeout(r, 500));
+                tentativas++;
+            }
+            
+            if (!estoqueHabilitado) {
+                console.warn('🚫 Funcionalidade de carrinho desabilitada. Redirecionando...');
+                alert('⚠️ A funcionalidade de carrinho está desabilitada nesta loja.');
+                window.location.href = 'index.html';
+            }
+        })();
+    </script>
+    
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
