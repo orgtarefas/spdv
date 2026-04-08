@@ -240,7 +240,7 @@ function configurarMenuPerfil() {
 }
 
 // ============================================
-// ATUALIZAR MENU PERFIL - COM VERIFICAÇÃO DAS CONFIGURAÇÕES
+// ATUALIZAR MENU PERFIL - 3 pontinhos
 // ============================================
 function atualizarMenuPerfil() {
     if (!dadosUsuario) {
@@ -304,23 +304,27 @@ function atualizarMenuPerfil() {
     }
     
     // ============================================
-    // 2. RELATÓRIOS - Só se tiver permissão
+    // 2. RELATÓRIOS - Só se estoque estiver habilitado E tiver permissão
     // ============================================
+    let temItemAdministrativo = false;
     if (menuRelatorios) {
-        if (itensPermitidos.includes('menuRelatorios')) {
+        if (window.estoqueCarrinhoHabilitado === true && itensPermitidos.includes('menuRelatorios')) {
             menuRelatorios.style.display = 'flex';
+            temItemAdministrativo = true;
             console.log('✅ Mostrando item: Relatórios');
         } else {
             menuRelatorios.style.display = 'none';
+            console.log(`❌ Escondendo item: Relatórios (estoque habilitado: ${window.estoqueCarrinhoHabilitado})`);
         }
     }
     
     // ============================================
-    // 3. GESTÃO DE LOGINS - Só se tiver permissão
+    // 3. GESTÃO DE LOGINS - Independente do estoque
     // ============================================
     if (menuGestaoLogins) {
         if (itensPermitidos.includes('menuGestaoLogins')) {
             menuGestaoLogins.style.display = 'flex';
+            temItemAdministrativo = true;
             console.log('✅ Mostrando item: Gestão de Logins');
         } else {
             menuGestaoLogins.style.display = 'none';
@@ -330,7 +334,6 @@ function atualizarMenuPerfil() {
     // ============================================
     // 4. ESTOQUE - Só se estoque estiver habilitado E tiver permissão
     // ============================================
-    let temItemAdministrativo = false;
     if (menuEstoque) {
         if (window.estoqueCarrinhoHabilitado === true && itensPermitidos.includes('menuEstoque')) {
             menuEstoque.style.display = 'flex';
@@ -377,6 +380,7 @@ function atualizarMenuPerfil() {
     }
     
     console.log('✅ Menu atualizado com base nas configurações');
+    console.log(`   📊 Resumo: Programas=${temProgramasAprimoramento}, Admin=${temItemAdministrativo}`);
 }
 
 // ============================================
