@@ -1004,9 +1004,18 @@ async function inicializarSistema() {
         carregarLogoLoja();
         await carregarDadosLoja();
         
+        // ============================================
+        // VERIFICAR CONFIGURAÇÕES DA LOJA (MESMO PADRÃO)
+        // ============================================
+        
+        // 1. Verificar Agendamento
         agendamentoHabilitado = await verificarAgendamentoHabilitado();
         console.log(`📅 Agendamento habilitado: ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
         toggleAgendamentoContainer(agendamentoHabilitado);
+        
+        // 2. Verificar Programas de Aprimoramento (MESMO PADRÃO)
+        programasAprimoramentoHabilitado = await verificarProgramasAprimoramentoHabilitado();
+        console.log(`📚 Programas de Aprimoramento habilitado: ${programasAprimoramentoHabilitado ? 'SIM' : 'NÃO'}`);
         
         if (agendamentoHabilitado) {
             await carregarConfiguracoesServicos();
@@ -1024,6 +1033,12 @@ async function inicializarSistema() {
         
         esconderLoading();
         configurarDropdownAgendamento();
+        
+        // Se já estiver logado, atualizar menu com as configurações
+        if (usuarioLogado && dadosUsuario) {
+            atualizarMenuPerfil();
+        }
+        
         console.log("✅ Loja clientes pronta!");
         
     } catch (error) {
