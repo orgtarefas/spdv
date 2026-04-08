@@ -1,6 +1,29 @@
 // index_9.js - Funções Auxiliares e Exportações
 
 // ============================================
+// IMPORTAÇÕES DO FIREBASE
+// ============================================
+import { 
+    db, 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc, 
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    addDoc,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    serverTimestamp,
+    increment,
+    runTransaction,
+    limit
+} from './novo_firebase_config.js';
+
+// ============================================
 // REGISTRAR MÓDULO NO SPDV
 // ============================================
 if (window.SPDV && window.registrarModulo) {
