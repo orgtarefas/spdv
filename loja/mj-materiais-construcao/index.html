@@ -54,6 +54,14 @@
                             </button>
                             
                             <div class="profile-menu-dropdown" id="profileMenuDropdown">
+                                <!-- NOVO: Programas de Aprimoramento (visível para todos os perfis) -->
+                                <a href="#" class="menu-item" id="menuProgramasAprimoramento">
+                                    <i class="fas fa-chalkboard-user"></i>
+                                    <span>Programas de Aprimoramento</span>
+                                </a>
+                                
+                                <div class="menu-divider" id="menuDividerProgramas" style="display: none;"></div>
+                                
                                 <a href="#" class="menu-item" id="menuRelatorios" style="display: none;">
                                     <i class="fas fa-chart-bar"></i>
                                     <span>Relatórios</span>
@@ -69,13 +77,13 @@
                                     <span>Estoque</span>
                                 </a>
                                 
-                                <!-- 🔥 NOVO: Gestão de Agendamento -->
+                                <!-- Gestão de Agendamento -->
                                 <a href="#" class="menu-item" id="menuGestaoAgendamento" style="display: none;">
                                     <i class="fas fa-calendar-check"></i>
                                     <span>Gestão de Agendamento</span>
                                 </a>
                                 
-                                <div class="menu-divider" style="display: none;"></div>
+                                <div class="menu-divider" id="menuDividerPrincipal" style="display: none;"></div>
                                 
                                 <a href="#" class="menu-item logout" id="menuLogout" style="display: none;">
                                     <i class="fas fa-sign-out-alt"></i>
@@ -146,7 +154,7 @@
                 </div>    
                 <h2 class="titulo-atendimento">ATENDIMENTOS HOJE</h2>
                 <div class="agendamento-actions">
-                    <!-- NOVO: Dropdown de Agendamento -->
+                    <!-- Dropdown de Agendamento -->
                     <div class="agendamento-dropdown">
                         <button class="btn-agendamento-dropdown" id="btnAgendamentoDropdown">
                             <i class="fas fa-calendar-alt"></i> Agendamento
@@ -649,14 +657,21 @@
                 }
             }
             
-            // CARREGAR SCRIPTS DA LOJA - VERSÃO UNIVERSAL
+            // CARREGAR SCRIPTS DA LOJA
             function carregarScriptsLoja() {
-                // Determinar o caminho base baseado na localização do index.html
-                // Se estamos em /loja/nome-da-loja/, o caminho base é './'
                 const scripts = [
-                    `novo_firebase_config.js`,  // Mesma pasta do index.html
-                    `imagem_api.js`,             // Mesma pasta do index.html
-                    `index.js`                   // Mesma pasta do index.html
+                    `novo_firebase_config.js`,
+                    `imagem_api.js`,
+                    `index_0.js`,
+                    `index_1.js`,
+                    `index_2.js`,
+                    `index_3.js`,
+                    `index_4.js`,
+                    `index_5.js`,
+                    `index_6.js`,
+                    `index_7.js`,
+                    `index_8.js`,
+                    `index_9.js`
                 ];
                 
                 let index = 0;
@@ -668,7 +683,7 @@
                     }
                     
                     const script = document.createElement('script');
-                    script.src = scripts[index]; // Caminho relativo à pasta atual
+                    script.src = scripts[index];
                     script.type = 'module';
                     script.onload = () => {
                         console.log(`✅ Carregado: ${scripts[index]}`);
@@ -677,9 +692,7 @@
                     };
                     script.onerror = () => {
                         console.error(`❌ Erro ao carregar: ${scripts[index]}`);
-                        console.log(`Tentando caminho alternativo: ../../loja/${lojaId}/${scripts[index]}`);
                         
-                        // Fallback: tentar caminho absoluto
                         const scriptFallback = document.createElement('script');
                         scriptFallback.src = `../../loja/${lojaId}/${scripts[index]}`;
                         scriptFallback.type = 'module';
@@ -708,6 +721,3 @@
     </script>
 </body>
 </html>
-
-
-
