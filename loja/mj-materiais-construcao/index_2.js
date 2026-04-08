@@ -59,6 +59,37 @@ async function verificarAgendamentoHabilitado() {
 }
 
 // ============================================
+// VERIFICAR SE ESTOQUE/CARRINHO ESTÁ HABILITADO
+// ============================================
+async function verificarEstoqueCarrinhoHabilitado() {
+    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
+    
+    if (!lojaId) return true;
+    
+    try {
+        if (window.loginDb) {
+            const lojaDoc = await window.loginDb
+                .collection('lojas')
+                .doc(lojaId)
+                .get();
+            
+            if (lojaDoc.exists) {
+                const dados = lojaDoc.data();
+                // Se o campo não existir, assume true (compatibilidade com lojas antigas)
+                const habilitado = dados.habilitar_estoque_carrinho !== false;
+                console.log(`🛒 Estoque/Carrinho habilitado: ${habilitado ? 'SIM' : 'NÃO'}`);
+                return habilitado;
+            }
+        }
+        return true;
+    } catch (error) {
+        console.error('❌ Erro ao verificar estoque/carrinho:', error);
+        return true;
+    }
+}
+
+
+// ============================================
 // VERIFICAR SE PROGRAMAS DE APRIMORAMENTO ESTÁ HABILITADO
 // ============================================
 async function verificarProgramasAprimoramentoHabilitado() {
@@ -272,6 +303,7 @@ function pararEscutaAgendamentos() {
 // ============================================
 // EXPORTAR PARA WINDOW (SOMENTE AS FUNÇÕES)
 // ============================================
+window.verificarEstoqueCarrinhoHabilitado = verificarEstoqueCarrinhoHabilitado;
 window.verificarAgendamentoHabilitado = verificarAgendamentoHabilitado;
 window.verificarProgramasAprimoramentoHabilitado = verificarProgramasAprimoramentoHabilitado;
 window.toggleAgendamentoContainer = toggleAgendamentoContainer;
