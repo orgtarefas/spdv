@@ -631,6 +631,90 @@
     <script type="module" src="../../novo_lojas.js"></script>
     <script src="novo_firebase_config.js" type="module"></script>
     <script src="estoque.js" type="module"></script>
+
+    <!-- VALIDAÇÃO DE ACESSO - ESTOQUE/CARRINHO -->
+    <script>
+        (async function validarAcessoEstoque() {
+            console.log('🔒 Validando acesso ao estoque...');
+            
+            // Aguardar Firebase inicializar
+            let tentativas = 0;
+            let estoqueHabilitado = true;
+            let usuarioPermissao = false;
+            
+            while (tentativas < 30) {
+                // Verificar se loginDb está disponível
+                if (window.loginDb && window.lojaIdAtual) {
+                    try {
+                        // 1. Verificar se estoque/carrinho está habilitado na loja
+                        const lojaDoc = await window.loginDb
+                            .collection('lojas')
+                            .doc(window.lojaIdAtual)
+                            .get();
+                        
+                        if (lojaDoc.exists) {
+                            const dados = lojaDoc.data();
+                            estoqueHabilitado = dados.habilitar_estoque_carrinho !== false;
+                            console.log(`🛒 Estoque/Carrinho habilitado: ${estoqueHabilitado ? 'SIM' : 'NÃO'}`);
+                        }
+                        
+                        // 2. Verificar se usuário tem permissão para acessar estoque
+                        if (window.auth && window.auth.currentUser) {
+                            const email = window.auth.currentUser.email;
+                            
+                            // Verificar admin global
+                            const adminDoc = await window.loginDb
+                                .collection('usuarios')
+                                .doc('admin')
+                                .get();
+                            
+                            if (adminDoc.exists && adminDoc.data()[email]) {
+                                usuarioPermissao = true;
+                                console.log('✅ Usuário é ADMIN global');
+                            } else {
+                                // Verificar funcionário da loja
+                                const funcDoc = await window.loginDb
+                                    .collection('usuarios')
+                                    .doc(window.lojaIdAtual)
+                                    .collection('funcionarios')
+                                    .doc(email)
+                                    .get();
+                                
+                                if (funcDoc.exists) {
+                                    const perfil = funcDoc.data().perfil;
+                                    usuarioPermissao = ['admin', 'gerente', 'supervisor', 'vendedor'].includes(perfil);
+                                    console.log(`👤 Perfil: ${perfil} - Acesso: ${usuarioPermissao ? 'SIM' : 'NÃO'}`);
+                                }
+                            }
+                        }
+                        break;
+                    } catch(e) {
+                        console.warn('Erro ao verificar:', e);
+                    }
+                }
+                await new Promise(r => setTimeout(r, 500));
+                tentativas++;
+            }
+            
+            // Verificar acesso
+            if (!estoqueHabilitado) {
+                console.warn('🚫 Funcionalidade de estoque desabilitada. Redirecionando...');
+                alert('⚠️ A funcionalidade de estoque está desabilitada nesta loja.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            if (!usuarioPermissao) {
+                console.warn('🚫 Usuário sem permissão para acessar estoque. Redirecionando...');
+                alert('⚠️ Você não tem permissão para acessar o estoque.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            console.log('✅ Acesso ao estoque permitido');
+        })();
+    </script>
+    
 </body>
 
 </html>
