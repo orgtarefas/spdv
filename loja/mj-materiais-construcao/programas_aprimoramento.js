@@ -1,6 +1,6 @@
 // ============================================
 // programas_aprimoramento.js - VERSÃO CORRIGIDA
-// Compatível com login_firebase.js
+// Compatível com login_firebase.js e novo_firebase_config.js
 // ============================================
 
 console.log('🚀 Inicializando Programas de Aprimoramento...');
@@ -20,18 +20,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     mostrarLoading('Carregando...');
     
     try {
-        // 1. Aguardar Firebase e serviços
+        // 1. Aguardar Firebase e serviços (MAIS TEMPO)
         await aguardarFirebase();
         
-        // 2. Carregar dados do usuário (compatível com login_firebase.js)
+        // 2. Carregar dados do usuário
         await carregarDadosUsuario();
         
         // 3. Verificar se o usuário está logado
         if (!usuarioAtual || !usuarioAtual.email) {
             console.error('❌ Usuário não identificado. Redirecionando para login...');
-            console.log('🔍 Debug: window.dadosUsuario =', window.dadosUsuario);
-            console.log('🔍 Debug: sessionStorage usuarioInfo =', sessionStorage.getItem('usuarioInfo'));
-            
             mostrarMensagem('Faça login para acessar os programas de aprimoramento', 'warning');
             setTimeout(() => {
                 window.location.href = 'index.html';
@@ -46,15 +43,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 5. Configurar interface
         configurarEventListeners();
         
-        // 6. Inicializar dados no Firebase
-        await inicializarDadosUsuarioFirebase();
+        // 6. Inicializar dados no Firebase (se db disponível)
+        if (db) {
+            await inicializarDadosUsuarioFirebase();
+        } else {
+            console.warn('⚠️ db não disponível, dados não serão salvos no Firebase');
+            console.log('💡 Tente recarregar a página ou verifique se novo_firebase_config.js foi carregado');
+        }
         
         esconderLoading();
         
         console.log('✅ Programas de Aprimoramento inicializado com sucesso!');
         console.log(`📍 Loja: ${lojaId}`);
         console.log(`👤 Usuário: ${usuarioAtual.email} (${usuarioAtual.perfil})`);
-        console.log(`📁 Firebase db: ${db ? 'Conectado' : 'Não conectado'}`);
+        console.log(`📁 Firebase db: ${db ? 'Conectado' : 'NÃO CONECTADO'}`);
+        
+        if (!db) {
+            console.warn('⚠️ ATENÇÃO: O banco de dados da loja não está disponível!');
+            console.log('Verifique se novo_firebase_config.js foi carregado corretamente');
+            mostrarMensagem('Banco de dados da loja não disponível. Algumas funções podem não funcionar.', 'warning');
+        }
         
     } catch (error) {
         console.error('❌ Erro na inicialização:', error);
@@ -64,59 +72,90 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
-// AGUARDAR FIREBASE
+// AGUARDAR FIREBASE - VERSÃO MAIS ROBUSTA
 // ============================================
 async function aguardarFirebase() {
     let tentativas = 0;
-    const maxTentativas = 30;
+    const maxTentativas = 50; // Aumentado para 50 tentativas (10 segundos)
+    const intervalo = 200;
     
     console.log('⏳ Aguardando Firebase...');
     
     while (tentativas < maxTentativas) {
-        // Tentar obter db do window (do novo_firebase_config.js)
+        // TENTATIVA 1: window.db (do novo_firebase_config.js)
         if (window.db) {
             db = window.db;
             console.log('✅ Firebase db disponível via window.db');
         }
         
-        // Tentar via lojaServices
+        // TENTATIVA 2: window.lojaServices (que pode ter o db)
         if (!db && window.lojaServices && window.lojaServices.db) {
             db = window.lojaServices.db;
-            console.log('✅ Firebase db disponível via lojaServices');
+            console.log('✅ Firebase db disponível via lojaServices.db');
         }
         
-        // Tentar obter loginDb (do login_firebase.js)
+        // TENTATIVA 3: window.lojaManager (que pode ter o db)
+        if (!db && window.lojaManager && window.lojaManager.db) {
+            db = window.lojaManager.db;
+            console.log('✅ Firebase db disponível via lojaManager.db');
+        }
+        
+        // TENTATIVA 4: Verificar se o firebase global está inicializado
+        if (!db && window.firebase && window.firebase.firestore) {
+            try {
+                // Tentar criar uma instância manual (se necessário)
+                console.log('⚠️ Tentando acessar firebase global...');
+                db = window.firebase.firestore();
+                console.log('✅ Firebase db obtido via window.firebase');
+            } catch(e) {
+                console.warn('Erro ao acessar firebase global:', e);
+            }
+        }
+        
+        // loginDb (do login_firebase.js)
         if (window.loginDb) {
             loginDb = window.loginDb;
             console.log('✅ loginDb disponível via window.loginDb');
         }
         
         if (db && loginDb) {
+            console.log(`✅ Firebase conectado após ${tentativas + 1} tentativas`);
             break;
         }
         
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, intervalo));
         tentativas++;
+        
+        if (tentativas % 10 === 0) {
+            console.log(`⏳ Aguardando Firebase... tentativa ${tentativas}/${maxTentativas}`);
+            console.log('   db:', !!db, 'loginDb:', !!loginDb);
+        }
     }
     
     if (!db) {
         console.warn('⚠️ Firebase db não encontrado após', tentativas, 'tentativas');
+        console.log('🔍 Objetos disponíveis no window:');
+        console.log('   - window.db:', !!window.db);
+        console.log('   - window.lojaServices:', !!window.lojaServices);
+        console.log('   - window.lojaManager:', !!window.lojaManager);
+        console.log('   - window.firebase:', !!window.firebase);
     }
     
     if (!loginDb) {
         console.warn('⚠️ loginDb não encontrado após', tentativas, 'tentativas');
+        console.log('   - window.loginDb:', !!window.loginDb);
     }
     
     console.log('✅ Firebase aguardado por', tentativas, 'tentativas');
 }
 
 // ============================================
-// CARREGAR DADOS DO USUÁRIO - COMPATÍVEL COM LOGIN_FIREBASE.JS
+// CARREGAR DADOS DO USUÁRIO
 // ============================================
 async function carregarDadosUsuario() {
     console.log('🔍 Buscando dados do usuário logado...');
     
-    // FONTE 1: window.dadosUsuario (definido pelo login_firebase.js no onAuthStateChanged)
+    // FONTE 1: window.dadosUsuario (definido pelo login_firebase.js)
     if (window.dadosUsuario && window.dadosUsuario.email) {
         usuarioAtual = {
             email: window.dadosUsuario.email,
@@ -131,7 +170,7 @@ async function carregarDadosUsuario() {
         console.log('   Tipo:', usuarioAtual.tipo);
     }
     
-    // FONTE 2: sessionStorage (usuarioInfo - salvo pelo login_firebase.js)
+    // FONTE 2: sessionStorage (usuarioInfo)
     if (!usuarioAtual?.email) {
         const infoBasica = sessionStorage.getItem('usuarioInfo');
         if (infoBasica) {
@@ -151,47 +190,21 @@ async function carregarDadosUsuario() {
         }
     }
     
-    // FONTE 3: sessionStorage (pdv_sessao_temporaria - legado)
-    if (!usuarioAtual?.email) {
-        const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
-        if (sessao) {
-            try {
-                const dados = JSON.parse(sessao);
-                usuarioAtual = {
-                    email: dados.email,
-                    nome: dados.nome || dados.email?.split('@')[0],
-                    perfil: dados.perfil || dados.nivel || 'cliente',
-                    tipo: dados.tipo || 'cliente',
-                    uid: dados.uid || null
-                };
-                console.log('✅ Usuário carregado de sessionStorage pdv_sessao_temporaria:', usuarioAtual.email);
-            } catch (e) {
-                console.warn('Erro ao parsear sessionStorage:', e);
-            }
+    // FONTE 3: lojaServices (pode ter o usuário atual)
+    if (!usuarioAtual?.email && window.lojaServices && window.lojaServices.usuario) {
+        const user = window.lojaServices.usuario;
+        if (user && user.email) {
+            usuarioAtual = {
+                email: user.email,
+                nome: user.nome || user.email.split('@')[0],
+                perfil: user.perfil || 'cliente',
+                tipo: user.tipo || 'cliente'
+            };
+            console.log('✅ Usuário carregado de lojaServices:', usuarioAtual.email);
         }
     }
     
-    // FONTE 4: localStorage (backup)
-    if (!usuarioAtual?.email) {
-        const backup = localStorage.getItem('pdv_sessao_backup');
-        if (backup) {
-            try {
-                const dados = JSON.parse(backup);
-                usuarioAtual = {
-                    email: dados.email,
-                    nome: dados.nome || dados.email?.split('@')[0],
-                    perfil: dados.perfil || dados.nivel || 'cliente',
-                    tipo: dados.tipo || 'cliente',
-                    uid: dados.uid || null
-                };
-                console.log('✅ Usuário carregado de localStorage:', usuarioAtual.email);
-            } catch (e) {
-                console.warn('Erro ao parsear localStorage:', e);
-            }
-        }
-    }
-    
-    // FONTE 5: Firebase Auth (se disponível)
+    // FONTE 4: Firebase Auth
     if (!usuarioAtual?.email && window.auth && window.auth.currentUser) {
         const user = window.auth.currentUser;
         if (user && user.email) {
@@ -237,7 +250,6 @@ async function carregarDadosUsuario() {
         const nomeExibicao = usuarioAtual.nome || usuarioAtual.email?.split('@')[0] || 'Usuário';
         userNameDisplay.textContent = nomeExibicao;
         
-        // Adicionar perfil no tooltip
         const perfilExibicao = usuarioAtual.perfil || usuarioAtual.tipo || 'cliente';
         userNameDisplay.title = `${nomeExibicao} (${perfilExibicao})`;
     }
@@ -246,7 +258,6 @@ async function carregarDadosUsuario() {
         console.error('❌ NÃO FOI POSSÍVEL IDENTIFICAR O USUÁRIO LOGADO');
         console.log('📋 window.dadosUsuario:', window.dadosUsuario);
         console.log('📋 sessionStorage usuarioInfo:', sessionStorage.getItem('usuarioInfo'));
-        console.log('📋 sessionStorage pdv_sessao_temporaria:', sessionStorage.getItem('pdv_sessao_temporaria'));
         console.log('📋 window.auth?.currentUser:', window.auth?.currentUser);
     }
 }
@@ -262,6 +273,8 @@ async function verificarHabilitacao() {
     
     if (!loginDb) {
         console.warn('⚠️ loginDb não disponível para verificar habilitação');
+        console.log('💡 Tentando novamente em 1 segundo...');
+        setTimeout(() => verificarHabilitacao(), 1000);
         return;
     }
     
@@ -301,9 +314,18 @@ async function verificarHabilitacao() {
 // INICIALIZAR DADOS DO USUÁRIO NO FIREBASE
 // ============================================
 async function inicializarDadosUsuarioFirebase() {
-    if (!db || !lojaId || !usuarioAtual?.email) {
-        console.warn('⚠️ Dados insuficientes para inicializar no Firebase');
-        console.log('   db:', !!db, 'lojaId:', lojaId, 'email:', usuarioAtual?.email);
+    if (!db) {
+        console.warn('⚠️ db não disponível para inicializar dados no Firebase');
+        return;
+    }
+    
+    if (!lojaId) {
+        console.warn('⚠️ lojaId não disponível para inicializar dados no Firebase');
+        return;
+    }
+    
+    if (!usuarioAtual?.email) {
+        console.warn('⚠️ email do usuário não disponível para inicializar dados no Firebase');
         return;
     }
     
@@ -355,6 +377,7 @@ async function inicializarDadosUsuarioFirebase() {
         
     } catch (error) {
         console.error('❌ Erro ao inicializar dados no Firebase:', error);
+        console.log('🔍 Verifique se a coleção "aprimoramento_*" existe no Firestore');
     }
 }
 
@@ -442,7 +465,6 @@ function mostrarMensagem(texto, tipo = 'info') {
         <span>${texto}</span>
     `;
     
-    // Estilos do toast
     toast.style.cssText = `
         position: fixed;
         bottom: 20px;
@@ -471,31 +493,18 @@ function mostrarMensagem(texto, tipo = 'info') {
     }, 4000);
 }
 
-// Adicionar estilos de animação se não existirem
+// Adicionar estilos de animação
 if (!document.querySelector('#toastStyles')) {
     const style = document.createElement('style');
     style.id = 'toastStyles';
     style.textContent = `
         @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-        
         @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
         }
     `;
     document.head.appendChild(style);
@@ -508,8 +517,21 @@ window.debugAprimoramento = {
     getDb: () => db,
     getLoginDb: () => loginDb,
     getWindowDadosUsuario: () => window.dadosUsuario,
-    getSessionStorage: () => sessionStorage.getItem('usuarioInfo')
+    getSessionStorage: () => sessionStorage.getItem('usuarioInfo'),
+    verificarFirebase: () => {
+        console.log('🔍 VERIFICAÇÃO DE FIREBASE:');
+        console.log('   window.db:', !!window.db);
+        console.log('   window.lojaServices:', !!window.lojaServices);
+        console.log('   window.lojaManager:', !!window.lojaManager);
+        console.log('   window.loginDb:', !!window.loginDb);
+        console.log('   window.firebase:', !!window.firebase);
+        
+        if (window.lojaServices) {
+            console.log('   lojaServices.lojaId:', window.lojaServices.lojaId);
+            console.log('   lojaServices.usuario:', window.lojaServices.usuario);
+        }
+    }
 };
 
 console.log('✅ programas_aprimoramento.js carregado');
-console.log('📖 Para debug, use window.debugAprimoramento.getUsuario()');
+console.log('📖 Para debug, use window.debugAprimoramento.verificarFirebase()');
