@@ -1,6 +1,6 @@
 // ============================================
 // programas_aprimoramento.js - VERSÃO CORRIGIDA
-// Com busca correta dos dados do usuário logado
+// Compatível com login_firebase.js
 // ============================================
 
 console.log('🚀 Inicializando Programas de Aprimoramento...');
@@ -23,12 +23,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 1. Aguardar Firebase e serviços
         await aguardarFirebase();
         
-        // 2. Carregar dados do usuário (MÚLTIPLAS FONTES)
+        // 2. Carregar dados do usuário (compatível com login_firebase.js)
         await carregarDadosUsuario();
         
         // 3. Verificar se o usuário está logado
         if (!usuarioAtual || !usuarioAtual.email) {
             console.error('❌ Usuário não identificado. Redirecionando para login...');
+            console.log('🔍 Debug: window.dadosUsuario =', window.dadosUsuario);
+            console.log('🔍 Debug: sessionStorage usuarioInfo =', sessionStorage.getItem('usuarioInfo'));
+            
             mostrarMensagem('Faça login para acessar os programas de aprimoramento', 'warning');
             setTimeout(() => {
                 window.location.href = 'index.html';
@@ -70,7 +73,7 @@ async function aguardarFirebase() {
     console.log('⏳ Aguardando Firebase...');
     
     while (tentativas < maxTentativas) {
-        // Tentar obter db do window
+        // Tentar obter db do window (do novo_firebase_config.js)
         if (window.db) {
             db = window.db;
             console.log('✅ Firebase db disponível via window.db');
@@ -82,10 +85,10 @@ async function aguardarFirebase() {
             console.log('✅ Firebase db disponível via lojaServices');
         }
         
-        // Tentar obter loginDb
+        // Tentar obter loginDb (do login_firebase.js)
         if (window.loginDb) {
             loginDb = window.loginDb;
-            console.log('✅ loginDb disponível');
+            console.log('✅ loginDb disponível via window.loginDb');
         }
         
         if (db && loginDb) {
@@ -108,24 +111,47 @@ async function aguardarFirebase() {
 }
 
 // ============================================
-// CARREGAR DADOS DO USUÁRIO - MÚLTIPLAS FONTES
+// CARREGAR DADOS DO USUÁRIO - COMPATÍVEL COM LOGIN_FIREBASE.JS
 // ============================================
 async function carregarDadosUsuario() {
     console.log('🔍 Buscando dados do usuário logado...');
     
-    // FONTE 1: window.dadosUsuario (definido pelo sistema de login)
+    // FONTE 1: window.dadosUsuario (definido pelo login_firebase.js no onAuthStateChanged)
     if (window.dadosUsuario && window.dadosUsuario.email) {
         usuarioAtual = {
             email: window.dadosUsuario.email,
             nome: window.dadosUsuario.nome || window.dadosUsuario.email.split('@')[0],
-            perfil: window.dadosUsuario.perfil || window.dadosUsuario.nivel || window.dadosUsuario.tipo || 'cliente',
+            perfil: window.dadosUsuario.perfil || window.dadosUsuario.nivel || 'cliente',
             tipo: window.dadosUsuario.tipo || 'cliente',
-            uid: window.dadosUsuario.uid || null
+            uid: window.dadosUsuario.uid || null,
+            ativo: window.dadosUsuario.ativo !== false
         };
         console.log('✅ Usuário carregado de window.dadosUsuario:', usuarioAtual.email);
+        console.log('   Perfil:', usuarioAtual.perfil);
+        console.log('   Tipo:', usuarioAtual.tipo);
     }
     
-    // FONTE 2: sessionStorage (pdv_sessao_temporaria)
+    // FONTE 2: sessionStorage (usuarioInfo - salvo pelo login_firebase.js)
+    if (!usuarioAtual?.email) {
+        const infoBasica = sessionStorage.getItem('usuarioInfo');
+        if (infoBasica) {
+            try {
+                const dados = JSON.parse(infoBasica);
+                usuarioAtual = {
+                    email: dados.email,
+                    nome: dados.nome || dados.email?.split('@')[0],
+                    perfil: dados.perfil || 'cliente',
+                    tipo: dados.tipo || 'cliente',
+                    loja: dados.loja
+                };
+                console.log('✅ Usuário carregado de sessionStorage usuarioInfo:', usuarioAtual.email);
+            } catch (e) {
+                console.warn('Erro ao parsear sessionStorage usuarioInfo:', e);
+            }
+        }
+    }
+    
+    // FONTE 3: sessionStorage (pdv_sessao_temporaria - legado)
     if (!usuarioAtual?.email) {
         const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
         if (sessao) {
@@ -138,14 +164,14 @@ async function carregarDadosUsuario() {
                     tipo: dados.tipo || 'cliente',
                     uid: dados.uid || null
                 };
-                console.log('✅ Usuário carregado de sessionStorage:', usuarioAtual.email);
+                console.log('✅ Usuário carregado de sessionStorage pdv_sessao_temporaria:', usuarioAtual.email);
             } catch (e) {
                 console.warn('Erro ao parsear sessionStorage:', e);
             }
         }
     }
     
-    // FONTE 3: localStorage (pdv_sessao_backup)
+    // FONTE 4: localStorage (backup)
     if (!usuarioAtual?.email) {
         const backup = localStorage.getItem('pdv_sessao_backup');
         if (backup) {
@@ -165,7 +191,7 @@ async function carregarDadosUsuario() {
         }
     }
     
-    // FONTE 4: Buscar do Firebase Auth via window (se disponível)
+    // FONTE 5: Firebase Auth (se disponível)
     if (!usuarioAtual?.email && window.auth && window.auth.currentUser) {
         const user = window.auth.currentUser;
         if (user && user.email) {
@@ -180,31 +206,27 @@ async function carregarDadosUsuario() {
         }
     }
     
-    // FONTE 5: Buscar do lojaServices
-    if (!usuarioAtual?.email && window.lojaServices && window.lojaServices.usuario) {
-        const user = window.lojaServices.usuario;
-        if (user && user.email) {
-            usuarioAtual = {
-                email: user.email,
-                nome: user.nome || user.email.split('@')[0],
-                perfil: user.perfil || 'cliente',
-                tipo: user.tipo || 'cliente',
-                uid: user.uid || null
-            };
-            console.log('✅ Usuário carregado de lojaServices:', usuarioAtual.email);
+    // Extrair loja da URL
+    if (window.getLojaDaURL) {
+        lojaId = window.getLojaDaURL();
+        console.log('📍 Loja via getLojaDaURL():', lojaId);
+    }
+    
+    if (!lojaId) {
+        const pathParts = window.location.pathname.split('/');
+        const lojaIndex = pathParts.indexOf('loja');
+        if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
+            lojaId = pathParts[lojaIndex + 1];
+            console.log('📍 Loja extraída da URL:', lojaId);
         }
     }
     
-    // Extrair loja da URL
-    const pathParts = window.location.pathname.split('/');
-    const lojaIndex = pathParts.indexOf('loja');
-    if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
-        lojaId = pathParts[lojaIndex + 1];
-        console.log('📍 Loja extraída da URL:', lojaId);
-    } else if (window.lojaIdAtual) {
+    if (!lojaId && window.lojaIdAtual) {
         lojaId = window.lojaIdAtual;
         console.log('📍 Loja via window.lojaIdAtual:', lojaId);
-    } else if (window.lojaServices?.lojaId) {
+    }
+    
+    if (!lojaId && window.lojaServices?.lojaId) {
         lojaId = window.lojaServices.lojaId;
         console.log('📍 Loja via lojaServices:', lojaId);
     }
@@ -223,8 +245,8 @@ async function carregarDadosUsuario() {
     if (!usuarioAtual?.email) {
         console.error('❌ NÃO FOI POSSÍVEL IDENTIFICAR O USUÁRIO LOGADO');
         console.log('📋 window.dadosUsuario:', window.dadosUsuario);
+        console.log('📋 sessionStorage usuarioInfo:', sessionStorage.getItem('usuarioInfo'));
         console.log('📋 sessionStorage pdv_sessao_temporaria:', sessionStorage.getItem('pdv_sessao_temporaria'));
-        console.log('📋 localStorage pdv_sessao_backup:', localStorage.getItem('pdv_sessao_backup'));
         console.log('📋 window.auth?.currentUser:', window.auth?.currentUser);
     }
 }
@@ -253,6 +275,11 @@ async function verificarHabilitacao() {
             const habilitado = dados.habilitar_programas_aprimoramento === true;
             
             console.log(`📚 Programas de Aprimoramento habilitado: ${habilitado ? 'SIM' : 'NÃO'}`);
+            console.log('📋 Configurações da loja:', {
+                nome: dados.nome,
+                habilitar_agendamento: dados.habilitar_agendamento,
+                habilitar_programas_aprimoramento: dados.habilitar_programas_aprimoramento
+            });
             
             if (!habilitado) {
                 console.warn('⚠️ Programa não habilitado para esta loja');
@@ -479,7 +506,9 @@ window.debugAprimoramento = {
     getUsuario: () => usuarioAtual,
     getLoja: () => lojaId,
     getDb: () => db,
-    getLoginDb: () => loginDb
+    getLoginDb: () => loginDb,
+    getWindowDadosUsuario: () => window.dadosUsuario,
+    getSessionStorage: () => sessionStorage.getItem('usuarioInfo')
 };
 
 console.log('✅ programas_aprimoramento.js carregado');
