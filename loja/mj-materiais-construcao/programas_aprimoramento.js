@@ -86,20 +86,41 @@ function obterLojaId() {
     return match ? match[1] : null;
 }
 
+// ============================================
+// OBTER USUÁRIO LOGADO
+// ============================================
 async function obterUsuarioLogado() {
-    if (window.dadosUsuario) {
-        dadosUsuario = window.dadosUsuario;
+    console.log('🔍 Buscando usuário logado...');
+    
+    // FONTE 1: window.dadosUsuario (definido pelo login_firebase.js)
+    if (window.dadosUsuario && window.dadosUsuario.email) {
+        dadosUsuario = {
+            email: window.dadosUsuario.email,
+            nome: window.dadosUsuario.nome || window.dadosUsuario.email.split('@')[0],
+            perfil: window.dadosUsuario.perfil || window.dadosUsuario.nivel || 'cliente'
+        };
+        console.log('✅ Usuário via window.dadosUsuario:', dadosUsuario.nome);
         return;
     }
     
+    // FONTE 2: sessionStorage usuarioInfo
     const info = sessionStorage.getItem('usuarioInfo');
     if (info) {
         try {
-            dadosUsuario = JSON.parse(info);
+            const parsed = JSON.parse(info);
+            dadosUsuario = {
+                email: parsed.email,
+                nome: parsed.nome || parsed.email?.split('@')[0],
+                perfil: parsed.perfil || 'cliente'
+            };
+            console.log('✅ Usuário via sessionStorage:', dadosUsuario.nome);
             return;
-        } catch(e) {}
+        } catch(e) {
+            console.warn('Erro ao parsear sessionStorage:', e);
+        }
     }
     
+    // FONTE 3: Firebase Auth
     if (window.auth && window.auth.currentUser) {
         const user = window.auth.currentUser;
         dadosUsuario = {
@@ -107,8 +128,26 @@ async function obterUsuarioLogado() {
             nome: user.displayName || user.email.split('@')[0],
             perfil: 'cliente'
         };
+        console.log('✅ Usuário via Firebase Auth:', dadosUsuario.nome);
         return;
     }
+    
+    // FONTE 4: localStorage (backup)
+    const backup = localStorage.getItem('pdv_sessao_backup');
+    if (backup) {
+        try {
+            const parsed = JSON.parse(backup);
+            dadosUsuario = {
+                email: parsed.email,
+                nome: parsed.nome || parsed.email?.split('@')[0],
+                perfil: parsed.perfil || 'cliente'
+            };
+            console.log('✅ Usuário via localStorage:', dadosUsuario.nome);
+            return;
+        } catch(e) {}
+    }
+    
+    console.error('❌ Nenhum usuário encontrado');
 }
 
 function mostrarLoading(show) {
