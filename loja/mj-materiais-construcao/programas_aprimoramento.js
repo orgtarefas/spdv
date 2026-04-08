@@ -6,7 +6,7 @@
 console.log("📚 Inicializando Programas de Aprimoramento...");
 
 // ============================================
-// IMPORTAÇÕES (igual ao agendamento)
+// IMPORTAÇÕES
 // ============================================
 import { 
     db, 
@@ -17,8 +17,7 @@ import {
     setDoc,
     updateDoc,
     deleteDoc,
-    addDoc,
-    serverTimestamp
+    addDoc
 } from './novo_firebase_config.js';
 
 // ============================================
@@ -45,8 +44,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         lojaIdAtual = obterLojaId();
         console.log(`📍 Loja: ${lojaIdAtual}`);
         
+        // AGUARDAR FIREBASE AUTH (igual ao agendamento)
+        await aguardarFirebaseAuth();
+        
         // Obter usuário logado
         await obterUsuarioLogado();
+        
+        // Atualizar nome na interface
+        atualizarNomeUsuario();
         
         if (!dadosUsuario) {
             mostrarMensagem('Faça login para acessar', 'warning');
@@ -78,6 +83,47 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
+// AGUARDAR FIREBASE AUTH (igual ao agendamento)
+// ============================================
+async function aguardarFirebaseAuth() {
+    let tentativas = 0;
+    const maxTentativas = 20;
+    
+    console.log('⏳ Aguardando Firebase Auth...');
+    
+    while (tentativas < maxTentativas) {
+        // Verificar se já temos os dados do usuário
+        if (window.dadosUsuario && window.dadosUsuario.email) {
+            console.log('✅ window.dadosUsuario disponível');
+            return;
+        }
+        
+        // Verificar se temos sessionStorage
+        const info = sessionStorage.getItem('usuarioInfo');
+        if (info) {
+            try {
+                const parsed = JSON.parse(info);
+                if (parsed.email) {
+                    console.log('✅ sessionStorage usuarioInfo disponível');
+                    return;
+                }
+            } catch(e) {}
+        }
+        
+        // Verificar Firebase Auth
+        if (window.auth && window.auth.currentUser) {
+            console.log('✅ Firebase Auth disponível');
+            return;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        tentativas++;
+    }
+    
+    console.log('⚠️ Firebase Auth não inicializado após', maxTentativas, 'tentativas');
+}
+
+// ============================================
 // FUNÇÕES AUXILIARES
 // ============================================
 function obterLojaId() {
@@ -86,13 +132,10 @@ function obterLojaId() {
     return match ? match[1] : null;
 }
 
-// ============================================
-// OBTER USUÁRIO LOGADO
-// ============================================
 async function obterUsuarioLogado() {
     console.log('🔍 Buscando usuário logado...');
     
-    // FONTE 1: window.dadosUsuario (definido pelo login_firebase.js)
+    // FONTE 1: window.dadosUsuario
     if (window.dadosUsuario && window.dadosUsuario.email) {
         dadosUsuario = {
             email: window.dadosUsuario.email,
@@ -132,22 +175,25 @@ async function obterUsuarioLogado() {
         return;
     }
     
-    // FONTE 4: localStorage (backup)
-    const backup = localStorage.getItem('pdv_sessao_backup');
-    if (backup) {
-        try {
-            const parsed = JSON.parse(backup);
-            dadosUsuario = {
-                email: parsed.email,
-                nome: parsed.nome || parsed.email?.split('@')[0],
-                perfil: parsed.perfil || 'cliente'
-            };
-            console.log('✅ Usuário via localStorage:', dadosUsuario.nome);
-            return;
-        } catch(e) {}
-    }
-    
     console.error('❌ Nenhum usuário encontrado');
+}
+
+function atualizarNomeUsuario() {
+    const userNameSpan = document.getElementById('userName');
+    if (userNameSpan && dadosUsuario) {
+        const nomeExibicao = dadosUsuario.nome || dadosUsuario.email?.split('@')[0] || 'Usuário';
+        userNameSpan.textContent = nomeExibicao;
+        console.log('📛 Nome exibido:', nomeExibicao);
+    } else {
+        console.warn('⚠️ Elemento userName não encontrado ou dadosUsuario vazio');
+        // Tentar buscar novamente
+        setTimeout(() => {
+            if (dadosUsuario) {
+                const span = document.getElementById('userName');
+                if (span) span.textContent = dadosUsuario.nome || dadosUsuario.email?.split('@')[0];
+            }
+        }, 1000);
+    }
 }
 
 function mostrarLoading(show) {
@@ -169,6 +215,24 @@ window.fecharModal = function(modalId) {
 };
 
 // ============================================
+// EVENTO DE LOGIN (para atualizar quando logar)
+// ============================================
+window.addEventListener('usuarioLogado', (event) => {
+    console.log('📢 Evento usuarioLogado recebido');
+    if (event.detail && event.detail.usuario) {
+        dadosUsuario = event.detail.usuario;
+        atualizarNomeUsuario();
+        isAdmin = dadosUsuario.perfil === 'admin' || dadosUsuario.perfil === 'gerente' || dadosUsuario.perfil === 'supervisor';
+        
+        // Recarregar dados
+        carregarTreinamentos();
+        carregarVideos();
+        carregarTestes();
+        carregarProgresso();
+    }
+});
+
+// ============================================
 // CARREGAR DADOS
 // ============================================
 async function carregarTreinamentos() {
@@ -183,6 +247,7 @@ async function carregarTreinamentos() {
         });
         
         console.log(`📚 ${treinamentos.length} treinamentos`);
+        renderizarTreinamentos();
     } catch (err) {
         console.error('Erro treinamentos:', err);
         treinamentos = [];
@@ -201,6 +266,7 @@ async function carregarVideos() {
         });
         
         console.log(`🎬 ${videos.length} vídeos`);
+        renderizarVideos();
     } catch (err) {
         console.error('Erro vídeos:', err);
         videos = [];
@@ -219,6 +285,7 @@ async function carregarTestes() {
         });
         
         console.log(`📝 ${testes.length} testes`);
+        renderizarTestes();
     } catch (err) {
         console.error('Erro testes:', err);
         testes = [];
@@ -247,6 +314,7 @@ async function carregarProgresso() {
             await setDoc(progressoRef, progresso);
         }
         console.log('✅ Progresso carregado');
+        atualizarStats();
     } catch (err) {
         console.error('Erro progresso:', err);
         progresso = { pontos: 0, treinamentos: [], videos: [], testes: [] };
@@ -301,8 +369,8 @@ function renderizarTreinamentos() {
         html += `
             <div class="card">
                 <div class="card-info">
-                    <div class="card-title">${t.titulo || 'Sem título'}</div>
-                    <div class="card-desc">${t.descricao || ''}</div>
+                    <div class="card-title">${escapeHtml(t.titulo || 'Sem título')}</div>
+                    <div class="card-desc">${escapeHtml(t.descricao || '')}</div>
                     <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos || 10} pontos</div>
                 </div>
                 <div class="card-actions">
@@ -348,10 +416,9 @@ function renderizarVideos() {
         html += `
             <div class="card">
                 <div class="card-info">
-                    <div class="card-title">${v.titulo || 'Sem título'}</div>
-                    <div class="card-desc">${v.descricao || ''}</div>
+                    <div class="card-title">${escapeHtml(v.titulo || 'Sem título')}</div>
+                    <div class="card-desc">${escapeHtml(v.descricao || '')}</div>
                     <div class="card-pontos"><i class="fas fa-star"></i> ${v.pontos || 5} pontos</div>
-                    ${v.duracao ? `<div class="card-duracao"><i class="fas fa-clock"></i> ${v.duracao} min</div>` : ''}
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
@@ -392,25 +459,19 @@ function renderizarTestes() {
     }
     
     testes.forEach(t => {
-        const realizado = progresso?.testes?.find(tr => tr.id === t.id);
-        const aprovado = realizado?.aprovado;
         html += `
             <div class="card">
                 <div class="card-info">
-                    <div class="card-title">${t.titulo || 'Sem título'}</div>
-                    <div class="card-desc">${t.descricao || ''}</div>
-                    <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos_max || 100} pontos máx</div>
-                    <div class="card-nota-minima"><i class="fas fa-flag-checkered"></i> Mínimo: ${t.pontos_min || 70}%</div>
+                    <div class="card-title">${escapeHtml(t.titulo || 'Sem título')}</div>
+                    <div class="card-desc">${escapeHtml(t.descricao || '')}</div>
+                    <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos_max || 100} pontos</div>
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
                         <button class="btn-editar" onclick="editarTeste('${t.id}')"><i class="fas fa-edit"></i></button>
                         <button class="btn-excluir" onclick="excluirTeste('${t.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
-                        ${aprovado ? 
-                            '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Aprovado</button>' : 
-                            `<button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>`
-                        }
+                        <button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>
                     `}
                 </div>
             </div>
@@ -425,16 +486,22 @@ function atualizarStats() {
     const concluidos = progresso?.treinamentos?.length || 0;
     const percentual = total > 0 ? Math.round((concluidos / total) * 100) : 0;
     
-    document.getElementById('totalPontos').textContent = progresso?.pontos || 0;
-    document.getElementById('totalConcluidos').textContent = `${concluidos}/${total}`;
-    document.getElementById('progressoPercentual').textContent = `${percentual}%`;
-    document.getElementById('progressoFill').style.width = `${percentual}%`;
+    const totalPontosEl = document.getElementById('totalPontos');
+    const totalConcluidosEl = document.getElementById('totalConcluidos');
+    const progressoPercentualEl = document.getElementById('progressoPercentual');
+    const progressoFillEl = document.getElementById('progressoFill');
+    const nivelAtualEl = document.getElementById('nivelAtual');
+    
+    if (totalPontosEl) totalPontosEl.textContent = progresso?.pontos || 0;
+    if (totalConcluidosEl) totalConcluidosEl.textContent = `${concluidos}/${total}`;
+    if (progressoPercentualEl) progressoPercentualEl.textContent = `${percentual}%`;
+    if (progressoFillEl) progressoFillEl.style.width = `${percentual}%`;
     
     let nivel = 'Iniciante';
     if (percentual >= 80) nivel = 'Expert';
     else if (percentual >= 60) nivel = 'Avançado';
     else if (percentual >= 30) nivel = 'Intermediário';
-    document.getElementById('nivelAtual').textContent = nivel;
+    if (nivelAtualEl) nivelAtualEl.textContent = nivel;
 }
 
 // ============================================
@@ -692,7 +759,6 @@ window.abrirModalTeste = function(id = null) {
             document.getElementById('testePontosMin').value = t.pontos_min || 70;
             document.getElementById('modalTesteTitle').textContent = 'Editar Teste';
             
-            // Carregar questões
             const container = document.getElementById('questoesContainer');
             container.innerHTML = '';
             if (t.questoes && t.questoes.length > 0) {
