@@ -6,7 +6,7 @@
 console.log("📚 Inicializando sistema de Programas de Aprimoramento...");
 
 // ============================================
-// IMPORTAÇÕES (mesmo padrão do agendamento)
+// IMPORTAÇÕES
 // ============================================
 import { 
     db, 
