@@ -1,6 +1,6 @@
 // ============================================
 // programas_aprimoramento.js
-// MESMO PADRÃO DO AGENDAMENTO - COM IMPORT
+// COM SELEÇÃO DE CLIENTES POR CONTEÚDO
 // ============================================
 
 console.log("📚 Inicializando Programas de Aprimoramento...");
@@ -30,6 +30,7 @@ let treinamentos = [];
 let videos = [];
 let testes = [];
 let progresso = null;
+let clientes = [];
 
 // ============================================
 // INICIALIZAÇÃO
@@ -40,17 +41,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     mostrarLoading(true);
     
     try {
-        // Obter loja ID
         lojaIdAtual = obterLojaId();
         console.log(`📍 Loja: ${lojaIdAtual}`);
         
-        // AGUARDAR FIREBASE AUTH (igual ao agendamento)
         await aguardarFirebaseAuth();
-        
-        // Obter usuário logado
         await obterUsuarioLogado();
-        
-        // Atualizar nome na interface
         atualizarNomeUsuario();
         
         if (!dadosUsuario) {
@@ -62,13 +57,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log(`👤 Usuário: ${dadosUsuario.email} (${dadosUsuario.perfil})`);
         isAdmin = dadosUsuario.perfil === 'admin' || dadosUsuario.perfil === 'gerente' || dadosUsuario.perfil === 'supervisor';
         
-        // Carregar dados
+        if (isAdmin) {
+            await carregarClientes();
+        }
+        
         await carregarTreinamentos();
         await carregarVideos();
         await carregarTestes();
         await carregarProgresso();
         
-        // Renderizar
         renderizarTudo();
         configurarEventos();
         
@@ -83,47 +80,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
-// AGUARDAR FIREBASE AUTH (igual ao agendamento)
-// ============================================
-async function aguardarFirebaseAuth() {
-    let tentativas = 0;
-    const maxTentativas = 20;
-    
-    console.log('⏳ Aguardando Firebase Auth...');
-    
-    while (tentativas < maxTentativas) {
-        // Verificar se já temos os dados do usuário
-        if (window.dadosUsuario && window.dadosUsuario.email) {
-            console.log('✅ window.dadosUsuario disponível');
-            return;
-        }
-        
-        // Verificar se temos sessionStorage
-        const info = sessionStorage.getItem('usuarioInfo');
-        if (info) {
-            try {
-                const parsed = JSON.parse(info);
-                if (parsed.email) {
-                    console.log('✅ sessionStorage usuarioInfo disponível');
-                    return;
-                }
-            } catch(e) {}
-        }
-        
-        // Verificar Firebase Auth
-        if (window.auth && window.auth.currentUser) {
-            console.log('✅ Firebase Auth disponível');
-            return;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 500));
-        tentativas++;
-    }
-    
-    console.log('⚠️ Firebase Auth não inicializado após', maxTentativas, 'tentativas');
-}
-
-// ============================================
 // FUNÇÕES AUXILIARES
 // ============================================
 function obterLojaId() {
@@ -132,21 +88,34 @@ function obterLojaId() {
     return match ? match[1] : null;
 }
 
-async function obterUsuarioLogado() {
-    console.log('🔍 Buscando usuário logado...');
+async function aguardarFirebaseAuth() {
+    let tentativas = 0;
+    const maxTentativas = 20;
     
-    // FONTE 1: window.dadosUsuario
+    while (tentativas < maxTentativas) {
+        if (window.dadosUsuario && window.dadosUsuario.email) return;
+        const info = sessionStorage.getItem('usuarioInfo');
+        if (info) {
+            try {
+                if (JSON.parse(info).email) return;
+            } catch(e) {}
+        }
+        if (window.auth && window.auth.currentUser) return;
+        await new Promise(resolve => setTimeout(resolve, 500));
+        tentativas++;
+    }
+}
+
+async function obterUsuarioLogado() {
     if (window.dadosUsuario && window.dadosUsuario.email) {
         dadosUsuario = {
             email: window.dadosUsuario.email,
             nome: window.dadosUsuario.nome || window.dadosUsuario.email.split('@')[0],
             perfil: window.dadosUsuario.perfil || window.dadosUsuario.nivel || 'cliente'
         };
-        console.log('✅ Usuário via window.dadosUsuario:', dadosUsuario.nome);
         return;
     }
     
-    // FONTE 2: sessionStorage usuarioInfo
     const info = sessionStorage.getItem('usuarioInfo');
     if (info) {
         try {
@@ -156,14 +125,10 @@ async function obterUsuarioLogado() {
                 nome: parsed.nome || parsed.email?.split('@')[0],
                 perfil: parsed.perfil || 'cliente'
             };
-            console.log('✅ Usuário via sessionStorage:', dadosUsuario.nome);
             return;
-        } catch(e) {
-            console.warn('Erro ao parsear sessionStorage:', e);
-        }
+        } catch(e) {}
     }
     
-    // FONTE 3: Firebase Auth
     if (window.auth && window.auth.currentUser) {
         const user = window.auth.currentUser;
         dadosUsuario = {
@@ -171,28 +136,14 @@ async function obterUsuarioLogado() {
             nome: user.displayName || user.email.split('@')[0],
             perfil: 'cliente'
         };
-        console.log('✅ Usuário via Firebase Auth:', dadosUsuario.nome);
         return;
     }
-    
-    console.error('❌ Nenhum usuário encontrado');
 }
 
 function atualizarNomeUsuario() {
     const userNameSpan = document.getElementById('userName');
     if (userNameSpan && dadosUsuario) {
-        const nomeExibicao = dadosUsuario.nome || dadosUsuario.email?.split('@')[0] || 'Usuário';
-        userNameSpan.textContent = nomeExibicao;
-        console.log('📛 Nome exibido:', nomeExibicao);
-    } else {
-        console.warn('⚠️ Elemento userName não encontrado ou dadosUsuario vazio');
-        // Tentar buscar novamente
-        setTimeout(() => {
-            if (dadosUsuario) {
-                const span = document.getElementById('userName');
-                if (span) span.textContent = dadosUsuario.nome || dadosUsuario.email?.split('@')[0];
-            }
-        }, 1000);
+        userNameSpan.textContent = dadosUsuario.nome || dadosUsuario.email?.split('@')[0] || 'Usuário';
     }
 }
 
@@ -215,22 +166,86 @@ window.fecharModal = function(modalId) {
 };
 
 // ============================================
-// EVENTO DE LOGIN (para atualizar quando logar)
+// CARREGAR CLIENTES
 // ============================================
-window.addEventListener('usuarioLogado', (event) => {
-    console.log('📢 Evento usuarioLogado recebido');
-    if (event.detail && event.detail.usuario) {
-        dadosUsuario = event.detail.usuario;
-        atualizarNomeUsuario();
-        isAdmin = dadosUsuario.perfil === 'admin' || dadosUsuario.perfil === 'gerente' || dadosUsuario.perfil === 'supervisor';
+async function carregarClientes() {
+    if (!window.loginDb) return;
+    
+    try {
+        const clientesRef = window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('clientes');
         
-        // Recarregar dados
-        carregarTreinamentos();
-        carregarVideos();
-        carregarTestes();
-        carregarProgresso();
+        const snapshot = await clientesRef.get();
+        
+        clientes = [];
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            clientes.push({
+                email: doc.id,
+                nome: data.nome || doc.id.split('@')[0]
+            });
+        });
+        
+        console.log(`👥 ${clientes.length} clientes carregados`);
+        atualizarSelectsClientes();
+        
+    } catch (err) {
+        console.error('Erro ao carregar clientes:', err);
+        clientes = [];
     }
-});
+}
+
+function atualizarSelectsClientes() {
+    const selects = ['treinamentoClientes', 'videoClientes', 'testeClientes'];
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.innerHTML = clientes.map(c => 
+                `<option value="${c.email}">${c.nome} (${c.email})</option>`
+            ).join('');
+        }
+    });
+}
+
+// ============================================
+// PÚBLICO-ALVO
+// ============================================
+window.togglePublicoAlvo = function(tipo) {
+    const publicoTipo = document.getElementById(`${tipo}PublicoTipo`).value;
+    const clientesContainer = document.getElementById(`${tipo}ClientesContainer`);
+    
+    if (clientesContainer) {
+        clientesContainer.style.display = publicoTipo === 'especifico' ? 'block' : 'none';
+    }
+};
+
+function getPublicoAlvo(tipo) {
+    const publicoTipo = document.getElementById(`${tipo}PublicoTipo`).value;
+    
+    if (publicoTipo === 'geral') {
+        return { publico_alvo: 'geral', clientes_autorizados: [] };
+    } else {
+        const clientesSelecionados = [];
+        const select = document.getElementById(`${tipo}Clientes`);
+        if (select) {
+            Array.from(select.selectedOptions).forEach(opt => {
+                clientesSelecionados.push(opt.value);
+            });
+        }
+        return { publico_alvo: 'especifico', clientes_autorizados: clientesSelecionados };
+    }
+}
+
+function usuarioTemAcesso(conteudo) {
+    if (isAdmin) return true;
+    if (conteudo.publico_alvo === 'geral') return true;
+    if (conteudo.publico_alvo === 'especifico' && conteudo.clientes_autorizados) {
+        return conteudo.clientes_autorizados.includes(dadosUsuario.email);
+    }
+    return false;
+}
 
 // ============================================
 // CARREGAR DADOS
@@ -241,12 +256,11 @@ async function carregarTreinamentos() {
         const treinamentosRef = collection(db, colecaoNome, 'treinamentos', 'itens');
         const snapshot = await getDocs(treinamentosRef);
         
-        treinamentos = [];
-        snapshot.forEach(doc => {
-            treinamentos.push({ id: doc.id, ...doc.data() });
-        });
+        const todos = [];
+        snapshot.forEach(doc => todos.push({ id: doc.id, ...doc.data() }));
+        treinamentos = todos.filter(t => usuarioTemAcesso(t));
         
-        console.log(`📚 ${treinamentos.length} treinamentos`);
+        console.log(`📚 ${treinamentos.length} treinamentos disponíveis`);
         renderizarTreinamentos();
     } catch (err) {
         console.error('Erro treinamentos:', err);
@@ -260,12 +274,11 @@ async function carregarVideos() {
         const videosRef = collection(db, colecaoNome, 'videos', 'itens');
         const snapshot = await getDocs(videosRef);
         
-        videos = [];
-        snapshot.forEach(doc => {
-            videos.push({ id: doc.id, ...doc.data() });
-        });
+        const todos = [];
+        snapshot.forEach(doc => todos.push({ id: doc.id, ...doc.data() }));
+        videos = todos.filter(v => usuarioTemAcesso(v));
         
-        console.log(`🎬 ${videos.length} vídeos`);
+        console.log(`🎬 ${videos.length} vídeos disponíveis`);
         renderizarVideos();
     } catch (err) {
         console.error('Erro vídeos:', err);
@@ -279,12 +292,11 @@ async function carregarTestes() {
         const testesRef = collection(db, colecaoNome, 'testes', 'itens');
         const snapshot = await getDocs(testesRef);
         
-        testes = [];
-        snapshot.forEach(doc => {
-            testes.push({ id: doc.id, ...doc.data() });
-        });
+        const todos = [];
+        snapshot.forEach(doc => todos.push({ id: doc.id, ...doc.data() }));
+        testes = todos.filter(t => usuarioTemAcesso(t));
         
-        console.log(`📝 ${testes.length} testes`);
+        console.log(`📝 ${testes.length} testes disponíveis`);
         renderizarTestes();
     } catch (err) {
         console.error('Erro testes:', err);
@@ -328,7 +340,6 @@ async function salvarProgresso() {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
         const progressoRef = doc(db, colecaoNome, 'progresso', 'usuarios', dadosUsuario.email);
         await setDoc(progressoRef, progresso);
-        console.log('✅ Progresso salvo');
     } catch (err) {
         console.error('Erro ao salvar:', err);
     }
@@ -352,8 +363,8 @@ function renderizarTreinamentos() {
         container.innerHTML = `
             <div class="empty">
                 <i class="fas fa-book-open"></i>
-                <p>Nenhum treinamento disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTreinamento()"><i class="fas fa-plus"></i> Criar Primeiro Treinamento</button>' : ''}
+                <p>Nenhum treinamento disponível para você</p>
+                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTreinamento()"><i class="fas fa-plus"></i> Criar Treinamento</button>' : ''}
             </div>
         `;
         return;
@@ -366,12 +377,15 @@ function renderizarTreinamentos() {
     
     treinamentos.forEach(t => {
         const concluido = progresso?.treinamentos?.includes(t.id);
+        const publicoBadge = t.publico_alvo === 'geral' ? '📢 Geral' : `👤 ${t.clientes_autorizados?.length} cliente(s)`;
+        
         html += `
             <div class="card">
                 <div class="card-info">
                     <div class="card-title">${escapeHtml(t.titulo || 'Sem título')}</div>
                     <div class="card-desc">${escapeHtml(t.descricao || '')}</div>
                     <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos || 10} pontos</div>
+                    ${isAdmin ? `<div class="card-publico"><i class="fas fa-users"></i> ${publicoBadge}</div>` : ''}
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
@@ -399,8 +413,8 @@ function renderizarVideos() {
         container.innerHTML = `
             <div class="empty">
                 <i class="fas fa-video"></i>
-                <p>Nenhum vídeo disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="abrirModalVideo()"><i class="fas fa-plus"></i> Adicionar Primeiro Vídeo</button>' : ''}
+                <p>Nenhum vídeo disponível para você</p>
+                ${isAdmin ? '<button class="btn-add" onclick="abrirModalVideo()"><i class="fas fa-plus"></i> Adicionar Vídeo</button>' : ''}
             </div>
         `;
         return;
@@ -413,12 +427,15 @@ function renderizarVideos() {
     
     videos.forEach(v => {
         const assistido = progresso?.videos?.includes(v.id);
+        const publicoBadge = v.publico_alvo === 'geral' ? '📢 Geral' : `👤 ${v.clientes_autorizados?.length} cliente(s)`;
+        
         html += `
             <div class="card">
                 <div class="card-info">
                     <div class="card-title">${escapeHtml(v.titulo || 'Sem título')}</div>
                     <div class="card-desc">${escapeHtml(v.descricao || '')}</div>
                     <div class="card-pontos"><i class="fas fa-star"></i> ${v.pontos || 5} pontos</div>
+                    ${isAdmin ? `<div class="card-publico"><i class="fas fa-users"></i> ${publicoBadge}</div>` : ''}
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
@@ -446,8 +463,8 @@ function renderizarTestes() {
         container.innerHTML = `
             <div class="empty">
                 <i class="fas fa-clipboard-list"></i>
-                <p>Nenhum teste disponível</p>
-                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTeste()"><i class="fas fa-plus"></i> Criar Primeiro Teste</button>' : ''}
+                <p>Nenhum teste disponível para você</p>
+                ${isAdmin ? '<button class="btn-add" onclick="abrirModalTeste()"><i class="fas fa-plus"></i> Criar Teste</button>' : ''}
             </div>
         `;
         return;
@@ -459,19 +476,27 @@ function renderizarTestes() {
     }
     
     testes.forEach(t => {
+        const realizado = progresso?.testes?.find(tr => tr.id === t.id);
+        const aprovado = realizado?.aprovado;
+        const publicoBadge = t.publico_alvo === 'geral' ? '📢 Geral' : `👤 ${t.clientes_autorizados?.length} cliente(s)`;
+        
         html += `
             <div class="card">
                 <div class="card-info">
                     <div class="card-title">${escapeHtml(t.titulo || 'Sem título')}</div>
                     <div class="card-desc">${escapeHtml(t.descricao || '')}</div>
                     <div class="card-pontos"><i class="fas fa-star"></i> ${t.pontos_max || 100} pontos</div>
+                    ${isAdmin ? `<div class="card-publico"><i class="fas fa-users"></i> ${publicoBadge}</div>` : ''}
                 </div>
                 <div class="card-actions">
                     ${isAdmin ? `
                         <button class="btn-editar" onclick="editarTeste('${t.id}')"><i class="fas fa-edit"></i></button>
                         <button class="btn-excluir" onclick="excluirTeste('${t.id}')"><i class="fas fa-trash"></i></button>
                     ` : `
-                        <button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>
+                        ${aprovado ? 
+                            '<button class="btn-concluir" disabled><i class="fas fa-check"></i> Aprovado</button>' : 
+                            `<button class="btn-concluir" onclick="alert('Teste em desenvolvimento')"><i class="fas fa-play"></i> Iniciar Teste</button>`
+                        }
                     `}
                 </div>
             </div>
@@ -486,22 +511,16 @@ function atualizarStats() {
     const concluidos = progresso?.treinamentos?.length || 0;
     const percentual = total > 0 ? Math.round((concluidos / total) * 100) : 0;
     
-    const totalPontosEl = document.getElementById('totalPontos');
-    const totalConcluidosEl = document.getElementById('totalConcluidos');
-    const progressoPercentualEl = document.getElementById('progressoPercentual');
-    const progressoFillEl = document.getElementById('progressoFill');
-    const nivelAtualEl = document.getElementById('nivelAtual');
-    
-    if (totalPontosEl) totalPontosEl.textContent = progresso?.pontos || 0;
-    if (totalConcluidosEl) totalConcluidosEl.textContent = `${concluidos}/${total}`;
-    if (progressoPercentualEl) progressoPercentualEl.textContent = `${percentual}%`;
-    if (progressoFillEl) progressoFillEl.style.width = `${percentual}%`;
+    document.getElementById('totalPontos').textContent = progresso?.pontos || 0;
+    document.getElementById('totalConcluidos').textContent = `${concluidos}/${total}`;
+    document.getElementById('progressoPercentual').textContent = `${percentual}%`;
+    document.getElementById('progressoFill').style.width = `${percentual}%`;
     
     let nivel = 'Iniciante';
     if (percentual >= 80) nivel = 'Expert';
     else if (percentual >= 60) nivel = 'Avançado';
     else if (percentual >= 30) nivel = 'Intermediário';
-    if (nivelAtualEl) nivelAtualEl.textContent = nivel;
+    document.getElementById('nivelAtual').textContent = nivel;
 }
 
 // ============================================
@@ -563,6 +582,18 @@ window.abrirModalTreinamento = function(id = null) {
             document.getElementById('treinamentoConteudo').value = t.conteudo || '';
             document.getElementById('treinamentoPontos').value = t.pontos || 10;
             document.getElementById('treinamentoCategoria').value = t.categoria || 'iniciante';
+            
+            if (t.publico_alvo === 'geral') {
+                document.getElementById('treinamentoPublicoTipo').value = 'geral';
+            } else {
+                document.getElementById('treinamentoPublicoTipo').value = 'especifico';
+                if (t.clientes_autorizados && document.getElementById('treinamentoClientes')) {
+                    Array.from(document.getElementById('treinamentoClientes').options).forEach(opt => {
+                        opt.selected = t.clientes_autorizados.includes(opt.value);
+                    });
+                }
+            }
+            togglePublicoAlvo('treinamento');
             document.getElementById('modalTreinamentoTitle').textContent = 'Editar Treinamento';
         }
     } else {
@@ -572,6 +603,8 @@ window.abrirModalTreinamento = function(id = null) {
         document.getElementById('treinamentoConteudo').value = '';
         document.getElementById('treinamentoPontos').value = 10;
         document.getElementById('treinamentoCategoria').value = 'iniciante';
+        document.getElementById('treinamentoPublicoTipo').value = 'geral';
+        togglePublicoAlvo('treinamento');
         document.getElementById('modalTreinamentoTitle').textContent = 'Novo Treinamento';
     }
     document.getElementById('modalTreinamento').style.display = 'flex';
@@ -579,12 +612,15 @@ window.abrirModalTreinamento = function(id = null) {
 
 window.salvarTreinamento = async function() {
     const id = document.getElementById('treinamentoId').value;
+    const publico = getPublicoAlvo('treinamento');
+    
     const dados = {
         titulo: document.getElementById('treinamentoTitulo').value,
         descricao: document.getElementById('treinamentoDescricao').value,
         conteudo: document.getElementById('treinamentoConteudo').value,
         pontos: parseInt(document.getElementById('treinamentoPontos').value) || 10,
         categoria: document.getElementById('treinamentoCategoria').value,
+        ...publico,
         data_atualizacao: new Date().toISOString()
     };
     
@@ -604,6 +640,7 @@ window.salvarTreinamento = async function() {
             mostrarMensagem('Treinamento atualizado!', 'success');
         } else {
             dados.data_criacao = new Date().toISOString();
+            dados.criado_por = dadosUsuario.email;
             await addDoc(treinamentosRef, dados);
             mostrarMensagem('Treinamento criado!', 'success');
         }
@@ -660,6 +697,18 @@ window.abrirModalVideo = function(id = null) {
             document.getElementById('videoDuracao').value = v.duracao || 0;
             document.getElementById('videoPontos').value = v.pontos || 5;
             document.getElementById('videoCategoria').value = v.categoria || 'iniciante';
+            
+            if (v.publico_alvo === 'geral') {
+                document.getElementById('videoPublicoTipo').value = 'geral';
+            } else {
+                document.getElementById('videoPublicoTipo').value = 'especifico';
+                if (v.clientes_autorizados && document.getElementById('videoClientes')) {
+                    Array.from(document.getElementById('videoClientes').options).forEach(opt => {
+                        opt.selected = v.clientes_autorizados.includes(opt.value);
+                    });
+                }
+            }
+            togglePublicoAlvo('video');
             document.getElementById('modalVideoTitle').textContent = 'Editar Vídeo';
         }
     } else {
@@ -670,6 +719,8 @@ window.abrirModalVideo = function(id = null) {
         document.getElementById('videoDuracao').value = 5;
         document.getElementById('videoPontos').value = 5;
         document.getElementById('videoCategoria').value = 'iniciante';
+        document.getElementById('videoPublicoTipo').value = 'geral';
+        togglePublicoAlvo('video');
         document.getElementById('modalVideoTitle').textContent = 'Novo Vídeo';
     }
     document.getElementById('modalVideo').style.display = 'flex';
@@ -677,6 +728,8 @@ window.abrirModalVideo = function(id = null) {
 
 window.salvarVideo = async function() {
     const id = document.getElementById('videoId').value;
+    const publico = getPublicoAlvo('video');
+    
     const dados = {
         titulo: document.getElementById('videoTitulo').value,
         descricao: document.getElementById('videoDescricao').value,
@@ -684,6 +737,7 @@ window.salvarVideo = async function() {
         duracao: parseInt(document.getElementById('videoDuracao').value) || 0,
         pontos: parseInt(document.getElementById('videoPontos').value) || 5,
         categoria: document.getElementById('videoCategoria').value,
+        ...publico,
         data_atualizacao: new Date().toISOString()
     };
     
@@ -703,6 +757,7 @@ window.salvarVideo = async function() {
             mostrarMensagem('Vídeo atualizado!', 'success');
         } else {
             dados.data_criacao = new Date().toISOString();
+            dados.criado_por = dadosUsuario.email;
             await addDoc(videosRef, dados);
             mostrarMensagem('Vídeo criado!', 'success');
         }
@@ -757,7 +812,18 @@ window.abrirModalTeste = function(id = null) {
             document.getElementById('testeDescricao').value = t.descricao || '';
             document.getElementById('testePontosMax').value = t.pontos_max || 100;
             document.getElementById('testePontosMin').value = t.pontos_min || 70;
-            document.getElementById('modalTesteTitle').textContent = 'Editar Teste';
+            
+            if (t.publico_alvo === 'geral') {
+                document.getElementById('testePublicoTipo').value = 'geral';
+            } else {
+                document.getElementById('testePublicoTipo').value = 'especifico';
+                if (t.clientes_autorizados && document.getElementById('testeClientes')) {
+                    Array.from(document.getElementById('testeClientes').options).forEach(opt => {
+                        opt.selected = t.clientes_autorizados.includes(opt.value);
+                    });
+                }
+            }
+            togglePublicoAlvo('teste');
             
             const container = document.getElementById('questoesContainer');
             container.innerHTML = '';
@@ -767,6 +833,7 @@ window.abrirModalTeste = function(id = null) {
                 adicionarQuestaoForm();
                 adicionarQuestaoForm();
             }
+            document.getElementById('modalTesteTitle').textContent = 'Editar Teste';
         }
     } else {
         document.getElementById('testeId').value = '';
@@ -774,12 +841,14 @@ window.abrirModalTeste = function(id = null) {
         document.getElementById('testeDescricao').value = '';
         document.getElementById('testePontosMax').value = 100;
         document.getElementById('testePontosMin').value = 70;
-        document.getElementById('modalTesteTitle').textContent = 'Novo Teste';
+        document.getElementById('testePublicoTipo').value = 'geral';
+        togglePublicoAlvo('teste');
         
         const container = document.getElementById('questoesContainer');
         container.innerHTML = '';
         adicionarQuestaoForm();
         adicionarQuestaoForm();
+        document.getElementById('modalTesteTitle').textContent = 'Novo Teste';
     }
     document.getElementById('modalTeste').style.display = 'flex';
 };
@@ -853,8 +922,9 @@ function adicionarAlternativa(btn) {
 
 window.salvarTeste = async function() {
     const id = document.getElementById('testeId').value;
-    const questoes = [];
+    const publico = getPublicoAlvo('teste');
     
+    const questoes = [];
     document.querySelectorAll('#questoesContainer .questao-item').forEach((questaoDiv) => {
         const texto = questaoDiv.querySelector('.questao-texto').value;
         const alternativas = [];
@@ -886,6 +956,7 @@ window.salvarTeste = async function() {
         pontos_max: parseInt(document.getElementById('testePontosMax').value) || 100,
         pontos_min: parseInt(document.getElementById('testePontosMin').value) || 70,
         questoes: questoes,
+        ...publico,
         data_atualizacao: new Date().toISOString()
     };
     
@@ -905,6 +976,7 @@ window.salvarTeste = async function() {
             mostrarMensagem('Teste atualizado!', 'success');
         } else {
             dados.data_criacao = new Date().toISOString();
+            dados.criado_por = dadosUsuario.email;
             await addDoc(testesRef, dados);
             mostrarMensagem('Teste criado!', 'success');
         }
@@ -957,9 +1029,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ============================================
-// CONFIGURAR EVENTOS
-// ============================================
 function configurarEventos() {
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
