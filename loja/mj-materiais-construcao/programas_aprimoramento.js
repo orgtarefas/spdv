@@ -1,39 +1,27 @@
 // ============================================
 // programas_aprimoramento.js
-// Programas de Aprimoramento - Versão Completa
+// Programas de Aprimoramento - Versão sem import
+// Usa as funções globais do novo_firebase_config.js
 // ============================================
 
 console.log("📚 Inicializando Programas de Aprimoramento...");
-
-// ============================================
-// IMPORTAÇÕES (do novo_firebase_config.js)
-// ============================================
-import { 
-    db, 
-    collection, 
-    doc, 
-    getDocs, 
-    getDoc, 
-    setDoc,
-    updateDoc,
-    deleteDoc,
-    serverTimestamp,
-    addDoc
-} from './novo_firebase_config.js';
 
 // ============================================
 // VARIÁVEIS GLOBAIS
 // ============================================
 let lojaIdAtual = null;
 let dadosUsuario = null;
-let isGestor = false; // Admin, Gerente ou Supervisor
+let isGestor = false;
 let allTreinamentos = [];
 let allVideos = [];
 let allTestes = [];
 let userProgresso = null;
+let db = null;
+let currentTeste = null;
+let currentRespostas = {};
 
 // ============================================
-// INICIALIZAÇÃO
+// AGUARDAR FIREBASE E INICIALIZAR
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando Programas de Aprimoramento...');
@@ -41,6 +29,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     mostrarLoading('Carregando...');
     
     try {
+        // Aguardar o Firebase ser inicializado
+        await aguardarFirebase();
+        
         // 1. Identificar loja
         lojaIdAtual = obterLojaId();
         console.log(`📍 Loja: ${lojaIdAtual}`);
@@ -57,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         console.log(`👤 Usuário: ${dadosUsuario.email} (${dadosUsuario.perfil})`);
         
-        // 3. Verificar se é gestor (admin, gerente, supervisor)
+        // 3. Verificar se é gestor
         isGestor = ['admin', 'gerente', 'supervisor'].includes(dadosUsuario.perfil);
         console.log(`🔑 Gestor: ${isGestor ? 'SIM' : 'NÃO'}`);
         
@@ -79,9 +70,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         atualizarInterface();
         configurarEventos();
         
-        // 7. Mostrar botões de gestão se for gestor
+        // 7. Mostrar botões de gestão
         if (isGestor) {
-            mostrarBotoesGestao();
+            document.getElementById('btnAdicionarTreinamento').style.display = 'flex';
+            document.getElementById('btnAdicionarVideo').style.display = 'flex';
+            document.getElementById('btnAdicionarTeste').style.display = 'flex';
         }
         
         esconderLoading();
@@ -93,6 +86,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         mostrarMensagem('Erro ao carregar: ' + error.message, 'error');
     }
 });
+
+// ============================================
+// AGUARDAR FIREBASE
+// ============================================
+async function aguardarFirebase() {
+    let tentativas = 0;
+    const maxTentativas = 30;
+    
+    while (tentativas < maxTentativas) {
+        if (window.db) {
+            db = window.db;
+            console.log('✅ Firebase db disponível');
+            break;
+        }
+        if (window.lojaServices && window.lojaServices.db) {
+            db = window.lojaServices.db;
+            console.log('✅ Firebase db via lojaServices');
+            break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+        tentativas++;
+    }
+    
+    if (!db) {
+        console.warn('⚠️ Firebase db não disponível após', tentativas, 'tentativas');
+    }
+}
 
 // ============================================
 // OBTER LOJA ID
@@ -158,15 +178,14 @@ async function capturarUsuarioLogado() {
 // VERIFICAR SE PROGRAMA ESTÁ HABILITADO
 // ============================================
 async function verificarProgramaHabilitado() {
-    if (!window.loginDb && !window.firebaseLoginDb) {
+    const loginDb = window.loginDb;
+    if (!loginDb) {
         console.warn('⚠️ loginDb não disponível');
-        return true; // Permitir por enquanto
+        return true;
     }
     
-    const loginDbRef = window.loginDb || window.firebaseLoginDb;
-    
     try {
-        const lojaDoc = await loginDbRef.collection('lojas').doc(lojaIdAtual).get();
+        const lojaDoc = await loginDb.collection('lojas').doc(lojaIdAtual).get();
         if (lojaDoc.exists) {
             const habilitado = lojaDoc.data().habilitar_programas_aprimoramento === true;
             console.log(`📚 Programa habilitado: ${habilitado}`);
@@ -176,17 +195,19 @@ async function verificarProgramaHabilitado() {
         console.error('Erro ao verificar:', error);
     }
     
-    return true; // Permitir por padrão
+    return true;
 }
 
 // ============================================
-// CARREGAR TREINAMENTOS DO FIREBASE
+// CARREGAR TREINAMENTOS
 // ============================================
 async function carregarTreinamentos() {
+    if (!db || !lojaIdAtual) return;
+    
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const treinamentosRef = collection(db, colecaoNome, 'treinamentos');
-        const snapshot = await getDocs(treinamentosRef);
+        const treinamentosRef = db.collection(colecaoNome).doc('treinamentos').collection('itens');
+        const snapshot = await treinamentosRef.get();
         
         allTreinamentos = [];
         snapshot.forEach(doc => {
@@ -199,6 +220,7 @@ async function carregarTreinamentos() {
     } catch (error) {
         console.error('Erro ao carregar treinamentos:', error);
         allTreinamentos = [];
+        renderizarTreinamentos();
     }
 }
 
@@ -206,10 +228,12 @@ async function carregarTreinamentos() {
 // CARREGAR VÍDEOS
 // ============================================
 async function carregarVideos() {
+    if (!db || !lojaIdAtual) return;
+    
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const videosRef = collection(db, colecaoNome, 'videos');
-        const snapshot = await getDocs(videosRef);
+        const videosRef = db.collection(colecaoNome).doc('videos').collection('itens');
+        const snapshot = await videosRef.get();
         
         allVideos = [];
         snapshot.forEach(doc => {
@@ -222,6 +246,7 @@ async function carregarVideos() {
     } catch (error) {
         console.error('Erro ao carregar vídeos:', error);
         allVideos = [];
+        renderizarVideos();
     }
 }
 
@@ -229,10 +254,12 @@ async function carregarVideos() {
 // CARREGAR TESTES
 // ============================================
 async function carregarTestes() {
+    if (!db || !lojaIdAtual) return;
+    
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const testesRef = collection(db, colecaoNome, 'testes');
-        const snapshot = await getDocs(testesRef);
+        const testesRef = db.collection(colecaoNome).doc('testes').collection('itens');
+        const snapshot = await testesRef.get();
         
         allTestes = [];
         snapshot.forEach(doc => {
@@ -245,6 +272,7 @@ async function carregarTestes() {
     } catch (error) {
         console.error('Erro ao carregar testes:', error);
         allTestes = [];
+        renderizarTestes();
     }
 }
 
@@ -252,17 +280,16 @@ async function carregarTestes() {
 // CARREGAR PROGRESSO DO USUÁRIO
 // ============================================
 async function carregarProgressoUsuario() {
-    if (!dadosUsuario?.email) return;
+    if (!db || !lojaIdAtual || !dadosUsuario?.email) return;
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const progressoRef = doc(db, colecaoNome, 'progresso', dadosUsuario.email);
-        const docSnap = await getDoc(progressoRef);
+        const progressoRef = db.collection(colecaoNome).doc('progresso').collection('usuarios').doc(dadosUsuario.email);
+        const docSnap = await progressoRef.get();
         
-        if (docSnap.exists()) {
+        if (docSnap.exists) {
             userProgresso = docSnap.data();
         } else {
-            // Criar progresso inicial
             userProgresso = {
                 email: dadosUsuario.email,
                 nome: dadosUsuario.nome,
@@ -273,7 +300,7 @@ async function carregarProgressoUsuario() {
                 testes_realizados: [],
                 data_inicio: new Date().toISOString()
             };
-            await setDoc(progressoRef, userProgresso);
+            await progressoRef.set(userProgresso);
             console.log('✅ Progresso inicial criado');
         }
         
@@ -288,11 +315,21 @@ async function carregarProgressoUsuario() {
 // ============================================
 // RENDERIZAR TREINAMENTOS
 // ============================================
-function renderizarTreinamentos() {
+function renderizarTreinamentos(filtro = '') {
     const container = document.getElementById('treinamentosGrid');
     if (!container) return;
     
-    if (allTreinamentos.length === 0) {
+    let treinamentos = [...allTreinamentos];
+    
+    if (filtro) {
+        const termo = filtro.toLowerCase();
+        treinamentos = treinamentos.filter(t => 
+            (t.titulo && t.titulo.toLowerCase().includes(termo)) ||
+            (t.descricao && t.descricao.toLowerCase().includes(termo))
+        );
+    }
+    
+    if (treinamentos.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-book-open"></i>
@@ -303,14 +340,14 @@ function renderizarTreinamentos() {
         return;
     }
     
-    container.innerHTML = allTreinamentos.map(t => {
+    container.innerHTML = treinamentos.map(t => {
         const isConcluido = userProgresso?.treinamentos_concluidos?.includes(t.id);
         
         return `
-            <div class="card-treinamento">
+            <div class="card-item">
                 <div class="card-header">
                     <h4>${escapeHtml(t.titulo)}</h4>
-                    <span class="badge ${t.categoria || 'iniciante'}">${t.categoria || 'Iniciante'}</span>
+                    <span class="badge ${t.categoria || 'iniciante'}">${getCategoriaNome(t.categoria)}</span>
                 </div>
                 <div class="card-body">
                     <p>${escapeHtml(t.descricao || 'Sem descrição')}</p>
@@ -343,11 +380,21 @@ function renderizarTreinamentos() {
 // ============================================
 // RENDERIZAR VÍDEOS
 // ============================================
-function renderizarVideos() {
+function renderizarVideos(filtro = '') {
     const container = document.getElementById('videosGrid');
     if (!container) return;
     
-    if (allVideos.length === 0) {
+    let videos = [...allVideos];
+    
+    if (filtro) {
+        const termo = filtro.toLowerCase();
+        videos = videos.filter(v => 
+            (v.titulo && v.titulo.toLowerCase().includes(termo)) ||
+            (v.descricao && v.descricao.toLowerCase().includes(termo))
+        );
+    }
+    
+    if (videos.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-video"></i>
@@ -358,14 +405,14 @@ function renderizarVideos() {
         return;
     }
     
-    container.innerHTML = allVideos.map(v => {
+    container.innerHTML = videos.map(v => {
         const isAssistido = userProgresso?.videos_assistidos?.includes(v.id);
         
         return `
-            <div class="card-video">
+            <div class="card-item">
                 <div class="card-header">
                     <h4>${escapeHtml(v.titulo)}</h4>
-                    <span class="badge ${v.categoria || 'iniciante'}">${v.categoria || 'Iniciante'}</span>
+                    <span class="badge ${v.categoria || 'iniciante'}">${getCategoriaNome(v.categoria)}</span>
                 </div>
                 <div class="card-body">
                     <p>${escapeHtml(v.descricao || 'Sem descrição')}</p>
@@ -399,11 +446,21 @@ function renderizarVideos() {
 // ============================================
 // RENDERIZAR TESTES
 // ============================================
-function renderizarTestes() {
+function renderizarTestes(filtro = '') {
     const container = document.getElementById('testesGrid');
     if (!container) return;
     
-    if (allTestes.length === 0) {
+    let testes = [...allTestes];
+    
+    if (filtro) {
+        const termo = filtro.toLowerCase();
+        testes = testes.filter(t => 
+            (t.titulo && t.titulo.toLowerCase().includes(termo)) ||
+            (t.descricao && t.descricao.toLowerCase().includes(termo))
+        );
+    }
+    
+    if (testes.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-clipboard-list"></i>
@@ -414,13 +471,13 @@ function renderizarTestes() {
         return;
     }
     
-    container.innerHTML = allTestes.map(t => {
+    container.innerHTML = testes.map(t => {
         const testeRealizado = userProgresso?.testes_realizados?.find(tr => tr.teste_id === t.id);
         const isAprovado = testeRealizado?.aprovado === true;
         const nota = testeRealizado?.pontuacao || 0;
         
         return `
-            <div class="card-teste">
+            <div class="card-item">
                 <div class="card-header">
                     <h4>${escapeHtml(t.titulo)}</h4>
                     <span class="badge">${t.questoes?.length || 0} questões</span>
@@ -428,7 +485,7 @@ function renderizarTestes() {
                 <div class="card-body">
                     <p>${escapeHtml(t.descricao || 'Sem descrição')}</p>
                     <div class="card-pontos">
-                        <i class="fas fa-star"></i> ${t.pontos_max || 100} pontos máx
+                        <i class="fas fa-star"></i> ${t.pontos_max || 100} pts máx
                     </div>
                     <div class="card-nota-minima">
                         <i class="fas fa-flag-checkered"></i> Mínimo: ${t.pontos_min || 70}%
@@ -457,16 +514,16 @@ function renderizarTestes() {
 }
 
 // ============================================
-// ATUALIZAR STATS DO PROGRESSO
+// ATUALIZAR STATS
 // ============================================
 function atualizarStatsProgresso() {
     const totalPontos = userProgresso?.pontos_totais || 0;
     const totalTreinamentos = allTreinamentos.length;
-    const concluidos = userProgresso?.treinamentos_concluidos?.length || 0;
-    const percentual = totalTreinamentos > 0 ? Math.round((concluidos / totalTreinamentos) * 100) : 0;
+    const treinamentosConcluidos = userProgresso?.treinamentos_concluidos?.length || 0;
+    const percentual = totalTreinamentos > 0 ? Math.round((treinamentosConcluidos / totalTreinamentos) * 100) : 0;
     
     document.getElementById('totalPontos').textContent = totalPontos;
-    document.getElementById('totalConcluidos').textContent = `${concluidos}/${totalTreinamentos}`;
+    document.getElementById('totalConcluidos').textContent = `${treinamentosConcluidos}/${totalTreinamentos}`;
     document.getElementById('progressoPercentual').textContent = `${percentual}%`;
     document.getElementById('progressoFill').style.width = `${percentual}%`;
     
@@ -478,7 +535,23 @@ function atualizarStatsProgresso() {
 }
 
 // ============================================
-// MARCAR TREINAMENTO COMO CONCLUÍDO
+// SALVAR PROGRESSO
+// ============================================
+async function salvarProgresso() {
+    if (!db || !lojaIdAtual || !dadosUsuario?.email) return;
+    
+    try {
+        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const progressoRef = db.collection(colecaoNome).doc('progresso').collection('usuarios').doc(dadosUsuario.email);
+        await progressoRef.set(userProgresso);
+        console.log('✅ Progresso salvo');
+    } catch (error) {
+        console.error('Erro ao salvar progresso:', error);
+    }
+}
+
+// ============================================
+// AÇÕES DO USUÁRIO
 // ============================================
 window.marcarTreinamentoConcluido = async function(id, pontos) {
     if (!userProgresso) return;
@@ -497,30 +570,25 @@ window.marcarTreinamentoConcluido = async function(id, pontos) {
     mostrarMensagem(`✅ Parabéns! Você ganhou ${pontos} pontos!`, 'success');
 };
 
-// ============================================
-// ASSISTIR VÍDEO
-// ============================================
 window.assistirVideo = function(id) {
     const video = allVideos.find(v => v.id === id);
     if (!video) return;
     
-    // Abrir modal com vídeo
-    const modal = document.getElementById('verVideoModal');
-    const iframe = document.getElementById('videoIframe');
-    const titulo = document.getElementById('videoVerTitulo');
+    document.getElementById('videoVerTitulo').textContent = video.titulo;
+    document.getElementById('videoVerDescricao').textContent = video.descricao || '';
     
-    if (titulo) titulo.textContent = video.titulo;
+    let videoUrl = video.url;
+    let embedUrl = videoUrl;
     
-    // Extrair ID do YouTube
-    let videoId = video.url;
-    if (video.url.includes('youtube.com/watch?v=')) {
-        videoId = video.url.split('v=')[1].split('&')[0];
-    } else if (video.url.includes('youtu.be/')) {
-        videoId = video.url.split('youtu.be/')[1].split('?')[0];
+    if (videoUrl.includes('youtube.com/watch?v=')) {
+        embedUrl = videoUrl.replace('watch?v=', 'embed/');
+    } else if (videoUrl.includes('youtu.be/')) {
+        const id = videoUrl.split('youtu.be/')[1].split('?')[0];
+        embedUrl = `https://www.youtube.com/embed/${id}`;
     }
     
-    if (iframe) iframe.src = `https://www.youtube.com/embed/${videoId}`;
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('videoIframe').src = embedUrl;
+    document.getElementById('verVideoModal').style.display = 'flex';
     
     window.currentVideoId = id;
     window.currentVideoPontos = video.pontos || 5;
@@ -548,9 +616,6 @@ window.marcarVideoAssistido = async function() {
     mostrarMensagem(`✅ Vídeo assistido! Você ganhou ${window.currentVideoPontos} pontos!`, 'success');
 };
 
-// ============================================
-// INICIAR TESTE
-// ============================================
 window.iniciarTeste = function(id) {
     const teste = allTestes.find(t => t.id === id);
     if (!teste) return;
@@ -558,12 +623,9 @@ window.iniciarTeste = function(id) {
     currentTeste = teste;
     currentRespostas = {};
     
-    const modal = document.getElementById('realizarTesteModal');
+    document.getElementById('testeRealizarTitulo').textContent = teste.titulo;
+    
     const container = document.getElementById('testeQuestoesContainer');
-    const titulo = document.getElementById('testeRealizarTitulo');
-    
-    if (titulo) titulo.textContent = teste.titulo;
-    
     if (container && teste.questoes) {
         container.innerHTML = teste.questoes.map((q, idx) => `
             <div class="questao-item">
@@ -584,7 +646,7 @@ window.iniciarTeste = function(id) {
         `).join('');
     }
     
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('realizarTesteModal').style.display = 'flex';
 };
 
 window.marcarResposta = function(questaoIdx, respostaIdx) {
@@ -614,7 +676,6 @@ window.enviarRespostasTeste = async function() {
         aprovado: aprovado
     };
     
-    // Verificar se já fez o teste
     const jaFez = userProgresso.testes_realizados?.find(tr => tr.teste_id === currentTeste.id);
     
     if (!jaFez) {
@@ -642,28 +703,9 @@ window.enviarRespostasTeste = async function() {
 };
 
 // ============================================
-// SALVAR PROGRESSO NO FIREBASE
-// ============================================
-async function salvarProgresso() {
-    if (!dadosUsuario?.email) return;
-    
-    try {
-        const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const progressoRef = doc(db, colecaoNome, 'progresso', dadosUsuario.email);
-        await setDoc(progressoRef, userProgresso);
-        console.log('✅ Progresso salvo');
-    } catch (error) {
-        console.error('Erro ao salvar progresso:', error);
-    }
-}
-
-// ============================================
-// CRUD TREINAMENTOS (para gestores)
+// CRUD TREINAMENTOS
 // ============================================
 window.abrirModalTreinamento = function(id = null) {
-    const modal = document.getElementById('treinamentoModal');
-    const form = document.getElementById('treinamentoForm');
-    
     if (id) {
         const treinamento = allTreinamentos.find(t => t.id === id);
         if (treinamento) {
@@ -676,12 +718,11 @@ window.abrirModalTreinamento = function(id = null) {
             document.getElementById('treinamentoModalTitle').textContent = 'Editar Treinamento';
         }
     } else {
-        form.reset();
+        document.getElementById('treinamentoForm').reset();
         document.getElementById('treinamentoId').value = '';
         document.getElementById('treinamentoModalTitle').textContent = 'Novo Treinamento';
     }
-    
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('treinamentoModal').style.display = 'flex';
 };
 
 window.salvarTreinamento = async function(e) {
@@ -704,14 +745,14 @@ window.salvarTreinamento = async function(e) {
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const treinamentosRef = collection(db, colecaoNome, 'treinamentos');
+        const treinamentosRef = db.collection(colecaoNome).doc('treinamentos').collection('itens');
         
         if (id) {
-            await updateDoc(doc(treinamentosRef, id), dados);
+            await treinamentosRef.doc(id).update(dados);
             mostrarMensagem('Treinamento atualizado!', 'success');
         } else {
             dados.data_criacao = new Date().toISOString();
-            await addDoc(treinamentosRef, dados);
+            await treinamentosRef.add(dados);
             mostrarMensagem('Treinamento criado!', 'success');
         }
         
@@ -729,8 +770,8 @@ window.excluirTreinamento = async function(id) {
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const treinamentosRef = collection(db, colecaoNome, 'treinamentos');
-        await deleteDoc(doc(treinamentosRef, id));
+        const treinamentosRef = db.collection(colecaoNome).doc('treinamentos').collection('itens');
+        await treinamentosRef.doc(id).delete();
         
         mostrarMensagem('Treinamento excluído!', 'success');
         await carregarTreinamentos();
@@ -742,11 +783,9 @@ window.excluirTreinamento = async function(id) {
 };
 
 // ============================================
-// CRUD VÍDEOS (para gestores)
+// CRUD VÍDEOS
 // ============================================
 window.abrirModalVideo = function(id = null) {
-    const modal = document.getElementById('videoModal');
-    
     if (id) {
         const video = allVideos.find(v => v.id === id);
         if (video) {
@@ -764,8 +803,7 @@ window.abrirModalVideo = function(id = null) {
         document.getElementById('videoId').value = '';
         document.getElementById('videoModalTitle').textContent = 'Novo Vídeo';
     }
-    
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('videoModal').style.display = 'flex';
 };
 
 window.salvarVideo = async function(e) {
@@ -789,14 +827,14 @@ window.salvarVideo = async function(e) {
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const videosRef = collection(db, colecaoNome, 'videos');
+        const videosRef = db.collection(colecaoNome).doc('videos').collection('itens');
         
         if (id) {
-            await updateDoc(doc(videosRef, id), dados);
+            await videosRef.doc(id).update(dados);
             mostrarMensagem('Vídeo atualizado!', 'success');
         } else {
             dados.data_criacao = new Date().toISOString();
-            await addDoc(videosRef, dados);
+            await videosRef.add(dados);
             mostrarMensagem('Vídeo criado!', 'success');
         }
         
@@ -814,8 +852,8 @@ window.excluirVideo = async function(id) {
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const videosRef = collection(db, colecaoNome, 'videos');
-        await deleteDoc(doc(videosRef, id));
+        const videosRef = db.collection(colecaoNome).doc('videos').collection('itens');
+        await videosRef.doc(id).delete();
         
         mostrarMensagem('Vídeo excluído!', 'success');
         await carregarVideos();
@@ -827,11 +865,9 @@ window.excluirVideo = async function(id) {
 };
 
 // ============================================
-// CRUD TESTES (para gestores)
+// CRUD TESTES
 // ============================================
 window.abrirModalTeste = function(id = null) {
-    const modal = document.getElementById('testeModal');
-    
     if (id) {
         const teste = allTestes.find(t => t.id === id);
         if (teste) {
@@ -842,7 +878,6 @@ window.abrirModalTeste = function(id = null) {
             document.getElementById('testePontosMin').value = teste.pontos_min || 70;
             document.getElementById('testeModalTitle').textContent = 'Editar Teste';
             
-            // Carregar questões
             const container = document.getElementById('questoesContainer');
             container.innerHTML = '';
             if (teste.questoes) {
@@ -854,9 +889,10 @@ window.abrirModalTeste = function(id = null) {
         document.getElementById('testeId').value = '';
         document.getElementById('testeModalTitle').textContent = 'Novo Teste';
         document.getElementById('questoesContainer').innerHTML = '';
+        adicionarQuestaoForm();
+        adicionarQuestaoForm();
     }
-    
-    if (modal) modal.style.display = 'flex';
+    document.getElementById('testeModal').style.display = 'flex';
 };
 
 function adicionarQuestaoForm(questaoData = null, idx = null) {
@@ -865,6 +901,33 @@ function adicionarQuestaoForm(questaoData = null, idx = null) {
     questaoDiv.className = 'questao-item';
     const questaoNumero = container.children.length + 1;
     
+    let alternativasHtml = '';
+    if (questaoData) {
+        for (let i = 0; i < questaoData.alternativas.length; i++) {
+            const letra = String.fromCharCode(65 + i);
+            alternativasHtml += `
+                <div class="alternativa-item">
+                    <input type="radio" name="alternativa_correta" class="alternativa-correta" value="${i}" ${questaoData.correta === i ? 'checked' : ''}>
+                    <input type="text" class="alternativa-texto" placeholder="Alternativa ${letra}" value="${escapeHtml(questaoData.alternativas[i])}">
+                    <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+            `;
+        }
+    } else {
+        alternativasHtml = `
+            <div class="alternativa-item">
+                <input type="radio" name="alternativa_correta" class="alternativa-correta" value="0">
+                <input type="text" class="alternativa-texto" placeholder="Alternativa A">
+                <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+            <div class="alternativa-item">
+                <input type="radio" name="alternativa_correta" class="alternativa-correta" value="1">
+                <input type="text" class="alternativa-texto" placeholder="Alternativa B">
+                <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
+            </div>
+        `;
+    }
+    
     questaoDiv.innerHTML = `
         <div class="questao-header">
             <span class="questao-numero">Questão ${questaoNumero}</span>
@@ -872,24 +935,7 @@ function adicionarQuestaoForm(questaoData = null, idx = null) {
         </div>
         <input type="text" class="questao-texto" placeholder="Enunciado da questão" value="${questaoData ? escapeHtml(questaoData.texto) : ''}">
         <div class="alternativas-container">
-            ${questaoData ? questaoData.alternativas.map((alt, altIdx) => `
-                <div class="alternativa-item">
-                    <input type="radio" name="alternativa_correta" class="alternativa-correta" value="${altIdx}" ${questaoData.correta === altIdx ? 'checked' : ''}>
-                    <input type="text" class="alternativa-texto" placeholder="Alternativa ${String.fromCharCode(65 + altIdx)}" value="${escapeHtml(alt)}">
-                    <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
-                </div>
-            `).join('') : `
-                <div class="alternativa-item">
-                    <input type="radio" name="alternativa_correta" class="alternativa-correta" value="0">
-                    <input type="text" class="alternativa-texto" placeholder="Alternativa A">
-                    <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
-                </div>
-                <div class="alternativa-item">
-                    <input type="radio" name="alternativa_correta" class="alternativa-correta" value="1">
-                    <input type="text" class="alternativa-texto" placeholder="Alternativa B">
-                    <button type="button" class="btn-remover-alternativa" onclick="this.parentElement.remove()">&times;</button>
-                </div>
-            `}
+            ${alternativasHtml}
         </div>
         <button type="button" class="btn-add-alternativa" onclick="adicionarAlternativa(this)">+ Adicionar Alternativa</button>
     `;
@@ -912,17 +958,13 @@ function adicionarAlternativa(btn) {
     alternativasContainer.appendChild(altDiv);
 }
 
-window.adicionarQuestao = function() {
-    adicionarQuestaoForm();
-};
-
 window.salvarTeste = async function(e) {
     e.preventDefault();
     
     const id = document.getElementById('testeId').value;
     const questoes = [];
     
-    document.querySelectorAll('#questoesContainer .questao-item').forEach((questaoDiv, idx) => {
+    document.querySelectorAll('#questoesContainer .questao-item').forEach((questaoDiv) => {
         const texto = questaoDiv.querySelector('.questao-texto').value;
         const alternativas = [];
         let correta = -1;
@@ -958,14 +1000,14 @@ window.salvarTeste = async function(e) {
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const testesRef = collection(db, colecaoNome, 'testes');
+        const testesRef = db.collection(colecaoNome).doc('testes').collection('itens');
         
         if (id) {
-            await updateDoc(doc(testesRef, id), dados);
+            await testesRef.doc(id).update(dados);
             mostrarMensagem('Teste atualizado!', 'success');
         } else {
             dados.data_criacao = new Date().toISOString();
-            await addDoc(testesRef, dados);
+            await testesRef.add(dados);
             mostrarMensagem('Teste criado!', 'success');
         }
         
@@ -983,8 +1025,8 @@ window.excluirTeste = async function(id) {
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
-        const testesRef = collection(db, colecaoNome, 'testes');
-        await deleteDoc(doc(testesRef, id));
+        const testesRef = db.collection(colecaoNome).doc('testes').collection('itens');
+        await testesRef.doc(id).delete();
         
         mostrarMensagem('Teste excluído!', 'success');
         await carregarTestes();
@@ -1003,11 +1045,6 @@ function atualizarInterface() {
     if (userNameDisplay && dadosUsuario) {
         userNameDisplay.textContent = dadosUsuario.nome || dadosUsuario.email.split('@')[0];
     }
-}
-
-function mostrarBotoesGestao() {
-    const botoes = document.querySelectorAll('.btn-adicionar');
-    botoes.forEach(btn => btn.style.display = 'flex');
 }
 
 // ============================================
@@ -1030,10 +1067,26 @@ function configurarEventos() {
         });
     });
     
+    // Buscas
+    document.getElementById('searchTreinamento')?.addEventListener('input', (e) => {
+        renderizarTreinamentos(e.target.value);
+    });
+    document.getElementById('searchVideo')?.addEventListener('input', (e) => {
+        renderizarVideos(e.target.value);
+    });
+    document.getElementById('searchTeste')?.addEventListener('input', (e) => {
+        renderizarTestes(e.target.value);
+    });
+    
+    // Botões de adicionar
+    document.getElementById('btnAdicionarTreinamento')?.addEventListener('click', () => abrirModalTreinamento());
+    document.getElementById('btnAdicionarVideo')?.addEventListener('click', () => abrirModalVideo());
+    document.getElementById('btnAdicionarTeste')?.addEventListener('click', () => abrirModalTeste());
+    
     // Formulários
-    document.getElementById('btnSalvarTreinamento')?.addEventListener('click', salvarTreinamento);
-    document.getElementById('btnSalvarVideo')?.addEventListener('click', salvarVideo);
-    document.getElementById('btnSalvarTeste')?.addEventListener('click', salvarTeste);
+    document.getElementById('treinamentoForm')?.addEventListener('submit', salvarTreinamento);
+    document.getElementById('videoForm')?.addEventListener('submit', salvarVideo);
+    document.getElementById('testeForm')?.addEventListener('submit', salvarTeste);
     document.getElementById('btnAddQuestao')?.addEventListener('click', () => adicionarQuestaoForm());
     document.getElementById('btnEnviarRespostas')?.addEventListener('click', enviarRespostasTeste);
     document.getElementById('btnMarcarAssistido')?.addEventListener('click', marcarVideoAssistido);
@@ -1042,6 +1095,15 @@ function configurarEventos() {
 // ============================================
 // UTILITÁRIOS
 // ============================================
+function getCategoriaNome(categoria) {
+    const categorias = {
+        'iniciante': 'Iniciante',
+        'intermediario': 'Intermediário',
+        'avancado': 'Avançado'
+    };
+    return categorias[categoria] || 'Iniciante';
+}
+
 function mostrarLoading(mensagem = 'Carregando...') {
     const loading = document.getElementById('loadingOverlay');
     if (loading) {
@@ -1059,29 +1121,17 @@ function esconderLoading() {
 function mostrarMensagem(texto, tipo = 'info') {
     console.log(`[${tipo}] ${texto}`);
     
-    const toast = document.createElement('div');
-    toast.className = `toast-message ${tipo}`;
-    toast.innerHTML = `<i class="fas ${tipo === 'success' ? 'fa-check-circle' : tipo === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${texto}`;
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideIn 0.3s ease;
-    `;
-    
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    const alert = document.getElementById('messageAlert');
+    if (alert) {
+        alert.className = `message-alert ${tipo}`;
+        const textEl = alert.querySelector('.message-text');
+        if (textEl) textEl.textContent = texto;
+        alert.style.display = 'flex';
+        
+        setTimeout(() => {
+            alert.style.display = 'none';
+        }, 3000);
+    }
 }
 
 function fecharModal(modalId) {
@@ -1101,13 +1151,61 @@ if (!document.querySelector('#aprimoramentoStyles')) {
     const style = document.createElement('style');
     style.id = 'aprimoramentoStyles';
     style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
         }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-card i {
+            font-size: 28px;
+            color: #667eea;
+        }
+        .stat-info {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        .progresso-geral {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            background: #667eea;
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
         }
         .btn-adicionar-mini {
             margin-top: 15px;
@@ -1118,7 +1216,7 @@ if (!document.querySelector('#aprimoramentoStyles')) {
             border-radius: 8px;
             cursor: pointer;
         }
-        .card-treinamento, .card-video, .card-teste {
+        .card-item {
             background: white;
             border-radius: 12px;
             padding: 16px;
@@ -1131,6 +1229,10 @@ if (!document.querySelector('#aprimoramentoStyles')) {
             align-items: center;
             margin-bottom: 12px;
         }
+        .card-header h4 {
+            margin: 0;
+            color: #333;
+        }
         .badge {
             padding: 4px 8px;
             border-radius: 20px;
@@ -1139,6 +1241,22 @@ if (!document.querySelector('#aprimoramentoStyles')) {
         .badge.iniciante { background: #e8f5e9; color: #2e7d32; }
         .badge.intermediario { background: #fff3e0; color: #ef6c00; }
         .badge.avancado { background: #fce4ec; color: #c62828; }
+        .card-body p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .card-pontos, .card-duracao, .card-nota-minima {
+            font-size: 12px;
+            color: #888;
+            margin-top: 8px;
+        }
+        .card-footer {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
         .btn-editar, .btn-excluir, .btn-marcar, .btn-concluido {
             padding: 6px 12px;
             border-radius: 6px;
@@ -1150,11 +1268,154 @@ if (!document.querySelector('#aprimoramentoStyles')) {
         .btn-excluir { background: #f44336; color: white; }
         .btn-marcar { background: #4CAF50; color: white; }
         .btn-concluido { background: #9e9e9e; color: white; cursor: default; }
-        .questao-item {
+        .btn-adicionar {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .treinamentos-header, .videos-header, .testes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
             background: #f5f5f5;
+            border-radius: 8px;
+            padding: 8px 12px;
+            flex: 1;
+            max-width: 300px;
+        }
+        .search-box i {
+            color: #999;
+            margin-right: 8px;
+        }
+        .search-box input {
+            border: none;
+            background: none;
+            outline: none;
+            width: 100%;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .modal-aprimoramento {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-lg {
+            max-width: 800px;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .btn-cancelar {
+            background: #f5f5f5;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-salvar {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-add-questao {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+        .questao-item {
+            background: #f9f9f9;
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 16px;
+        }
+        .questao-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .btn-remover-questao {
+            background: none;
+            border: none;
+            color: #f44336;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        .alternativas-container {
+            margin: 12px 0;
         }
         .alternativa-item {
             display: flex;
@@ -1162,15 +1423,111 @@ if (!document.querySelector('#aprimoramentoStyles')) {
             gap: 10px;
             margin-bottom: 8px;
         }
-        .alternativa-texto { flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
+        .alternativa-texto {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn-remover-alternativa {
+            background: none;
+            border: none;
+            color: #f44336;
+            cursor: pointer;
+        }
+        .btn-add-alternativa {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-enviar-respostas {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-marcar-assistido {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .video-player {
+            margin-bottom: 16px;
+        }
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+        }
+        .loading-spinner i {
+            font-size: 32px;
+            color: #667eea;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .message-alert {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 12px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 2000;
+        }
+        .message-alert.success { background: #4CAF50; color: white; }
+        .message-alert.error { background: #f44336; color: white; }
+        .message-alert.warning { background: #ff9800; color: white; }
+        .message-alert.info { background: #2196F3; color: white; }
+        .message-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+        }
     `;
     document.head.appendChild(style);
 }
-
-// Exportar funções globais
-window.fecharModal = fecharModal;
-window.mostrarMensagem = mostrarMensagem;
-window.adicionarQuestao = adicionarQuestaoForm;
-window.adicionarAlternativa = adicionarAlternativa;
 
 console.log("✅ programas_aprimoramento.js carregado com sucesso!");
