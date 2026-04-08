@@ -1,7 +1,6 @@
 // ============================================
 // programas_aprimoramento.js
-// Programas de Aprimoramento - Versão sem import
-// Usa as funções globais do novo_firebase_config.js
+// Programas de Aprimoramento - Versão Corrigida
 // ============================================
 
 console.log("📚 Inicializando Programas de Aprimoramento...");
@@ -17,11 +16,12 @@ let allVideos = [];
 let allTestes = [];
 let userProgresso = null;
 let db = null;
+let loginDb = null;
 let currentTeste = null;
 let currentRespostas = {};
 
 // ============================================
-// AGUARDAR FIREBASE E INICIALIZAR
+// INICIALIZAÇÃO
 // ============================================
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando Programas de Aprimoramento...');
@@ -29,14 +29,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     mostrarLoading('Carregando...');
     
     try {
-        // Aguardar o Firebase ser inicializado
-        await aguardarFirebase();
+        // Aguardar um pouco para o Firebase carregar
+        await delay(1000);
         
         // 1. Identificar loja
         lojaIdAtual = obterLojaId();
         console.log(`📍 Loja: ${lojaIdAtual}`);
         
-        // 2. Capturar usuário logado
+        // 2. Obter referências do Firebase
+        if (window.db) {
+            db = window.db;
+            console.log('✅ db disponível via window.db');
+        } else if (window.lojaServices && window.lojaServices.db) {
+            db = window.lojaServices.db;
+            console.log('✅ db disponível via lojaServices');
+        }
+        
+        if (window.loginDb) {
+            loginDb = window.loginDb;
+            console.log('✅ loginDb disponível');
+        }
+        
+        // 3. Capturar usuário logado
         await capturarUsuarioLogado();
         
         if (!dadosUsuario || !dadosUsuario.email) {
@@ -48,11 +62,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         console.log(`👤 Usuário: ${dadosUsuario.email} (${dadosUsuario.perfil})`);
         
-        // 3. Verificar se é gestor
+        // 4. Verificar se é gestor
         isGestor = ['admin', 'gerente', 'supervisor'].includes(dadosUsuario.perfil);
         console.log(`🔑 Gestor: ${isGestor ? 'SIM' : 'NÃO'}`);
         
-        // 4. Verificar se programa está habilitado
+        // 5. Verificar se programa está habilitado
         const habilitado = await verificarProgramaHabilitado();
         if (!habilitado) {
             mostrarMensagem('Programa de Aprimoramento não está habilitado para esta loja.', 'warning');
@@ -60,21 +74,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // 5. Carregar dados
-        await carregarTreinamentos();
-        await carregarVideos();
-        await carregarTestes();
-        await carregarProgressoUsuario();
+        // 6. Carregar dados (apenas se db disponível)
+        if (db && lojaIdAtual) {
+            await carregarTreinamentos();
+            await carregarVideos();
+            await carregarTestes();
+            await carregarProgressoUsuario();
+        } else {
+            console.warn('⚠️ db não disponível, usando dados mock');
+            mostrarMensagem('Banco de dados não disponível. Algumas funções podem não funcionar.', 'warning');
+        }
         
-        // 6. Configurar interface
+        // 7. Configurar interface
         atualizarInterface();
         configurarEventos();
         
-        // 7. Mostrar botões de gestão
+        // 8. Mostrar botões de gestão
         if (isGestor) {
-            document.getElementById('btnAdicionarTreinamento').style.display = 'flex';
-            document.getElementById('btnAdicionarVideo').style.display = 'flex';
-            document.getElementById('btnAdicionarTeste').style.display = 'flex';
+            const btnTreinamento = document.getElementById('btnAdicionarTreinamento');
+            const btnVideo = document.getElementById('btnAdicionarVideo');
+            const btnTeste = document.getElementById('btnAdicionarTeste');
+            if (btnTreinamento) btnTreinamento.style.display = 'flex';
+            if (btnVideo) btnVideo.style.display = 'flex';
+            if (btnTeste) btnTeste.style.display = 'flex';
         }
         
         esconderLoading();
@@ -88,30 +110,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
-// AGUARDAR FIREBASE
+// DELAY
 // ============================================
-async function aguardarFirebase() {
-    let tentativas = 0;
-    const maxTentativas = 30;
-    
-    while (tentativas < maxTentativas) {
-        if (window.db) {
-            db = window.db;
-            console.log('✅ Firebase db disponível');
-            break;
-        }
-        if (window.lojaServices && window.lojaServices.db) {
-            db = window.lojaServices.db;
-            console.log('✅ Firebase db via lojaServices');
-            break;
-        }
-        await new Promise(resolve => setTimeout(resolve, 200));
-        tentativas++;
-    }
-    
-    if (!db) {
-        console.warn('⚠️ Firebase db não disponível após', tentativas, 'tentativas');
-    }
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================
@@ -178,7 +180,6 @@ async function capturarUsuarioLogado() {
 // VERIFICAR SE PROGRAMA ESTÁ HABILITADO
 // ============================================
 async function verificarProgramaHabilitado() {
-    const loginDb = window.loginDb;
     if (!loginDb) {
         console.warn('⚠️ loginDb não disponível');
         return true;
@@ -202,10 +203,17 @@ async function verificarProgramaHabilitado() {
 // CARREGAR TREINAMENTOS
 // ============================================
 async function carregarTreinamentos() {
-    if (!db || !lojaIdAtual) return;
+    if (!db || !lojaIdAtual) {
+        console.warn('⚠️ db não disponível para carregar treinamentos');
+        allTreinamentos = [];
+        renderizarTreinamentos();
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        console.log(`📁 Buscando treinamentos em: ${colecaoNome}/treinamentos/itens`);
+        
         const treinamentosRef = db.collection(colecaoNome).doc('treinamentos').collection('itens');
         const snapshot = await treinamentosRef.get();
         
@@ -228,10 +236,17 @@ async function carregarTreinamentos() {
 // CARREGAR VÍDEOS
 // ============================================
 async function carregarVideos() {
-    if (!db || !lojaIdAtual) return;
+    if (!db || !lojaIdAtual) {
+        console.warn('⚠️ db não disponível para carregar vídeos');
+        allVideos = [];
+        renderizarVideos();
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        console.log(`📁 Buscando vídeos em: ${colecaoNome}/videos/itens`);
+        
         const videosRef = db.collection(colecaoNome).doc('videos').collection('itens');
         const snapshot = await videosRef.get();
         
@@ -254,10 +269,17 @@ async function carregarVideos() {
 // CARREGAR TESTES
 // ============================================
 async function carregarTestes() {
-    if (!db || !lojaIdAtual) return;
+    if (!db || !lojaIdAtual) {
+        console.warn('⚠️ db não disponível para carregar testes');
+        allTestes = [];
+        renderizarTestes();
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        console.log(`📁 Buscando testes em: ${colecaoNome}/testes/itens`);
+        
         const testesRef = db.collection(colecaoNome).doc('testes').collection('itens');
         const snapshot = await testesRef.get();
         
@@ -280,7 +302,12 @@ async function carregarTestes() {
 // CARREGAR PROGRESSO DO USUÁRIO
 // ============================================
 async function carregarProgressoUsuario() {
-    if (!db || !lojaIdAtual || !dadosUsuario?.email) return;
+    if (!db || !lojaIdAtual || !dadosUsuario?.email) {
+        console.warn('⚠️ Dados insuficientes para carregar progresso');
+        userProgresso = { pontos_totais: 0, treinamentos_concluidos: [], videos_assistidos: [], testes_realizados: [] };
+        atualizarStatsProgresso();
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
@@ -289,6 +316,7 @@ async function carregarProgressoUsuario() {
         
         if (docSnap.exists) {
             userProgresso = docSnap.data();
+            console.log('✅ Progresso carregado:', userProgresso);
         } else {
             userProgresso = {
                 email: dadosUsuario.email,
@@ -309,6 +337,7 @@ async function carregarProgressoUsuario() {
     } catch (error) {
         console.error('Erro ao carregar progresso:', error);
         userProgresso = { pontos_totais: 0, treinamentos_concluidos: [], videos_assistidos: [], testes_realizados: [] };
+        atualizarStatsProgresso();
     }
 }
 
@@ -522,23 +551,32 @@ function atualizarStatsProgresso() {
     const treinamentosConcluidos = userProgresso?.treinamentos_concluidos?.length || 0;
     const percentual = totalTreinamentos > 0 ? Math.round((treinamentosConcluidos / totalTreinamentos) * 100) : 0;
     
-    document.getElementById('totalPontos').textContent = totalPontos;
-    document.getElementById('totalConcluidos').textContent = `${treinamentosConcluidos}/${totalTreinamentos}`;
-    document.getElementById('progressoPercentual').textContent = `${percentual}%`;
-    document.getElementById('progressoFill').style.width = `${percentual}%`;
+    const totalPontosEl = document.getElementById('totalPontos');
+    const totalConcluidosEl = document.getElementById('totalConcluidos');
+    const progressoPercentualEl = document.getElementById('progressoPercentual');
+    const progressoFillEl = document.getElementById('progressoFill');
+    const nivelAtualEl = document.getElementById('nivelAtual');
+    
+    if (totalPontosEl) totalPontosEl.textContent = totalPontos;
+    if (totalConcluidosEl) totalConcluidosEl.textContent = `${treinamentosConcluidos}/${totalTreinamentos}`;
+    if (progressoPercentualEl) progressoPercentualEl.textContent = `${percentual}%`;
+    if (progressoFillEl) progressoFillEl.style.width = `${percentual}%`;
     
     let nivel = 'Iniciante';
     if (percentual >= 80) nivel = 'Expert';
     else if (percentual >= 60) nivel = 'Avançado';
     else if (percentual >= 30) nivel = 'Intermediário';
-    document.getElementById('nivelAtual').textContent = nivel;
+    if (nivelAtualEl) nivelAtualEl.textContent = nivel;
 }
 
 // ============================================
 // SALVAR PROGRESSO
 // ============================================
 async function salvarProgresso() {
-    if (!db || !lojaIdAtual || !dadosUsuario?.email) return;
+    if (!db || !lojaIdAtual || !dadosUsuario?.email) {
+        console.warn('⚠️ Não foi possível salvar progresso');
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
@@ -574,8 +612,12 @@ window.assistirVideo = function(id) {
     const video = allVideos.find(v => v.id === id);
     if (!video) return;
     
-    document.getElementById('videoVerTitulo').textContent = video.titulo;
-    document.getElementById('videoVerDescricao').textContent = video.descricao || '';
+    const tituloEl = document.getElementById('videoVerTitulo');
+    const descricaoEl = document.getElementById('videoVerDescricao');
+    const iframe = document.getElementById('videoIframe');
+    
+    if (tituloEl) tituloEl.textContent = video.titulo;
+    if (descricaoEl) descricaoEl.textContent = video.descricao || '';
     
     let videoUrl = video.url;
     let embedUrl = videoUrl;
@@ -583,11 +625,12 @@ window.assistirVideo = function(id) {
     if (videoUrl.includes('youtube.com/watch?v=')) {
         embedUrl = videoUrl.replace('watch?v=', 'embed/');
     } else if (videoUrl.includes('youtu.be/')) {
-        const id = videoUrl.split('youtu.be/')[1].split('?')[0];
-        embedUrl = `https://www.youtube.com/embed/${id}`;
+        const idVideo = videoUrl.split('youtu.be/')[1].split('?')[0];
+        embedUrl = `https://www.youtube.com/embed/${idVideo}`;
     }
     
-    document.getElementById('videoIframe').src = embedUrl;
+    if (iframe) iframe.src = embedUrl;
+    
     document.getElementById('verVideoModal').style.display = 'flex';
     
     window.currentVideoId = id;
@@ -610,7 +653,8 @@ window.marcarVideoAssistido = async function() {
     atualizarStatsProgresso();
     
     fecharModal('verVideoModal');
-    document.getElementById('videoIframe').src = '';
+    const iframe = document.getElementById('videoIframe');
+    if (iframe) iframe.src = '';
     window.currentVideoId = null;
     
     mostrarMensagem(`✅ Vídeo assistido! Você ganhou ${window.currentVideoPontos} pontos!`, 'success');
@@ -623,9 +667,11 @@ window.iniciarTeste = function(id) {
     currentTeste = teste;
     currentRespostas = {};
     
-    document.getElementById('testeRealizarTitulo').textContent = teste.titulo;
-    
+    const tituloEl = document.getElementById('testeRealizarTitulo');
     const container = document.getElementById('testeQuestoesContainer');
+    
+    if (tituloEl) tituloEl.textContent = teste.titulo;
+    
     if (container && teste.questoes) {
         container.innerHTML = teste.questoes.map((q, idx) => `
             <div class="questao-item">
@@ -743,6 +789,11 @@ window.salvarTreinamento = async function(e) {
         return;
     }
     
+    if (!db || !lojaIdAtual) {
+        mostrarMensagem('Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
         const treinamentosRef = db.collection(colecaoNome).doc('treinamentos').collection('itens');
@@ -761,12 +812,17 @@ window.salvarTreinamento = async function(e) {
         
     } catch (error) {
         console.error('Erro ao salvar:', error);
-        mostrarMensagem('Erro ao salvar', 'error');
+        mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
     }
 };
 
 window.excluirTreinamento = async function(id) {
     if (!confirm('Tem certeza que deseja excluir este treinamento?')) return;
+    
+    if (!db || !lojaIdAtual) {
+        mostrarMensagem('Banco de dados não disponível', 'error');
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
@@ -825,6 +881,11 @@ window.salvarVideo = async function(e) {
         return;
     }
     
+    if (!db || !lojaIdAtual) {
+        mostrarMensagem('Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
         const videosRef = db.collection(colecaoNome).doc('videos').collection('itens');
@@ -843,12 +904,17 @@ window.salvarVideo = async function(e) {
         
     } catch (error) {
         console.error('Erro ao salvar:', error);
-        mostrarMensagem('Erro ao salvar', 'error');
+        mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
     }
 };
 
 window.excluirVideo = async function(id) {
     if (!confirm('Tem certeza que deseja excluir este vídeo?')) return;
+    
+    if (!db || !lojaIdAtual) {
+        mostrarMensagem('Banco de dados não disponível', 'error');
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
@@ -998,6 +1064,11 @@ window.salvarTeste = async function(e) {
         data_atualizacao: new Date().toISOString()
     };
     
+    if (!db || !lojaIdAtual) {
+        mostrarMensagem('Banco de dados não disponível', 'error');
+        return;
+    }
+    
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
         const testesRef = db.collection(colecaoNome).doc('testes').collection('itens');
@@ -1016,12 +1087,17 @@ window.salvarTeste = async function(e) {
         
     } catch (error) {
         console.error('Erro ao salvar:', error);
-        mostrarMensagem('Erro ao salvar', 'error');
+        mostrarMensagem('Erro ao salvar: ' + error.message, 'error');
     }
 };
 
 window.excluirTeste = async function(id) {
     if (!confirm('Tem certeza que deseja excluir este teste?')) return;
+    
+    if (!db || !lojaIdAtual) {
+        mostrarMensagem('Banco de dados não disponível', 'error');
+        return;
+    }
     
     try {
         const colecaoNome = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
@@ -1052,9 +1128,12 @@ function atualizarInterface() {
 // ============================================
 function configurarEventos() {
     // Botão voltar
-    document.getElementById('btnBack')?.addEventListener('click', () => {
-        window.location.href = 'index.html';
-    });
+    const btnBack = document.getElementById('btnBack');
+    if (btnBack) {
+        btnBack.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    }
     
     // Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1063,33 +1142,56 @@ function configurarEventos() {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById(`tab-${tab}`)?.classList.add('active');
+            const targetPane = document.getElementById(`tab-${tab}`);
+            if (targetPane) targetPane.classList.add('active');
         });
     });
     
     // Buscas
-    document.getElementById('searchTreinamento')?.addEventListener('input', (e) => {
-        renderizarTreinamentos(e.target.value);
-    });
-    document.getElementById('searchVideo')?.addEventListener('input', (e) => {
-        renderizarVideos(e.target.value);
-    });
-    document.getElementById('searchTeste')?.addEventListener('input', (e) => {
-        renderizarTestes(e.target.value);
-    });
+    const searchTreinamento = document.getElementById('searchTreinamento');
+    if (searchTreinamento) {
+        searchTreinamento.addEventListener('input', (e) => {
+            renderizarTreinamentos(e.target.value);
+        });
+    }
+    
+    const searchVideo = document.getElementById('searchVideo');
+    if (searchVideo) {
+        searchVideo.addEventListener('input', (e) => {
+            renderizarVideos(e.target.value);
+        });
+    }
+    
+    const searchTeste = document.getElementById('searchTeste');
+    if (searchTeste) {
+        searchTeste.addEventListener('input', (e) => {
+            renderizarTestes(e.target.value);
+        });
+    }
     
     // Botões de adicionar
-    document.getElementById('btnAdicionarTreinamento')?.addEventListener('click', () => abrirModalTreinamento());
-    document.getElementById('btnAdicionarVideo')?.addEventListener('click', () => abrirModalVideo());
-    document.getElementById('btnAdicionarTeste')?.addEventListener('click', () => abrirModalTeste());
+    const btnAdicionarTreinamento = document.getElementById('btnAdicionarTreinamento');
+    const btnAdicionarVideo = document.getElementById('btnAdicionarVideo');
+    const btnAdicionarTeste = document.getElementById('btnAdicionarTeste');
+    
+    if (btnAdicionarTreinamento) btnAdicionarTreinamento.addEventListener('click', () => abrirModalTreinamento());
+    if (btnAdicionarVideo) btnAdicionarVideo.addEventListener('click', () => abrirModalVideo());
+    if (btnAdicionarTeste) btnAdicionarTeste.addEventListener('click', () => abrirModalTeste());
     
     // Formulários
-    document.getElementById('treinamentoForm')?.addEventListener('submit', salvarTreinamento);
-    document.getElementById('videoForm')?.addEventListener('submit', salvarVideo);
-    document.getElementById('testeForm')?.addEventListener('submit', salvarTeste);
-    document.getElementById('btnAddQuestao')?.addEventListener('click', () => adicionarQuestaoForm());
-    document.getElementById('btnEnviarRespostas')?.addEventListener('click', enviarRespostasTeste);
-    document.getElementById('btnMarcarAssistido')?.addEventListener('click', marcarVideoAssistido);
+    const treinamentoForm = document.getElementById('treinamentoForm');
+    const videoForm = document.getElementById('videoForm');
+    const testeForm = document.getElementById('testeForm');
+    const btnAddQuestao = document.getElementById('btnAddQuestao');
+    const btnEnviarRespostas = document.getElementById('btnEnviarRespostas');
+    const btnMarcarAssistido = document.getElementById('btnMarcarAssistido');
+    
+    if (treinamentoForm) treinamentoForm.addEventListener('submit', salvarTreinamento);
+    if (videoForm) videoForm.addEventListener('submit', salvarVideo);
+    if (testeForm) testeForm.addEventListener('submit', salvarTeste);
+    if (btnAddQuestao) btnAddQuestao.addEventListener('click', () => adicionarQuestaoForm());
+    if (btnEnviarRespostas) btnEnviarRespostas.addEventListener('click', enviarRespostasTeste);
+    if (btnMarcarAssistido) btnMarcarAssistido.addEventListener('click', marcarVideoAssistido);
 }
 
 // ============================================
@@ -1146,7 +1248,7 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// Adicionar estilos
+// Adicionar estilos se não existirem
 if (!document.querySelector('#aprimoramentoStyles')) {
     const style = document.createElement('style');
     style.id = 'aprimoramentoStyles';
@@ -1206,6 +1308,78 @@ if (!document.querySelector('#aprimoramentoStyles')) {
             height: 100%;
             border-radius: 10px;
             transition: width 0.3s ease;
+        }
+        .aprimoramento-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+            color: #666;
+        }
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .treinamentos-header, .videos-header, .testes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 8px 12px;
+            flex: 1;
+            max-width: 300px;
+        }
+        .search-box i {
+            color: #999;
+            margin-right: 8px;
+        }
+        .search-box input {
+            border: none;
+            background: none;
+            outline: none;
+            width: 100%;
+        }
+        .btn-adicionar {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .btn-adicionar-mini {
             margin-top: 15px;
@@ -1268,42 +1442,6 @@ if (!document.querySelector('#aprimoramentoStyles')) {
         .btn-excluir { background: #f44336; color: white; }
         .btn-marcar { background: #4CAF50; color: white; }
         .btn-concluido { background: #9e9e9e; color: white; cursor: default; }
-        .btn-adicionar {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .treinamentos-header, .videos-header, .testes-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .search-box {
-            display: flex;
-            align-items: center;
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 8px 12px;
-            flex: 1;
-            max-width: 300px;
-        }
-        .search-box i {
-            color: #999;
-            margin-right: 8px;
-        }
-        .search-box input {
-            border: none;
-            background: none;
-            outline: none;
-            width: 100%;
-        }
         .empty-state {
             text-align: center;
             padding: 40px;
@@ -1529,5 +1667,10 @@ if (!document.querySelector('#aprimoramentoStyles')) {
     `;
     document.head.appendChild(style);
 }
+
+// Exportar funções globais
+window.fecharModal = fecharModal;
+window.mostrarMensagem = mostrarMensagem;
+window.adicionarAlternativa = adicionarAlternativa;
 
 console.log("✅ programas_aprimoramento.js carregado com sucesso!");
