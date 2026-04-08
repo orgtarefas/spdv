@@ -326,18 +326,55 @@
         <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
     </div>
 
-    <!-- Scripts -->
+    <!-- ============================================ -->
+    <!-- SCRIPTS - ORDEM CORRETA                    -->
+    <!-- ============================================ -->
+    
+    <!-- 1. Firebase Core -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    
+    <!-- 2. Firebase Auth -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    
+    <!-- 3. Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
-    <!-- Login Firebase -->
+    <!-- 4. Firebase App Check (CRÍTICO - necessário para o login) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
+    
+    <!-- 5. Login Firebase -->
     <script src="../../login_firebase.js"></script>
     
-    <!-- Módulo da Loja (como module) -->
+    <!-- 6. Configuração das Lojas -->
+    <script type="module" src="../../novo_lojas.js"></script>
+    
+    <!-- 7. Firebase Config da Loja (module) -->
     <script type="module" src="novo_firebase_config.js"></script>
     
-    <!-- Script principal (NÃO é module, usa funções globais) -->
+    <!-- 8. Script principal (NÃO é module) -->
     <script src="programas_aprimoramento.js"></script>
+    
+    <!-- 9. Script auxiliar para garantir que o Firebase foi carregado -->
+    <script>
+        // Aguardar o Firebase Auth inicializar
+        let tentativas = 0;
+        const maxTentativas = 20;
+        
+        function aguardarFirebase() {
+            if (window.auth && window.auth.currentUser) {
+                console.log('✅ Firebase Auth pronto para programas_aprimoramento');
+                return;
+            }
+            
+            tentativas++;
+            if (tentativas < maxTentativas) {
+                setTimeout(aguardarFirebase, 500);
+            } else {
+                console.warn('⚠️ Firebase Auth não inicializado após timeout');
+            }
+        }
+        
+        setTimeout(aguardarFirebase, 500);
+    </script>
 </body>
 </html>
