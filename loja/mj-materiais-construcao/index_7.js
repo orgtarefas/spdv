@@ -234,59 +234,142 @@ function configurarMenuPerfil() {
 }
 
 // ============================================
-// ATUALIZAR MENU PERFIL
+// ATUALIZAR MENU PERFIL - SOMENTE QUANDO LOGADO
 // ============================================
 function atualizarMenuPerfil() {
-    if (!dadosUsuario) return;
+    if (!dadosUsuario) {
+        // Se NÃO estiver logado, esconde TODOS os itens do menu
+        const todosMenuItems = document.querySelectorAll('#profileMenuDropdown .menu-item');
+        todosMenuItems.forEach(item => {
+            item.style.display = 'none';
+        });
+        
+        const divisores = document.querySelectorAll('#profileMenuDropdown .menu-divider');
+        divisores.forEach(div => {
+            div.style.display = 'none';
+        });
+        
+        console.log('🔒 Menu escondido - usuário não logado');
+        return;
+    }
+    
+    // ============================================
+    // USUÁRIO ESTÁ LOGADO - MOSTRAR MENUS
+    // ============================================
     
     const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
     console.log('🔍 Atualizando menu para perfil:', perfil);
     
+    // Permissões por perfil (itens administrativos)
     const permissoes = {
         'admin': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
         'gerente': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
         'supervisor': ['menuEstoque'],
         'vendedor': ['menuEstoque'],
-        'cliente': []
+        'cliente': [] // Cliente não vê itens administrativos
     };
     
     const itensPermitidos = permissoes[perfil] || [];
     
-    const menuItems = {
-        menuRelatorios: document.getElementById('menuRelatorios'),
-        menuGestaoLogins: document.getElementById('menuGestaoLogins'),
-        menuEstoque: document.getElementById('menuEstoque'),
-        menuGestaoAgendamento: document.getElementById('menuGestaoAgendamento')
-    };
+    // Referências dos elementos do menu
+    const menuProgramas = document.getElementById('menuProgramasAprimoramento');
+    const menuRelatorios = document.getElementById('menuRelatorios');
+    const menuGestaoLogins = document.getElementById('menuGestaoLogins');
+    const menuEstoque = document.getElementById('menuEstoque');
+    const menuGestaoAgendamento = document.getElementById('menuGestaoAgendamento');
+    const menuLogout = document.getElementById('menuLogout');
     
-    for (const [id, element] of Object.entries(menuItems)) {
-        if (element) {
-            if (id === 'menuGestaoAgendamento') {
-                if (agendamentoHabilitado && perfil !== 'cliente') {
-                    element.style.display = 'flex';
-                } else {
-                    element.style.display = 'none';
-                }
-            } else {
-                if (itensPermitidos.includes(id)) {
-                    element.style.display = 'flex';
-                } else {
-                    element.style.display = 'none';
-                }
-            }
+    // Divisores
+    const menuDividerProgramas = document.getElementById('menuDividerProgramas');
+    const menuDividerPrincipal = document.getElementById('menuDividerPrincipal');
+    
+    // ============================================
+    // 1. PROGRAMA DE APRIMORAMENTO - VISÍVEL APENAS QUANDO LOGADO
+    // ============================================
+    if (menuProgramas) {
+        menuProgramas.style.display = 'flex';
+        
+        // Evento de clique para abrir programas de aprimoramento
+        menuProgramas.onclick = (e) => {
+            e.preventDefault();
+            window.location.href = 'programas_aprimoramento.html';
+        };
+        console.log('✅ Mostrando item: Programas de Aprimoramento');
+    }
+    
+    // ============================================
+    // 2. ITENS ADMINISTRATIVOS (apenas para funcionários)
+    // ============================================
+    let temItemAdministrativo = false;
+    
+    // Relatórios
+    if (menuRelatorios) {
+        if (itensPermitidos.includes('menuRelatorios')) {
+            menuRelatorios.style.display = 'flex';
+            temItemAdministrativo = true;
+            console.log('✅ Mostrando item: Relatórios');
+        } else {
+            menuRelatorios.style.display = 'none';
         }
     }
     
-    const divisor = document.querySelector('.menu-divider');
-    if (divisor) {
-        const itensVisiveis = Object.values(menuItems).filter(el => el && el.style.display === 'flex').length;
-        divisor.style.display = itensVisiveis > 0 ? 'block' : 'none';
+    // Gestão de Logins
+    if (menuGestaoLogins) {
+        if (itensPermitidos.includes('menuGestaoLogins')) {
+            menuGestaoLogins.style.display = 'flex';
+            temItemAdministrativo = true;
+            console.log('✅ Mostrando item: Gestão de Logins');
+        } else {
+            menuGestaoLogins.style.display = 'none';
+        }
     }
     
-    const menuLogout = document.getElementById('menuLogout');
+    // Estoque
+    if (menuEstoque) {
+        if (itensPermitidos.includes('menuEstoque')) {
+            menuEstoque.style.display = 'flex';
+            temItemAdministrativo = true;
+            console.log('✅ Mostrando item: Estoque');
+        } else {
+            menuEstoque.style.display = 'none';
+        }
+    }
+    
+    // Gestão de Agendamento (regra especial)
+    if (menuGestaoAgendamento) {
+        if (agendamentoHabilitado && perfil !== 'cliente') {
+            menuGestaoAgendamento.style.display = 'flex';
+            temItemAdministrativo = true;
+            console.log('✅ Mostrando item: Gestão de Agendamento');
+        } else {
+            menuGestaoAgendamento.style.display = 'none';
+        }
+    }
+    
+    // ============================================
+    // 3. GERENCIAR DIVISORES
+    // ============================================
+    // Divisor entre Programas e itens administrativos
+    if (menuDividerProgramas) {
+        menuDividerProgramas.style.display = temItemAdministrativo ? 'block' : 'none';
+        console.log(`📏 Divisor Programas: ${temItemAdministrativo ? 'visível' : 'oculto'}`);
+    }
+    
+    // Divisor principal (antes do logout)
+    if (menuDividerPrincipal) {
+        const temAlgumItem = temItemAdministrativo || true; // Programas sempre visível quando logado
+        menuDividerPrincipal.style.display = temAlgumItem ? 'block' : 'none';
+    }
+    
+    // ============================================
+    // 4. LOGOUT - SEMPRE VISÍVEL QUANDO LOGADO
+    // ============================================
     if (menuLogout) {
         menuLogout.style.display = 'flex';
+        console.log('✅ Mostrando item: Sair');
     }
+    
+    console.log('✅ Menu atualizado com Programas de Aprimoramento');
 }
 
 // ============================================
@@ -362,12 +445,16 @@ window.addEventListener('usuarioLogado', (event) => {
     fecharModal('loginModal');
 });
 
+// ============================================
+// EVENTO: USUÁRIO DESLOGADO
+// ============================================
 window.addEventListener('usuarioDeslogado', () => {
     usuarioLogado = false;
     dadosUsuario = null;
     
     console.log('👤 Usuário deslogado');
     
+    // Atualizar agendamento se necessário
     if (agendamentoHabilitado) {
         renderizarPainelAgendamento();
         setTimeout(() => {
@@ -375,22 +462,68 @@ window.addEventListener('usuarioDeslogado', () => {
         }, 100);
     }
     
+    // Elementos da interface
     const userName = document.getElementById('userName');
     const btnLogout = document.getElementById('btnLogout');
     const btnLogin = document.getElementById('btnLogin');
     const profileMenuBtn = document.getElementById('profileMenuBtn');
     const dropdown = document.getElementById('profileMenuDropdown');
     
+    // Atualizar textos e botões
     if (userName) userName.textContent = 'Visitante';
     if (btnLogout) btnLogout.style.display = 'none';
     if (btnLogin) btnLogin.style.display = 'inline-flex';
     if (profileMenuBtn) profileMenuBtn.style.display = 'none';
     if (dropdown) dropdown.classList.remove('show');
     
-    document.querySelectorAll('.menu-item').forEach(item => {
+    // ============================================
+    // ESCONDER TODOS OS ITENS DO MENU
+    // ============================================
+    
+    // Esconder itens individuais do menu
+    const menuItems = [
+        'menuProgramasAprimoramento',
+        'menuRelatorios',
+        'menuGestaoLogins',
+        'menuEstoque',
+        'menuGestaoAgendamento',
+        'menuLogout'
+    ];
+    
+    menuItems.forEach(itemId => {
+        const item = document.getElementById(itemId);
+        if (item) {
+            item.style.display = 'none';
+        }
+    });
+    
+    // ============================================
+    // ESCONDER TODOS OS DIVISORES
+    // ============================================
+    const divisores = [
+        'menuDividerProgramas',
+        'menuDividerPrincipal'
+    ];
+    
+    divisores.forEach(divId => {
+        const divisor = document.getElementById(divId);
+        if (divisor) {
+            divisor.style.display = 'none';
+        }
+    });
+    
+    // Fallback: esconder qualquer outro .menu-item ou .menu-divider que possa existir
+    const todosMenuItems = document.querySelectorAll('#profileMenuDropdown .menu-item');
+    todosMenuItems.forEach(item => {
         item.style.display = 'none';
     });
-    document.querySelector('.menu-divider').style.display = 'none';
+    
+    const todosDivisores = document.querySelectorAll('#profileMenuDropdown .menu-divider');
+    todosDivisores.forEach(div => {
+        div.style.display = 'none';
+    });
+    
+    console.log('🔒 Menu completamente escondido - usuário deslogado');
 });
 
 window.addEventListener('usuarioNaoAutorizado', (event) => {
