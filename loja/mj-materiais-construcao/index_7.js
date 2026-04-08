@@ -227,6 +227,12 @@ function configurarMenuPerfil() {
         window.location.href = 'agendamento.html?modo=gestao';
     });
     
+    // NOVO: Evento para Programas de Aprimoramento
+    document.getElementById('menuProgramasAprimoramento')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = 'programas_aprimoramento.html';
+    });
+    
     document.getElementById('menuLogout')?.addEventListener('click', (e) => {
         e.preventDefault();
         fazerLogoutCliente();
@@ -234,7 +240,7 @@ function configurarMenuPerfil() {
 }
 
 // ============================================
-// ATUALIZAR MENU PERFIL - SOMENTE QUANDO LOGADO
+// ATUALIZAR MENU PERFIL - COM VERIFICAÇÃO DO FIRESTORE
 // ============================================
 function atualizarMenuPerfil() {
     if (!dadosUsuario) {
@@ -259,6 +265,8 @@ function atualizarMenuPerfil() {
     
     const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
     console.log('🔍 Atualizando menu para perfil:', perfil);
+    console.log('📚 Programas Aprimoramento Habilitado (Firestore):', window.programasAprimoramentoHabilitado);
+    console.log('📅 Agendamento Habilitado (Firestore):', window.agendamentoHabilitado);
     
     // Permissões por perfil (itens administrativos)
     const permissoes = {
@@ -284,17 +292,20 @@ function atualizarMenuPerfil() {
     const menuDividerPrincipal = document.getElementById('menuDividerPrincipal');
     
     // ============================================
-    // 1. PROGRAMA DE APRIMORAMENTO - VISÍVEL APENAS QUANDO LOGADO
+    // 1. PROGRAMA DE APRIMORAMENTO - SÓ EXIBE SE HABILITADO NO FIRESTORE
     // ============================================
+    let temProgramasAprimoramento = false;
+    
     if (menuProgramas) {
-        menuProgramas.style.display = 'flex';
-        
-        // Evento de clique para abrir programas de aprimoramento
-        menuProgramas.onclick = (e) => {
-            e.preventDefault();
-            window.location.href = 'programas_aprimoramento.html';
-        };
-        console.log('✅ Mostrando item: Programas de Aprimoramento');
+        // Verifica se a loja tem programas de aprimoramento habilitado
+        if (window.programasAprimoramentoHabilitado === true) {
+            menuProgramas.style.display = 'flex';
+            temProgramasAprimoramento = true;
+            console.log('✅ Mostrando item: Programas de Aprimoramento (habilitado na loja)');
+        } else {
+            menuProgramas.style.display = 'none';
+            console.log('❌ Escondendo item: Programas de Aprimoramento (desabilitado na loja)');
+        }
     }
     
     // ============================================
@@ -335,9 +346,9 @@ function atualizarMenuPerfil() {
         }
     }
     
-    // Gestão de Agendamento (regra especial)
+    // Gestão de Agendamento (regra especial: precisa estar habilitado e usuário não ser cliente)
     if (menuGestaoAgendamento) {
-        if (agendamentoHabilitado && perfil !== 'cliente') {
+        if (window.agendamentoHabilitado === true && perfil !== 'cliente') {
             menuGestaoAgendamento.style.display = 'flex';
             temItemAdministrativo = true;
             console.log('✅ Mostrando item: Gestão de Agendamento');
@@ -351,14 +362,16 @@ function atualizarMenuPerfil() {
     // ============================================
     // Divisor entre Programas e itens administrativos
     if (menuDividerProgramas) {
-        menuDividerProgramas.style.display = temItemAdministrativo ? 'block' : 'none';
-        console.log(`📏 Divisor Programas: ${temItemAdministrativo ? 'visível' : 'oculto'}`);
+        // Mostra divisor se tiver programas E tiver itens administrativos
+        menuDividerProgramas.style.display = (temProgramasAprimoramento && temItemAdministrativo) ? 'block' : 'none';
+        console.log(`📏 Divisor Programas: ${(temProgramasAprimoramento && temItemAdministrativo) ? 'visível' : 'oculto'}`);
     }
     
     // Divisor principal (antes do logout)
     if (menuDividerPrincipal) {
-        const temAlgumItem = temItemAdministrativo || true; // Programas sempre visível quando logado
+        const temAlgumItem = temProgramasAprimoramento || temItemAdministrativo;
         menuDividerPrincipal.style.display = temAlgumItem ? 'block' : 'none';
+        console.log(`📏 Divisor Principal: ${temAlgumItem ? 'visível' : 'oculto'}`);
     }
     
     // ============================================
@@ -369,7 +382,7 @@ function atualizarMenuPerfil() {
         console.log('✅ Mostrando item: Sair');
     }
     
-    console.log('✅ Menu atualizado com Programas de Aprimoramento');
+    console.log('✅ Menu atualizado com base nas configurações do Firestore');
 }
 
 // ============================================
@@ -399,7 +412,9 @@ async function atualizarTempoRestante() {
     }
 }
 
-// Eventos de autenticação
+// ============================================
+// EVENTOS DE AUTENTICAÇÃO
+// ============================================
 window.addEventListener('usuarioLogado', (event) => {
     const { usuario, permissoes } = event.detail;
     
@@ -407,6 +422,8 @@ window.addEventListener('usuarioLogado', (event) => {
     dadosUsuario = usuario;
     
     console.log('✅ Usuário logado no clientes.js:', usuario);
+    console.log('🔑 Perfil:', usuario.perfil || usuario.nivel || usuario.tipo);
+    console.log('📚 Programas Aprimoramento Habilitado (global):', window.programasAprimoramentoHabilitado);
     
     if (agendamentoHabilitado) {
         renderizarPainelAgendamento();
@@ -548,7 +565,9 @@ window.addEventListener('usuarioNaoVerificado', (event) => {
     }, 30000);
 });
 
-// Exportar para window
+// ============================================
+// EXPORTAR PARA WINDOW
+// ============================================
 window.fazerLoginCliente = fazerLoginCliente;
 window.fazerCadastroCliente = fazerCadastroCliente;
 window.fazerLogoutCliente = fazerLogoutCliente;
