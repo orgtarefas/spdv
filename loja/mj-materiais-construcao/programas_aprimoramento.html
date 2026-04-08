@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Programas de Aprimoramento</title>
+    <link rel="stylesheet" href="programas_aprimoramento.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="aprimoramento-container">
+        <!-- Header -->
+        <header class="aprimoramento-header">
+            <button class="btn-back" id="btnBack">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="header-title">
+                <i class="fas fa-chalkboard-user"></i>
+                <h1>Programas de Aprimoramento</h1>
+            </div>
+            <div class="header-actions">
+                <button class="btn-gestao" id="btnGestao" style="display: none;">
+                    <i class="fas fa-users-gear"></i>
+                    <span>Gestão</span>
+                </button>
+                <div class="user-badge" id="userBadge">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="userNameDisplay">Carregando...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs de Navegação -->
+        <div class="aprimoramento-tabs">
+            <button class="tab-btn active" data-tab="jornada">
+                <i class="fas fa-road"></i>
+                <span>Minha Jornada</span>
+            </button>
+            <button class="tab-btn" data-tab="treinamentos">
+                <i class="fas fa-graduation-cap"></i>
+                <span>Treinamentos</span>
+            </button>
+            <button class="tab-btn" data-tab="testes">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Testes</span>
+            </button>
+            <button class="tab-btn" data-tab="videos">
+                <i class="fas fa-video"></i>
+                <span>Vídeos</span>
+            </button>
+            <button class="tab-btn" data-tab="chat">
+                <i class="fas fa-comments"></i>
+                <span>Chat em Grupo</span>
+                <span class="chat-badge" id="chatBadge" style="display: none;">●</span>
+            </button>
+        </div>
+
+        <!-- Conteúdo das Tabs -->
+        <div class="aprimoramento-content">
+            
+            <!-- Tab: Minha Jornada -->
+            <div class="tab-pane active" id="tab-jornada">
+                <div class="jornada-header">
+                    <div class="jornada-stats">
+                        <div class="stat-card">
+                            <i class="fas fa-star"></i>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalPontos">0</span>
+                                <span class="stat-label">Pontos Totais</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-check-circle"></i>
+                            <div class="stat-info">
+                                <span class="stat-value" id="totalConcluidos">0</span>
+                                <span class="stat-label">Concluídos</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <i class="fas fa-chart-line"></i>
+                            <div class="stat-info">
+                                <span class="stat-value" id="nivelAtual">Iniciante</span>
+                                <span class="stat-label">Nível</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="progresso-geral">
+                        <div class="progress-label">
+                            <span>Progresso Geral</span>
+                            <span id="progressoPercentual">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressoFill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="jornada-timeline">
+                    <h3><i class="fas fa-timeline"></i> Minha Trilha de Aprendizagem</h3>
+                    <div class="timeline-list" id="timelineList">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Carregando sua jornada...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="conquistas-section">
+                    <h3><i class="fas fa-trophy"></i> Minhas Conquistas</h3>
+                    <div class="conquistas-grid" id="conquistasGrid">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Carregando conquistas...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Treinamentos -->
+            <div class="tab-pane" id="tab-treinamentos">
+                <div class="treinamentos-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchTreinamento" placeholder="Buscar treinamento...">
+                    </div>
+                    <button class="btn-adicionar" id="btnAdicionarTreinamento" style="display: none;">
+                        <i class="fas fa-plus"></i>
+                        <span>Novo Treinamento</span>
+                    </button>
+                </div>
+                <div class="treinamentos-grid" id="treinamentosGrid">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Carregando treinamentos...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Testes -->
+            <div class="tab-pane" id="tab-testes">
+                <div class="testes-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchTeste" placeholder="Buscar teste...">
+                    </div>
+                    <button class="btn-adicionar" id="btnAdicionarTeste" style="display: none;">
+                        <i class="fas fa-plus"></i>
+                        <span>Novo Teste</span>
+                    </button>
+                </div>
+                <div class="testes-grid" id="testesGrid">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Carregando testes...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Vídeos -->
+            <div class="tab-pane" id="tab-videos">
+                <div class="videos-header">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchVideo" placeholder="Buscar vídeo...">
+                    </div>
+                    <button class="btn-adicionar" id="btnAdicionarVideo" style="display: none;">
+                        <i class="fas fa-plus"></i>
+                        <span>Novo Vídeo</span>
+                    </button>
+                </div>
+                <div class="videos-grid" id="videosGrid">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Carregando vídeos...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Chat em Grupo -->
+            <div class="tab-pane" id="tab-chat">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="chat-welcome">
+                            <i class="fas fa-comments"></i>
+                            <p>Bem-vindo ao chat da equipe!</p>
+                            <small>Compartilhe dúvidas, dicas e conquistas</small>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <textarea id="chatInput" placeholder="Digite sua mensagem..." rows="2"></textarea>
+                        <div class="chat-actions">
+                            <button class="btn-enviar" id="btnEnviarChat">
+                                <i class="fas fa-paper-plane"></i>
+                                Enviar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Treinamento (CRUD) -->
+    <div id="treinamentoModal" class="modal-aprimoramento" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="treinamentoModalTitle">Novo Treinamento</h3>
+                <button class="modal-close" onclick="fecharModal('treinamentoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="treinamentoForm">
+                    <input type="hidden" id="treinamentoId">
+                    <div class="form-group">
+                        <label>Título *</label>
+                        <input type="text" id="treinamentoTitulo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea id="treinamentoDescricao" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Conteúdo / Material</label>
+                        <textarea id="treinamentoConteudo" rows="5" placeholder="Texto do treinamento, links, etc..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Pontuação</label>
+                        <input type="number" id="treinamentoPontos" value="10" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select id="treinamentoCategoria">
+                            <option value="iniciante">Iniciante</option>
+                            <option value="intermediario">Intermediário</option>
+                            <option value="avancado">Avançado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ordem de Exibição</label>
+                        <input type="number" id="treinamentoOrdem" value="0">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancelar" onclick="fecharModal('treinamentoModal')">Cancelar</button>
+                        <button type="submit" class="btn-salvar">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Teste (CRUD) -->
+    <div id="testeModal" class="modal-aprimoramento" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="testeModalTitle">Novo Teste</h3>
+                <button class="modal-close" onclick="fecharModal('testeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="testeForm">
+                    <input type="hidden" id="testeId">
+                    <div class="form-group">
+                        <label>Título *</label>
+                        <input type="text" id="testeTitulo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea id="testeDescricao" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Pontuação Máxima</label>
+                        <input type="number" id="testePontosMax" value="100" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Pontuação Mínima para Aprovação</label>
+                        <input type="number" id="testePontosMin" value="70" min="0">
+                    </div>
+                    
+                    <h4>Questões</h4>
+                    <div id="questoesContainer">
+                        <div class="questao-item template" style="display: none;">
+                            <div class="questao-header">
+                                <span class="questao-numero"></span>
+                                <button type="button" class="btn-remover-questao">&times;</button>
+                            </div>
+                            <input type="text" class="questao-texto" placeholder="Enunciado da questão">
+                            <div class="alternativas-container">
+                                <div class="alternativa-item">
+                                    <input type="radio" name="alternativa_correta_temp" class="alternativa-correta" value="0">
+                                    <input type="text" class="alternativa-texto" placeholder="Alternativa A">
+                                </div>
+                            </div>
+                            <button type="button" class="btn-add-alternativa">+ Adicionar Alternativa</button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add-questao" id="btnAddQuestao">+ Adicionar Questão</button>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancelar" onclick="fecharModal('testeModal')">Cancelar</button>
+                        <button type="submit" class="btn-salvar">Salvar Teste</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Vídeo (CRUD) -->
+    <div id="videoModal" class="modal-aprimoramento" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="videoModalTitle">Novo Vídeo</h3>
+                <button class="modal-close" onclick="fecharModal('videoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="videoForm">
+                    <input type="hidden" id="videoId">
+                    <div class="form-group">
+                        <label>Título *</label>
+                        <input type="text" id="videoTitulo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <textarea id="videoDescricao" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>URL do Vídeo (YouTube/Vimeo)</label>
+                        <input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
+                    </div>
+                    <div class="form-group">
+                        <label>Duração (minutos)</label>
+                        <input type="number" id="videoDuracao" min="0" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Pontuação</label>
+                        <input type="number" id="videoPontos" value="5" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select id="videoCategoria">
+                            <option value="iniciante">Iniciante</option>
+                            <option value="intermediario">Intermediário</option>
+                            <option value="avancado">Avançado</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-cancelar" onclick="fecharModal('videoModal')">Cancelar</button>
+                        <button type="submit" class="btn-salvar">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Realizar Teste -->
+    <div id="realizarTesteModal" class="modal-aprimoramento modal-lg" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="testeRealizarTitulo">Realizar Teste</h3>
+                <button class="modal-close" onclick="fecharModal('realizarTesteModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="testeQuestoesContainer"></div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancelar" onclick="fecharModal('realizarTesteModal')">Cancelar</button>
+                    <button type="button" class="btn-enviar-respostas" id="btnEnviarRespostas">Enviar Respostas</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Visualizar Vídeo -->
+    <div id="verVideoModal" class="modal-aprimoramento modal-video" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="videoVerTitulo">Assistir Vídeo</h3>
+                <button class="modal-close" onclick="fecharModal('verVideoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="video-player" id="videoPlayerContainer">
+                    <iframe id="videoIframe" width="100%" height="400" frameborder="0" allowfullscreen></iframe>
+                </div>
+                <div class="video-info">
+                    <p id="videoVerDescricao"></p>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-marcar-assistido" id="btnMarcarAssistido">Marcar como Assistido</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Gestão (Visão Gestor) -->
+    <div id="gestaoModal" class="modal-aprimoramento modal-gestao" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-users-gear"></i> Gestão da Equipe</h3>
+                <button class="modal-close" onclick="fecharModal('gestaoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="gestao-tabs">
+                    <button class="gestao-tab-btn active" data-gestao-tab="membros">
+                        <i class="fas fa-users"></i> Membros
+                    </button>
+                    <button class="gestao-tab-btn" data-gestao-tab="relatorios">
+                        <i class="fas fa-chart-simple"></i> Relatórios
+                    </button>
+                </div>
+                
+                <div class="gestao-pane active" id="gestao-membros">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchMembro" placeholder="Buscar membro...">
+                    </div>
+                    <div class="membros-table-container">
+                        <table class="membros-table">
+                            <thead>
+                                <tr>
+                                    <th>Membro</th>
+                                    <th>Perfil</th>
+                                    <th>Pontos</th>
+                                    <th>Progresso</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="membrosTableBody">
+                                <tr><td colspan="5">Carregando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="gestao-pane" id="gestao-relatorios">
+                    <div class="relatorios-filtros">
+                        <select id="relatorioMembroSelect">
+                            <option value="todos">Todos os Membros</option>
+                        </select>
+                        <button class="btn-exportar" id="btnExportarRelatorio">
+                            <i class="fas fa-download"></i> Exportar
+                        </button>
+                    </div>
+                    <div class="relatorio-container" id="relatorioContainer">
+                        <div class="relatorio-card">
+                            <h4>Resumo Geral</h4>
+                            <div id="relatorioResumo"></div>
+                        </div>
+                        <div class="relatorio-card">
+                            <h4>Atividades Recentes</h4>
+                            <div id="relatorioAtividades"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Marcar Concluído -->
+    <div id="concluirModal" class="modal-aprimoramento" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirmar Conclusão</h3>
+                <button class="modal-close" onclick="fecharModal('concluirModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="concluirMensagem">Tem certeza que deseja marcar este item como concluído?</p>
+                <p>Você receberá <strong id="concluirPontos">0</strong> pontos.</p>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancelar" onclick="fecharModal('concluirModal')">Cancelar</button>
+                    <button type="button" class="btn-confirmar" id="btnConfirmarConcluir">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="programas_aprimoramento.js"></script>
+</body>
+</html>
