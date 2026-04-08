@@ -352,37 +352,55 @@
             
             // Aguardar Firebase inicializar
             let tentativas = 0;
+            let maxTentativas = 50;
             let estoqueHabilitado = true;
+            let lojaId = null;
             
-            while (tentativas < 30) {
+            // Tentar obter lojaId da URL
+            function obterLojaIdDaURL() {
+                const path = window.location.pathname;
+                const match = path.match(/\/loja\/([^\/]+)/);
+                return match ? match[1] : null;
+            }
+            
+            while (tentativas < maxTentativas) {
+                // Tentar obter lojaId de várias fontes
+                lojaId = window.lojaIdAtual || window.lojaServices?.lojaId || obterLojaIdDaURL();
+                
                 // Verificar se loginDb está disponível
-                if (window.loginDb && window.lojaIdAtual) {
+                if (window.loginDb && lojaId) {
                     try {
                         const lojaDoc = await window.loginDb
                             .collection('lojas')
-                            .doc(window.lojaIdAtual)
+                            .doc(lojaId)
                             .get();
                         
                         if (lojaDoc.exists) {
                             const dados = lojaDoc.data();
-                            // Se o campo não existir, assume true (compatibilidade)
                             estoqueHabilitado = dados.habilitar_estoque_carrinho !== false;
                             console.log(`🛒 Estoque/Carrinho habilitado: ${estoqueHabilitado ? 'SIM' : 'NÃO'}`);
+                            console.log(`📋 Configuração da loja:`, dados);
+                            break;
                         }
-                        break;
                     } catch(e) {
                         console.warn('Erro ao verificar:', e);
                     }
                 }
                 await new Promise(r => setTimeout(r, 500));
                 tentativas++;
+                if (tentativas % 10 === 0) {
+                    console.log(`⏳ Aguardando Firebase... tentativa ${tentativas}/${maxTentativas}`);
+                }
             }
             
             if (!estoqueHabilitado) {
-                console.warn('🚫 Funcionalidade de carrinho desabilitada. Redirecionando...');
+                console.warn('🚫 Funcionalidade de carrinho desabilitada. Redirecionando para loja...');
                 alert('⚠️ A funcionalidade de carrinho está desabilitada nesta loja.');
                 window.location.href = 'index.html';
+                return;
             }
+            
+            console.log('✅ Acesso ao carrinho permitido');
         })();
     </script>
     
