@@ -1,5 +1,5 @@
 // ============================================
-// programas_aprimoramento.js - VERSÃO SIMPLES
+// programas_aprimoramento.js
 // ============================================
 
 console.log('📚 Iniciando Programas de Aprimoramento...');
