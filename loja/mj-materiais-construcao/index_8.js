@@ -750,6 +750,449 @@ function renderizarEndereco(dadosLoja) {
 }
 
 // ============================================
+// ABRIR MODAL MEUS AGENDAMENTOS
+// ============================================
+async function abrirModalMeusAgendamentos() {
+    if (!usuarioLogado || !dadosUsuario) {
+        mostrarMensagem('Faça login para ver seus agendamentos', 'warning');
+        abrirModal('loginModal');
+        return;
+    }
+    
+    console.log('📅 Abrindo modal de meus agendamentos');
+    
+    const modal = document.getElementById('meusAgendamentosModal');
+    if (!modal) {
+        console.error('❌ Modal meusAgendamentosModal não encontrado');
+        return;
+    }
+    
+    mostrarLoading('Carregando agendamentos...');
+    
+    try {
+        // Determinar perfil do usuário
+        const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
+        const isFuncionario = (dadosUsuario.tipo === 'admin' || dadosUsuario.tipo === 'funcionario' || 
+                              perfil === 'admin' || perfil === 'gerente' || 
+                              perfil === 'supervisor' || perfil === 'vendedor');
+        
+        // Atualizar título do modal
+        const tituloModal = document.getElementById('agendamentosTituloModal');
+        if (tituloModal) {
+            tituloModal.textContent = isFuncionario ? 'Todos os Agendamentos' : 'Meus Agendamentos';
+        }
+        
+        // Mostrar/esconder filtros para admin/funcionário
+        const filtrosAdmin = document.getElementById('filtrosAgendamentosAdmin');
+        if (filtrosAdmin) {
+            filtrosAdmin.style.display = isFuncionario ? 'block' : 'none';
+        }
+        
+        // Carregar agendamentos
+        await carregarAgendamentosParaModal(isFuncionario);
+        
+        // Abrir o modal
+        modal.classList.add('active');
+        
+        // Rolar até o modal
+        setTimeout(() => {
+            modal.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center',
+                inline: 'center'
+            });
+        }, 500);
+        
+    } catch (error) {
+        console.error('❌ Erro ao abrir modal de agendamentos:', error);
+        mostrarMensagem('Erro ao carregar agendamentos', 'error');
+    } finally {
+        esconderLoading();
+    }
+}
+
+// ============================================
+// CARREGAR AGENDAMENTOS PARA O MODAL
+// ============================================
+async function carregarAgendamentosParaModal(isFuncionario, filtroStatus = 'todos') {
+    const container = document.getElementById('listaAgendamentosModal');
+    if (!container) return;
+    
+    try {
+        // Data atual
+        const hoje = new Date();
+        const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+        const anoAtual = hoje.getFullYear();
+        const mesAnoAtual = `${mesAtual}_${anoAtual}`;
+        
+        // Buscar agendamentos do mês atual
+        const diasRef = collection(db, 'agendamentos', lojaIdAtual, mesAnoAtual);
+        const diasSnapshot = await getDocs(diasRef);
+        
+        let todosAgendamentos = [];
+        
+        // Processar cada dia
+        for (const diaDoc of diasSnapshot.docs) {
+            const diaData = diaDoc.data();
+            const dataStr = diaDoc.id; // Formato: DD_MM_YYYY
+            
+            // Extrair data para exibição
+            const [dia, mes, ano] = dataStr.split('_');
+            const dataExibicao = `${dia}/${mes}/${ano}`;
+            
+            // Processar cada serviço
+            Object.entries(diaData).forEach(([servicoId, agendamentosMap]) => {
+                // Processar cada agendamento
+                Object.entries(agendamentosMap || {}).forEach(([agendamentoId, dados]) => {
+                    // Filtrar por usuário se for cliente
+                    if (!isFuncionario && dados.cliente_email !== dadosUsuario.email) {
+                        return;
+                    }
+                    
+                    // Obter nome do serviço
+                    const servicoNome = servicosConfig[servicoId]?.nome || servicoId.replace(/_/g, ' ');
+                    
+                    // Gerar senha
+                    const numero = Object.keys(agendamentosMap).indexOf(agendamentoId) + 1;
+                    const senha = gerarSenha(numero, servicoId, servicosConfig);
+                    
+                    // Formatar data/hora
+                    let dataHora = null;
+                    let horario = '';
+                    
+                    if (dados.data_hora_agendada) {
+                        dataHora = dados.data_hora_agendada?.toDate?.() || new Date(dados.data_hora_agendada);
+                        horario = dataHora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+                    
+                    todosAgendamentos.push({
+                        id: `${servicoId}_${agendamentoId}`,
+                        servicoId,
+                        servicoNome,
+                        agendamentoId,
+                        clienteEmail: dados.cliente_email,
+                        clienteNome: dados.cliente_nome,
+                        status: dados.status_agendamento || 'Pendente',
+                        data: dataExibicao,
+                        horario,
+                        data_hora: dataHora,
+                        senha,
+                        dados: {
+                            criado_por: dados.criado_por,
+                            criado_por_nome: dados.criado_por_nome,
+                        }
+                    });
+                });
+            });
+        }
+        
+        // Ordenar por data/hora (mais recentes primeiro)
+        todosAgendamentos.sort((a, b) => {
+            if (!a.data_hora) return 1;
+            if (!b.data_hora) return -1;
+            return b.data_hora - a.data_hora;
+        });
+        
+        console.log(`📋 ${todosAgendamentos.length} agendamentos carregados para o modal`);
+        
+        // Salvar lista completa para filtros
+        window.todosAgendamentosModal = todosAgendamentos;
+        window.isFuncionarioModal = isFuncionario;
+        
+        // Aplicar filtro inicial
+        aplicarFiltroAgendamentosModal(filtroStatus);
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar agendamentos para modal:', error);
+        container.innerHTML = `
+            <div class="empty-results">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Erro ao carregar agendamentos</p>
+            </div>
+        `;
+    }
+}
+
+// ============================================
+// APLICAR FILTRO NO MODAL
+// ============================================
+function aplicarFiltroAgendamentosModal(filtro) {
+    const container = document.getElementById('listaAgendamentosModal');
+    if (!container) return;
+    
+    const todosAgendamentos = window.todosAgendamentosModal || [];
+    const isFuncionario = window.isFuncionarioModal || false;
+    const agora = new Date();
+    
+    let agendamentosFiltrados = [];
+    
+    // Status que NUNCA entram no filtro expirado
+    const statusNaoExpirados = ['Finalizado', 'Cancelado'];
+    
+    // Função para verificar se um agendamento está expirado
+    const isExpirado = (ag) => {
+        return ag.data_hora && 
+               ag.data_hora < agora && 
+               !statusNaoExpirados.includes(ag.status);
+    };
+    
+    if (filtro === 'todos') {
+        agendamentosFiltrados = todosAgendamentos;
+    } else if (filtro === 'expirado') {
+        agendamentosFiltrados = todosAgendamentos.filter(ag => isExpirado(ag));
+    } else {
+        agendamentosFiltrados = todosAgendamentos.filter(ag => {
+            let statusMatch = false;
+            
+            switch(filtro) {
+                case 'Pendente':
+                    statusMatch = ag.status === 'Pendente';
+                    break;
+                case 'Verificado':
+                    statusMatch = ag.status === 'Verificado';
+                    break;
+                case 'Na fila':
+                    statusMatch = ag.status === 'Na fila';
+                    break;
+                case 'Próximo a atender':
+                    statusMatch = ag.status === 'Próximo a atender';
+                    break;
+                case 'Em atendimento':
+                    statusMatch = ag.status === 'Em atendimento';
+                    break;
+                case 'Finalizado':
+                    statusMatch = ag.status === 'Finalizado';
+                    break;
+                case 'Cancelado':
+                    statusMatch = ag.status === 'Cancelado';
+                    break;
+                default:
+                    statusMatch = true;
+            }
+            
+            if (!statusMatch) return false;
+            return !isExpirado(ag);
+        });
+    }
+    
+    console.log(`📊 Filtro "${filtro}": ${agendamentosFiltrados.length} agendamentos encontrados`);
+    
+    // Renderizar os agendamentos filtrados
+    renderizarAgendamentosModal(container, agendamentosFiltrados, isFuncionario, filtro);
+}
+
+// ============================================
+// RENDERIZAR AGENDAMENTOS NO MODAL
+// ============================================
+function renderizarAgendamentosModal(container, agendamentos, isFuncionario, filtroAtual = 'todos') {
+    if (!container) return;
+    
+    const agora = new Date();
+    const statusNaoExpirados = ['Finalizado', 'Cancelado'];
+    
+    if (agendamentos.length === 0) {
+        container.innerHTML = `
+            <div class="empty-results">
+                <i class="fas fa-calendar-times"></i>
+                <p>Nenhum agendamento encontrado</p>
+                ${filtroAtual === 'expirado' ? 
+                    '<small>Não há agendamentos expirados no momento</small>' : 
+                    '<small>Clique em "Agendar" para fazer um novo agendamento</small>'}
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    
+    agendamentos.forEach(ag => {
+        const estaExpirado = !statusNaoExpirados.includes(ag.status) && 
+                             ag.data_hora && ag.data_hora < agora;
+        
+        // Determinar o que mostrar no badge
+        let badgeClass = '';
+        let badgeIcon = '';
+        let badgeText = '';
+        
+        if (estaExpirado) {
+            badgeClass = 'status-expirado';
+            badgeIcon = 'fa-hourglass-end';
+            badgeText = 'EXPIRADO';
+        } else {
+            switch(ag.status) {
+                case 'Pendente':
+                    badgeClass = 'status-pendente';
+                    badgeIcon = 'fa-clock';
+                    badgeText = 'Pendente';
+                    break;
+                case 'Verificado':
+                    badgeClass = 'status-verificado';
+                    badgeIcon = 'fa-check-circle';
+                    badgeText = 'Verificado';
+                    break;
+                case 'Na fila':
+                    badgeClass = 'status-fila';
+                    badgeIcon = 'fa-users';
+                    badgeText = 'Na fila';
+                    break;
+                case 'Próximo a atender':
+                    badgeClass = 'status-proximo';
+                    badgeIcon = 'fa-arrow-right';
+                    badgeText = 'Próximo a atender';
+                    break;
+                case 'Em atendimento':
+                    badgeClass = 'status-atendimento';
+                    badgeIcon = 'fa-bell';
+                    badgeText = 'Em atendimento';
+                    break;
+                case 'Finalizado':
+                    badgeClass = 'status-finalizado';
+                    badgeIcon = 'fa-check-double';
+                    badgeText = 'Finalizado';
+                    break;
+                case 'Cancelado':
+                    badgeClass = 'status-cancelado';
+                    badgeIcon = 'fa-times-circle';
+                    badgeText = 'Cancelado';
+                    break;
+                default:
+                    badgeClass = 'status-pendente';
+                    badgeIcon = 'fa-clock';
+                    badgeText = ag.status || 'Pendente';
+            }
+        }
+        
+        // Calcular tempo passado (se expirado)
+        let tempoPassado = '';
+        if (estaExpirado && ag.data_hora) {
+            const diffMs = agora - ag.data_hora;
+            const diffMin = Math.floor(diffMs / 60000);
+            
+            if (diffMin < 60) {
+                tempoPassado = `há ${diffMin} min`;
+            } else if (diffMin < 1440) {
+                const diffHrs = Math.floor(diffMin / 60);
+                tempoPassado = `há ${diffHrs} ${diffHrs === 1 ? 'hora' : 'horas'}`;
+            } else {
+                const diffDias = Math.floor(diffMin / 1440);
+                tempoPassado = `há ${diffDias} ${diffDias === 1 ? 'dia' : 'dias'}`;
+            }
+        }
+        
+        // Verificar se o agendamento foi criado por um funcionário para outro cliente
+        const criadoPorFuncionario = ag.dados?.criado_por && ag.dados?.criado_por !== ag.clienteEmail;
+        const nomeCriador = ag.dados?.criado_por_nome || ag.dados?.criado_por;
+        
+        // Determinar se o botão CANCELAR deve estar habilitado
+        const cancelarHabilitado = isFuncionario && 
+                                   ag.status !== 'Finalizado' && 
+                                   ag.status !== 'Cancelado' && 
+                                   !estaExpirado;
+        
+        html += `
+            <div class="agendamento-item-modal ${estaExpirado ? 'agendamento-expirado' : ''}" 
+                 data-status="${ag.status}" 
+                 data-expirado="${estaExpirado}">
+                
+                <div class="agendamento-header-modal">
+                    <div class="agendamento-servico-tag">
+                        <i class="fas fa-tag"></i> ${ag.servicoNome}
+                    </div>
+                    <span class="agendamento-status-badge ${badgeClass}">
+                        <i class="fas ${badgeIcon}"></i> ${badgeText}
+                    </span>
+                </div>
+                
+                <div class="agendamento-body-modal">
+                    <div class="agendamento-senha-modal ${estaExpirado ? 'expirado' : ''}">
+                        ${ag.senha}
+                    </div>
+                    
+                    <div class="agendamento-info-modal">
+                        <!-- Cliente -->
+                        <div class="agendamento-cliente-modal">
+                            <i class="fas fa-user"></i> 
+                            <strong>${ag.clienteNome}</strong>
+                            ${isFuncionario ? `<span class="agendamento-cliente-email">(${ag.clienteEmail})</span>` : ''}
+                        </div>
+                        
+                        <!-- Quem agendou -->
+                        ${criadoPorFuncionario && isFuncionario ? `
+                            <div class="agendamento-criado-por">
+                                <i class="fas fa-pen"></i> 
+                                Agendado por: ${nomeCriador}
+                            </div>
+                        ` : ''}
+                        
+                        <div class="agendamento-data-modal">
+                            <i class="fas fa-calendar-alt"></i> ${ag.data}
+                        </div>
+                        
+                        ${ag.horario ? `
+                            <div class="agendamento-horario-modal">
+                                <i class="fas fa-clock"></i> ${ag.horario}
+                                ${tempoPassado ? `<span class="tempo-passado">${tempoPassado}</span>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    <div class="agendamento-acoes-modal">
+                        <button class="btn-agendamento-acoes cancelar ${!cancelarHabilitado ? 'disabled' : ''}" 
+                                onclick="${cancelarHabilitado ? `cancelarAgendamento('${ag.id}')` : 'event.preventDefault()'}" 
+                                title="${!cancelarHabilitado ? 'Não é possível cancelar este agendamento' : 'Cancelar agendamento'}"
+                                ${!cancelarHabilitado ? 'disabled' : ''}>
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// ============================================
+// CANCELAR AGENDAMENTO
+// ============================================
+window.cancelarAgendamento = async function(agendamentoId) {
+    const mensagemConfirmacao = "Deseja realmente cancelar o agendamento? Consulte as políticas de cancelamento do estabelecimento antes da confirmação. Após efetivar o cancelamento não será possível desfazer o procedimento.";
+    
+    if (!confirm(mensagemConfirmacao)) {
+        return;
+    }
+    
+    // Encontrar o agendamento na lista
+    const agendamento = agendamentosAtivos.find(a => a.id === agendamentoId);
+    if (!agendamento) {
+        mostrarMensagem('Agendamento não encontrado', 'error');
+        return;
+    }
+    
+    mostrarLoading('Cancelando agendamento...');
+    
+    try {
+        const resultado = await atualizarStatusAgendamento(agendamento, 'Cancelado');
+        
+        if (resultado) {
+            mostrarMensagem('✅ Agendamento cancelado com sucesso', 'success');
+            // Fechar modal e recarregar
+            fecharModal('meusAgendamentosModal');
+            setTimeout(() => {
+                abrirModalMeusAgendamentos();
+            }, 500);
+        } else {
+            mostrarMensagem('❌ Erro ao cancelar agendamento', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Erro:', error);
+        mostrarMensagem('Erro ao cancelar agendamento', 'error');
+    } finally {
+        esconderLoading();
+    }
+};
+
+// ============================================
 // RENDERIZAR CHAT
 // ============================================
 function renderizarChat() {
@@ -1149,6 +1592,7 @@ window.abrirModal = abrirModal;
 window.fecharModal = fecharModal;
 window.abrirModalAgendamento = abrirModalAgendamento;
 window.abrirModalNovaSenhaHoje = abrirModalNovaSenhaHoje;
+window.abrirModalMeusAgendamentos = abrirModalMeusAgendamentos;
 window.carregarDadosLoja = carregarDadosLoja;
 window.renderizarContatos = renderizarContatos;
 window.renderizarEndereco = renderizarEndereco;
