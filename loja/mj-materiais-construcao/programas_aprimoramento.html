@@ -132,6 +132,76 @@
         </div>
     </div>
 
+    <!-- ============================================ -->
+    <!-- SCRIPTS - CARREGAMENTO OBRIGATÓRIO           -->
+    <!-- ============================================ -->
+    
+    <!-- 1. Firebase Core (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    
+    <!-- 2. Firebase Auth -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    
+    <!-- 3. Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
+    <!-- 4. Firebase App Check (segurança) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
+    
+    <!-- 5. Login Firebase (sistema de autenticação) -->
+    <script src="../../login_firebase.js"></script>
+    
+    <!-- 6. Firebase Config da Loja (module - estoque, vendas, carrinho) -->
+    <script type="module" src="novo_firebase_config.js"></script>
+    
+    <!-- 7. Script principal do Aprimoramento -->
     <script src="programas_aprimoramento.js"></script>
+    
+    <!-- Script auxiliar para garantir que os dados do usuário sejam capturados -->
+    <script>
+        // Função para verificar se os dados do usuário já estão disponíveis
+        (function verificarUsuario() {
+            console.log('🔍 Verificando dados do usuário para programas_aprimoramento.html...');
+            
+            // Tentar a cada 500ms verificar se já temos os dados
+            let tentativas = 0;
+            const maxTentativas = 20;
+            
+            const interval = setInterval(() => {
+                tentativas++;
+                
+                // Verificar se já temos os dados do usuário
+                if (window.dadosUsuario && window.dadosUsuario.email) {
+                    console.log('✅ Dados do usuário disponíveis via window.dadosUsuario');
+                    console.log('👤 Usuário:', window.dadosUsuario.email);
+                    console.log('🔑 Perfil:', window.dadosUsuario.perfil);
+                    clearInterval(interval);
+                } 
+                // Verificar sessionStorage
+                else if (sessionStorage.getItem('usuarioInfo')) {
+                    try {
+                        const info = JSON.parse(sessionStorage.getItem('usuarioInfo'));
+                        console.log('✅ Dados do usuário disponíveis via sessionStorage');
+                        console.log('👤 Usuário:', info.email);
+                        console.log('🔑 Perfil:', info.perfil);
+                        clearInterval(interval);
+                    } catch(e) {
+                        console.warn('Erro ao parsear usuarioInfo:', e);
+                    }
+                }
+                // Verificar auth.currentUser
+                else if (window.auth && window.auth.currentUser && window.auth.currentUser.email) {
+                    console.log('✅ Dados do usuário disponíveis via auth.currentUser');
+                    console.log('👤 Usuário:', window.auth.currentUser.email);
+                    clearInterval(interval);
+                }
+                
+                if (tentativas >= maxTentativas) {
+                    console.warn('⚠️ Tempo esgotado aguardando dados do usuário');
+                    clearInterval(interval);
+                }
+            }, 500);
+        })();
+    </script>
 </body>
 </html>
