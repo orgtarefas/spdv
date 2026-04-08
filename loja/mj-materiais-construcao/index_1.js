@@ -18,6 +18,7 @@ let lojaIdAtual = null;
 
 // Variáveis para Agendamento
 let agendamentoHabilitado = false;
+let programasAprimoramentoHabilitado = false;
 let agendamentosAtivos = [];
 let agendamentosFuturos = [];
 let unsubscribeAgendamentos = null;
@@ -183,6 +184,7 @@ window.dadosUsuario = dadosUsuario;
 window.swiperInstance = swiperInstance;
 window.lojaIdAtual = lojaIdAtual;
 window.agendamentoHabilitado = agendamentoHabilitado;
+window.programasAprimoramentoHabilitado = programasAprimoramentoHabilitado;
 window.agendamentosAtivos = agendamentosAtivos;
 window.agendamentosFuturos = agendamentosFuturos;
 window.unsubscribeAgendamentos = unsubscribeAgendamentos;
