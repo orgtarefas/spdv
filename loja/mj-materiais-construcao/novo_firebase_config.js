@@ -1,7 +1,6 @@
 // ============================================
-// CONFIGURAÇÃO DO FIREBASE DE ESTOQUE E VENDAS
+// novo_firebase_config.js - CONFIGURAÇÃO DO FIREBASE DE ESTOQUE E VENDAS
 // Projeto: spdv-3872a (APENAS DADOS DA LOJA)
-// Mantém a MESMA estrutura do firebase_config.js original
 // ============================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
