@@ -1,331 +1,280 @@
 // ============================================
 // programas_aprimoramento.js
-// Programas de Aprimoramento - Versão Simplificada
+// Programas de Aprimoramento - Seguindo padrão do agendamento
 // ============================================
 
-console.log("📁 Módulo Aprimoramento Carregado");
+console.log("📚 Inicializando sistema de Programas de Aprimoramento...");
 
 // ============================================
-// VARIÁVEIS GLOBAIS
+// IMPORTAÇÕES (mesmo padrão do agendamento)
 // ============================================
-let lojaId = null;
-let usuarioAtual = null;
-let loginDb = null;
-let db = null;
+import { 
+    db, 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc, 
+    setDoc,
+    updateDoc,
+    serverTimestamp,
+    onSnapshot
+} from './novo_firebase_config.js';
 
 // ============================================
-// INICIALIZAÇÃO
+// CONSTANTES E VARIÁVEIS GLOBAIS
 // ============================================
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Inicializando Programas de Aprimoramento...');
+const LOGO_PLACEHOLDER = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Crect width='60' height='60' fill='%230056b3'/%3E%3Ctext x='30' y='40' font-family='Arial' font-size='24' fill='white' text-anchor='middle'%3E📚%3C/text%3E%3C/svg%3E";
+
+let lojaIdAtual = null;
+let dadosUsuario = null;
+let usuarioLogado = false;
+let programasAprimoramentoHabilitado = false;
+let userProgresso = null;
+let unsubscribeProgresso = null;
+
+// ============================================
+// OBTER LOJA ID DA URL
+// ============================================
+function obterLojaIdDaURL() {
+    const pathname = window.location.pathname;
+    const match = pathname.match(/\/spdv\/loja\/([^\/]+)\//);
+    if (match && match[1]) {
+        lojaIdAtual = match[1];
+        console.log(`📍 Loja ID: ${lojaIdAtual}`);
+        return lojaIdAtual;
+    }
     
-    mostrarLoading('Carregando...');
+    if (window.lojaServices && window.lojaServices.lojaId) {
+        lojaIdAtual = window.lojaServices.lojaId;
+        console.log(`📍 Loja ID do lojaServices: ${lojaIdAtual}`);
+        return lojaIdAtual;
+    }
+    
+    console.error('❌ Não foi possível identificar a loja');
+    return null;
+}
+
+// ============================================
+// VERIFICAR PERMISSÃO DE ACESSO (igual ao agendamento)
+// ============================================
+async function verificarPermissaoAcesso() {
+    console.log("🔒 Verificando permissão de acesso...");
     
     try {
-        // 1. Aguardar um pouco para garantir que tudo foi carregado
-        await delay(500);
-        
-        // 2. Capturar dados do usuário (já existentes do login)
-        carregarDadosUsuario();
-        
-        // 3. Verificar se está logado
-        if (!usuarioAtual || !usuarioAtual.email) {
-            console.error('❌ Usuário não identificado');
-            mostrarMensagem('Faça login para acessar os programas de aprimoramento', 'warning');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
-            esconderLoading();
-            return;
+        if (!window.auth || !window.auth.currentUser) {
+            console.log("❌ Usuário não está logado no Firebase Auth");
+            return false;
         }
         
-        // 4. Atualizar interface
-        atualizarInterface();
+        const user = window.auth.currentUser;
+        const email = user.email;
         
-        // 5. Verificar se programa está habilitado (com retry)
-        await verificarHabilitacaoComRetry();
+        if (!lojaIdAtual || !email) {
+            console.log("❌ Loja ou email não identificado");
+            return false;
+        }
         
-        // 6. Configurar eventos
-        configurarEventListeners();
+        console.log(`🔍 Verificando permissão para ${email} na loja ${lojaIdAtual}`);
         
-        // 7. Inicializar dados no Firebase
-        await inicializarDadosFirebase();
+        // Verificar ADMIN global
+        const adminDoc = await window.loginDb
+            .collection('usuarios')
+            .doc('admin')
+            .get();
         
-        esconderLoading();
+        if (adminDoc.exists) {
+            const adminData = adminDoc.data();
+            if (adminData[email]) {
+                console.log("✅ Usuário é ADMIN global - acesso permitido");
+                dadosUsuario = {
+                    email: email,
+                    nome: adminData[email].nome || 'Admin',
+                    tipo: 'admin',
+                    perfil: 'admin',
+                    uid: user.uid
+                };
+                usuarioLogado = true;
+                return true;
+            }
+        }
         
-        console.log('✅ Programas de Aprimoramento inicializado!');
-        console.log(`📍 Loja: ${lojaId}`);
-        console.log(`👤 Usuário: ${usuarioAtual.email} (${usuarioAtual.perfil})`);
-        console.log(`📁 loginDb: ${loginDb ? 'Disponível' : 'Indisponível'}`);
-        console.log(`📁 db (loja): ${db ? 'Disponível' : 'Indisponível'}`);
+        // Verificar FUNCIONÁRIO da loja
+        const funcDoc = await window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('funcionarios')
+            .doc(email)
+            .get();
+        
+        if (funcDoc.exists) {
+            const funcData = funcDoc.data();
+            
+            if (funcData.ativo === false) {
+                console.log("❌ Funcionário inativo");
+                return false;
+            }
+            
+            console.log(`✅ Funcionário ${funcData.perfil} - acesso permitido`);
+            dadosUsuario = {
+                email: email,
+                nome: funcData.nome,
+                tipo: 'funcionario',
+                perfil: funcData.perfil,
+                uid: user.uid
+            };
+            usuarioLogado = true;
+            return true;
+        }
+        
+        // CLIENTES NÃO TÊM ACESSO
+        const clienteDoc = await window.loginDb
+            .collection('usuarios')
+            .doc(lojaIdAtual)
+            .collection('clientes')
+            .doc(email)
+            .get();
+        
+        if (clienteDoc.exists) {
+            console.log("❌ Cliente não tem permissão para acessar");
+            return false;
+        }
+        
+        console.log("❌ Usuário não encontrado em nenhuma categoria");
+        return false;
         
     } catch (error) {
-        console.error('❌ Erro na inicialização:', error);
-        esconderLoading();
-        mostrarMensagem('Erro ao carregar programas de aprimoramento', 'error');
+        console.error("❌ Erro ao verificar permissão:", error);
+        return false;
     }
-});
-
-// ============================================
-// DELAY AUXILIAR
-// ============================================
-function delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // ============================================
-// CARREGAR DADOS DO USUÁRIO (já existentes)
+// VERIFICAR SE PROGRAMA DE APRIMORAMENTO ESTÁ HABILITADO
 // ============================================
-function carregarDadosUsuario() {
-    console.log('🔍 Capturando dados do usuário existentes...');
-    
-    // Tentar obter loginDb de várias fontes
-    if (window.loginDb) {
-        loginDb = window.loginDb;
-        console.log('✅ loginDb via window.loginDb');
-    }
-    
-    // Tentar obter db do Firebase da loja
-    if (window.db) {
-        db = window.db;
-        console.log('✅ db via window.db');
-    }
-    
-    if (!db && window.lojaServices?.db) {
-        db = window.lojaServices.db;
-        console.log('✅ db via lojaServices.db');
-    }
-    
-    // Tentar obter de window.dadosUsuario (definido pelo login_firebase.js)
-    if (window.dadosUsuario && window.dadosUsuario.email) {
-        usuarioAtual = {
-            email: window.dadosUsuario.email,
-            nome: window.dadosUsuario.nome || window.dadosUsuario.email.split('@')[0],
-            perfil: window.dadosUsuario.perfil || window.dadosUsuario.nivel || 'cliente',
-            tipo: window.dadosUsuario.tipo || 'cliente'
-        };
-        console.log('✅ Usuário via window.dadosUsuario:', usuarioAtual.email);
-    }
-    
-    // Tentar obter de sessionStorage
-    if (!usuarioAtual?.email) {
-        const info = sessionStorage.getItem('usuarioInfo');
-        if (info) {
-            try {
-                const dados = JSON.parse(info);
-                usuarioAtual = {
-                    email: dados.email,
-                    nome: dados.nome || dados.email.split('@')[0],
-                    perfil: dados.perfil || 'cliente',
-                    tipo: dados.tipo || 'cliente'
-                };
-                console.log('✅ Usuário via sessionStorage:', usuarioAtual.email);
-            } catch(e) {
-                console.warn('Erro ao parsear sessionStorage:', e);
-            }
-        }
-    }
-    
-    // Tentar obter de pdv_sessao_temporaria
-    if (!usuarioAtual?.email) {
-        const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
-        if (sessao) {
-            try {
-                const dados = JSON.parse(sessao);
-                usuarioAtual = {
-                    email: dados.email,
-                    nome: dados.nome || dados.email.split('@')[0],
-                    perfil: dados.perfil || dados.nivel || 'cliente',
-                    tipo: dados.tipo || 'cliente'
-                };
-                console.log('✅ Usuário via pdv_sessao_temporaria:', usuarioAtual.email);
-            } catch(e) {
-                console.warn('Erro ao parsear pdv_sessao_temporaria:', e);
-            }
-        }
-    }
-    
-    // Obter lojaId
-    if (window.lojaIdAtual) {
-        lojaId = window.lojaIdAtual;
-    } else if (window.lojaServices?.lojaId) {
-        lojaId = window.lojaServices.lojaId;
-    } else {
-        const pathParts = window.location.pathname.split('/');
-        const lojaIndex = pathParts.indexOf('loja');
-        if (lojaIndex !== -1 && lojaIndex + 1 < pathParts.length) {
-            lojaId = pathParts[lojaIndex + 1];
-        }
-    }
-    
-    console.log('📍 Loja:', lojaId);
-}
-
-// ============================================
-// VERIFICAR HABILITAÇÃO COM RETRY
-// ============================================
-async function verificarHabilitacaoComRetry(tentativas = 0) {
-    const maxTentativas = 5;
-    
-    if (!loginDb && tentativas < maxTentativas) {
-        console.log(`⏳ Aguardando loginDb... tentativa ${tentativas + 1}/${maxTentativas}`);
-        await delay(500);
-        
-        // Tentar obter novamente
-        if (window.loginDb) {
-            loginDb = window.loginDb;
-            console.log('✅ loginDb obtido na tentativa', tentativas + 1);
-        }
-        
-        return verificarHabilitacaoComRetry(tentativas + 1);
-    }
-    
-    if (!loginDb) {
-        console.warn('⚠️ loginDb não disponível após', maxTentativas, 'tentativas');
-        console.log('💡 Os programas de aprimoramento podem não funcionar corretamente');
-        return;
-    }
-    
-    await verificarHabilitacao();
-}
-
-// ============================================
-// VERIFICAR HABILITAÇÃO
-// ============================================
-async function verificarHabilitacao() {
-    if (!lojaId) {
-        console.warn('⚠️ Loja não identificada');
-        return;
-    }
+async function verificarProgramaHabilitado() {
+    if (!lojaIdAtual || !window.loginDb) return false;
     
     try {
-        console.log(`🔍 Verificando habilitação para loja: ${lojaId}`);
+        console.log(`🔍 Verificando se Programa de Aprimoramento está habilitado para loja: ${lojaIdAtual}`);
         
-        const lojaDoc = await loginDb.collection('lojas').doc(lojaId).get();
+        const lojaDoc = await window.loginDb
+            .collection('lojas')
+            .doc(lojaIdAtual)
+            .get();
         
         if (lojaDoc.exists) {
             const dados = lojaDoc.data();
             const habilitado = dados.habilitar_programas_aprimoramento === true;
-            
-            console.log(`📚 Programas de Aprimoramento habilitado: ${habilitado ? 'SIM' : 'NÃO'}`);
-            
-            if (!habilitado) {
-                mostrarMensagem('Programa de Aprimoramento não está habilitado para esta loja.', 'warning');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
-            }
+            console.log(`📚 Programa de Aprimoramento habilitado: ${habilitado ? 'SIM' : 'NÃO'}`);
+            return habilitado;
         } else {
-            console.warn('⚠️ Documento da loja não encontrado');
+            console.log(`⚠️ Documento da loja não encontrado`);
+            return false;
         }
     } catch (error) {
-        console.error('❌ Erro ao verificar habilitação:', error);
+        console.error('❌ Erro ao verificar programa:', error);
+        return false;
     }
 }
 
 // ============================================
-// ATUALIZAR INTERFACE
+// INICIAR ESCUTA DO PROGRESSO DO USUÁRIO (igual ao agendamento)
 // ============================================
-function atualizarInterface() {
-    const userNameDisplay = document.getElementById('userNameDisplay');
-    if (userNameDisplay && usuarioAtual) {
-        const nomeExibicao = usuarioAtual.nome || usuarioAtual.email.split('@')[0];
-        userNameDisplay.textContent = nomeExibicao;
-        userNameDisplay.title = `${nomeExibicao} (${usuarioAtual.perfil})`;
-    }
-}
-
-// ============================================
-// INICIALIZAR DADOS NO FIREBASE DA LOJA
-// ============================================
-async function inicializarDadosFirebase() {
-    if (!db || !lojaId || !usuarioAtual?.email) {
-        console.warn('⚠️ Dados insuficientes para inicializar no Firebase');
-        console.log('   db:', !!db, 'lojaId:', lojaId, 'email:', usuarioAtual?.email);
-        return;
-    }
+function iniciarEscutaProgresso() {
+    if (!programasAprimoramentoHabilitado || !lojaIdAtual || !dadosUsuario?.email) return;
     
-    console.log('💾 Inicializando dados do usuário no Firebase...');
+    console.log('📚 Iniciando escuta em tempo real do progresso...');
     
     try {
-        const colecaoAprimoramento = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
-        console.log(`📁 Coleção: ${colecaoAprimoramento}`);
+        const colecaoAprimoramento = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const usuarioRef = doc(db, colecaoAprimoramento, dadosUsuario.email);
         
-        // Verificar se as funções do Firebase estão disponíveis
-        if (typeof window.doc === 'undefined') {
-            console.warn('⚠️ Funções do Firebase não disponíveis globalmente');
-            console.log('💡 Tentando usar window.db diretamente');
+        unsubscribeProgresso = onSnapshot(usuarioRef, (docSnap) => {
+            console.log(`📨 Atualização no progresso do usuário`);
             
-            // Tentar usar o db diretamente com os métodos do Firestore
-            const usuarioRef = db.collection(colecaoAprimoramento).doc(usuarioAtual.email);
-            const usuarioDoc = await usuarioRef.get();
-            
-            if (!usuarioDoc.exists) {
-                const dadosUsuario = {
-                    email: usuarioAtual.email,
-                    nome: usuarioAtual.nome,
-                    perfil: usuarioAtual.perfil,
-                    loja_id: lojaId,
-                    data_inicio: new Date().toISOString(),
-                    pontos_totais: 0,
-                    treinamentos_concluidos: [],
-                    videos_assistidos: [],
-                    testes_realizados: [],
-                    conquistas: [],
-                    ultimo_acesso: new Date().toISOString()
-                };
-                
-                await usuarioRef.set(dadosUsuario);
-                console.log('✅ Documento CRIADO para o usuário');
+            if (docSnap.exists()) {
+                userProgresso = docSnap.data();
+                console.log('✅ Progresso carregado:', userProgresso);
+                atualizarInterfaceProgresso();
             } else {
-                console.log('✅ Documento já existe para o usuário');
-                await usuarioRef.update({
-                    ultimo_acesso: new Date().toISOString()
-                });
+                console.log('📭 Nenhum progresso encontrado, criando novo...');
+                criarProgressoInicial();
             }
-            return;
-        }
-        
-        // Usar as funções importadas
-        const usuarioRef = window.doc(db, colecaoAprimoramento, usuarioAtual.email);
-        const usuarioDoc = await window.getDoc(usuarioRef);
-        
-        if (!usuarioDoc.exists()) {
-            const dadosUsuario = {
-                email: usuarioAtual.email,
-                nome: usuarioAtual.nome,
-                perfil: usuarioAtual.perfil,
-                loja_id: lojaId,
-                data_inicio: new Date().toISOString(),
-                pontos_totais: 0,
-                treinamentos_concluidos: [],
-                videos_assistidos: [],
-                testes_realizados: [],
-                conquistas: [],
-                ultimo_acesso: new Date().toISOString()
-            };
-            
-            await window.setDoc(usuarioRef, dadosUsuario);
-            console.log('✅ Documento CRIADO para o usuário');
-        } else {
-            console.log('✅ Documento já existe para o usuário');
-            await window.updateDoc(usuarioRef, {
-                ultimo_acesso: new Date().toISOString()
-            });
-        }
+        }, (error) => {
+            console.error('❌ Erro na escuta:', error);
+        });
         
     } catch (error) {
-        console.error('❌ Erro ao inicializar dados:', error);
+        console.error('❌ Erro ao iniciar escuta:', error);
     }
+}
+
+// ============================================
+// CRIAR PROGRESSO INICIAL DO USUÁRIO
+// ============================================
+async function criarProgressoInicial() {
+    if (!db || !lojaIdAtual || !dadosUsuario?.email) return;
+    
+    try {
+        const colecaoAprimoramento = `aprimoramento_${lojaIdAtual.replace(/-/g, '_')}`;
+        const usuarioRef = doc(db, colecaoAprimoramento, dadosUsuario.email);
+        
+        const dadosIniciais = {
+            email: dadosUsuario.email,
+            nome: dadosUsuario.nome,
+            perfil: dadosUsuario.perfil,
+            loja_id: lojaIdAtual,
+            data_inicio: new Date().toISOString(),
+            pontos_totais: 0,
+            treinamentos_concluidos: [],
+            videos_assistidos: [],
+            testes_realizados: [],
+            conquistas: [],
+            ultimo_acesso: new Date().toISOString()
+        };
+        
+        await setDoc(usuarioRef, dadosIniciais);
+        console.log('✅ Progresso inicial criado');
+        
+    } catch (error) {
+        console.error('❌ Erro ao criar progresso inicial:', error);
+    }
+}
+
+// ============================================
+// ATUALIZAR INTERFACE COM O PROGRESSO
+// ============================================
+function atualizarInterfaceProgresso() {
+    if (!userProgresso) return;
+    
+    // Atualizar nome do usuário no header
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    if (userNameDisplay) {
+        userNameDisplay.textContent = userProgresso.nome || dadosUsuario?.nome || 'Usuário';
+    }
+    
+    // Aqui você pode atualizar mais elementos da interface
+    console.log('📊 Pontos totais:', userProgresso.pontos_totais);
+    console.log('📚 Treinamentos concluídos:', userProgresso.treinamentos_concluidos?.length || 0);
+    console.log('🎬 Vídeos assistidos:', userProgresso.videos_assistidos?.length || 0);
+    console.log('📝 Testes realizados:', userProgresso.testes_realizados?.length || 0);
 }
 
 // ============================================
 // CONFIGURAR EVENTOS
 // ============================================
-function configurarEventListeners() {
+function configurarEventos() {
     console.log('⚙️ Configurando eventos...');
     
     // Botão voltar
+    const btnVoltar = document.getElementById('btnVoltar');
+    if (btnVoltar) {
+        btnVoltar.addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    }
+    
+    // Botão back (alternativo)
     const btnBack = document.getElementById('btnBack');
     if (btnBack) {
         btnBack.addEventListener('click', () => {
@@ -336,8 +285,16 @@ function configurarEventListeners() {
     // Tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const tabId = btn.dataset.tab;
-            mudarTab(tabId);
+            const tab = btn.dataset.tab;
+            
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            
+            btn.classList.add('active');
+            const targetPane = document.getElementById(`tab-${tab}`);
+            if (targetPane) targetPane.classList.add('active');
+            
+            console.log(`📑 Tab ativada: ${tab}`);
         });
     });
     
@@ -345,34 +302,7 @@ function configurarEventListeners() {
 }
 
 // ============================================
-// MUDAR TAB
-// ============================================
-function mudarTab(tabId) {
-    // Atualizar botões
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.tab === tabId) {
-            btn.classList.add('active');
-        }
-    });
-    
-    // Atualizar painéis
-    document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.remove('active');
-    });
-    
-    const targetPane = document.getElementById(`tab-${tabId}`);
-    if (targetPane) {
-        targetPane.classList.add('active');
-        console.log(`✅ Tab ativada: ${tabId}`);
-        
-        // Mensagem de desenvolvimento
-        console.log(`📢 [${tabId.toUpperCase()}] Funcionalidade em desenvolvimento`);
-    }
-}
-
-// ============================================
-// UTILITÁRIOS
+// FUNÇÕES UTILITÁRIAS
 // ============================================
 function mostrarLoading(mensagem = 'Carregando...') {
     const loading = document.getElementById('loadingOverlay');
@@ -390,70 +320,192 @@ function esconderLoading() {
     }
 }
 
-function mostrarMensagem(texto, tipo = 'info') {
-    console.log(`[${tipo.toUpperCase()}] ${texto}`);
+function mostrarMensagem(texto, tipo = 'info', tempo = 3000) {
+    const alert = document.getElementById('messageAlert');
+    if (!alert) {
+        console.log(`[${tipo.toUpperCase()}] ${texto}`);
+        return;
+    }
     
-    // Criar toast
-    const toast = document.createElement('div');
-    toast.className = `message-toast ${tipo}`;
-    toast.innerHTML = `
-        <i class="fas ${tipo === 'success' ? 'fa-check-circle' : tipo === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-        <span>${texto}</span>
-    `;
-    
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        animation: slideIn 0.3s ease;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        font-size: 14px;
-    `;
-    
-    document.body.appendChild(toast);
+    alert.className = `message-alert ${tipo}`;
+    const textEl = alert.querySelector('.message-text');
+    if (textEl) textEl.textContent = texto;
+    alert.style.display = 'flex';
     
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => {
-            if (toast.parentNode) toast.parentNode.removeChild(toast);
-        }, 300);
-    }, 4000);
+        alert.style.display = 'none';
+    }, tempo);
 }
 
-// Adicionar estilos de animação
-if (!document.querySelector('#toastStyles')) {
-    const style = document.createElement('style');
-    style.id = 'toastStyles';
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0%); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0%); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-    `;
-    document.head.appendChild(style);
+function abrirModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('active');
+        console.log(`✅ Modal ${modalId} aberto`);
+    }
 }
 
-// ============================================
-// EXPORTAR PARA DEBUG
-// ============================================
-window.debugAprimoramento = {
-    getUsuario: () => usuarioAtual,
-    getLoja: () => lojaId,
-    getLoginDb: () => loginDb,
-    getDb: () => db
+window.fecharModal = function(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('active');
+        console.log(`✅ Modal ${modalId} fechado`);
+    }
 };
 
-console.log("✅ Módulo Aprimoramento carregado com sucesso!");
+// ============================================
+// CONFIGURAR FAVICON E LOGO
+// ============================================
+function configurarFavicon() {
+    if (lojaIdAtual) {
+        const favicon = document.getElementById('favicon');
+        if (favicon) {
+            favicon.href = `../../imagens/${lojaIdAtual}/icone.ico`;
+            console.log(`✅ Favicon configurado para loja: ${lojaIdAtual}`);
+        }
+    }
+}
+
+function carregarLogoLoja() {
+    const logoImg = document.getElementById('lojaLogo');
+    if (!logoImg) return;
+    
+    if (!lojaIdAtual) {
+        logoImg.src = LOGO_PLACEHOLDER;
+        return;
+    }
+    
+    const logoPath = `../../imagens/${lojaIdAtual}/logo.png`;
+    console.log(`🖼️ Tentando carregar logo de: ${logoPath}`);
+    
+    const testImg = new Image();
+    testImg.onload = function() {
+        console.log(`✅ Logo carregada com sucesso: ${logoPath}`);
+        logoImg.src = logoPath;
+    };
+    testImg.onerror = function() {
+        console.log(`ℹ️ Logo não encontrada, usando placeholder`);
+        logoImg.src = LOGO_PLACEHOLDER;
+    };
+    testImg.src = logoPath;
+}
+
+// ============================================
+// VERIFICAÇÃO BLOQUEANTE - EXECUTA IMEDIATAMENTE (igual ao agendamento)
+// ============================================
+(async function() {
+    console.log("🔒 Verificação bloqueante de acesso aos Programas de Aprimoramento...");
+    
+    // Mostrar loading imediatamente
+    const loading = document.getElementById('loadingOverlay');
+    if (loading) {
+        loading.style.display = 'flex';
+        const h3 = loading.querySelector('h3');
+        if (h3) h3.textContent = 'Verificando permissões...';
+    }
+    
+    try {
+        // Obter loja ID
+        lojaIdAtual = obterLojaIdDaURL();
+        
+        if (!lojaIdAtual) {
+            console.error('❌ Loja não identificada');
+            mostrarMensagem('Erro ao identificar a loja', 'error');
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+            return;
+        }
+        
+        // AGUARDAR FIREBASE AUTH INICIALIZAR (até 5 segundos)
+        let tentativas = 0;
+        const maxTentativas = 10;
+        
+        while (tentativas < maxTentativas) {
+            if (window.auth && window.auth.currentUser) {
+                console.log('✅ Firebase Auth inicializado:', window.auth.currentUser.email);
+                break;
+            }
+            console.log(`⏳ Aguardando Firebase Auth... tentativa ${tentativas + 1}/${maxTentativas}`);
+            await new Promise(resolve => setTimeout(resolve, 500));
+            tentativas++;
+        }
+        
+        // Verificar se conseguiu obter o usuário
+        if (!window.auth || !window.auth.currentUser) {
+            console.log('❌ Firebase Auth não inicializado após timeout');
+            mostrarMensagem('Faça login para acessar esta página', 'warning');
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+            return;
+        }
+        
+        // Verificar permissão no banco
+        const acessoPermitido = await verificarPermissaoAcesso();
+        
+        if (!acessoPermitido) {
+            console.log("🚫 Acesso negado - Redirecionando...");
+            mostrarMensagem('Acesso restrito a funcionários', 'error', 3000);
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            return;
+        }
+        
+        // Verificar se o programa está habilitado para a loja
+        programasAprimoramentoHabilitado = await verificarProgramaHabilitado();
+        
+        if (!programasAprimoramentoHabilitado) {
+            console.log("🚫 Programa de Aprimoramento não habilitado para esta loja");
+            mostrarMensagem('Programa de Aprimoramento não está habilitado para esta loja.', 'warning', 3000);
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+            return;
+        }
+        
+        // ✅ ACESSO PERMITIDO
+        console.log("✅ Acesso permitido, carregando sistema...");
+        console.log("👤 Usuário:", dadosUsuario);
+        
+        // Configurar favicon e logo
+        configurarFavicon();
+        carregarLogoLoja();
+        
+        // Configurar eventos
+        configurarEventos();
+        
+        // Iniciar escuta do progresso
+        iniciarEscutaProgresso();
+        
+        // Esconder loading
+        if (loading) {
+            loading.style.display = 'none';
+        }
+        
+        console.log("✅ Sistema de Programas de Aprimoramento pronto!");
+        
+    } catch (error) {
+        console.error("❌ Erro na verificação:", error);
+        mostrarMensagem('Erro ao carregar sistema', 'error');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 2000);
+    }
+})();
+
+// ============================================
+// LIMPAR AO SAIR
+// ============================================
+window.addEventListener('beforeunload', () => {
+    if (unsubscribeProgresso) unsubscribeProgresso();
+});
+
+// ============================================
+// EXPORTAR FUNÇÕES GLOBAIS PARA DEBUG
+// ============================================
+window.debugAprimoramento = {
+    getUsuario: () => dadosUsuario,
+    getLoja: () => lojaIdAtual,
+    getProgresso: () => userProgresso,
+    getHabilitado: () => programasAprimoramentoHabilitado
+};
+
+console.log("✅ programas_aprimoramento.js carregado com sucesso!");
