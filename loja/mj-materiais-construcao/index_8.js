@@ -2,6 +2,12 @@
 console.log("📁 Módulo 8 Carregado: UI e Configurações");
 
 // ============================================
+// VARIÁVEIS GLOBAIS (declaradas e exportadas)
+// ============================================
+let agendamentoHabilitado = false;
+let programasAprimoramentoHabilitado = false;
+
+// ============================================
 // FUNÇÕES DE MODAL
 // ============================================
 function abrirModal(modalId) {
@@ -1017,6 +1023,10 @@ async function inicializarSistema() {
         programasAprimoramentoHabilitado = await verificarProgramasAprimoramentoHabilitado();
         console.log(`📚 Programas de Aprimoramento habilitado: ${programasAprimoramentoHabilitado ? 'SIM' : 'NÃO'}`);
         
+        // Exportar para window para que outros módulos possam acessar
+        window.agendamentoHabilitado = agendamentoHabilitado;
+        window.programasAprimoramentoHabilitado = programasAprimoramentoHabilitado;
+        
         if (agendamentoHabilitado) {
             await carregarConfiguracoesServicos();
             iniciarEscutaAgendamentos();
@@ -1048,7 +1058,9 @@ async function inicializarSistema() {
     }
 }
 
-// Exportar para window
+// ============================================
+// EXPORTAR PARA WINDOW
+// ============================================
 window.abrirModal = abrirModal;
 window.fecharModal = fecharModal;
 window.abrirModalAgendamento = abrirModalAgendamento;
@@ -1060,6 +1072,10 @@ window.renderizarChat = renderizarChat;
 window.configurarEventos = configurarEventos;
 window.configurarDropdownAgendamento = configurarDropdownAgendamento;
 window.inicializarSistema = inicializarSistema;
+
+// Exportar variáveis para window
+window.agendamentoHabilitado = agendamentoHabilitado;
+window.programasAprimoramentoHabilitado = programasAprimoramentoHabilitado;
 
 // Inicializar
 inicializarSistema();
