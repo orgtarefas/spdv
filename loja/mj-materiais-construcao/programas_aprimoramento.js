@@ -10,6 +10,8 @@ console.log("📁 Módulo Aprimoramento Carregado");
 // ============================================
 let lojaId = null;
 let usuarioAtual = null;
+let loginDb = null;
+let db = null;
 
 // ============================================
 // INICIALIZAÇÃO
@@ -20,10 +22,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     mostrarLoading('Carregando...');
     
     try {
-        // 1. Capturar dados do usuário (já existentes do login)
+        // 1. Aguardar um pouco para garantir que tudo foi carregado
+        await delay(500);
+        
+        // 2. Capturar dados do usuário (já existentes do login)
         carregarDadosUsuario();
         
-        // 2. Verificar se está logado
+        // 3. Verificar se está logado
         if (!usuarioAtual || !usuarioAtual.email) {
             console.error('❌ Usuário não identificado');
             mostrarMensagem('Faça login para acessar os programas de aprimoramento', 'warning');
@@ -34,16 +39,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        // 3. Atualizar interface
+        // 4. Atualizar interface
         atualizarInterface();
         
-        // 4. Verificar se programa está habilitado
-        await verificarHabilitacao();
+        // 5. Verificar se programa está habilitado (com retry)
+        await verificarHabilitacaoComRetry();
         
-        // 5. Configurar eventos
+        // 6. Configurar eventos
         configurarEventListeners();
         
-        // 6. Inicializar dados no Firebase
+        // 7. Inicializar dados no Firebase
         await inicializarDadosFirebase();
         
         esconderLoading();
@@ -51,6 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('✅ Programas de Aprimoramento inicializado!');
         console.log(`📍 Loja: ${lojaId}`);
         console.log(`👤 Usuário: ${usuarioAtual.email} (${usuarioAtual.perfil})`);
+        console.log(`📁 loginDb: ${loginDb ? 'Disponível' : 'Indisponível'}`);
+        console.log(`📁 db (loja): ${db ? 'Disponível' : 'Indisponível'}`);
         
     } catch (error) {
         console.error('❌ Erro na inicialização:', error);
@@ -60,10 +67,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================
+// DELAY AUXILIAR
+// ============================================
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// ============================================
 // CARREGAR DADOS DO USUÁRIO (já existentes)
 // ============================================
 function carregarDadosUsuario() {
     console.log('🔍 Capturando dados do usuário existentes...');
+    
+    // Tentar obter loginDb de várias fontes
+    if (window.loginDb) {
+        loginDb = window.loginDb;
+        console.log('✅ loginDb via window.loginDb');
+    }
+    
+    // Tentar obter db do Firebase da loja
+    if (window.db) {
+        db = window.db;
+        console.log('✅ db via window.db');
+    }
+    
+    if (!db && window.lojaServices?.db) {
+        db = window.lojaServices.db;
+        console.log('✅ db via lojaServices.db');
+    }
     
     // Tentar obter de window.dadosUsuario (definido pelo login_firebase.js)
     if (window.dadosUsuario && window.dadosUsuario.email) {
@@ -89,7 +120,28 @@ function carregarDadosUsuario() {
                     tipo: dados.tipo || 'cliente'
                 };
                 console.log('✅ Usuário via sessionStorage:', usuarioAtual.email);
-            } catch(e) {}
+            } catch(e) {
+                console.warn('Erro ao parsear sessionStorage:', e);
+            }
+        }
+    }
+    
+    // Tentar obter de pdv_sessao_temporaria
+    if (!usuarioAtual?.email) {
+        const sessao = sessionStorage.getItem('pdv_sessao_temporaria');
+        if (sessao) {
+            try {
+                const dados = JSON.parse(sessao);
+                usuarioAtual = {
+                    email: dados.email,
+                    nome: dados.nome || dados.email.split('@')[0],
+                    perfil: dados.perfil || dados.nivel || 'cliente',
+                    tipo: dados.tipo || 'cliente'
+                };
+                console.log('✅ Usuário via pdv_sessao_temporaria:', usuarioAtual.email);
+            } catch(e) {
+                console.warn('Erro ao parsear pdv_sessao_temporaria:', e);
+            }
         }
     }
     
@@ -110,19 +162,35 @@ function carregarDadosUsuario() {
 }
 
 // ============================================
-// ATUALIZAR INTERFACE
+// VERIFICAR HABILITAÇÃO COM RETRY
 // ============================================
-function atualizarInterface() {
-    const userNameDisplay = document.getElementById('userNameDisplay');
-    if (userNameDisplay && usuarioAtual) {
-        const nomeExibicao = usuarioAtual.nome || usuarioAtual.email.split('@')[0];
-        userNameDisplay.textContent = nomeExibicao;
-        userNameDisplay.title = `${nomeExibicao} (${usuarioAtual.perfil})`;
+async function verificarHabilitacaoComRetry(tentativas = 0) {
+    const maxTentativas = 5;
+    
+    if (!loginDb && tentativas < maxTentativas) {
+        console.log(`⏳ Aguardando loginDb... tentativa ${tentativas + 1}/${maxTentativas}`);
+        await delay(500);
+        
+        // Tentar obter novamente
+        if (window.loginDb) {
+            loginDb = window.loginDb;
+            console.log('✅ loginDb obtido na tentativa', tentativas + 1);
+        }
+        
+        return verificarHabilitacaoComRetry(tentativas + 1);
     }
+    
+    if (!loginDb) {
+        console.warn('⚠️ loginDb não disponível após', maxTentativas, 'tentativas');
+        console.log('💡 Os programas de aprimoramento podem não funcionar corretamente');
+        return;
+    }
+    
+    await verificarHabilitacao();
 }
 
 // ============================================
-// VERIFICAR HABILITAÇÃO (usando loginDb já existente)
+// VERIFICAR HABILITAÇÃO
 // ============================================
 async function verificarHabilitacao() {
     if (!lojaId) {
@@ -130,13 +198,10 @@ async function verificarHabilitacao() {
         return;
     }
     
-    if (!window.loginDb) {
-        console.warn('⚠️ loginDb não disponível');
-        return;
-    }
-    
     try {
-        const lojaDoc = await window.loginDb.collection('lojas').doc(lojaId).get();
+        console.log(`🔍 Verificando habilitação para loja: ${lojaId}`);
+        
+        const lojaDoc = await loginDb.collection('lojas').doc(lojaId).get();
         
         if (lojaDoc.exists) {
             const dados = lojaDoc.data();
@@ -150,6 +215,8 @@ async function verificarHabilitacao() {
                     window.location.href = 'index.html';
                 }, 2000);
             }
+        } else {
+            console.warn('⚠️ Documento da loja não encontrado');
         }
     } catch (error) {
         console.error('❌ Erro ao verificar habilitação:', error);
@@ -157,11 +224,24 @@ async function verificarHabilitacao() {
 }
 
 // ============================================
+// ATUALIZAR INTERFACE
+// ============================================
+function atualizarInterface() {
+    const userNameDisplay = document.getElementById('userNameDisplay');
+    if (userNameDisplay && usuarioAtual) {
+        const nomeExibicao = usuarioAtual.nome || usuarioAtual.email.split('@')[0];
+        userNameDisplay.textContent = nomeExibicao;
+        userNameDisplay.title = `${nomeExibicao} (${usuarioAtual.perfil})`;
+    }
+}
+
+// ============================================
 // INICIALIZAR DADOS NO FIREBASE DA LOJA
 // ============================================
 async function inicializarDadosFirebase() {
-    if (!window.db || !lojaId || !usuarioAtual?.email) {
+    if (!db || !lojaId || !usuarioAtual?.email) {
         console.warn('⚠️ Dados insuficientes para inicializar no Firebase');
+        console.log('   db:', !!db, 'lojaId:', lojaId, 'email:', usuarioAtual?.email);
         return;
     }
     
@@ -171,7 +251,43 @@ async function inicializarDadosFirebase() {
         const colecaoAprimoramento = `aprimoramento_${lojaId.replace(/-/g, '_')}`;
         console.log(`📁 Coleção: ${colecaoAprimoramento}`);
         
-        const usuarioRef = window.doc(window.db, colecaoAprimoramento, usuarioAtual.email);
+        // Verificar se as funções do Firebase estão disponíveis
+        if (typeof window.doc === 'undefined') {
+            console.warn('⚠️ Funções do Firebase não disponíveis globalmente');
+            console.log('💡 Tentando usar window.db diretamente');
+            
+            // Tentar usar o db diretamente com os métodos do Firestore
+            const usuarioRef = db.collection(colecaoAprimoramento).doc(usuarioAtual.email);
+            const usuarioDoc = await usuarioRef.get();
+            
+            if (!usuarioDoc.exists) {
+                const dadosUsuario = {
+                    email: usuarioAtual.email,
+                    nome: usuarioAtual.nome,
+                    perfil: usuarioAtual.perfil,
+                    loja_id: lojaId,
+                    data_inicio: new Date().toISOString(),
+                    pontos_totais: 0,
+                    treinamentos_concluidos: [],
+                    videos_assistidos: [],
+                    testes_realizados: [],
+                    conquistas: [],
+                    ultimo_acesso: new Date().toISOString()
+                };
+                
+                await usuarioRef.set(dadosUsuario);
+                console.log('✅ Documento CRIADO para o usuário');
+            } else {
+                console.log('✅ Documento já existe para o usuário');
+                await usuarioRef.update({
+                    ultimo_acesso: new Date().toISOString()
+                });
+            }
+            return;
+        }
+        
+        // Usar as funções importadas
+        const usuarioRef = window.doc(db, colecaoAprimoramento, usuarioAtual.email);
         const usuarioDoc = await window.getDoc(usuarioRef);
         
         if (!usuarioDoc.exists()) {
@@ -320,10 +436,10 @@ if (!document.querySelector('#toastStyles')) {
     style.textContent = `
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(0%); opacity: 1; }
         }
         @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
+            from { transform: translateX(0%); opacity: 1; }
             to { transform: translateX(100%); opacity: 0; }
         }
     `;
@@ -335,7 +451,9 @@ if (!document.querySelector('#toastStyles')) {
 // ============================================
 window.debugAprimoramento = {
     getUsuario: () => usuarioAtual,
-    getLoja: () => lojaId
+    getLoja: () => lojaId,
+    getLoginDb: () => loginDb,
+    getDb: () => db
 };
 
 console.log("✅ Módulo Aprimoramento carregado com sucesso!");
