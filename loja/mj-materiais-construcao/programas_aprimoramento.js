@@ -1,6 +1,6 @@
 // ============================================
 // programas_aprimoramento.js
-// Programas de Aprimoramento - Seguindo padrão do agendamento
+// Programas de Aprimoramento
 // ============================================
 
 console.log("📚 Inicializando sistema de Programas de Aprimoramento...");
