@@ -8,6 +8,29 @@
 console.log("🎮 INDEX_0.JS - Sistema de Controle Central Carregado");
 
 // ============================================
+// IMPORTAÇÕES DO FIREBASE
+// ============================================
+import { 
+    db, 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc, 
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    addDoc,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    serverTimestamp,
+    increment,
+    runTransaction,
+    limit
+} from './novo_firebase_config.js';
+
+// ============================================
 // 1. IMPORTAR TODOS OS MÓDULOS
 // ============================================
 
