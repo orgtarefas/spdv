@@ -1042,13 +1042,65 @@ async function inicializarSistema() {
         console.log(`📅 Agendamento habilitado: ${agendamentoHabilitado ? 'SIM' : 'NÃO'}`);
         toggleAgendamentoContainer(agendamentoHabilitado);
         
-        // 2. Verificar Programas de Aprimoramento (MESMO PADRÃO)
+        // 2. Verificar Programas de Aprimoramento
         programasAprimoramentoHabilitado = await verificarProgramasAprimoramentoHabilitado();
         console.log(`📚 Programas de Aprimoramento habilitado: ${programasAprimoramentoHabilitado ? 'SIM' : 'NÃO'}`);
+        
+        // 3. Verificar Estoque/Carrinho (NOVO)
+        estoqueCarrinhoHabilitado = await verificarEstoqueCarrinhoHabilitado();
+        console.log(`🛒 Estoque/Carrinho habilitado: ${estoqueCarrinhoHabilitado ? 'SIM' : 'NÃO'}`);
         
         // Exportar para window para que outros módulos possam acessar
         window.agendamentoHabilitado = agendamentoHabilitado;
         window.programasAprimoramentoHabilitado = programasAprimoramentoHabilitado;
+        window.estoqueCarrinhoHabilitado = estoqueCarrinhoHabilitado;
+        
+        // ============================================
+        // CONTROLAR VISIBILIDADE DAS SEÇÕES DE PRODUTOS
+        // ============================================
+        const categoriesSection = document.querySelector('.categories-section');
+        const featuredProducts = document.querySelector('.featured-products');
+        const btnGoToCart = document.getElementById('btnGoToCart');
+        const searchWrapper = document.querySelector('.search-wrapper');
+        
+        if (!estoqueCarrinhoHabilitado) {
+            // Esconder seções de produtos e categorias
+            if (categoriesSection) {
+                categoriesSection.style.display = 'none';
+                console.log('🛒 Seção de categorias ocultada');
+            }
+            if (featuredProducts) {
+                featuredProducts.style.display = 'none';
+                console.log('🛒 Seção de produtos ocultada');
+            }
+            if (btnGoToCart) {
+                btnGoToCart.style.display = 'none';
+                console.log('🛒 Botão do carrinho ocultado');
+            }
+            // Opcional: Desabilitar campo de busca de produtos
+            if (searchWrapper) {
+                searchWrapper.style.opacity = '0.5';
+                const searchInput = searchWrapper.querySelector('input');
+                if (searchInput) {
+                    searchInput.disabled = true;
+                    searchInput.placeholder = 'Funcionalidade desabilitada';
+                }
+            }
+            console.log('🛒 Modo sem estoque/carrinho ativado');
+        } else {
+            // Mostrar seções normalmente
+            if (categoriesSection) categoriesSection.style.display = 'block';
+            if (featuredProducts) featuredProducts.style.display = 'block';
+            if (btnGoToCart) btnGoToCart.style.display = 'flex';
+            if (searchWrapper) {
+                searchWrapper.style.opacity = '1';
+                const searchInput = searchWrapper.querySelector('input');
+                if (searchInput) {
+                    searchInput.disabled = false;
+                    searchInput.placeholder = 'O que você está procurando?';
+                }
+            }
+        }
         
         if (agendamentoHabilitado) {
             await carregarConfiguracoesServicos();
@@ -1060,9 +1112,14 @@ async function inicializarSistema() {
         
         configurarEventos();
         
-        await carregarProdutos();
-        await carregarCategorias();
-        await carregarProdutosDestaque();
+        // Só carregar produtos se estoque/carrinho estiver habilitado
+        if (estoqueCarrinhoHabilitado) {
+            await carregarProdutos();
+            await carregarCategorias();
+            await carregarProdutosDestaque();
+        } else {
+            console.log('🛒 Carregamento de produtos ignorado (funcionalidade desabilitada)');
+        }
         
         esconderLoading();
         configurarDropdownAgendamento();
@@ -1073,6 +1130,10 @@ async function inicializarSistema() {
         }
         
         console.log("✅ Loja clientes pronta!");
+        console.log(`📊 Resumo das configurações:`);
+        console.log(`   📅 Agendamento: ${agendamentoHabilitado ? 'ATIVO' : 'INATIVO'}`);
+        console.log(`   📚 Aprimoramento: ${programasAprimoramentoHabilitado ? 'ATIVO' : 'INATIVO'}`);
+        console.log(`   🛒 Estoque/Carrinho: ${estoqueCarrinhoHabilitado ? 'ATIVO' : 'INATIVO'}`);
         
     } catch (error) {
         console.error("❌ Erro na inicialização:", error);
@@ -1099,6 +1160,7 @@ window.inicializarSistema = inicializarSistema;
 // Exportar variáveis para window
 window.agendamentoHabilitado = agendamentoHabilitado;
 window.programasAprimoramentoHabilitado = programasAprimoramentoHabilitado;
+window.estoqueCarrinhoHabilitado = estoqueCarrinhoHabilitado;
 
 // Inicializar
 inicializarSistema();
