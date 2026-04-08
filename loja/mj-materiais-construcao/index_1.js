@@ -15,6 +15,7 @@ let usuarioLogado = false;
 let dadosUsuario = null;
 let swiperInstance = null;
 let lojaIdAtual = null;
+let estoqueCarrinhoHabilitado = true;
 
 // Variáveis para Agendamento
 let agendamentoHabilitado = false;
@@ -198,6 +199,7 @@ window.paginaAtualOutrosFila = paginaAtualOutrosFila;
 window.totalPaginasOutrosFila = totalPaginasOutrosFila;
 window.mudancaManual = mudancaManual;
 window.intervaloAtualizacaoAgendamento = intervaloAtualizacaoAgendamento;
+window.estoqueCarrinhoHabilitado = estoqueCarrinhoHabilitado;
 
 window.extrairLojaIdDaURL = extrairLojaIdDaURL;
 window.mostrarLoading = mostrarLoading;
