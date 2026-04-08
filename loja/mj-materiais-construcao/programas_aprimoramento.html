@@ -2,379 +2,184 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Programas de Aprimoramento</title>
     <link rel="stylesheet" href="programas_aprimoramento.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="aprimoramento-container">
+    <div class="container">
         <!-- Header -->
-        <header class="aprimoramento-header">
-            <button class="btn-back" id="btnBack">
-                <i class="fas fa-arrow-left"></i>
+        <div class="header">
+            <button class="btn-back" onclick="window.location.href='index.html'">
+                <i class="fas fa-arrow-left"></i> Voltar
             </button>
-            <div class="header-title">
-                <i class="fas fa-chalkboard-user"></i>
-                <h1>Programas de Aprimoramento</h1>
-            </div>
-            <div class="header-actions">
-                <div class="user-badge" id="userBadge">
-                    <i class="fas fa-user-circle"></i>
-                    <span id="userNameDisplay">Carregando...</span>
-                </div>
-            </div>
-        </header>
-
-        <!-- Stats -->
-        <div class="stats-container">
-            <div class="stat-card">
-                <i class="fas fa-star"></i>
-                <div class="stat-info">
-                    <span class="stat-value" id="totalPontos">0</span>
-                    <span class="stat-label">Pontos Totais</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-check-circle"></i>
-                <div class="stat-info">
-                    <span class="stat-value" id="totalConcluidos">0/0</span>
-                    <span class="stat-label">Concluídos</span>
-                </div>
-            </div>
-            <div class="stat-card">
-                <i class="fas fa-chart-line"></i>
-                <div class="stat-info">
-                    <span class="stat-value" id="nivelAtual">Iniciante</span>
-                    <span class="stat-label">Nível</span>
-                </div>
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span id="userName">Carregando...</span>
             </div>
         </div>
 
-        <div class="progresso-geral">
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalPontos">0</div>
+                <div class="stat-label">Pontos Totais</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalConcluidos">0/0</div>
+                <div class="stat-label">Concluídos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="nivelAtual">Iniciante</div>
+                <div class="stat-label">Nível</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
             <div class="progress-label">
                 <span>Progresso Geral</span>
                 <span id="progressoPercentual">0%</span>
             </div>
             <div class="progress-bar">
-                <div class="progress-fill" id="progressoFill" style="width: 0%;"></div>
+                <div class="progress-fill" id="progressoFill"></div>
             </div>
         </div>
 
         <!-- Tabs -->
-        <div class="aprimoramento-tabs">
-            <button class="tab-btn active" data-tab="treinamentos">
-                <i class="fas fa-graduation-cap"></i>
-                <span>Treinamentos</span>
+        <div class="tabs">
+            <button class="tab active" data-tab="treinamentos">
+                <i class="fas fa-graduation-cap"></i> Treinamentos
             </button>
-            <button class="tab-btn" data-tab="videos">
-                <i class="fas fa-video"></i>
-                <span>Vídeos</span>
+            <button class="tab" data-tab="videos">
+                <i class="fas fa-video"></i> Vídeos
             </button>
-            <button class="tab-btn" data-tab="testes">
-                <i class="fas fa-clipboard-list"></i>
-                <span>Testes</span>
+            <button class="tab" data-tab="testes">
+                <i class="fas fa-clipboard-list"></i> Testes
             </button>
         </div>
 
         <!-- Content -->
-        <div class="aprimoramento-content">
-            <!-- Tab: Treinamentos -->
-            <div class="tab-pane active" id="tab-treinamentos">
-                <div class="treinamentos-header">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchTreinamento" placeholder="Buscar treinamento...">
-                    </div>
-                    <button class="btn-adicionar" id="btnAdicionarTreinamento" style="display: none;">
-                        <i class="fas fa-plus"></i>
-                        <span>Novo Treinamento</span>
-                    </button>
-                </div>
-                <div class="treinamentos-grid" id="treinamentosGrid">
-                    <div class="loading-spinner">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <span>Carregando treinamentos...</span>
-                    </div>
-                </div>
+        <div class="content">
+            <div id="tab-treinamentos" class="tab-pane active">
+                <div id="treinamentosList"></div>
             </div>
-
-            <!-- Tab: Vídeos -->
-            <div class="tab-pane" id="tab-videos">
-                <div class="videos-header">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchVideo" placeholder="Buscar vídeo...">
-                    </div>
-                    <button class="btn-adicionar" id="btnAdicionarVideo" style="display: none;">
-                        <i class="fas fa-plus"></i>
-                        <span>Novo Vídeo</span>
-                    </button>
-                </div>
-                <div class="videos-grid" id="videosGrid">
-                    <div class="loading-spinner">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <span>Carregando vídeos...</span>
-                    </div>
-                </div>
+            <div id="tab-videos" class="tab-pane">
+                <div id="videosList"></div>
             </div>
-
-            <!-- Tab: Testes -->
-            <div class="tab-pane" id="tab-testes">
-                <div class="testes-header">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="searchTeste" placeholder="Buscar teste...">
-                    </div>
-                    <button class="btn-adicionar" id="btnAdicionarTeste" style="display: none;">
-                        <i class="fas fa-plus"></i>
-                        <span>Novo Teste</span>
-                    </button>
-                </div>
-                <div class="testes-grid" id="testesGrid">
-                    <div class="loading-spinner">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <span>Carregando testes...</span>
-                    </div>
-                </div>
+            <div id="tab-testes" class="tab-pane">
+                <div id="testesList"></div>
             </div>
         </div>
     </div>
 
     <!-- Modal Treinamento -->
-    <div id="treinamentoModal" class="modal-aprimoramento" style="display: none;">
+    <div id="modalTreinamento" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="treinamentoModalTitle">Novo Treinamento</h3>
-                <button class="modal-close" onclick="fecharModal('treinamentoModal')">&times;</button>
+                <h3 id="modalTreinamentoTitle">Novo Treinamento</h3>
+                <button class="modal-close" onclick="fecharModal('modalTreinamento')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="treinamentoForm">
-                    <input type="hidden" id="treinamentoId">
-                    <div class="form-group">
-                        <label>Título *</label>
-                        <input type="text" id="treinamentoTitulo" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Descrição</label>
-                        <textarea id="treinamentoDescricao" rows="3"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Conteúdo / Material</label>
-                        <textarea id="treinamentoConteudo" rows="5" placeholder="Texto do treinamento, links, etc..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Pontuação</label>
-                        <input type="number" id="treinamentoPontos" value="10" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Categoria</label>
-                        <select id="treinamentoCategoria">
-                            <option value="iniciante">Iniciante</option>
-                            <option value="intermediario">Intermediário</option>
-                            <option value="avancado">Avançado</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-cancelar" onclick="fecharModal('treinamentoModal')">Cancelar</button>
-                        <button type="submit" class="btn-salvar">Salvar</button>
-                    </div>
-                </form>
+                <input type="hidden" id="treinamentoId">
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="treinamentoTitulo" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="treinamentoDescricao" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Pontos</label>
+                    <input type="number" id="treinamentoPontos" class="form-control" value="10">
+                </div>
+                <div class="form-actions">
+                    <button class="btn-cancelar" onclick="fecharModal('modalTreinamento')">Cancelar</button>
+                    <button class="btn-salvar" onclick="salvarTreinamento()">Salvar</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Modal Vídeo -->
-    <div id="videoModal" class="modal-aprimoramento" style="display: none;">
+    <div id="modalVideo" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="videoModalTitle">Novo Vídeo</h3>
-                <button class="modal-close" onclick="fecharModal('videoModal')">&times;</button>
+                <h3 id="modalVideoTitle">Novo Vídeo</h3>
+                <button class="modal-close" onclick="fecharModal('modalVideo')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="videoForm">
-                    <input type="hidden" id="videoId">
-                    <div class="form-group">
-                        <label>Título *</label>
-                        <input type="text" id="videoTitulo" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Descrição</label>
-                        <textarea id="videoDescricao" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>URL do Vídeo (YouTube/Vimeo)</label>
-                        <input type="url" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
-                    </div>
-                    <div class="form-group">
-                        <label>Duração (minutos)</label>
-                        <input type="number" id="videoDuracao" min="0" step="1">
-                    </div>
-                    <div class="form-group">
-                        <label>Pontuação</label>
-                        <input type="number" id="videoPontos" value="5" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Categoria</label>
-                        <select id="videoCategoria">
-                            <option value="iniciante">Iniciante</option>
-                            <option value="intermediario">Intermediário</option>
-                            <option value="avancado">Avançado</option>
-                        </select>
-                    </div>
-                    <div class="form-actions">
-                        <button type="button" class="btn-cancelar" onclick="fecharModal('videoModal')">Cancelar</button>
-                        <button type="submit" class="btn-salvar">Salvar</button>
-                    </div>
-                </form>
+                <input type="hidden" id="videoId">
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="videoTitulo" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="videoDescricao" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>URL (YouTube)</label>
+                    <input type="text" id="videoUrl" class="form-control" placeholder="https://youtu.be/...">
+                </div>
+                <div class="form-group">
+                    <label>Pontos</label>
+                    <input type="number" id="videoPontos" class="form-control" value="5">
+                </div>
+                <div class="form-actions">
+                    <button class="btn-cancelar" onclick="fecharModal('modalVideo')">Cancelar</button>
+                    <button class="btn-salvar" onclick="salvarVideo()">Salvar</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Modal Teste -->
-    <div id="testeModal" class="modal-aprimoramento modal-lg" style="display: none;">
+    <div id="modalTeste" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="testeModalTitle">Novo Teste</h3>
-                <button class="modal-close" onclick="fecharModal('testeModal')">&times;</button>
+                <h3 id="modalTesteTitle">Novo Teste</h3>
+                <button class="modal-close" onclick="fecharModal('modalTeste')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="testeForm">
-                    <input type="hidden" id="testeId">
-                    <div class="form-group">
-                        <label>Título *</label>
-                        <input type="text" id="testeTitulo" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Descrição</label>
-                        <textarea id="testeDescricao" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Pontuação Máxima</label>
-                        <input type="number" id="testePontosMax" value="100" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Pontuação Mínima para Aprovação (%)</label>
-                        <input type="number" id="testePontosMin" value="70" min="0" max="100">
-                    </div>
-                    
-                    <h4>Questões</h4>
-                    <div id="questoesContainer"></div>
-                    <button type="button" class="btn-add-questao" id="btnAddQuestao">+ Adicionar Questão</button>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn-cancelar" onclick="fecharModal('testeModal')">Cancelar</button>
-                        <button type="submit" class="btn-salvar">Salvar Teste</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Realizar Teste -->
-    <div id="realizarTesteModal" class="modal-aprimoramento modal-lg" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="testeRealizarTitulo">Realizar Teste</h3>
-                <button class="modal-close" onclick="fecharModal('realizarTesteModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="testeQuestoesContainer"></div>
-                <div class="form-actions">
-                    <button type="button" class="btn-cancelar" onclick="fecharModal('realizarTesteModal')">Cancelar</button>
-                    <button type="button" class="btn-enviar-respostas" id="btnEnviarRespostas">Enviar Respostas</button>
+                <input type="hidden" id="testeId">
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="testeTitulo" class="form-control">
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Ver Vídeo -->
-    <div id="verVideoModal" class="modal-aprimoramento modal-video" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="videoVerTitulo">Assistir Vídeo</h3>
-                <button class="modal-close" onclick="fecharModal('verVideoModal')">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="video-player">
-                    <iframe id="videoIframe" width="100%" height="400" frameborder="0" allowfullscreen></iframe>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="testeDescricao" class="form-control" rows="3"></textarea>
                 </div>
-                <div class="video-info">
-                    <p id="videoVerDescricao"></p>
+                <div class="form-group">
+                    <label>Pontos Máximos</label>
+                    <input type="number" id="testePontosMax" class="form-control" value="100">
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn-marcar-assistido" id="btnMarcarAssistido">Marcar como Assistido</button>
+                    <button class="btn-cancelar" onclick="fecharModal('modalTeste')">Cancelar</button>
+                    <button class="btn-salvar" onclick="salvarTeste()">Salvar</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display: none;">
         <div class="loading-content">
-            <div class="loading-spinner"></div>
-            <h3 id="loadingMessage">Carregando...</h3>
+            <div class="spinner"></div>
+            <p>Carregando...</p>
         </div>
     </div>
 
-    <!-- Message Alert -->
-    <div id="messageAlert" class="message-alert" style="display: none;">
-        <div class="message-content">
-            <i class="message-icon"></i>
-            <span class="message-text"></span>
-        </div>
-        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- SCRIPTS - ORDEM CORRETA                    -->
-    <!-- ============================================ -->
-    
-    <!-- 1. Firebase Core -->
+    <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    
-    <!-- 2. Firebase Auth -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    
-    <!-- 3. Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    
-    <!-- 4. Firebase App Check (CRÍTICO - necessário para o login) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
-    
-    <!-- 5. Login Firebase -->
     <script src="../../login_firebase.js"></script>
-    
-    <!-- 6. Configuração das Lojas -->
-    <script type="module" src="../../novo_lojas.js"></script>
-    
-    <!-- 7. Firebase Config da Loja (module) -->
     <script type="module" src="novo_firebase_config.js"></script>
-    
-    <!-- 8. Script principal (NÃO é module) -->
     <script src="programas_aprimoramento.js"></script>
-    
-    <!-- 9. Script auxiliar para garantir que o Firebase foi carregado -->
-    <script>
-        // Aguardar o Firebase Auth inicializar
-        let tentativas = 0;
-        const maxTentativas = 20;
-        
-        function aguardarFirebase() {
-            if (window.auth && window.auth.currentUser) {
-                console.log('✅ Firebase Auth pronto para programas_aprimoramento');
-                return;
-            }
-            
-            tentativas++;
-            if (tentativas < maxTentativas) {
-                setTimeout(aguardarFirebase, 500);
-            } else {
-                console.warn('⚠️ Firebase Auth não inicializado após timeout');
-            }
-        }
-        
-        setTimeout(aguardarFirebase, 500);
-    </script>
 </body>
 </html>
