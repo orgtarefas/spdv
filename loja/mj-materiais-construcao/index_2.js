@@ -2,6 +2,29 @@
 console.log("📁 Módulo 2 Carregado: Agendamento Configuração");
 
 // ============================================
+// IMPORTAÇÕES DO FIREBASE
+// ============================================
+import { 
+    db, 
+    collection, 
+    doc, 
+    getDocs, 
+    getDoc, 
+    setDoc,
+    updateDoc,
+    deleteDoc,
+    addDoc,
+    query,
+    where,
+    orderBy,
+    onSnapshot,
+    serverTimestamp,
+    increment,
+    runTransaction,
+    limit
+} from './novo_firebase_config.js';
+
+// ============================================
 // VERIFICAR SE AGENDAMENTO ESTÁ HABILITADO
 // ============================================
 async function verificarAgendamentoHabilitado() {
