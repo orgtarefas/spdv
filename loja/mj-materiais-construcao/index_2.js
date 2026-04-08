@@ -36,6 +36,40 @@ async function verificarAgendamentoHabilitado() {
 }
 
 // ============================================
+// VERIFICAR SE PROGRAMAS DE APRIMORAMENTO ESTÁ HABILITADO
+// ============================================
+async function verificarProgramasAprimoramentoHabilitado() {
+    const lojaId = lojaIdAtual || (window.lojaServices ? window.lojaServices.lojaId : null);
+    
+    if (!lojaId) return false;
+    
+    try {
+        if (window.loginDb) {
+            const lojaDoc = await window.loginDb
+                .collection('lojas')
+                .doc(lojaId)
+                .get();
+            
+            if (lojaDoc.exists) {
+                const dados = lojaDoc.data();
+                const habilitado = dados.habilitar_programas_aprimoramento === true;
+                console.log(`📚 Programas de Aprimoramento habilitado no Firestore: ${habilitado ? 'SIM' : 'NÃO'}`);
+                return habilitado;
+            } else {
+                console.log(`⚠️ Documento da loja não encontrado no Firestore: ${lojaId}`);
+                return false;
+            }
+        } else {
+            console.log('📚 loginDb não disponível, programas de aprimoramento desabilitado');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Erro ao verificar programas de aprimoramento:', error);
+        return false;
+    }
+}
+
+// ============================================
 // MOSTRAR/ESCONDER CONTAINER DE AGENDAMENTO
 // ============================================
 function toggleAgendamentoContainer(mostrar) {
@@ -212,8 +246,11 @@ function pararEscutaAgendamentos() {
     }
 }
 
-// Exportar para window
+// ============================================
+// EXPORTAR PARA WINDOW (SOMENTE AS FUNÇÕES)
+// ============================================
 window.verificarAgendamentoHabilitado = verificarAgendamentoHabilitado;
+window.verificarProgramasAprimoramentoHabilitado = verificarProgramasAprimoramentoHabilitado;
 window.toggleAgendamentoContainer = toggleAgendamentoContainer;
 window.mostrarSkeletonAgendamento = mostrarSkeletonAgendamento;
 window.alternarModoOperacao = alternarModoOperacao;
