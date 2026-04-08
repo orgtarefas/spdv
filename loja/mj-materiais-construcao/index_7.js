@@ -240,46 +240,28 @@ function configurarMenuPerfil() {
 }
 
 // ============================================
-// ATUALIZAR MENU PERFIL - COM VERIFICAÇÃO DO FIRESTORE
+// ATUALIZAR MENU PERFIL - COM VERIFICAÇÃO DAS CONFIGURAÇÕES
 // ============================================
 function atualizarMenuPerfil() {
     if (!dadosUsuario) {
-        // Se NÃO estiver logado, esconde TODOS os itens do menu
+        // Esconde todos os itens do menu
         const todosMenuItems = document.querySelectorAll('#profileMenuDropdown .menu-item');
-        todosMenuItems.forEach(item => {
-            item.style.display = 'none';
-        });
+        todosMenuItems.forEach(item => item.style.display = 'none');
         
         const divisores = document.querySelectorAll('#profileMenuDropdown .menu-divider');
-        divisores.forEach(div => {
-            div.style.display = 'none';
-        });
+        divisores.forEach(div => div.style.display = 'none');
         
         console.log('🔒 Menu escondido - usuário não logado');
         return;
     }
     
-    // ============================================
-    // USUÁRIO ESTÁ LOGADO - MOSTRAR MENUS
-    // ============================================
-    
     const perfil = dadosUsuario.perfil || dadosUsuario.nivel || dadosUsuario.tipo;
     console.log('🔍 Atualizando menu para perfil:', perfil);
-    console.log('📚 Programas Aprimoramento Habilitado (Firestore):', window.programasAprimoramentoHabilitado);
-    console.log('📅 Agendamento Habilitado (Firestore):', window.agendamentoHabilitado);
+    console.log('📚 Programas Aprimoramento Habilitado:', window.programasAprimoramentoHabilitado);
+    console.log('📅 Agendamento Habilitado:', window.agendamentoHabilitado);
+    console.log('🛒 Estoque/Carrinho Habilitado:', window.estoqueCarrinhoHabilitado);
     
-    // Permissões por perfil (itens administrativos)
-    const permissoes = {
-        'admin': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
-        'gerente': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
-        'supervisor': ['menuEstoque'],
-        'vendedor': ['menuEstoque'],
-        'cliente': [] // Cliente não vê itens administrativos
-    };
-    
-    const itensPermitidos = permissoes[perfil] || [];
-    
-    // Referências dos elementos do menu
+    // Elementos do menu
     const menuProgramas = document.getElementById('menuProgramasAprimoramento');
     const menuRelatorios = document.getElementById('menuRelatorios');
     const menuGestaoLogins = document.getElementById('menuGestaoLogins');
@@ -291,62 +273,78 @@ function atualizarMenuPerfil() {
     const menuDividerProgramas = document.getElementById('menuDividerProgramas');
     const menuDividerPrincipal = document.getElementById('menuDividerPrincipal');
     
+    // Permissões por perfil
+    const permissoes = {
+        'admin': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
+        'gerente': ['menuRelatorios', 'menuGestaoLogins', 'menuEstoque'],
+        'supervisor': ['menuEstoque'],
+        'vendedor': ['menuEstoque'],
+        'cliente': []
+    };
+    
+    const itensPermitidos = permissoes[perfil] || [];
+    
     // ============================================
-    // 1. PROGRAMA DE APRIMORAMENTO - SÓ EXIBE SE HABILITADO NO FIRESTORE
+    // 1. PROGRAMA DE APRIMORAMENTO
     // ============================================
     let temProgramasAprimoramento = false;
-    
     if (menuProgramas) {
-        // Verifica se a loja tem programas de aprimoramento habilitado
         if (window.programasAprimoramentoHabilitado === true) {
             menuProgramas.style.display = 'flex';
             temProgramasAprimoramento = true;
-            console.log('✅ Mostrando item: Programas de Aprimoramento (habilitado na loja)');
+            menuProgramas.onclick = (e) => {
+                e.preventDefault();
+                window.location.href = 'programas_aprimoramento.html';
+            };
+            console.log('✅ Mostrando item: Programas de Aprimoramento');
         } else {
             menuProgramas.style.display = 'none';
-            console.log('❌ Escondendo item: Programas de Aprimoramento (desabilitado na loja)');
+            console.log('❌ Escondendo item: Programas de Aprimoramento (desabilitado)');
         }
     }
     
     // ============================================
-    // 2. ITENS ADMINISTRATIVOS (apenas para funcionários)
+    // 2. RELATÓRIOS - Só se tiver permissão
     // ============================================
-    let temItemAdministrativo = false;
-    
-    // Relatórios
     if (menuRelatorios) {
         if (itensPermitidos.includes('menuRelatorios')) {
             menuRelatorios.style.display = 'flex';
-            temItemAdministrativo = true;
             console.log('✅ Mostrando item: Relatórios');
         } else {
             menuRelatorios.style.display = 'none';
         }
     }
     
-    // Gestão de Logins
+    // ============================================
+    // 3. GESTÃO DE LOGINS - Só se tiver permissão
+    // ============================================
     if (menuGestaoLogins) {
         if (itensPermitidos.includes('menuGestaoLogins')) {
             menuGestaoLogins.style.display = 'flex';
-            temItemAdministrativo = true;
             console.log('✅ Mostrando item: Gestão de Logins');
         } else {
             menuGestaoLogins.style.display = 'none';
         }
     }
     
-    // Estoque
+    // ============================================
+    // 4. ESTOQUE - Só se estoque estiver habilitado E tiver permissão
+    // ============================================
+    let temItemAdministrativo = false;
     if (menuEstoque) {
-        if (itensPermitidos.includes('menuEstoque')) {
+        if (window.estoqueCarrinhoHabilitado === true && itensPermitidos.includes('menuEstoque')) {
             menuEstoque.style.display = 'flex';
             temItemAdministrativo = true;
             console.log('✅ Mostrando item: Estoque');
         } else {
             menuEstoque.style.display = 'none';
+            console.log(`❌ Escondendo item: Estoque (habilitado: ${window.estoqueCarrinhoHabilitado})`);
         }
     }
     
-    // Gestão de Agendamento (regra especial: precisa estar habilitado e usuário não ser cliente)
+    // ============================================
+    // 5. GESTÃO DE AGENDAMENTO - Só se agendamento estiver habilitado
+    // ============================================
     if (menuGestaoAgendamento) {
         if (window.agendamentoHabilitado === true && perfil !== 'cliente') {
             menuGestaoAgendamento.style.display = 'flex';
@@ -354,35 +352,31 @@ function atualizarMenuPerfil() {
             console.log('✅ Mostrando item: Gestão de Agendamento');
         } else {
             menuGestaoAgendamento.style.display = 'none';
+            console.log(`❌ Escondendo item: Gestão de Agendamento (habilitado: ${window.agendamentoHabilitado})`);
         }
     }
     
     // ============================================
-    // 3. GERENCIAR DIVISORES
+    // 6. DIVISORES
     // ============================================
-    // Divisor entre Programas e itens administrativos
     if (menuDividerProgramas) {
-        // Mostra divisor se tiver programas E tiver itens administrativos
         menuDividerProgramas.style.display = (temProgramasAprimoramento && temItemAdministrativo) ? 'block' : 'none';
-        console.log(`📏 Divisor Programas: ${(temProgramasAprimoramento && temItemAdministrativo) ? 'visível' : 'oculto'}`);
     }
     
-    // Divisor principal (antes do logout)
     if (menuDividerPrincipal) {
         const temAlgumItem = temProgramasAprimoramento || temItemAdministrativo;
         menuDividerPrincipal.style.display = temAlgumItem ? 'block' : 'none';
-        console.log(`📏 Divisor Principal: ${temAlgumItem ? 'visível' : 'oculto'}`);
     }
     
     // ============================================
-    // 4. LOGOUT - SEMPRE VISÍVEL QUANDO LOGADO
+    // 7. LOGOUT - Sempre visível quando logado
     // ============================================
     if (menuLogout) {
         menuLogout.style.display = 'flex';
         console.log('✅ Mostrando item: Sair');
     }
     
-    console.log('✅ Menu atualizado com base nas configurações do Firestore');
+    console.log('✅ Menu atualizado com base nas configurações');
 }
 
 // ============================================
