@@ -1,0 +1,541 @@
+<!-- relatorios.html -->
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Relatórios - Sistema PDV</title>
+    
+    <!-- Favicon -->
+    <link id="favicon" rel="icon" href="" type="image/x-icon">
+    
+    <link rel="stylesheet" href="relatorios.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <a href="index.html" class="btn-back" id="btnVoltar">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar
+                </a>
+                <div class="logo-mini">
+                    <img id="headerLogo" src="" alt="Logo" class="header-logo">
+                </div>
+                <div class="page-title">
+                    <h1><i class="fas fa-chart-line"></i> Relatórios</h1>
+                    <p class="page-subtitle" id="lojaNomeHeader">Sistema PDV</p>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="userName">Carregando...</span>
+                    
+                    <div class="profile-menu" id="profileMenu">
+                        <button class="profile-menu-btn" id="profileMenuBtn">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        
+                        <div class="profile-menu-dropdown" id="profileMenuDropdown">
+                            <a href="#" class="menu-item" id="menuRelatorios">
+                                <i class="fas fa-chart-bar"></i>
+                                <span>Relatórios</span>
+                            </a>
+                            
+                            <a href="#" class="menu-item" id="menuGestaoLogins">
+                                <i class="fas fa-users-cog"></i>
+                                <span>Gestão de Logins</span>
+                            </a>
+                            
+                            <a href="estoque.html" class="menu-item" id="menuEstoque">
+                                <i class="fas fa-boxes"></i>
+                                <span>Estoque</span>
+                            </a>
+                            
+                            <div class="menu-divider"></div>
+                            
+                            <a href="#" class="menu-item logout" id="menuLogout">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Sair</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="relatorios-container">
+                <!-- Abas de Navegação -->
+                <div class="relatorios-tabs">
+                    <button class="tab-btn active" data-tab="vendas">
+                        <i class="fas fa-shopping-cart"></i> Vendas
+                    </button>
+                    <button class="tab-btn" data-tab="estoque">
+                        <i class="fas fa-boxes"></i> Estoque
+                    </button>
+                </div>
+
+                <!-- TAB 1: RELATÓRIO DE VENDAS -->
+                <div class="tab-content active" id="tab-vendas">
+                    <!-- Filtros -->
+                    <div class="filtros-card">
+                        <h3><i class="fas fa-filter"></i> Filtros</h3>
+                        
+                        <div class="filtros-grid">
+                            <div class="form-group">
+                                <label><i class="fas fa-calendar-alt"></i> Período</label>
+                                <select id="filtroPeriodo" class="form-control">
+                                    <option value="hoje">Hoje</option>
+                                    <option value="ontem">Ontem</option>
+                                    <option value="semana">Últimos 7 dias</option>
+                                    <option value="mes">Este mês</option>
+                                    <option value="personalizado">Personalizado</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group data-range" id="dataRangeGroup" style="display: none;">
+                                <label><i class="fas fa-calendar-day"></i> Data Início</label>
+                                <input type="date" id="dataInicio" class="form-control">
+                            </div>
+                            
+                            <div class="form-group data-range" id="dataFimGroup" style="display: none;">
+                                <label><i class="fas fa-calendar-day"></i> Data Fim</label>
+                                <input type="date" id="dataFim" class="form-control">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-tag"></i> Canal de Venda</label>
+                                <select id="filtroCanal" class="form-control">
+                                    <option value="todos">Todos</option>
+                                    <option value="online">Online</option>
+                                    <option value="fisica">Loja Física</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-credit-card"></i> Forma de Pagamento</label>
+                                <select id="filtroPagamento" class="form-control">
+                                    <option value="todos">Todos</option>
+                                    <option value="dinheiro">Dinheiro</option>
+                                    <option value="pix">PIX</option>
+                                    <option value="debito">Débito</option>
+                                    <option value="credito">Crédito</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-user"></i> Vendedor</label>
+                                <select id="filtroVendedor" class="form-control">
+                                    <option value="todos">Todos</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filtros-actions">
+                            <button class="btn-primary" id="btnAplicarFiltros">
+                                <i class="fas fa-search"></i> Aplicar Filtros
+                            </button>
+                            <button class="btn-secondary" id="btnLimparFiltros">
+                                <i class="fas fa-undo-alt"></i> Limpar
+                            </button>
+                            <button class="btn-success" id="btnExportarVendas">
+                                <i class="fas fa-file-excel"></i> Exportar
+                            </button>
+                            <button class="btn-info" id="btnImprimirVendas">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Cards de Resumo -->
+                    <div class="resumo-cards">
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Total de Vendas</h3>
+                                <p class="card-value" id="totalVendas">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Faturamento</h3>
+                                <p class="card-value" id="totalFaturamento">R$ 0,00</p>
+                            </div>
+                        </div>
+                        
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Ticket Médio</h3>
+                                <p class="card-value" id="ticketMedio">R$ 0,00</p>
+                            </div>
+                        </div>
+                        
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Clientes Atendidos</h3>
+                                <p class="card-value" id="totalClientes">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabela de Vendas -->
+                    <div class="tabela-container">
+                        <div class="tabela-header">
+                            <h3><i class="fas fa-list"></i> Vendas Realizadas</h3>
+                            <div class="tabela-actions">
+                                <input type="text" id="buscaVendas" placeholder="Buscar venda..." class="search-input">
+                            </div>
+                        </div>
+                        
+                        <div class="table-wrapper">
+                            <table class="data-table" id="tabelaVendas">
+                                <thead>
+                                    <tr>
+                                        <th>N° Venda</th>
+                                        <th>Data/Hora</th>
+                                        <th>Cliente</th>
+                                        <th>Vendedor</th>
+                                        <th>Canal</th>
+                                        <th>Pagamento</th>
+                                        <th>Total</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vendasTableBody">
+                                    <tr>
+                                        <td colspan="8" class="empty-state">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <p>Carregando vendas...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="pagination" id="vendasPagination">
+                            <button class="btn-pagination" id="prevPageVendas" disabled>
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </button>
+                            <span class="page-info" id="pageInfoVendas">Página 1 de 1</span>
+                            <button class="btn-pagination" id="nextPageVendas" disabled>
+                                Próxima <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- TAB 2: RELATÓRIO DE ESTOQUE -->
+                <div class="tab-content" id="tab-estoque">
+                    <!-- Filtros Estoque -->
+                    <div class="filtros-card">
+                        <h3><i class="fas fa-filter"></i> Filtros</h3>
+                        
+                        <div class="filtros-grid">
+                            <div class="form-group">
+                                <label><i class="fas fa-tag"></i> Categoria</label>
+                                <select id="filtroCategoriaEstoque" class="form-control">
+                                    <option value="todos">Todas</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-chart-line"></i> Status</label>
+                                <select id="filtroStatusEstoque" class="form-control">
+                                    <option value="todos">Todos</option>
+                                    <option value="ativo">Ativos</option>
+                                    <option value="inativo">Inativos</option>
+                                    <option value="baixo">Baixo Estoque</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><i class="fas fa-box"></i> Estoque Mínimo</label>
+                                <select id="filtroMinimoEstoque" class="form-control">
+                                    <option value="todos">Todos</option>
+                                    <option value="abaixo">Abaixo do mínimo</option>
+                                    <option value="acima">Acima do mínimo</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="filtros-actions">
+                            <button class="btn-primary" id="btnAplicarFiltrosEstoque">
+                                <i class="fas fa-search"></i> Aplicar Filtros
+                            </button>
+                            <button class="btn-secondary" id="btnLimparFiltrosEstoque">
+                                <i class="fas fa-undo-alt"></i> Limpar
+                            </button>
+                            <button class="btn-success" id="btnExportarEstoque">
+                                <i class="fas fa-file-excel"></i> Exportar
+                            </button>
+                            <button class="btn-info" id="btnImprimirEstoque">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Cards de Resumo Estoque -->
+                    <div class="resumo-cards">
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Total Produtos</h3>
+                                <p class="card-value" id="totalProdutosEstoque">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Unidades em Estoque</h3>
+                                <p class="card-value" id="totalUnidadesEstoque">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Baixo Estoque</h3>
+                                <p class="card-value" id="baixoEstoqueCount">0</p>
+                            </div>
+                        </div>
+                        
+                        <div class="resumo-card">
+                            <div class="card-icon">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="card-info">
+                                <h3>Valor Total em Estoque</h3>
+                                <p class="card-value" id="valorTotalEstoque">R$ 0,00</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabela de Estoque -->
+                    <div class="tabela-container">
+                        <div class="tabela-header">
+                            <h3><i class="fas fa-list"></i> Produtos em Estoque</h3>
+                            <div class="tabela-actions">
+                                <input type="text" id="buscaEstoque" placeholder="Buscar produto..." class="search-input">
+                            </div>
+                        </div>
+                        
+                        <div class="table-wrapper">
+                            <table class="data-table" id="tabelaEstoque">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Produto</th>
+                                        <th>Categoria</th>
+                                        <th>Quantidade</th>
+                                        <th>Mínimo</th>
+                                        <th>Preço Custo</th>
+                                        <th>Preço Venda</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="estoqueTableBody">
+                                    <tr>
+                                        <td colspan="8" class="empty-state">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            <p>Carregando estoque...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="pagination" id="estoquePagination">
+                            <button class="btn-pagination" id="prevPageEstoque" disabled>
+                                <i class="fas fa-chevron-left"></i> Anterior
+                            </button>
+                            <span class="page-info" id="pageInfoEstoque">Página 1 de 1</span>
+                            <button class="btn-pagination" id="nextPageEstoque" disabled>
+                                Próxima <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p><i class="fas fa-store"></i> <span id="footerLojaNome">Sistema PDV</span> - Relatórios</p>
+                <p id="currentDateTime">--:--:--</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h3 id="loadingMessage">Carregando...</h3>
+        </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="messageAlert" class="message-alert">
+        <div class="message-content">
+            <i class="message-icon"></i>
+            <span class="message-text"></span>
+        </div>
+        <button class="message-close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+
+    <!-- Modal Detalhes da Venda -->
+    <div id="detalhesVendaModal" class="modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3><i class="fas fa-receipt"></i> Detalhes da Venda</h3>
+                <button class="modal-close" onclick="fecharModal('detalhesVendaModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="detalhesVendaBody">
+                <div class="empty-state">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Carregando detalhes...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-print" id="btnImprimirDetalhes">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+                <button class="btn-cancel" onclick="fecharModal('detalhesVendaModal')">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
+    
+    <script src="../../login_firebase.js"></script>
+    <script type="module" src="../../novo_lojas.js"></script>
+    <script src="novo_firebase_config.js" type="module"></script>
+    <script src="relatorios.js" type="module"></script>
+
+    <!-- VALIDAÇÃO DE ACESSO - RELATÓRIOS (depende do estoque/carrinho) -->
+    <script>
+        (async function validarAcessoRelatorios() {
+            console.log('🔒 Validando acesso aos relatórios...');
+            
+            let tentativas = 0;
+            let maxTentativas = 50;
+            let estoqueHabilitado = true;
+            let usuarioPermissao = false;
+            let lojaId = null;
+            
+            function obterLojaIdDaURL() {
+                const path = window.location.pathname;
+                const match = path.match(/\/loja\/([^\/]+)/);
+                return match ? match[1] : null;
+            }
+            
+            while (tentativas < maxTentativas) {
+                lojaId = window.lojaIdAtual || window.lojaServices?.lojaId || obterLojaIdDaURL();
+                
+                if (window.loginDb && lojaId) {
+                    try {
+                        // 1. Verificar se estoque/carrinho está habilitado na loja
+                        const lojaDoc = await window.loginDb
+                            .collection('lojas')
+                            .doc(lojaId)
+                            .get();
+                        
+                        if (lojaDoc.exists) {
+                            const dados = lojaDoc.data();
+                            estoqueHabilitado = dados.habilitar_estoque_carrinho !== false;
+                            console.log(`🛒 Estoque/Carrinho habilitado: ${estoqueHabilitado ? 'SIM' : 'NÃO'}`);
+                        }
+                        
+                        // 2. Verificar permissão do usuário (apenas admin e gerente)
+                        if (window.auth && window.auth.currentUser) {
+                            const email = window.auth.currentUser.email;
+                            
+                            // Verificar admin global
+                            const adminDoc = await window.loginDb
+                                .collection('usuarios')
+                                .doc('admin')
+                                .get();
+                            
+                            if (adminDoc.exists && adminDoc.data()[email]) {
+                                usuarioPermissao = true;
+                                console.log('✅ Usuário é ADMIN global');
+                            } else {
+                                // Verificar funcionário da loja
+                                const funcDoc = await window.loginDb
+                                    .collection('usuarios')
+                                    .doc(lojaId)
+                                    .collection('funcionarios')
+                                    .doc(email)
+                                    .get();
+                                
+                                if (funcDoc.exists) {
+                                    const perfil = funcDoc.data().perfil;
+                                    // Apenas admin e gerente podem ver relatórios
+                                    usuarioPermissao = perfil === 'admin' || perfil === 'gerente';
+                                    console.log(`👤 Perfil: ${perfil} - Acesso a relatórios: ${usuarioPermissao ? 'SIM' : 'NÃO'}`);
+                                }
+                            }
+                        }
+                        break;
+                    } catch(e) {
+                        console.warn('Erro ao verificar:', e);
+                    }
+                }
+                await new Promise(r => setTimeout(r, 500));
+                tentativas++;
+                if (tentativas % 10 === 0) {
+                    console.log(`⏳ Aguardando Firebase... tentativa ${tentativas}/${maxTentativas}`);
+                }
+            }
+            
+            // Verificar acesso
+            if (!estoqueHabilitado) {
+                console.warn('🚫 Funcionalidade de estoque/carrinho desabilitada. Relatórios bloqueados. Redirecionando...');
+                alert('⚠️ A funcionalidade de relatórios está desabilitada nesta loja.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            if (!usuarioPermissao) {
+                console.warn('🚫 Usuário sem permissão para acessar relatórios. Redirecionando...');
+                alert('⚠️ Você não tem permissão para acessar os relatórios.');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            console.log('✅ Acesso aos relatórios permitido');
+        })();
+    </script>    
+</body>
+</html>

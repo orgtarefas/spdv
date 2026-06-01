@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programas de Aprimoramento</title>
+    <link rel="stylesheet" href="programas_aprimoramento.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <button class="btn-back" onclick="window.location.href='index.html'">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </button>
+            <div class="user-info">
+                <i class="fas fa-user-circle"></i>
+                <span id="userName">Carregando...</span>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="totalPontos">0</div>
+                <div class="stat-label">Pontos Totais</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalConcluidos">0/0</div>
+                <div class="stat-label">Concluídos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="nivelAtual">Iniciante</div>
+                <div class="stat-label">Nível</div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-label">
+                <span>Progresso Geral</span>
+                <span id="progressoPercentual">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressoFill"></div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="treinamentos">
+                <i class="fas fa-graduation-cap"></i> Treinamentos
+            </button>
+            <button class="tab" data-tab="videos">
+                <i class="fas fa-video"></i> Vídeos
+            </button>
+            <button class="tab" data-tab="testes">
+                <i class="fas fa-clipboard-list"></i> Testes
+            </button>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div id="tab-treinamentos" class="tab-pane active">
+                <div id="treinamentosList"></div>
+            </div>
+            <div id="tab-videos" class="tab-pane">
+                <div id="videosList"></div>
+            </div>
+            <div id="tab-testes" class="tab-pane">
+                <div id="testesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TREINAMENTO -->
+    <div id="modalTreinamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTreinamentoTitle">Novo Treinamento</h3>
+                <button class="modal-close" onclick="fecharModal('modalTreinamento')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="treinamentoId">
+                <div class="form-group">
+                    <label>Título *</label>
+                    <input type="text" id="treinamentoTitulo" class="form-control" placeholder="Ex: Como usar o sistema">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="treinamentoDescricao" class="form-control" rows="3" placeholder="Descreva o conteúdo do treinamento"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Conteúdo / Material</label>
+                    <textarea id="treinamentoConteudo" class="form-control" rows="5" placeholder="Texto do treinamento, links, etc..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Pontuação</label>
+                    <input type="number" id="treinamentoPontos" class="form-control" value="10" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="treinamentoCategoria" class="form-control">
+                        <option value="iniciante">Iniciante</option>
+                        <option value="intermediario">Intermediário</option>
+                        <option value="avancado">Avançado</option>
+                    </select>
+                </div>
+                
+                <!-- Público-Alvo -->
+                <div class="form-group">
+                    <label><i class="fas fa-users"></i> Público-Alvo</label>
+                    <select id="treinamentoPublicoTipo" class="form-control" onchange="togglePublicoAlvo('treinamento')">
+                        <option value="geral">📢 Geral (Todos os clientes)</option>
+                        <option value="especifico">👤 Clientes Específicos</option>
+                    </select>
+                </div>
+                
+                <div id="treinamentoClientesContainer" class="form-group" style="display: none;">
+                    <label>Selecione os Clientes</label>
+                    <select id="treinamentoClientes" class="form-control" multiple size="5">
+                        <!-- Populado via JavaScript -->
+                    </select>
+                    <small>Segure Ctrl para selecionar múltiplos clientes</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn-cancelar" onclick="fecharModal('modalTreinamento')">Cancelar</button>
+                    <button class="btn-salvar" onclick="salvarTreinamento()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VÍDEO -->
+    <div id="modalVideo" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalVideoTitle">Novo Vídeo</h3>
+                <button class="modal-close" onclick="fecharModal('modalVideo')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="videoId">
+                <div class="form-group">
+                    <label>Título *</label>
+                    <input type="text" id="videoTitulo" class="form-control" placeholder="Ex: Tutorial de Vendas">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="videoDescricao" class="form-control" rows="3" placeholder="Descreva o conteúdo do vídeo"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>URL do Vídeo (YouTube)</label>
+                    <input type="text" id="videoUrl" class="form-control" placeholder="https://youtu.be/XXXXXXX ou https://www.youtube.com/watch?v=XXXXXXX">
+                    <small>Cole a URL do vídeo do YouTube</small>
+                </div>
+                <div class="form-group">
+                    <label>Duração (minutos)</label>
+                    <input type="number" id="videoDuracao" class="form-control" value="5" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Pontuação</label>
+                    <input type="number" id="videoPontos" class="form-control" value="5" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="videoCategoria" class="form-control">
+                        <option value="iniciante">Iniciante</option>
+                        <option value="intermediario">Intermediário</option>
+                        <option value="avancado">Avançado</option>
+                    </select>
+                </div>
+                
+                <!-- Público-Alvo -->
+                <div class="form-group">
+                    <label><i class="fas fa-users"></i> Público-Alvo</label>
+                    <select id="videoPublicoTipo" class="form-control" onchange="togglePublicoAlvo('video')">
+                        <option value="geral">📢 Geral (Todos os clientes)</option>
+                        <option value="especifico">👤 Clientes Específicos</option>
+                    </select>
+                </div>
+                
+                <div id="videoClientesContainer" class="form-group" style="display: none;">
+                    <label>Selecione os Clientes</label>
+                    <select id="videoClientes" class="form-control" multiple size="5">
+                        <!-- Populado via JavaScript -->
+                    </select>
+                    <small>Segure Ctrl para selecionar múltiplos clientes</small>
+                </div>
+                
+                <div class="form-actions">
+                    <button class="btn-cancelar" onclick="fecharModal('modalVideo')">Cancelar</button>
+                    <button class="btn-salvar" onclick="salvarVideo()">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TESTE -->
+    <div id="modalTeste" class="modal modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTesteTitle">Novo Teste</h3>
+                <button class="modal-close" onclick="fecharModal('modalTeste')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="testeId">
+                <div class="form-group">
+                    <label>Título *</label>
+                    <input type="text" id="testeTitulo" class="form-control" placeholder="Ex: Avaliação de Conhecimento">
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="testeDescricao" class="form-control" rows="3" placeholder="Descreva o teste"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Pontuação Máxima</label>
+                    <input type="number" id="testePontosMax" class="form-control" value="100" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Pontuação Mínima para Aprovação (%)</label>
+                    <input type="number" id="testePontosMin" class="form-control" value="70" min="0" max="100">
+                </div>
+                
+                <!-- Público-Alvo -->
+                <div class="form-group">
+                    <label><i class="fas fa-users"></i> Público-Alvo</label>
+                    <select id="testePublicoTipo" class="form-control" onchange="togglePublicoAlvo('teste')">
+                        <option value="geral">📢 Geral (Todos os clientes)</option>
+                        <option value="especifico">👤 Clientes Específicos</option>
+                    </select>
+                </div>
+                
+                <div id="testeClientesContainer" class="form-group" style="display: none;">
+                    <label>Selecione os Clientes</label>
+                    <select id="testeClientes" class="form-control" multiple size="5">
+                        <!-- Populado via JavaScript -->
+                    </select>
+                    <small>Segure Ctrl para selecionar múltiplos clientes</small>
+                </div>
+                
+                <h4>Questões</h4>
+                <div id="questoesContainer"></div>
+                <button type="button" class="btn-add-questao" onclick="adicionarQuestao()">
+                    <i class="fas fa-plus"></i> Adicionar Questão
+                </button>
+                
+                <div class="form-actions">
+                    <button class="btn-cancelar" onclick="fecharModal('modalTeste')">Cancelar</button>
+                    <button class="btn-salvar" onclick="salvarTeste()">Salvar Teste</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" class="loading" style="display: none;">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Carregando...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-check-compat.js"></script>
+    <script src="../../login_firebase.js"></script>
+    <script type="module" src="../../novo_lojas.js"></script>
+    <script type="module" src="novo_firebase_config.js"></script>
+    <script type="module" src="programas_aprimoramento.js"></script>
+</body>
+</html>
