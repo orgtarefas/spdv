@@ -32,7 +32,7 @@ const LOJAS_CONFIG = {
             telefone: '',
             whatsapp: '',
             instagram: '@lojasite',   
-            email: 'lojasite-espaco-vip@proton.me',       
+            email: 'espaco-vip@lojasite.com',       
             endereco: {
                 rua: '',
                 numero: '',
