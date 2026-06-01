@@ -175,9 +175,6 @@ async function buscarPerfilUsuario(email, lojaId) {
         if (adminCheck.isAdmin) {
             console.log('✅ Usuário é ADMIN global');
             
-            // Recarregar para pegar status de verificação
-            await auth.currentUser.reload();
-            
             return {
                 encontrado: true,
                 tipo: 'admin',
@@ -185,7 +182,7 @@ async function buscarPerfilUsuario(email, lojaId) {
                 nome: adminCheck.dados.nome,
                 email: email,
                 ativo: adminCheck.dados.ativo,
-                emailVerificado: auth.currentUser.emailVerified,
+                emailVerificado: true, // Sempre true para admin
                 dados: adminCheck.dados
             };
         }
@@ -198,9 +195,6 @@ async function buscarPerfilUsuario(email, lojaId) {
             const funcData = funcDoc.data();
             console.log('✅ Usuário é FUNCIONÁRIO da loja:', funcData.perfil);
             
-            // Recarregar para pegar status de verificação
-            await auth.currentUser.reload();
-            
             return {
                 encontrado: true,
                 tipo: 'funcionario',
@@ -208,7 +202,7 @@ async function buscarPerfilUsuario(email, lojaId) {
                 nome: funcData.nome,
                 email: email,
                 ativo: funcData.ativo,
-                emailVerificado: auth.currentUser.emailVerified,
+                emailVerificado: true, // Sempre true para funcionários
                 dados: funcData
             };
         }
@@ -221,9 +215,6 @@ async function buscarPerfilUsuario(email, lojaId) {
             const clienteData = clienteDoc.data();
             console.log('✅ Usuário é CLIENTE');
             
-            // Recarregar para pegar status de verificação
-            await auth.currentUser.reload();
-            
             return {
                 encontrado: true,
                 tipo: 'cliente',
@@ -231,7 +222,7 @@ async function buscarPerfilUsuario(email, lojaId) {
                 nome: clienteData.nome,
                 email: email,
                 ativo: clienteData.ativo,
-                emailVerificado: auth.currentUser.emailVerified,
+                emailVerificado: true, // Sempre true - não precisa mais verificar
                 dados: clienteData
             };
         }
@@ -282,48 +273,15 @@ async function verificarPerfilSimples(email, lojaId) {
 }
 
 // ============================================
-// FUNÇÃO PRINCIPAL DE LOGIN
+// FUNÇÃO PRINCIPAL DE LOGIN (SEM VALIDAÇÃO DE E-MAIL)
 // ============================================
 async function fazerLogin(email, senha) {
     try {
         const userCredential = await auth.signInWithEmailAndPassword(email, senha);
         const user = userCredential.user;
         
-        // VERIFICAR SE O EMAIL FOI VERIFICADO
-        if (!user.emailVerified) {
-            // REENVIAR EMAIL AUTOMATICAMENTE
-            try {
-                await user.sendEmailVerification();
-                console.log('📧 Novo email de verificação enviado para:', email);
-                
-                // ATUALIZAR O TIMESTAMP NO FIRESTORE (se for cliente)
-                const lojaAtual = getLojaDaURL();
-                
-                // Só atualizar timestamp se for cliente (funcionários e admin não têm esse campo)
-                const perfilTemp = await verificarPerfilSimples(email, lojaAtual);
-                if (perfilTemp.tipo === 'cliente') {
-                    await loginDb.collection('usuarios').doc(lojaAtual)
-                           .collection('clientes').doc(email)
-                           .update({
-                               ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp()
-                           });
-                }
-                
-            } catch (sendError) {
-                console.error('Erro ao reenviar email:', sendError);
-            }
-            
-            await auth.signOut();
-            
-            return {
-                sucesso: false,
-                tipo: 'email_nao_verificado',
-                email: email,
-                erro: `❌ Login não realizado: o e-mail ${email} ainda não foi verificado.\n\n📧 Enviamos um novo link de verificação para este e-mail.\nPor favor, verifique sua caixa de entrada (e spam) e clique no link antes de tentar logar novamente.`
-            };
-        }
+        // 🔥 REMOVIDA A VERIFICAÇÃO DE E-MAIL - LOGIN PERMITIDO DIRETAMENTE
         
-        // SE CHEGOU AQUI, EMAIL ESTÁ VERIFICADO
         const lojaAtual = getLojaDaURL();
         
         if (!lojaAtual) {
@@ -424,7 +382,7 @@ async function fazerLogin(email, senha) {
                 nivel: perfil.perfil,
                 tipo: perfil.tipo,
                 loja: lojaAtual,
-                emailVerificado: true,
+                emailVerificado: true, // Sempre true
                 dados: perfil.dados
             },
             permissoes: permissoes
@@ -490,7 +448,7 @@ async function fazerLogin(email, senha) {
 }
 
 // ============================================
-// CADASTRO DE CLIENTE COM CAMPOS SOLICITADOS
+// CADASTRO DE CLIENTE (SEM ENVIO DE E-MAIL DE VERIFICAÇÃO)
 // ============================================
 async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cidade, cep) {
     try {
@@ -512,10 +470,9 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
         // 2. Atualizar perfil com nome
         await user.updateProfile({ displayName: nome });
         
-        // 3. ENVIAR EMAIL DE VERIFICAÇÃO
-        await user.sendEmailVerification();
+        // 🔥 REMOVIDO O ENVIO DE E-MAIL DE VERIFICAÇÃO
         
-        // 4. SALVAR NO FIRESTORE COM OS DOIS CAMPOS
+        // 3. SALVAR NO FIRESTORE
         const dadosCliente = {
             nome: nome,
             email: email,
@@ -526,8 +483,7 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
             cep: cep || '',
             perfil: 'cliente',
             ativo: true,
-            emailVerificado: false,
-            ultimo_envio_email_valida: firebase.firestore.FieldValue.serverTimestamp(),
+            emailVerificado: true, // Sempre true agora
             data_cadastro: firebase.firestore.FieldValue.serverTimestamp(),
             uid: user.uid
         };
@@ -535,14 +491,13 @@ async function cadastrarCliente(nome, email, senha, telefone, cpf, endereco, cid
         await loginDb.collection('usuarios').doc(lojaAtual)
                .collection('clientes').doc(email).set(dadosCliente);
         
-        // 5. FAZER LOGOUT (não queremos usuário logado sem verificação)
-        await auth.signOut();
+        // 🔥 NÃO FAZER LOGOUT - usuário já pode acessar
         
         return {
             sucesso: true,
-            precisaVerificar: true,
+            precisaVerificar: false, // Não precisa mais verificar
             email: email,
-            mensagem: `✅ Cadastro realizado! Enviamos um e-mail para ${email}.\n\nVocê tem 30 minutos para verificar seu e-mail.\nApós verificar, faça o login normalmente.`
+            mensagem: `✅ Cadastro realizado com sucesso! Você já pode fazer login.`
         };
         
     } catch (error) {
@@ -592,86 +547,27 @@ async function recuperarSenha(email) {
 }
 
 // ============================================
-// FUNÇÃO PARA REENVIAR EMAIL DE VERIFICAÇÃO
+// FUNÇÃO REENVIAR EMAIL (DESATIVADA - RETORNA ERRO CLARO)
 // ============================================
 async function reenviarEmailVerificacao(email) {
-    try {
-        const lojaAtual = getLojaDaURL();
-        
-        console.log(`📧 Solicitando reenvio para: ${email}`);
-        
-        // Verificar se o e-mail existe no Firestore
-        const clienteQuery = await loginDb.collection('usuarios').doc(lojaAtual)
-            .collection('clientes')
-            .where('email', '==', email)
-            .limit(1)
-            .get();
-        
-        if (clienteQuery.empty) {
-            return { 
-                sucesso: false, 
-                erro: '❌ E-mail não encontrado. Faça um novo cadastro.' 
-            };
-        }
-        
-        const clienteData = clienteQuery.docs[0].data();
-        
-        // Se já estiver verificado, não precisa reenviar
-        if (clienteData.emailVerificado) {
-            return { 
-                sucesso: false, 
-                erro: '✅ Este e-mail já foi verificado. Faça o login.' 
-            };
-        }
-        
-        // Retornar instrução clara para o usuário
-        return { 
-            sucesso: false, 
-            redirecionarLogin: true,
-            email: email,
-            erro: '📧 Para receber um novo link de verificação, faça o login com sua senha. O sistema enviará automaticamente um novo e-mail.'
-        };
-        
-    } catch (error) {
-        console.error('Erro:', error);
-        return { 
-            sucesso: false, 
-            erro: error.message 
-        };
-    }
+    // Função mantida para compatibilidade, mas não faz mais nada
+    return { 
+        sucesso: false, 
+        erro: '⚠️ A verificação de e-mail não é mais necessária. Faça login diretamente.' 
+    };
 }
 
 // ============================================
-// FUNÇÃO PARA VERIFICAR TEMPO RESTANTE
+// FUNÇÃO VERIFICAR TEMPO RESTANTE (DESATIVADA)
 // ============================================
 async function verificarTempoRestante(email) {
-    try {
-        const lojaAtual = getLojaDaURL();
-        const clienteDoc = await loginDb.collection('usuarios').doc(lojaAtual)
-                               .collection('clientes').doc(email).get();
-        
-        if (!clienteDoc.exists) {
-            return { encontrado: false };
-        }
-        
-        const dados = clienteDoc.data();
-        const ultimoEnvio = dados.ultimo_envio_email_valida?.toDate?.() || new Date();
-        const agora = new Date();
-        const minutosPassados = Math.round((agora - ultimoEnvio) / (1000 * 60));
-        const minutosRestantes = Math.max(0, 30 - minutosPassados);
-        
-        return {
-            encontrado: true,
-            emailVerificado: dados.emailVerificado,
-            minutosPassados,
-            minutosRestantes,
-            expirado: minutosPassados > 30 && !dados.emailVerificado
-        };
-        
-    } catch (error) {
-        console.error('Erro ao verificar tempo:', error);
-        return { encontrado: false, erro: error.message };
-    }
+    // Retorna que não precisa mais verificar
+    return { 
+        encontrado: true, 
+        emailVerificado: true, 
+        minutosRestantes: 0,
+        expirado: false 
+    };
 }
 
 // ============================================
@@ -735,23 +631,13 @@ async function verificarPermissao(acao, email, lojaId) {
 }
 
 // ============================================
-// LISTENER DE AUTENTICAÇÃO (VERSÃO SEGURA)
+// LISTENER DE AUTENTICAÇÃO (SEM VALIDAÇÃO DE E-MAIL)
 // ============================================
 auth.onAuthStateChanged(async (user) => {
     if (user) {
         console.log('👤 Usuário autenticado:', user.email);
-        console.log('📧 Email verificado:', user.emailVerified);
         
-        if (!user.emailVerified) {
-            console.log('⚠️ Email não verificado');
-            window.dispatchEvent(new CustomEvent('usuarioNaoVerificado', { 
-                detail: { 
-                    email: user.email,
-                    uid: user.uid
-                }
-            }));
-            return;
-        }
+        // 🔥 REMOVIDA A VERIFICAÇÃO DE E-MAIL
         
         const lojaAtual = getLojaDaURL();
         
@@ -851,7 +737,7 @@ window.verificarPermissao = verificarPermissao;
 window.auth = auth;    
 window.loginDb = loginDb;    
 
-console.log('✅ Sistema de login carregado com campos de verificação');
+console.log('✅ Sistema de login carregado (sem validação de e-mail)');
 console.log('📋 Funções disponíveis:', {
     fazerLogin: typeof fazerLogin,
     cadastrarCliente: typeof cadastrarCliente,
@@ -859,7 +745,3 @@ console.log('📋 Funções disponíveis:', {
     reenviarEmailVerificacao: typeof reenviarEmailVerificacao,
     verificarPermissao: typeof verificarPermissao
 });
-
-
-
-
