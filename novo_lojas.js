@@ -23,8 +23,32 @@ const LOJAS_CONFIG = {
         banco_estoque: 'estoque_template_exibicao',
         banco_vendas: 'vendas_template_exibicao'
     },
+
+
+    // Loja 1: Espaço Vip
+    'espaco-vip': {
+        nome: 'Espaço Vip',
+        contato: {
+            telefone: '',
+            whatsapp: '',
+            instagram: '@lojasite',   
+            email: 'lojasite-espaco-vip@proton.me',       
+            endereco: {
+                rua: '',
+                numero: '',
+                complemento: '',
+                bairro: '',
+                cidade: 'Salvador',
+                uf: 'BA',
+                cep: ''
+                
+            },    
+        },
+        banco_estoque: 'estoque_espaco_vip',
+        banco_vendas: 'vendas_espaco_vip'
+    },    
     
-    // Loja 1: MJ Materiais de Construção
+    // Loja 2: MJ Materiais de Construção
     'mj-materiais-construcao': {
         nome: 'MJ Materiais de Construção',
         contato: {
@@ -47,7 +71,7 @@ const LOJAS_CONFIG = {
         banco_vendas: 'vendas_mj_construcoes'
     },
     
-    // Loja 2: Açaí Ponto 11
+    // Loja 3: Açaí Ponto 11
     'acai-ponto-11': {
         nome: 'Açaí Ponto 11',
         contato: {
@@ -70,7 +94,7 @@ const LOJAS_CONFIG = {
         banco_vendas: 'vendas_acai_ponto_11'
     },
 
-    // Loja 3: Teste Operacional
+    // Loja 4: Teste Operacional
     'teste_operacional': {
         nome: 'Teste Operacional',
         contato: {
@@ -93,7 +117,7 @@ const LOJAS_CONFIG = {
         banco_vendas: 'vendas_teste_operacional'
     },
 
-    // Loja 4: Casa do Borracheiro
+    // Loja 5: Casa do Borracheiro
     'casa-do-borracheiro': {
         nome: 'Casa do Borracheiro',
         contato: {
